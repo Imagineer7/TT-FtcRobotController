@@ -52,6 +52,13 @@ public class MechanumDrive {
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);    // TO FIX: Change to FORWARD
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);  // TO FIX: Change to REVERSE
         rightBackDrive.setDirection(DcMotor.Direction.REVERSE);   // TO FIX: Change to REVERSE
+
+        // CORRECTED MOTOR DIRECTIONS based on diagnostic test results
+        // The diagnostic showed that most motors were going in wrong directions
+        leftFrontDrive.setDirection(DcMotor.Direction.FORWARD);    // Was REVERSE, caused wrong diagonal
+        leftBackDrive.setDirection(DcMotor.Direction.FORWARD);     // Was REVERSE, caused wrong direction
+        rightFrontDrive.setDirection(DcMotor.Direction.REVERSE);   // Was FORWARD, caused wrong diagonal
+        rightBackDrive.setDirection(DcMotor.Direction.REVERSE);    // Keep REVERSE, this one was correct
     }
 
     public void toggleSlowDrive() {
