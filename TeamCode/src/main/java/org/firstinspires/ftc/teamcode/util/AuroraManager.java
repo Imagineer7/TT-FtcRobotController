@@ -48,12 +48,19 @@ public class AuroraManager {
     private boolean systemsHealthy = true;
     private String lastError = "";
 
+    // Initialization error tracking
+    private String driveInitError = "";
+    private String shooterInitError = "";
+    private boolean driveInitialized = false;
+    private boolean shooterInitialized = false;
+
     // Coordination flags
     private boolean shootingMode = false;
     private boolean precisionDriving = false;
+    private SmartMechanumDrive.DriveMode savedDriveMode = SmartMechanumDrive.DriveMode.SPORT; // Track original mode
 
     // Driver mode configuration
-    private DriverMode currentDriverMode = DriverMode.SINGLE_DRIVER;
+    private DriverMode currentDriverMode = DriverMode.DUAL_DRIVER;
     private boolean prevModeToggleButton = false;
 
     // Recording mode support
@@ -80,28 +87,60 @@ public class AuroraManager {
      * Initialize all subsystems with error handling
      */
     private void initializeSystems() {
+        // Initialize drive system with graceful error handling
         try {
-            // Initialize drive system
-            DcMotor leftFront = hardwareMap.get(DcMotor.class, "leftFront");
-            DcMotor rightFront = hardwareMap.get(DcMotor.class, "rightFront");
-            DcMotor leftBack = hardwareMap.get(DcMotor.class, "leftBack");
-            DcMotor rightBack = hardwareMap.get(DcMotor.class, "rightBack");
+            DcMotor leftFront = hardwareMap.get(DcMotor.class, "frontLeft");
+            DcMotor rightFront = hardwareMap.get(DcMotor.class, "frontRight");
+            DcMotor leftBack = hardwareMap.get(DcMotor.class, "backLeft");
+            DcMotor rightBack = hardwareMap.get(DcMotor.class, "backRight");
 
             driveSystem = new SmartMechanumDrive(leftFront, rightFront, leftBack, rightBack, null, voltageSensor);
-
-            // Initialize shooter system
-            shooterSystem = new EnhancedDecodeHelper(hardwareMap);
-
-            // Initialize movement recorder
-            movementRecorder = new MovementRecorder();
-
-            telemetry.addLine("✅ All systems initialized successfully");
+            driveInitialized = true;
+            driveInitError = ""; // Clear any previous error
+            telemetry.addLine("✅ Drive system initialized successfully");
 
         } catch (Exception e) {
-            systemsHealthy = false;
-            lastError = "Initialization failed: " + e.getMessage();
-            telemetry.addLine("❌ System initialization failed: " + e.getMessage());
+            driveSystem = null;
+            driveInitialized = false;
+            driveInitError = e.getMessage();
+            telemetry.addLine("⚠️ Drive system failed: " + e.getMessage());
+            telemetry.addLine("   Check motor names in hardware configuration:");
+            telemetry.addLine("   Expected: leftFront, rightFront, leftBack, rightBack");
         }
+
+        // Initialize shooter system with graceful error handling
+        try {
+            shooterSystem = new EnhancedDecodeHelper(hardwareMap);
+            shooterInitialized = true;
+            shooterInitError = ""; // Clear any previous error
+            telemetry.addLine("✅ Shooter system initialized successfully");
+
+        } catch (Exception e) {
+            shooterSystem = null;
+            shooterInitialized = false;
+            shooterInitError = e.getMessage();
+            telemetry.addLine("⚠️ Shooter system failed: " + e.getMessage());
+        }
+
+        // Initialize movement recorder (this shouldn't fail)
+        try {
+            movementRecorder = new MovementRecorder();
+            telemetry.addLine("✅ Movement recorder initialized successfully");
+        } catch (Exception e) {
+            movementRecorder = null;
+            telemetry.addLine("⚠️ Movement recorder failed: " + e.getMessage());
+        }
+
+        // System is healthy if at least one major subsystem works, or if we want to allow basic operation
+        systemsHealthy = true; // Always allow basic operation for debugging
+
+        if (!driveInitialized && !shooterInitialized) {
+            telemetry.addLine("⚠️ WARNING: No major subsystems initialized");
+            telemetry.addLine("   Gamepad controls will still work for testing");
+        }
+
+        telemetry.addLine("🎮 Gamepad controls enabled");
+        lastError = ""; // Clear any previous errors
     }
 
     /**
@@ -149,11 +188,16 @@ public class AuroraManager {
             handleDriveControls(gamepad1);
         }
 
-        // Adjust drive behavior based on robot state
-        if (shootingMode) {
+        // Adjust drive behavior based on robot state with proper mode restoration
+        if (shootingMode || precisionDriving) {
+            // Save current mode before switching to precision (if not already saved)
+            if (!shootingMode && !precisionDriving) {
+                savedDriveMode = driveSystem.getCurrentMode();
+            }
             driveSystem.setCurrentMode(SmartMechanumDrive.DriveMode.PRECISION);
-        } else if (precisionDriving) {
-            driveSystem.setCurrentMode(SmartMechanumDrive.DriveMode.PRECISION);
+        } else {
+            // Restore saved mode when neither shooting nor precision driving
+            driveSystem.setCurrentMode(savedDriveMode);
         }
 
         driveSystem.update();
@@ -163,6 +207,14 @@ public class AuroraManager {
      * Handle drive-specific controls
      */
     private void handleDriveControls(Gamepad gamepad) {
+        // Set main joystick inputs for basic movement
+        double axial = -gamepad.right_stick_y;   // Forward/backward (inverted)
+        double lateral = gamepad.right_stick_x;  // Strafe left/right
+        double yaw = gamepad.left_stick_x;     // Rotation
+
+        // Pass the main joystick inputs to the drive system
+        driveSystem.setDriveInputs(axial, lateral, yaw);
+
         // Drive mode switching
         if (gamepad.dpad_up) {
             // Fine forward movement
@@ -319,7 +371,7 @@ public class AuroraManager {
             // Cancel semi-auto (but not if D-pad is being used for fine movement or mode toggle)
             precisionDriving = false;
             if (driveSystem != null) {
-                driveSystem.setCurrentMode(SmartMechanumDrive.DriveMode.NORMAL);
+                driveSystem.setCurrentMode(SmartMechanumDrive.DriveMode.SPORT);
             }
         }
     }
@@ -375,8 +427,11 @@ public class AuroraManager {
         double voltage = voltageSensor != null ? voltageSensor.getVoltage() : 12.0;
         globalMonitor.recordVoltage(voltage);
 
-        if (voltage < 11.0) {
-            // Low battery - reduce all system performance
+        // Let the SmartMechanumDrive handle its own voltage-based mode switching
+        // with sustained voltage monitoring to avoid false triggers during motor startup
+        // Only handle extremely critical voltage levels here for system-wide coordination
+        if (voltage < 9.5) {
+            // Only intervene at critically low voltage (below what SmartMechanumDrive handles)
             if (driveSystem != null) {
                 driveSystem.setCurrentMode(SmartMechanumDrive.DriveMode.EFFICIENCY);
             }
@@ -393,14 +448,28 @@ public class AuroraManager {
      * Monitor overall system health
      */
     private void checkSystemHealth() {
-        boolean driveHealthy = driveSystem != null && driveSystem.getCurrentVoltage() > 10.0;
-        boolean shooterHealthy = shooterSystem != null && !shooterSystem.isEmergencyStop();
-        boolean performanceHealthy = !globalMonitor.isPerformanceDegraded();
+        // Check individual subsystem health but be more tolerant of missing hardware
+        boolean driveHealthy = driveSystem == null || driveSystem.getCurrentVoltage() > 10.0;
+        boolean shooterHealthy = shooterSystem == null || !shooterSystem.isEmergencyStop();
+        boolean performanceHealthy = globalMonitor == null || !globalMonitor.isPerformanceDegraded();
 
+        // System is healthy if no critical failures exist
+        // Allow operation even if some subsystems are missing (null)
         systemsHealthy = driveHealthy && shooterHealthy && performanceHealthy;
 
+        // Only set error if there's an actual problem, not just missing hardware
         if (!systemsHealthy) {
-            lastError = "System health check failed";
+            if (driveSystem != null && driveSystem.getCurrentVoltage() <= 10.0) {
+                lastError = "Critical battery voltage: " + driveSystem.getCurrentVoltage() + "V";
+            } else if (shooterSystem != null && shooterSystem.isEmergencyStop()) {
+                lastError = "Shooter emergency stop active";
+            } else if (globalMonitor != null && globalMonitor.isPerformanceDegraded()) {
+                lastError = "Performance degraded";
+            } else {
+                lastError = "Unknown system health issue";
+            }
+        } else {
+            lastError = ""; // Clear error when healthy
         }
     }
 
@@ -494,6 +563,14 @@ public class AuroraManager {
     public MovementRecorder getMovementRecorder() { return movementRecorder; }
     public boolean isSystemsHealthy() { return systemsHealthy; }
     public boolean isRecordingMode() { return recordingMode; }
+
+    /**
+     * Get initialization status and error information
+     */
+    public boolean isDriveSystemInitialized() { return driveInitialized; }
+    public boolean isShooterSystemInitialized() { return shooterInitialized; }
+    public String getDriveInitError() { return driveInitError; }
+    public String getShooterInitError() { return shooterInitError; }
 
     /**
      * Enable/disable recording mode

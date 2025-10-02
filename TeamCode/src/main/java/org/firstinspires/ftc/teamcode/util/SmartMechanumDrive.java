@@ -52,7 +52,7 @@ public class SmartMechanumDrive {
     }
 
     // State management
-    private DriveMode currentMode = DriveMode.NORMAL;
+    private DriveMode currentMode = DriveMode.SPORT;
     private boolean fieldRelative = false;
     private double robotHeading = 0;
 
@@ -60,12 +60,16 @@ public class SmartMechanumDrive {
     private ElapsedTime accelerationTimer = new ElapsedTime();
     private double[] lastMotorPowers = new double[4];
     private double[] targetMotorPowers = new double[4];
-    private static final double ACCELERATION_LIMIT = 2.0; // Power units per second
+    private static final double ACCELERATION_LIMIT = 5.0; // Power units per second
 
     // Battery optimization
     private double nominalVoltage = 12.0;
     private double currentVoltage = 12.0;
     private boolean batteryOptimization = true;
+    private static final double LOW_VOLTAGE_THRESHOLD = 10.5; // Voltage threshold for efficiency mode
+    private static final double LOW_VOLTAGE_DURATION = 3.0; // Seconds voltage must be low before switching
+    private ElapsedTime lowVoltageTimer = new ElapsedTime();
+    private boolean voltageConsistentlyLow = false;
 
     // Driver analytics
     private double totalDistance = 0;
@@ -83,6 +87,11 @@ public class SmartMechanumDrive {
     private double fineY = 0.0;
     private double fineRotation = 0.0;
 
+    // Manual drive inputs (used when gamepad is null)
+    private double manualAxial = 0.0;
+    private double manualLateral = 0.0;
+    private double manualYaw = 0.0;
+
     /**
      * Constructor
      */
@@ -97,6 +106,15 @@ public class SmartMechanumDrive {
         this.voltageSensor = voltageSensor;
 
         configureMotors();
+    }
+
+    /**
+     * Set drive inputs manually (alternative to gamepad input)
+     */
+    public void setDriveInputs(double axial, double lateral, double yaw) {
+        this.manualAxial = axial;
+        this.manualLateral = lateral;
+        this.manualYaw = yaw;
     }
 
     /**
@@ -126,10 +144,13 @@ public class SmartMechanumDrive {
     public void update() {
         updateBatteryStatus();
 
-        // Get raw joystick inputs
-        double axial = -gamepad.left_stick_y;
-        double lateral = gamepad.left_stick_x;
-        double yaw = gamepad.right_stick_x;
+        // Get raw joystick inputs - prioritize manual inputs from AuroraManager
+        double axial, lateral, yaw;
+
+        // Always use manual inputs since AuroraManager handles all gamepad processing
+        axial = manualAxial;
+        lateral = manualLateral;
+        yaw = manualYaw;
 
         // Apply field-relative transformation if enabled
         if (fieldRelative) {
@@ -222,9 +243,9 @@ public class SmartMechanumDrive {
                 break;
 
             case AUTO_ADAPTIVE:
-                // Adjust based on current conditions
-                if (currentVoltage < 11.0) {
-                    modeMultiplier *= 0.8; // Reduce power on low battery
+                // Adjust based on current conditions - only if voltage has been consistently low
+                if (voltageConsistentlyLow) {
+                    modeMultiplier *= 0.8; // Reduce power on sustained low battery
                 }
                 break;
         }
@@ -271,6 +292,16 @@ public class SmartMechanumDrive {
     private void updateBatteryStatus() {
         if (voltageSensor != null) {
             currentVoltage = voltageSensor.getVoltage();
+        }
+
+        // Check for sustained low voltage
+        if (currentVoltage < LOW_VOLTAGE_THRESHOLD) {
+            if (lowVoltageTimer.seconds() > LOW_VOLTAGE_DURATION) {
+                voltageConsistentlyLow = true;
+            }
+        } else {
+            lowVoltageTimer.reset();
+            voltageConsistentlyLow = false;
         }
     }
 
@@ -354,7 +385,7 @@ public class SmartMechanumDrive {
             sharpTurns,
             averageSpeed,
             lastMotorPowers.clone(),
-            currentVoltage < 11.0
+            currentVoltage < LOW_VOLTAGE_THRESHOLD
         );
     }
 

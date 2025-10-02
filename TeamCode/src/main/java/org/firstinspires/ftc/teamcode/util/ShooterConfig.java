@@ -1,4 +1,4 @@
- /* Copyright (c) 2025 FTC Team. All rights reserved.
+/* Copyright (c) 2025 FTC Team. All rights reserved.
  *
  * Configurable shooter parameters for different game scenarios
  */
@@ -14,11 +14,11 @@ public class ShooterConfig {
 
     // Preset configurations for different scenarios
     public enum ShooterPreset {
-        LONG_RANGE("Long Range", 0.75, 4500, 1.5, 2.0),
-        SHORT_RANGE("Short Range", 0.55, 3300, 1.2, 1.2),
-        RAPID_FIRE("Rapid Fire", 0.65, 3900, 0.8, 1.0),
-        PRECISION("Precision", 0.80, 4800, 2.0, 2.5),
-        BATTERY_SAVER("Battery Saver", 0.50, 3000, 1.8, 1.5);
+        LONG_RANGE("Long Range", 0.85, 4500, 1.5, 2.0),
+        SHORT_RANGE("Short Range", 0.70, 3300, 1.2, 1.2),
+        RAPID_FIRE("Rapid Fire", 0.80, 3900, 0.8, 1.0),
+        PRECISION("Precision", 0.90, 4800, 2.0, 2.5),
+        BATTERY_SAVER("Battery Saver", 0.65, 3000, 1.8, 1.5);
 
         private final String name;
         private final double power;
@@ -78,9 +78,17 @@ public class ShooterConfig {
         double basePower = currentPreset.getPower();
 
         if (batteryCompensation && batteryVoltage > 0) {
-            // Compensate for battery voltage drop
+            // More aggressive compensation for battery voltage drop
             double voltageRatio = nominalVoltage / Math.max(batteryVoltage, minVoltage);
-            basePower = Math.min(1.0, basePower * voltageRatio);
+
+            // Apply more aggressive scaling when voltage drops significantly
+            if (batteryVoltage < nominalVoltage * 0.9) {
+                // Below 90% of nominal voltage, use more aggressive compensation
+                voltageRatio = Math.pow(voltageRatio, 0.8); // Less aggressive curve
+                basePower = Math.min(1.0, basePower * voltageRatio * 1.1); // Extra 10% boost
+            } else {
+                basePower = Math.min(1.0, basePower * voltageRatio);
+            }
         }
 
         return basePower;

@@ -51,6 +51,16 @@ public class EnhancedDecodeHelper {
     private double lastStableRpmTime = 0;
     private static final double COUNTS_PER_REV = 28.0;
 
+    // Dynamic RPM control
+    private double currentPower = 0;
+    private double rpmError = 0;
+    private double lastRpmError = 0;
+    private double rpmErrorSum = 0;
+    private static final double RPM_KP = 0.0001; // Proportional gain
+    private static final double RPM_KI = 0.00005; // Integral gain
+    private static final double RPM_KD = 0.00002; // Derivative gain
+    private static final double MAX_POWER_ADJUSTMENT = 0.3; // Maximum power adjustment
+
     // Safety systems
     private boolean emergencyStop = false;
     private int consecutiveFailures = 0;
@@ -134,25 +144,28 @@ public class EnhancedDecodeHelper {
     }
 
     /**
-     * Start shooter with voltage compensation
+     * Start shooter with voltage compensation and dynamic RPM control
      */
     public void startShooter() {
         double batteryVoltage = voltageSensor != null ? voltageSensor.getVoltage() : 12.0;
-        double compensatedPower = config.getPower(batteryVoltage);
+        currentPower = config.getPower(batteryVoltage);
 
-        shooter.setPower(compensatedPower);
+        shooter.setPower(currentPower);
         shooterRunning = true;
         shooterStartTime = clock.seconds();
 
-        // Reset RPM tracking
+        // Reset RPM tracking and control
         lastEncoderPosition = shooter.getCurrentPosition();
         lastRpmCheckTime = shooterStartTime;
         currentRPM = 0;
         rpmIsStable = false;
+        rpmError = 0;
+        lastRpmError = 0;
+        rpmErrorSum = 0;
     }
 
     /**
-     * Enhanced RPM calculation with performance tracking
+     * Enhanced RPM calculation with dynamic power adjustment
      */
     private void updateRPM() {
         if (!shooterRunning) {
@@ -169,6 +182,9 @@ public class EnhancedDecodeHelper {
             int deltaPosition = currentPosition - lastEncoderPosition;
 
             currentRPM = Math.abs((deltaPosition / deltaTime) * 60.0 / COUNTS_PER_REV);
+
+            // Dynamic RPM control - adjust power to reach target RPM
+            adjustPowerForTargetRPM(deltaTime);
 
             // Record RPM for performance monitoring
             monitor.recordRPM(currentRPM);
@@ -189,6 +205,49 @@ public class EnhancedDecodeHelper {
                 rpmIsStable = false;
             }
         }
+    }
+
+    /**
+     * Dynamic power adjustment to reach target RPM using PID-like control
+     */
+    private void adjustPowerForTargetRPM(double deltaTime) {
+        double targetRpm = config.getTargetRPM();
+        lastRpmError = rpmError;
+        rpmError = targetRpm - currentRPM;
+
+        // Only start adjusting power after initial spinup time
+        if (clock.seconds() - shooterStartTime < 1.0) {
+            return;
+        }
+
+        // PID-like control calculation
+        double proportional = rpmError * RPM_KP;
+
+        // Integral term (with windup protection)
+        rpmErrorSum += rpmError * deltaTime;
+        if (Math.abs(rpmErrorSum) > 1000) { // Prevent windup
+            rpmErrorSum = Math.signum(rpmErrorSum) * 1000;
+        }
+        double integral = rpmErrorSum * RPM_KI;
+
+        // Derivative term
+        double derivative = ((rpmError - lastRpmError) / deltaTime) * RPM_KD;
+
+        // Calculate power adjustment
+        double powerAdjustment = proportional + integral + derivative;
+
+        // Limit the adjustment magnitude
+        powerAdjustment = Math.max(-MAX_POWER_ADJUSTMENT,
+                         Math.min(MAX_POWER_ADJUSTMENT, powerAdjustment));
+
+        // Apply adjustment to current power
+        currentPower += powerAdjustment;
+
+        // Ensure power stays within valid range
+        currentPower = Math.max(0.0, Math.min(1.0, currentPower));
+
+        // Update motor power
+        shooter.setPower(currentPower);
     }
 
     /**

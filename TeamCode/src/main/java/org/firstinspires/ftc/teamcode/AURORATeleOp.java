@@ -70,7 +70,7 @@ public class AURORATeleOp extends LinearOpMode {
     @Override
     public void runOpMode() {
         // Initialize the robot systems
-        telemetry.addLine("Initializing AURORA Enhanced Robot Systems...");
+        telemetry.addLine("Initializing AURORA Robot Systems...");
         telemetry.update();
 
         // Initialize the unified robot system manager
@@ -119,6 +119,9 @@ public class AURORATeleOp extends LinearOpMode {
             // Handle telemetry page cycling through smart telemetry manager
             smartTelemetry.handlePageCycling(gamepad1.x);
 
+            // Add debug information about gamepad inputs for troubleshooting
+            //addGamepadDebugInfo();
+
             // Update smart telemetry display
             smartTelemetry.updateDisplay(emergencyStop);
         }
@@ -162,7 +165,7 @@ public class AURORATeleOp extends LinearOpMode {
             if (robotManager.getDriveSystem() != null) {
                 // Toggle between PRECISION and NORMAL modes
                 if (robotManager.getDriveSystem().getCurrentMode() == SmartMechanumDrive.DriveMode.PRECISION) {
-                    robotManager.getDriveSystem().setCurrentMode(SmartMechanumDrive.DriveMode.NORMAL);
+                    robotManager.getDriveSystem().setCurrentMode(SmartMechanumDrive.DriveMode.SPORT);
                 } else {
                     robotManager.getDriveSystem().setCurrentMode(SmartMechanumDrive.DriveMode.PRECISION);
                 }
@@ -200,5 +203,33 @@ public class AURORATeleOp extends LinearOpMode {
         if (gamepad1.back || gamepad2.back) {
             emergencyStop = false;
         }
+    }
+
+    /**
+     * Add debug information about gamepad inputs
+     * This method outputs the current state of the gamepad inputs to telemetry
+     * to help troubleshoot any issues with gamepad control.
+     */
+    private void addGamepadDebugInfo() {
+        // Log gamepad 1 inputs
+        telemetry.addData("GP1 - Left Stick (X,Y)", "%.2f, %.2f", gamepad1.left_stick_x, gamepad1.left_stick_y);
+        telemetry.addData("GP1 - Right Stick (X,Y)", "%.2f, %.2f", gamepad1.right_stick_x, gamepad1.right_stick_y);
+        telemetry.addData("GP1 - Triggers (LT,RT)", "%.2f, %.2f", gamepad1.left_trigger, gamepad1.right_trigger);
+        telemetry.addData("GP1 - Bumpers (LB,RB)", "%s, %s", gamepad1.left_bumper, gamepad1.right_bumper);
+        telemetry.addData("GP1 - D-pad (U,D,L,R)", "%s, %s, %s, %s", gamepad1.dpad_up, gamepad1.dpad_down, gamepad1.dpad_left, gamepad1.dpad_right);
+        telemetry.addData("GP1 - Buttons (A,B,X,Y)", "%s, %s, %s, %s", gamepad1.a, gamepad1.b, gamepad1.x, gamepad1.y);
+        telemetry.addData("GP1 - Start, Back", "%s, %s", gamepad1.start, gamepad1.back);
+
+        // Log gamepad 2 inputs
+        telemetry.addData("GP2 - Left Stick (X,Y)", "%.2f, %.2f", gamepad2.left_stick_x, gamepad2.left_stick_y);
+        telemetry.addData("GP2 - Right Stick (X,Y)", "%.2f, %.2f", gamepad2.right_stick_x, gamepad2.right_stick_y);
+        telemetry.addData("GP2 - Triggers (LT,RT)", "%.2f, %.2f", gamepad2.left_trigger, gamepad2.right_trigger);
+        telemetry.addData("GP2 - Bumpers (LB,RB)", "%s, %s", gamepad2.left_bumper, gamepad2.right_bumper);
+        telemetry.addData("GP2 - D-pad (U,D,L,R)", "%s, %s, %s, %s", gamepad2.dpad_up, gamepad2.dpad_down, gamepad2.dpad_left, gamepad2.dpad_right);
+        telemetry.addData("GP2 - Buttons (A,B,X,Y)", "%s, %s, %s, %s", gamepad2.a, gamepad2.b, gamepad2.x, gamepad2.y);
+        telemetry.addData("GP2 - Start, Back", "%s, %s", gamepad2.start, gamepad2.back);
+
+        // Update the telemetry with the gamepad debug info
+        telemetry.update();
     }
 }

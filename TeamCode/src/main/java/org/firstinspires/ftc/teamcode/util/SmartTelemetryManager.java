@@ -45,7 +45,9 @@ public class SmartTelemetryManager {
     private TelemetryPage currentPage = TelemetryPage.OVERVIEW;
     private boolean prevPageToggle = false;
     private long lastUpdateTime = 0;
+    private long lastPageCycleTime = 0; // Track last time page was cycled
     private static final long UPDATE_INTERVAL_MS = 100; // 10Hz telemetry update rate
+    private static final long PAGE_CYCLE_DELAY_MS = 500; // 500ms delay between page cycles when held
 
     // Critical status cache (always displayed)
     private String batteryStatus = "";
@@ -58,12 +60,23 @@ public class SmartTelemetryManager {
     }
 
     /**
-     * Handle page cycling input
+     * Handle page cycling input with non-blocking delay
      */
     public void handlePageCycling(boolean button) {
+        long currentTime = System.currentTimeMillis();
+
+        // Handle initial button press (immediate response)
         if (button && !prevPageToggle) {
             cyclePage();
+            lastPageCycleTime = currentTime;
         }
+        // Handle button held down (with delay)
+        else if (button && prevPageToggle &&
+                 (currentTime - lastPageCycleTime >= PAGE_CYCLE_DELAY_MS)) {
+            cyclePage();
+            lastPageCycleTime = currentTime;
+        }
+
         prevPageToggle = button;
     }
 
@@ -234,6 +247,21 @@ public class SmartTelemetryManager {
 
         } else {
             telemetry.addLine("❌ Drive system not available");
+
+            // Show detailed initialization error if available
+            if (!robotManager.isDriveSystemInitialized()) {
+                String errorMsg = robotManager.getDriveInitError();
+                if (!errorMsg.isEmpty()) {
+                    telemetry.addLine("");
+                    telemetry.addLine("🔧 INITIALIZATION ERROR:");
+                    telemetry.addLine("   " + errorMsg);
+                    telemetry.addLine("");
+                    telemetry.addLine("💡 SOLUTION:");
+                    telemetry.addLine("   Check motor names in hardware config:");
+                    telemetry.addLine("   Expected: leftFront, rightFront,");
+                    telemetry.addLine("            leftBack, rightBack");
+                }
+            }
         }
 
         telemetry.addLine("");
@@ -282,6 +310,18 @@ public class SmartTelemetryManager {
 
         } else {
             telemetry.addLine("❌ Shooter system not available");
+
+            // Show detailed initialization error if available
+            if (!robotManager.isShooterSystemInitialized()) {
+                String errorMsg = robotManager.getShooterInitError();
+                if (!errorMsg.isEmpty()) {
+                    telemetry.addLine("");
+                    telemetry.addLine("🔧 INITIALIZATION ERROR:");
+                    telemetry.addLine("   " + errorMsg);
+                    telemetry.addLine("");
+                    telemetry.addLine("💡 Check hardware configuration");
+                }
+            }
         }
 
         telemetry.addLine("");
