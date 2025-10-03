@@ -19,6 +19,26 @@ import java.util.Map;
  * - Alliance-specific locations
  * - Dynamic obstacle tracking
  * - Named waypoints and zones
+ *
+ *
+ * Launch Zone Equations (for reference):
+ * If the robots coordinates point evaluates to true for the following equations, it is in the launch zone.
+ * Long range zone: ⁅𝑦≤𝑥−46⁆ && ⁅𝑦≥−𝑥+46⁆ -Must evaluate true for both equations to be in the zone. Same for all zones
+ * Short range zone: ⁅𝑦≥1.015𝑥⁆ && ⁅𝑦≤(−(1.015))𝑥⁆
+ *
+ * Parking Zone Equations (for reference):
+ * If the robots coordinates point evaluates to true for the following equations, it is in the parking
+ * Red parking zone: ⁅𝑥≥30⁆ && ⁅𝑥≤45.75⁆ && ⁅𝑦≥−40.5⁆ && ⁅𝑦≤−24.7⁆
+ * Blue parking zone: ⁅𝑥≥30⁆ && ⁅𝑥≤45.75⁆ && ⁅𝑦≥40.5⁆ && ⁅𝑦≤24.7⁆
+ *
+ * Loading Zone Equations (for reference):
+ * If the robots coordinates point evaluates to true for the following equations, it is in the loading zone.
+ * Red loading zone: ⁅y≤−47⁆ && ⁅𝑥≥47⁆
+ * Blue loading zone: ⁅y≤47⁆ && ⁅𝑥≥47⁆
+ *
+ * Alliance Areas (for reference):
+ * Red Alliance Areas: (y < 0 && x > 0)||(y > 0 && x < 0)
+ * Blue Alliance Areas: (y > 0 && x > 0)||(y < 0 && x < 0)
  */
 public class FieldMap {
 
@@ -329,4 +349,167 @@ public class FieldMap {
     public Alliance getCurrentAlliance() {
         return currentAlliance;
     }
+
+    // === ZONE DETECTION METHODS ===
+
+    /**
+     * Check if a point is in the long range launch zone
+     * Long range zone: y ≤ x - 46 AND y ≥ -x + 46
+     */
+    public boolean isInLongRangeLaunchZone(double x, double y) {
+        return (y <= x - 46) && (y >= -x + 46);
+    }
+
+    /**
+     * Check if a point is in the short range launch zone
+     * Short range zone: y ≥ 1.015x AND y ≤ -(1.015)x
+     */
+    public boolean isInShortRangeLaunchZone(double x, double y) {
+        return (y >= 1.015 * x) && (y <= -(1.015) * x);
+    }
+
+    /**
+     * Check if a point is in any launch zone (long or short range)
+     */
+    public boolean isInLaunchZone(double x, double y) {
+        return isInLongRangeLaunchZone(x, y) || isInShortRangeLaunchZone(x, y);
+    }
+
+    /**
+     * Check if a point is in the red parking zone
+     * Red parking zone: x ≥ 30 AND x ≤ 45.75 AND y ≥ -40.5 AND y ≤ -24.7
+     */
+    public boolean isInRedParkingZone(double x, double y) {
+        return (x >= 30) && (x <= 45.75) && (y >= -40.5) && (y <= -24.7);
+    }
+
+    /**
+     * Check if a point is in the blue parking zone
+     * Blue parking zone: x ≥ 30 AND x ≤ 45.75 AND y ≥ 24.7 AND y ≤ 40.5
+     */
+    public boolean isInBlueParkingZone(double x, double y) {
+        return (x >= 30) && (x <= 45.75) && (y >= 24.7) && (y <= 40.5);
+    }
+
+    /**
+     * Check if a point is in any parking zone
+     */
+    public boolean isInParkingZone(double x, double y) {
+        return isInRedParkingZone(x, y) || isInBlueParkingZone(x, y);
+    }
+
+    /**
+     * Check if a point is in the alliance-specific parking zone
+     */
+    public boolean isInAllianceParkingZone(double x, double y, Alliance alliance) {
+        if (alliance == Alliance.RED) {
+            return isInRedParkingZone(x, y);
+        } else if (alliance == Alliance.BLUE) {
+            return isInBlueParkingZone(x, y);
+        }
+        return false;
+    }
+
+    /**
+     * Check if a point is in the red loading zone
+     * Red loading zone: y ≤ -47 AND x ≥ 47
+     */
+    public boolean isInRedLoadingZone(double x, double y) {
+        return (y <= -47) && (x >= 47);
+    }
+
+    /**
+     * Check if a point is in the blue loading zone
+     * Blue loading zone: y ≥ 47 AND x ≥ 47
+     */
+    public boolean isInBlueLoadingZone(double x, double y) {
+        return (y >= 47) && (x >= 47);
+    }
+
+    /**
+     * Check if a point is in any loading zone
+     */
+    public boolean isInLoadingZone(double x, double y) {
+        return isInRedLoadingZone(x, y) || isInBlueLoadingZone(x, y);
+    }
+
+    /**
+     * Check if a point is in the alliance-specific loading zone
+     */
+    public boolean isInAllianceLoadingZone(double x, double y, Alliance alliance) {
+        if (alliance == Alliance.RED) {
+            return isInRedLoadingZone(x, y);
+        } else if (alliance == Alliance.BLUE) {
+            return isInBlueLoadingZone(x, y);
+        }
+        return false;
+    }
+
+    /**
+     * Check if a point is in a red alliance area
+     * Red Alliance Areas: (y < 0 AND x > 0) OR (y > 0 AND x < 0)
+     */
+    public boolean isInRedAllianceArea(double x, double y) {
+        return (y < 0 && x > 0) || (y > 0 && x < 0);
+    }
+
+    /**
+     * Check if a point is in a blue alliance area
+     * Blue Alliance Areas: (y > 0 AND x > 0) OR (y < 0 AND x < 0)
+     */
+    public boolean isInBlueAllianceArea(double x, double y) {
+        return (y > 0 && x > 0) || (y < 0 && x < 0);
+    }
+
+    /**
+     * Check if a point is in the specified alliance area
+     */
+    public boolean isInAllianceArea(double x, double y, Alliance alliance) {
+        if (alliance == Alliance.RED) {
+            return isInRedAllianceArea(x, y);
+        } else if (alliance == Alliance.BLUE) {
+            return isInBlueAllianceArea(x, y);
+        }
+        return false;
+    }
+
+    /**
+     * Get zone information for a given point
+     * Returns a descriptive string of which zones the point is in
+     */
+    public String getZoneInfo(double x, double y) {
+        List<String> zones = new ArrayList<>();
+
+        if (isInLongRangeLaunchZone(x, y)) {
+            zones.add("Long Range Launch Zone");
+        }
+        if (isInShortRangeLaunchZone(x, y)) {
+            zones.add("Short Range Launch Zone");
+        }
+        if (isInRedParkingZone(x, y)) {
+            zones.add("Red Parking Zone");
+        }
+        if (isInBlueParkingZone(x, y)) {
+            zones.add("Blue Parking Zone");
+        }
+        if (isInRedLoadingZone(x, y)) {
+            zones.add("Red Loading Zone");
+        }
+        if (isInBlueLoadingZone(x, y)) {
+            zones.add("Blue Loading Zone");
+        }
+        if (isInRedAllianceArea(x, y)) {
+            zones.add("Red Alliance Area");
+        }
+        if (isInBlueAllianceArea(x, y)) {
+            zones.add("Blue Alliance Area");
+        }
+
+        if (zones.isEmpty()) {
+            return "No specific zone";
+        }
+
+        return String.join(", ", zones);
+    }
+
 }
