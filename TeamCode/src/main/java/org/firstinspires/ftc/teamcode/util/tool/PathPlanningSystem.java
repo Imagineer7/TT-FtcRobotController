@@ -3,9 +3,8 @@
  * Advanced autonomous path planning with obstacle avoidance
  */
 
-package org.firstinspires.ftc.teamcode.util;
+package org.firstinspires.ftc.teamcode.util.tool;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import java.util.ArrayList;
 import java.util.List;
 

@@ -3,7 +3,7 @@
  * Enhanced DECODE Helper with advanced features and monitoring
  */
 
-package org.firstinspires.ftc.teamcode.util;
+package org.firstinspires.ftc.teamcode.util.aurora;
 
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;

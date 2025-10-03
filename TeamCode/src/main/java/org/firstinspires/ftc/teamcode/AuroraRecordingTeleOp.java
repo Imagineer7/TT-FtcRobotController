@@ -9,10 +9,10 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.util.AuroraManager;
-import org.firstinspires.ftc.teamcode.util.MovementRecorder;
-import org.firstinspires.ftc.teamcode.util.SmartTelemetryManager;
-import org.firstinspires.ftc.teamcode.util.SmartMechanumDrive;
+import org.firstinspires.ftc.teamcode.util.aurora.AuroraManager;
+import org.firstinspires.ftc.teamcode.util.aurora.MovementRecorder;
+import org.firstinspires.ftc.teamcode.util.aurora.SmartTelemetryManager;
+import org.firstinspires.ftc.teamcode.util.aurora.SmartMechanumDrive;
 
 /**
  * Recording TeleOp - Specialized TeleOp for recording robot movements and actions

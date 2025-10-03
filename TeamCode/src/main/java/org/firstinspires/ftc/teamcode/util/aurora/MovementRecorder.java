@@ -3,7 +3,7 @@
  * Movement recording and playback system for AURORA
  */
 
-package org.firstinspires.ftc.teamcode.util;
+package org.firstinspires.ftc.teamcode.util.aurora;
 
 import com.qualcomm.robotcore.util.ElapsedTime;
 import java.io.*;

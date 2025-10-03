@@ -9,9 +9,9 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.util.AuroraManager;
-import org.firstinspires.ftc.teamcode.util.MovementRecorder;
-import org.firstinspires.ftc.teamcode.util.SmartMechanumDrive;
+import org.firstinspires.ftc.teamcode.util.aurora.AuroraManager;
+import org.firstinspires.ftc.teamcode.util.aurora.MovementRecorder;
+import org.firstinspires.ftc.teamcode.util.aurora.SmartMechanumDrive;
 
 import java.util.List;
 import java.util.Map;

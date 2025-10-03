@@ -3,7 +3,7 @@
  * Comprehensive robot system manager for coordinated subsystem control
  */
 
-package org.firstinspires.ftc.teamcode.util;
+package org.firstinspires.ftc.teamcode.util.aurora;
 
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.DcMotor;

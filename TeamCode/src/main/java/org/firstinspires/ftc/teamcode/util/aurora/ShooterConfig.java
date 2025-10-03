@@ -3,7 +3,7 @@
  * Configurable shooter parameters for different game scenarios
  */
 
-package org.firstinspires.ftc.teamcode.util;
+package org.firstinspires.ftc.teamcode.util.aurora;
 
 /**
  * ShooterConfig - Centralized configuration for shooter parameters

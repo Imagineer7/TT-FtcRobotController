@@ -3,10 +3,9 @@
  * Smart Telemetry Manager - Efficient telemetry display system with focused pages
  */
 
-package org.firstinspires.ftc.teamcode.util;
+package org.firstinspires.ftc.teamcode.util.aurora;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.util.SmartMechanumDrive;
 
 /**
  * SmartTelemetryManager - Manages efficient telemetry display with multiple focused pages

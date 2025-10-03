@@ -9,10 +9,9 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.util.AuroraManager; //AURORA - Advanced Unified Robot Operating & Response Architecture
-import org.firstinspires.ftc.teamcode.util.ShooterConfig;
-import org.firstinspires.ftc.teamcode.util.SmartMechanumDrive;
-import org.firstinspires.ftc.teamcode.util.SmartTelemetryManager;
+import org.firstinspires.ftc.teamcode.util.aurora.AuroraManager; //AURORA - Advanced Unified Robot Operating & Response Architecture
+import org.firstinspires.ftc.teamcode.util.aurora.SmartMechanumDrive;
+import org.firstinspires.ftc.teamcode.util.aurora.SmartTelemetryManager;
 
 /**
  * AURORATeleOp - Enhanced TeleOp with dual-driver mode support and smart telemetry
