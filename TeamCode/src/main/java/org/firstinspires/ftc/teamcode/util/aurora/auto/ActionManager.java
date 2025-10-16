@@ -121,7 +121,7 @@ public class ActionManager {
         }
 
         // Try to initialize common servos
-        String[] servoNames = {"claw", "wrist", "gate", "pivot"};
+        String[] servoNames = {"servo1", "servo2"};
         for (String name : servoNames) {
             try {
                 Servo servo = hardwareMap.get(Servo.class, name);
@@ -134,15 +134,15 @@ public class ActionManager {
     }
 
     /**
-     * Drive robot with mecanum movement
+     * Drive robot with mechanum movement
      * @param drive Forward/backward power (-1 to 1)
      * @param strafe Left/right power (-1 to 1)
      * @param turn Rotation power (-1 to 1)
      */
-    public void mecanumDrive(double drive, double strafe, double turn) {
+    public void mechanumDrive(double drive, double strafe, double turn) {
         if (!driveInitialized) return;
 
-        // Calculate wheel powers for mecanum drive
+        // Calculate wheel powers for mechanum drive
         double frontLeftPower = drive + strafe + turn;
         double frontRightPower = drive - strafe - turn;
         double backLeftPower = drive - strafe + turn;
@@ -168,7 +168,7 @@ public class ActionManager {
     }
 
     /**
-     * Move to target position using PID control
+     * Move to target position using PID control with vision assistance
      * @param targetX Target X coordinate
      * @param targetY Target Y coordinate
      * @param targetHeading Target heading in degrees
@@ -183,6 +183,7 @@ public class ActionManager {
         isMoving = true;
 
         while (isMoving && moveTimer.seconds() < timeout) {
+            // Non-blocking position update (includes vision corrections)
             positionManager.updatePosition();
 
             // Calculate errors
@@ -197,11 +198,12 @@ public class ActionManager {
                 return true;
             }
 
-            // Calculate drive powers using PID
-            double drivePower = Math.cos(Math.toRadians(angleToTarget - positionManager.getCurrentHeading()))
-                              * distanceToTarget * kP_drive;
-            double strafePower = Math.sin(Math.toRadians(angleToTarget - positionManager.getCurrentHeading()))
-                               * distanceToTarget * kP_drive;
+            // Calculate drive powers using PID with field-relative movement
+            double fieldRelativeAngle = Math.toRadians(angleToTarget);
+            double robotRelativeAngle = fieldRelativeAngle - Math.toRadians(positionManager.getCurrentHeading());
+
+            double drivePower = Math.cos(robotRelativeAngle) * distanceToTarget * kP_drive;
+            double strafePower = Math.sin(robotRelativeAngle) * distanceToTarget * kP_drive;
             double turnPower = headingError * kP_turn;
 
             // Limit powers
@@ -217,7 +219,7 @@ public class ActionManager {
                 strafePower = Math.signum(strafePower) * minPower;
             }
 
-            mecanumDrive(drivePower, strafePower, turnPower);
+            mechanumDrive(drivePower, strafePower, turnPower);
 
             try {
                 Thread.sleep(20); // 50Hz update rate
@@ -229,6 +231,61 @@ public class ActionManager {
         stopDriving();
         isMoving = false;
         return false; // Timeout reached
+    }
+
+    /**
+     * Move to target with vision-assisted navigation (non-blocking variant)
+     * Call this repeatedly until it returns true
+     */
+    public boolean moveToPositionNonBlocking(double targetX, double targetY, double targetHeading, double timeout) {
+        if (!driveInitialized || !positionManager.isPositionValid()) return false;
+
+        // Initialize movement on first call
+        if (!isMoving) {
+            positionManager.setTarget(targetX, targetY, targetHeading);
+            moveTimer.reset();
+            isMoving = true;
+            return false; // Still moving
+        }
+
+        // Check timeout
+        if (moveTimer.seconds() >= timeout) {
+            stopDriving();
+            isMoving = false;
+            return true; // Complete (timeout)
+        }
+
+        // Non-blocking position update
+        positionManager.updatePosition();
+
+        // Calculate errors
+        double distanceToTarget = positionManager.getDistanceToTarget();
+        double angleToTarget = positionManager.getAngleToTarget();
+        double headingError = positionManager.getHeadingError();
+
+        // Check if at target
+        if (positionManager.isAtTarget(1.0, 5.0)) {
+            stopDriving();
+            isMoving = false;
+            return true; // Complete (success)
+        }
+
+        // Calculate and apply drive powers
+        double fieldRelativeAngle = Math.toRadians(angleToTarget);
+        double robotRelativeAngle = fieldRelativeAngle - Math.toRadians(positionManager.getCurrentHeading());
+
+        double drivePower = Math.cos(robotRelativeAngle) * distanceToTarget * kP_drive;
+        double strafePower = Math.sin(robotRelativeAngle) * distanceToTarget * kP_drive;
+        double turnPower = headingError * kP_turn;
+
+        // Limit and apply powers
+        drivePower = Math.max(-maxPower, Math.min(maxPower, drivePower));
+        strafePower = Math.max(-maxPower, Math.min(maxPower, strafePower));
+        turnPower = Math.max(-maxPower, Math.min(maxPower, turnPower));
+
+        mechanumDrive(drivePower, strafePower, turnPower);
+
+        return false; // Still moving
     }
 
     /**
@@ -434,6 +491,34 @@ public class ActionManager {
     }
 
     /**
+     * Check if vision system is available and working
+     */
+    public boolean isVisionAvailable() {
+        return positionManager.isVisionAvailable();
+    }
+
+    /**
+     * Get number of detected AprilTags
+     */
+    public int getDetectedTagCount() {
+        return positionManager.getDetectedTagCount();
+    }
+
+    /**
+     * Set camera exposure for better AprilTag detection
+     */
+    public boolean setManualExposure(int exposureMS, int gain) {
+        return positionManager.setManualExposure(exposureMS, gain);
+    }
+
+    /**
+     * Get current robot position from positioning system
+     */
+    public double[] getCurrentPosition() {
+        return positionManager.getCurrentPosition();
+    }
+
+    /**
      * Add action telemetry data
      */
     public void addTelemetry() {
@@ -444,11 +529,29 @@ public class ActionManager {
         telemetry.addData("Motors Available", motors.size());
         telemetry.addData("Servos Available", servos.size());
 
+        // Vision integration status
+        if (positionManager != null) {
+            telemetry.addData("Vision Available", isVisionAvailable() ? "YES" : "NO");
+            if (isVisionAvailable()) {
+                telemetry.addData("AprilTags Detected", getDetectedTagCount());
+            }
+        }
+
         // Show motor powers if driving
         if (driveInitialized) {
             telemetry.addData("Drive Powers", "FL:%.2f FR:%.2f BL:%.2f BR:%.2f",
                 frontLeft.getPower(), frontRight.getPower(),
                 backLeft.getPower(), backRight.getPower());
+        }
+    }
+
+    /**
+     * Close action manager and cleanup resources
+     */
+    public void close() {
+        stopDriving();
+        if (positionManager != null) {
+            positionManager.close();
         }
     }
 }

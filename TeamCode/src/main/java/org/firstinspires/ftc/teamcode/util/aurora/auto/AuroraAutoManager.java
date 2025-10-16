@@ -9,9 +9,8 @@ import org.firstinspires.ftc.teamcode.util.tool.PathPlanningSystem;
 import java.util.ArrayList;
 import java.util.List;
 
-//
 // Used to manage overall autonomous routines and strategies for the robot
-// Integrates with SensorManager and AuroraPositioningManager
+// Integrates seamlessly with the new Aurora Vision System and all positioning components
 public class AuroraAutoManager {
     private HardwareMap hardwareMap;
     private Telemetry telemetry;
@@ -20,7 +19,6 @@ public class AuroraAutoManager {
     private AuroraPositioningManager positionManager;
     private ActionManager actionManager;
     private SensorManager sensorManager;
-    private VisionManager visionManager;
 
     // Autonomous state management
     private ElapsedTime autonomousTimer;
@@ -32,6 +30,10 @@ public class AuroraAutoManager {
     private boolean useVision = true;
     private boolean useObstacleAvoidance = true;
     private double safetyTimeout = 28.0; // seconds
+
+    // Vision system configuration
+    private String primaryCamera = "Webcam 1";
+    private String secondaryCamera = null; // Set if dual cameras available
 
     // Autonomous states
     public enum AutonomousState {
@@ -54,11 +56,7 @@ public class AuroraAutoManager {
     }
 
     /**
-     * Initialize Aurora autonomous manager
-     * @param hardwareMap Robot hardware map
-     * @param telemetry Telemetry for debugging
-     * @param alliance Robot alliance (RED or BLUE)
-     * @param startingPos Starting position on field
+     * Initialize Aurora autonomous manager with single camera
      */
     public AuroraAutoManager(HardwareMap hardwareMap, Telemetry telemetry,
                            FieldMap.Alliance alliance, StartingPosition startingPos) {
@@ -77,22 +75,73 @@ public class AuroraAutoManager {
     }
 
     /**
-     * Initialize all subsystem managers
+     * Initialize Aurora autonomous manager with specific camera configuration
+     */
+    public AuroraAutoManager(HardwareMap hardwareMap, Telemetry telemetry,
+                           FieldMap.Alliance alliance, StartingPosition startingPos,
+                           String cameraName) {
+        this.primaryCamera = cameraName;
+
+        this.hardwareMap = hardwareMap;
+        this.telemetry = telemetry;
+        this.alliance = alliance;
+        this.startingPosition = startingPos;
+
+        autonomousTimer = new ElapsedTime();
+        currentState = AutonomousState.INIT;
+
+        initializeSubsystems();
+
+        telemetry.addData("AuroraAutoManager", "Initialized with camera: %s", cameraName);
+    }
+
+    /**
+     * Initialize Aurora autonomous manager with dual cameras
+     */
+    public AuroraAutoManager(HardwareMap hardwareMap, Telemetry telemetry,
+                           FieldMap.Alliance alliance, StartingPosition startingPos,
+                           String primaryCameraName, String secondaryCameraName) {
+        this.primaryCamera = primaryCameraName;
+        this.secondaryCamera = secondaryCameraName;
+
+        this.hardwareMap = hardwareMap;
+        this.telemetry = telemetry;
+        this.alliance = alliance;
+        this.startingPosition = startingPos;
+
+        autonomousTimer = new ElapsedTime();
+        currentState = AutonomousState.INIT;
+
+        initializeSubsystems();
+
+        telemetry.addData("AuroraAutoManager", "Initialized with dual cameras");
+    }
+
+    /**
+     * Initialize all subsystem managers with new vision system integration
      */
     private void initializeSubsystems() {
-        // Initialize positioning manager with vision if available
+        // Initialize positioning manager with the new vision system
         try {
-            positionManager = new AuroraPositioningManager(hardwareMap, telemetry,
-                                                         alliance, true, "Webcam 1");
+            if (secondaryCamera != null) {
+                // Dual camera setup
+                positionManager = new AuroraPositioningManager(hardwareMap, telemetry,
+                                                             alliance, primaryCamera, secondaryCamera);
+            } else {
+                // Single camera setup
+                positionManager = new AuroraPositioningManager(hardwareMap, telemetry,
+                                                             alliance, true, primaryCamera);
+            }
             useVision = true;
-            telemetry.addData("AuroraAutoManager", "Vision system enabled");
+            telemetry.addData("AuroraAutoManager", "New vision system enabled");
         } catch (Exception e) {
+            // Fallback to encoder-only positioning
             positionManager = new AuroraPositioningManager(hardwareMap, telemetry, alliance);
             useVision = false;
-            telemetry.addData("AuroraAutoManager", "Vision system disabled");
+            telemetry.addData("AuroraAutoManager", "Vision unavailable, using encoders only");
         }
 
-        // Initialize action manager
+        // Initialize action manager (enhanced with vision integration)
         actionManager = new ActionManager(hardwareMap, telemetry, positionManager);
 
         // Initialize sensor manager
@@ -105,350 +154,289 @@ public class AuroraAutoManager {
     }
 
     /**
-     * Set robot starting position on field
+     * Set starting position based on alliance and starting zone
      */
     private void setStartingPosition() {
-        double startX, startY, startHeading;
+        double startX = 0, startY = 0, startHeading = 0;
 
-        // Define starting positions based on alliance and position
-        switch (startingPosition) {
-            case OBSERVATION_ZONE:
-                if (alliance == FieldMap.Alliance.BLUE) {
-                    startX = -36; startY = 62; startHeading = 180;
-                } else {
-                    startX = 36; startY = -62; startHeading = 0;
+        // Define starting positions based on alliance and zone
+        switch (alliance) {
+            case RED:
+                switch (startingPosition) {
+                    case OBSERVATION_ZONE:
+                        startX = -24; startY = -63; startHeading = 90;
+                        break;
+                    case NET_ZONE:
+                        startX = 0; startY = -63; startHeading = 90;
+                        break;
+                    case BASKET_ZONE:
+                        startX = 24; startY = -63; startHeading = 90;
+                        break;
                 }
                 break;
-
-            case NET_ZONE:
-                if (alliance == FieldMap.Alliance.BLUE) {
-                    startX = 12; startY = 62; startHeading = 180;
-                } else {
-                    startX = -12; startY = -62; startHeading = 0;
-                }
-                break;
-
-            case BASKET_ZONE:
-            default:
-                if (alliance == FieldMap.Alliance.BLUE) {
-                    startX = 36; startY = 62; startHeading = 225;
-                } else {
-                    startX = -36; startY = -62; startHeading = 45;
+            case BLUE:
+                switch (startingPosition) {
+                    case OBSERVATION_ZONE:
+                        startX = -24; startY = 63; startHeading = -90;
+                        break;
+                    case NET_ZONE:
+                        startX = 0; startY = 63; startHeading = -90;
+                        break;
+                    case BASKET_ZONE:
+                        startX = 24; startY = 63; startHeading = -90;
+                        break;
                 }
                 break;
         }
 
         positionManager.setStartingPosition(startX, startY, startHeading);
-
-        telemetry.addData("Starting Position", "(%.1f, %.1f) @ %.0f°",
-                         startX, startY, startHeading);
+        telemetry.addData("Starting Position", "(%.1f, %.1f) @ %.1f°", startX, startY, startHeading);
     }
 
     /**
-     * Main autonomous execution loop
-     * Call this repeatedly in your autonomous OpMode
+     * Execute autonomous routine - NON-BLOCKING, call repeatedly
+     * @return True if autonomous is complete
      */
-    public void runAutonomous() {
-        // Update all subsystems
-        updateSubsystems();
+    public boolean executeAutonomous() {
+        // Update all systems (non-blocking)
+        updateSystems();
 
-        // Check for emergency conditions
-        if (checkEmergencyConditions()) {
+        // Safety timeout check
+        if (autonomousTimer.seconds() > safetyTimeout) {
             currentState = AutonomousState.EMERGENCY_STOP;
         }
 
         // Execute current state
         switch (currentState) {
             case INIT:
-                executeInitState();
-                break;
+                return executeInitState();
             case MOVE_TO_SCORING:
-                executeMoveToScoringState();
-                break;
+                return executeMoveToScoringState();
             case SCORE_PRELOAD:
-                executeScorePreloadState();
-                break;
+                return executeScorePreloadState();
             case NAVIGATE_TO_SAMPLES:
-                executeNavigateToSamplesState();
-                break;
+                return executeNavigateToSamplesState();
             case COLLECT_SAMPLE:
-                executeCollectSampleState();
-                break;
+                return executeCollectSampleState();
             case SCORE_SAMPLE:
-                executeScoreSampleState();
-                break;
+                return executeScoreSampleState();
             case PARK:
-                executeParkState();
-                break;
+                return executeParkState();
             case EMERGENCY_STOP:
-                executeEmergencyStopState();
-                break;
+                return executeEmergencyStopState();
             case COMPLETE:
-                // Autonomous is complete
-                break;
+                return true; // Autonomous complete
         }
 
-        // Add telemetry
-        addAutonomousTelemetry();
+        return false; // Still running
     }
 
     /**
-     * Update all subsystem managers
+     * Update all subsystems - NON-BLOCKING
      */
-    private void updateSubsystems() {
-        positionManager.updatePosition();
-        sensorManager.updateSensors();
-
-        // Update vision if available
-        if (useVision && visionManager != null) {
-            visionManager.updateVision();
+    private void updateSystems() {
+        if (positionManager != null) {
+            positionManager.updatePosition();
         }
-    }
-
-    /**
-     * Check for emergency stop conditions
-     */
-    private boolean checkEmergencyConditions() {
-        // Check timeout
-        if (autonomousTimer.seconds() > safetyTimeout) {
-            telemetry.addData("EMERGENCY", "Autonomous timeout reached");
-            return true;
+        if (sensorManager != null) {
+            sensorManager.updateSensors();
         }
-
-        // Check if robot is stuck
-        if (actionManager.isMoving() && getCurrentSpeed() < 0.1) {
-            telemetry.addData("EMERGENCY", "Robot appears stuck");
-            return true;
-        }
-
-        // Check for unexpected obstacles
-        if (useObstacleAvoidance && sensorManager.isNearWall(4.0)) {
-            telemetry.addData("WARNING", "Unexpected obstacle detected");
-            // Don't emergency stop, just slow down
-        }
-
-        return false;
     }
 
     /**
      * Execute initialization state
      */
-    private void executeInitState() {
-        telemetry.addData("State", "INITIALIZING");
-
-        // Wait for all systems to be ready
-        if (positionManager.isPositionValid() &&
-            sensorManager.areSensorsReady() &&
-            autonomousTimer.seconds() > 0.5) {
-
-            currentState = AutonomousState.MOVE_TO_SCORING;
-            telemetry.addData("State", "Initialization complete");
+    private boolean executeInitState() {
+        // Wait for systems to be ready
+        if (!positionManager.isPositionValid()) {
+            telemetry.addData("Init", "Waiting for position system...");
+            return false; // Still initializing
         }
+
+        if (useVision && !actionManager.isVisionAvailable()) {
+            telemetry.addData("Init", "Waiting for vision system...");
+            return false; // Still initializing vision
+        }
+
+        // Systems ready, advance to first action
+        currentState = AutonomousState.MOVE_TO_SCORING;
+        telemetry.addData("Init", "Complete - Starting autonomous");
+        return false;
     }
 
     /**
      * Execute move to scoring state
      */
-    private void executeMoveToScoringState() {
-        telemetry.addData("State", "MOVING TO SCORING POSITION");
+    private boolean executeMoveToScoringState() {
+        double targetX = alliance == FieldMap.Alliance.RED ? -48 : 48;
+        double targetY = alliance == FieldMap.Alliance.RED ? -48 : 48;
+        double targetHeading = alliance == FieldMap.Alliance.RED ? 45 : 135;
 
-        // Get scoring position from field map
-        double[] scoringPos = positionManager.getFieldPosition("HIGH_BASKET");
-        if (scoringPos != null) {
-            // Move to scoring position
-            if (actionManager.moveToPosition(scoringPos[0] - 12, scoringPos[1], 45, 8.0)) {
-                currentState = AutonomousState.SCORE_PRELOAD;
-            }
+        // Use non-blocking movement
+        if (actionManager.moveToPositionNonBlocking(targetX, targetY, targetHeading, 10.0)) {
+            currentState = AutonomousState.SCORE_PRELOAD;
+            telemetry.addData("Move to Scoring", "Complete");
         } else {
-            // Fallback position
-            if (actionManager.moveToPosition(24, 24, 45, 8.0)) {
-                currentState = AutonomousState.SCORE_PRELOAD;
-            }
+            telemetry.addData("Move to Scoring", "In progress...");
         }
+        return false;
     }
 
     /**
      * Execute score preload state
      */
-    private void executeScorePreloadState() {
-        telemetry.addData("State", "SCORING PRELOAD");
-
-        // Raise arm and score preload
-        if (actionManager.performAction("score_high")) {
+    private boolean executeScorePreloadState() {
+        if (actionManager.performAction("score")) {
             currentState = AutonomousState.NAVIGATE_TO_SAMPLES;
+            telemetry.addData("Score Preload", "Complete");
+        } else {
+            telemetry.addData("Score Preload", "In progress...");
         }
+        return false;
     }
 
     /**
      * Execute navigate to samples state
      */
-    private void executeNavigateToSamplesState() {
-        telemetry.addData("State", "NAVIGATING TO SAMPLES");
+    private boolean executeNavigateToSamplesState() {
+        double targetX = 0;
+        double targetY = alliance == FieldMap.Alliance.RED ? -24 : 24;
+        double targetHeading = 0;
 
-        // Move to sample collection area
-        double[] samplePos = positionManager.getFieldPosition("SAMPLE_AREA");
-        if (samplePos != null) {
-            if (actionManager.moveToPosition(samplePos[0], samplePos[1], 0, 10.0)) {
-                currentState = AutonomousState.COLLECT_SAMPLE;
-            }
+        if (actionManager.moveToPositionNonBlocking(targetX, targetY, targetHeading, 8.0)) {
+            currentState = AutonomousState.COLLECT_SAMPLE;
+            telemetry.addData("Navigate to Samples", "Complete");
         } else {
-            // Skip to parking if no samples defined
-            currentState = AutonomousState.PARK;
+            telemetry.addData("Navigate to Samples", "In progress...");
         }
+        return false;
     }
 
     /**
      * Execute collect sample state
      */
-    private void executeCollectSampleState() {
-        telemetry.addData("State", "COLLECTING SAMPLE");
-
-        // Look for samples using vision or sensors
-        if (useVision && visionManager != null) {
-            // Use vision to find and collect samples
-            if (collectSampleWithVision()) {
-                currentState = AutonomousState.SCORE_SAMPLE;
-            } else {
-                currentState = AutonomousState.PARK;
-            }
+    private boolean executeCollectSampleState() {
+        if (actionManager.performAction("grab")) {
+            currentState = AutonomousState.SCORE_SAMPLE;
+            telemetry.addData("Collect Sample", "Complete");
         } else {
-            // Use basic collection routine
-            if (actionManager.performAction("grab")) {
-                currentState = AutonomousState.SCORE_SAMPLE;
-            } else {
-                currentState = AutonomousState.PARK;
-            }
+            telemetry.addData("Collect Sample", "In progress...");
         }
+        return false;
     }
 
     /**
      * Execute score sample state
      */
-    private void executeScoreSampleState() {
-        telemetry.addData("State", "SCORING SAMPLE");
+    private boolean executeScoreSampleState() {
+        // Move back to scoring area
+        double targetX = alliance == FieldMap.Alliance.RED ? -48 : 48;
+        double targetY = alliance == FieldMap.Alliance.RED ? -48 : 48;
 
-        // Move back to scoring position and score
-        double[] scoringPos = positionManager.getFieldPosition("HIGH_BASKET");
-        if (scoringPos != null) {
-            if (actionManager.moveToPosition(scoringPos[0] - 12, scoringPos[1], 45, 8.0)) {
-                if (actionManager.performAction("score_high")) {
-                    currentState = AutonomousState.PARK;
-                }
+        if (actionManager.moveToPositionNonBlocking(targetX, targetY, 0, 10.0)) {
+            if (actionManager.performAction("release")) {
+                currentState = AutonomousState.PARK;
+                telemetry.addData("Score Sample", "Complete");
             }
         } else {
-            currentState = AutonomousState.PARK;
+            telemetry.addData("Score Sample", "Moving to score...");
         }
+        return false;
     }
 
     /**
      * Execute park state
      */
-    private void executeParkState() {
-        telemetry.addData("State", "PARKING");
+    private boolean executeParkState() {
+        // Move to parking area
+        double parkX = alliance == FieldMap.Alliance.RED ? 24 : -24;
+        double parkY = alliance == FieldMap.Alliance.RED ? -24 : 24;
 
-        // Move to observation zone for parking
-        double[] parkPos = positionManager.getFieldPosition("OBSERVATION_ZONE");
-        if (parkPos != null) {
-            if (actionManager.moveToPosition(parkPos[0], parkPos[1], 90, 8.0)) {
-                actionManager.performAction("park");
-                currentState = AutonomousState.COMPLETE;
-            }
-        } else {
-            // Emergency park in place
-            actionManager.stopDriving();
+        if (actionManager.moveToPositionNonBlocking(parkX, parkY, 0, 8.0)) {
             actionManager.performAction("park");
             currentState = AutonomousState.COMPLETE;
+            telemetry.addData("Park", "Complete - Autonomous finished");
+            return true; // Autonomous complete
+        } else {
+            telemetry.addData("Park", "Moving to park...");
         }
+        return false;
     }
 
     /**
      * Execute emergency stop state
      */
-    private void executeEmergencyStopState() {
-        telemetry.addData("State", "EMERGENCY STOP");
-
-        // Stop all movement
+    private boolean executeEmergencyStopState() {
         actionManager.stopDriving();
-        actionManager.performAction("park");
-
+        telemetry.addData("Emergency Stop", "Safety timeout reached");
         currentState = AutonomousState.COMPLETE;
-    }
-
-    /**
-     * Collect sample using vision system
-     */
-    private boolean collectSampleWithVision() {
-        // This would integrate with vision processing to find and collect samples
-        // For now, return basic success/failure
-        return actionManager.performAction("grab");
-    }
-
-    /**
-     * Get current robot speed
-     */
-    private double getCurrentSpeed() {
-        double[] velocity = positionManager.getCurrentVelocity();
-        return Math.sqrt(velocity[0] * velocity[0] + velocity[1] * velocity[1]);
-    }
-
-    /**
-     * Configure autonomous strategy
-     * @param useVision Enable vision-based navigation
-     * @param useObstacleAvoidance Enable obstacle avoidance
-     * @param timeout Safety timeout in seconds
-     */
-    public void configureStrategy(boolean useVision, boolean useObstacleAvoidance, double timeout) {
-        this.useVision = useVision;
-        this.useObstacleAvoidance = useObstacleAvoidance;
-        this.safetyTimeout = timeout;
-
-        if (positionManager != null) {
-            positionManager.setVisionCorrectionEnabled(useVision);
-        }
-    }
-
-    /**
-     * Check if autonomous is complete
-     * @return True if autonomous has finished
-     */
-    public boolean isComplete() {
-        return currentState == AutonomousState.COMPLETE;
+        return true;
     }
 
     /**
      * Get current autonomous state
-     * @return Current state
      */
     public AutonomousState getCurrentState() {
         return currentState;
     }
 
     /**
-     * Get elapsed time since autonomous start
-     * @return Time in seconds
+     * Get elapsed autonomous time
      */
     public double getElapsedTime() {
         return autonomousTimer.seconds();
     }
 
     /**
-     * Emergency stop autonomous execution
+     * Check if vision system is available
      */
-    public void emergencyStop() {
-        currentState = AutonomousState.EMERGENCY_STOP;
+    public boolean isVisionAvailable() {
+        return useVision && actionManager.isVisionAvailable();
     }
 
     /**
-     * Add comprehensive autonomous telemetry
+     * Get number of detected AprilTags
      */
-    public void addAutonomousTelemetry() {
-        telemetry.addData("=== AURORA AUTONOMOUS ===", "");
-        telemetry.addData("State", currentState);
-        telemetry.addData("Alliance", alliance);
-        telemetry.addData("Starting Position", startingPosition);
-        telemetry.addData("Elapsed Time", "%.1f sec", getElapsedTime());
-        telemetry.addData("Vision Enabled", useVision ? "YES" : "NO");
-        telemetry.addData("Obstacle Avoidance", useObstacleAvoidance ? "YES" : "NO");
+    public int getDetectedTagCount() {
+        return actionManager.getDetectedTagCount();
+    }
+
+    /**
+     * Get current robot position
+     */
+    public double[] getCurrentPosition() {
+        return actionManager.getCurrentPosition();
+    }
+
+    /**
+     * Set manual camera exposure for better vision
+     */
+    public boolean setManualExposure(int exposureMS, int gain) {
+        return actionManager.setManualExposure(exposureMS, gain);
+    }
+
+    /**
+     * Force state change (for testing or emergency)
+     */
+    public void setState(AutonomousState newState) {
+        currentState = newState;
+        telemetry.addData("State Change", "Forced to: " + newState);
+    }
+
+    /**
+     * Add comprehensive telemetry data
+     */
+    public void addTelemetry() {
+        telemetry.addData("=== AURORA AUTO MANAGER ===", "");
+        telemetry.addData("Current State", currentState.toString());
+        telemetry.addData("Elapsed Time", "%.1f seconds", getElapsedTime());
+        telemetry.addData("Alliance", alliance.toString());
+        telemetry.addData("Starting Position", startingPosition.toString());
+        telemetry.addData("Vision System", isVisionAvailable() ? "ACTIVE" : "DISABLED");
+
+        if (isVisionAvailable()) {
+            telemetry.addData("AprilTags Detected", getDetectedTagCount());
+        }
 
         // Add subsystem telemetry
         if (positionManager != null) {
@@ -460,18 +448,29 @@ public class AuroraAutoManager {
         if (sensorManager != null) {
             sensorManager.addTelemetry();
         }
-        if (visionManager != null) {
-            visionManager.addTelemetry();
-        }
     }
 
     /**
      * Start autonomous timer
-     * Call this at the beginning of autonomous
      */
-    public void startAutonomous() {
+    public void start() {
         autonomousTimer.reset();
         currentState = AutonomousState.INIT;
         telemetry.addData("AuroraAutoManager", "Autonomous started");
+    }
+
+    /**
+     * Stop autonomous and cleanup
+     */
+    public void stop() {
+        if (actionManager != null) {
+            actionManager.stopDriving();
+            actionManager.close();
+        }
+        if (positionManager != null) {
+            positionManager.close();
+        }
+        currentState = AutonomousState.COMPLETE;
+        telemetry.addData("AuroraAutoManager", "Autonomous stopped");
     }
 }

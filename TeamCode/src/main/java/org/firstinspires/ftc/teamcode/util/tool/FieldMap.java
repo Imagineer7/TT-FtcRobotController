@@ -37,8 +37,9 @@ import java.util.Map;
  * Blue loading zone: ⁅y≤47⁆ && ⁅𝑥≥47⁆
  *
  * Alliance Areas (for reference):
- * Red Alliance Areas: (y < 0 && x > 0)||(y > 0 && x < 0)
- * Blue Alliance Areas: (y > 0 && x > 0)||(y < 0 && x < 0)
+ * Red Alliance Areas: (y > 0 && x < 0)
+ * Blue Alliance Areas: (y < 0 && x < 0)
+ * Risky Alliance Areas: x > 0 // Areas where robots can collide if both alliances enter. May get fouled.
  */
 public class FieldMap {
 
