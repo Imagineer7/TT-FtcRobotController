@@ -1,23 +1,18 @@
 package org.firstinspires.ftc.teamcode.util.aurora.auto;
 
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.util.tool.DeadWheelOdometry;
+import org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver;
 
-// Used to manage encoders and dead wheel data for precise movement and positioning in autonomous mode
+// Used to manage GoBilda Pinpoint odometry system for precise movement and positioning in autonomous mode
 public class EncoderManager {
     private DeadWheelOdometry odometry;
     private HardwareMap hardwareMap;
     private Telemetry telemetry;
 
-    // Motor encoder references for direct access
-    private DcMotor leftEncoder;
-    private DcMotor rightEncoder;
-    private DcMotor horizontalEncoder;
-
     /**
-     * Initialize the encoder manager with hardware map
+     * Initialize the encoder manager with hardware map using default Pinpoint configuration
      * @param hardwareMap Robot hardware map
      * @param telemetry Telemetry for debugging
      */
@@ -25,37 +20,42 @@ public class EncoderManager {
         this.hardwareMap = hardwareMap;
         this.telemetry = telemetry;
 
-        // Initialize the unified odometry system
+        // Initialize the GoBilda Pinpoint odometry system with default settings
         this.odometry = new DeadWheelOdometry(hardwareMap, telemetry);
 
-        // Try to get direct encoder references for additional functionality
-        try {
-            leftEncoder = hardwareMap.get(DcMotor.class, "leftEncoder");
-            rightEncoder = hardwareMap.get(DcMotor.class, "rightEncoder");
-            horizontalEncoder = hardwareMap.get(DcMotor.class, "horizontalEncoder");
-            telemetry.addData("EncoderManager", "Direct encoder access initialized successfully");
-        } catch (Exception e) {
-            // Try alternative encoder names that might be used
-            try {
-                leftEncoder = hardwareMap.get(DcMotor.class, "frontLeft");
-                rightEncoder = hardwareMap.get(DcMotor.class, "frontRight");
-                horizontalEncoder = hardwareMap.get(DcMotor.class, "backLeft");
-                telemetry.addData("EncoderManager", "Using drive motors for encoder access");
-            } catch (Exception e2) {
-                telemetry.addData("EncoderManager", "Direct encoder access not available - using odometry system only");
-                // This is not an error - the odometry system will still work
-            }
-        }
+        telemetry.addData("EncoderManager", "Initialized with GoBilda Pinpoint system");
+    }
+
+    /**
+     * Initialize with custom Pinpoint configuration
+     * @param hardwareMap Robot hardware map
+     * @param telemetry Telemetry for debugging
+     * @param xOffset X pod offset in mm (left of center is positive)
+     * @param yOffset Y pod offset in mm (forward of center is positive)
+     * @param podType Type of GoBilda odometry pods
+     */
+    public EncoderManager(HardwareMap hardwareMap, Telemetry telemetry,
+                         double xOffset, double yOffset,
+                         GoBildaPinpointDriver.GoBildaOdometryPods podType) {
+        this.hardwareMap = hardwareMap;
+        this.telemetry = telemetry;
+
+        // Initialize with custom configuration
+        this.odometry = new DeadWheelOdometry(hardwareMap, telemetry, xOffset, yOffset, podType);
+
+        telemetry.addData("EncoderManager", "Initialized with custom Pinpoint config");
     }
 
     /**
      * Initialize odometry system with starting position
-     * @param startX Starting X position
-     * @param startY Starting Y position
+     * @param startX Starting X position in inches
+     * @param startY Starting Y position in inches
      * @param startHeading Starting heading in degrees
      */
     public void initialize(double startX, double startY, double startHeading) {
         odometry.setPosition(startX, startY, startHeading);
+        telemetry.addData("EncoderManager", "Position initialized to (%.1f, %.1f) @ %.1f°",
+                         startX, startY, startHeading);
     }
 
     /**
@@ -91,8 +91,8 @@ public class EncoderManager {
 
     /**
      * Correct position using external data (e.g., vision system)
-     * @param correctedX Corrected X position
-     * @param correctedY Corrected Y position
+     * @param correctedX Corrected X position in inches
+     * @param correctedY Corrected Y position in inches
      * @param correctedHeading Corrected heading in degrees
      */
     public void correctPosition(double correctedX, double correctedY, double correctedHeading) {
@@ -129,68 +129,76 @@ public class EncoderManager {
     }
 
     /**
-     * Reset encoder positions (typically called at start of autonomous)
+     * Reset odometry system (resets position and recalibrates IMU)
+     * Robot must be stationary for IMU calibration
      */
     public void resetEncoders() {
-        if (leftEncoder != null) {
-            leftEncoder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            leftEncoder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        }
-        if (rightEncoder != null) {
-            rightEncoder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            rightEncoder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        }
-        if (horizontalEncoder != null) {
-            horizontalEncoder.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            horizontalEncoder.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        }
+        odometry.reset();
+        telemetry.addData("EncoderManager", "Pinpoint system reset and IMU recalibrated");
+    }
 
-        // Also reset the odometry system
-        odometry.setPosition(0, 0, 0);
-
-        telemetry.addData("EncoderManager", "Encoders reset");
+    /**
+     * Recalibrate IMU only (robot must be stationary)
+     */
+    public void recalibrateIMU() {
+        odometry.recalibrateIMU();
+        telemetry.addData("EncoderManager", "IMU recalibrated");
     }
 
     /**
      * Get encoder counts for debugging
-     * @return Array of [left, right, horizontal] encoder counts
+     * @return Array of [xEncoder, yEncoder] counts from Pinpoint
      */
     public int[] getEncoderCounts() {
-        int[] counts = new int[3];
-        counts[0] = leftEncoder != null ? leftEncoder.getCurrentPosition() : 0;
-        counts[1] = rightEncoder != null ? rightEncoder.getCurrentPosition() : 0;
-        counts[2] = horizontalEncoder != null ? horizontalEncoder.getCurrentPosition() : 0;
-        return counts;
+        return odometry.getEncoderCounts();
+    }
+
+    /**
+     * Get Pinpoint device status
+     * @return Device status string
+     */
+    public String getDeviceStatus() {
+        return odometry.getDeviceStatus();
+    }
+
+    /**
+     * Get Pinpoint update frequency
+     * @return Frequency in Hz
+     */
+    public double getFrequency() {
+        return odometry.getFrequency();
     }
 
     /**
      * Add encoder telemetry data
      */
     public void addTelemetry() {
-        telemetry.addData("=== ENCODER DATA ===", "");
+        telemetry.addData("=== PINPOINT ENCODER DATA ===", "");
 
         // Current position
-        telemetry.addData("Encoder Position", "(%.1f, %.1f) @ %.1f°", getX(), getY(), getHeading());
+        telemetry.addData("Position", "(%.2f, %.2f) @ %.1f°", getX(), getY(), getHeading());
 
         // Current velocity
         telemetry.addData("Velocity", "X:%.1f Y:%.1f Ω:%.1f",
                          getVelocityX(), getVelocityY(), getAngularVelocity());
 
-        // Raw encoder counts (if available)
-        if (leftEncoder != null) {
-            int[] counts = getEncoderCounts();
-            telemetry.addData("Raw Counts", "L:%d R:%d H:%d", counts[0], counts[1], counts[2]);
-        }
+        // Device status and frequency
+        telemetry.addData("Status", getDeviceStatus());
+        telemetry.addData("Frequency", "%.1f Hz", getFrequency());
+
+        // Raw encoder counts
+        int[] counts = getEncoderCounts();
+        telemetry.addData("Raw Counts", "X:%d Y:%d", counts[0], counts[1]);
 
         // System status
-        telemetry.addData("Odometry Ready", isReady() ? "YES" : "NO");
+        telemetry.addData("System Ready", isReady() ? "YES" : "NO");
     }
 
     /**
      * Check if odometry system is ready
-     * @return True if odometry is initialized and working
+     * @return True if Pinpoint is initialized and ready
      */
     public boolean isReady() {
-        return odometry != null;
+        return odometry != null && odometry.isReady();
     }
 }
