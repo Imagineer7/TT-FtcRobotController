@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.util.auroraone.config;
 import com.qualcomm.robotcore.hardware.*;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.util.auroraone.subsystems.localization.VisionLocalizer;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -63,6 +64,7 @@ public class RobotMap {
     // === VISION SYSTEM ===
     public WebcamName primaryWebcam;
     public WebcamName secondaryWebcam;
+    public VisionLocalizer visionLocalizer;
 
     // === POWER MANAGEMENT ===
     public VoltageSensor voltageSensor;
@@ -337,7 +339,7 @@ public class RobotMap {
     }
 
     /**
-     * Initialize vision system
+     * Initialize vision system including VisionLocalizer
      */
     private void initializeVisionSystem() {
         try {
@@ -355,6 +357,18 @@ public class RobotMap {
                 telemetry.addLine("✅ Secondary webcam initialized");
             } catch (Exception e) {
                 telemetry.addLine("⚠️ Secondary webcam 'Webcam 2' not found (optional)");
+            }
+
+            // Initialize VisionLocalizer if cameras are available
+            if (primaryWebcam != null || secondaryWebcam != null) {
+                try {
+                    visionLocalizer = new VisionLocalizer(this, telemetry);
+                    telemetry.addLine("✅ VisionLocalizer initialized");
+                } catch (Exception e) {
+                    telemetry.addLine("⚠️ VisionLocalizer initialization failed: " + e.getMessage());
+                }
+            } else {
+                telemetry.addLine("⚠️ No cameras available for VisionLocalizer");
             }
 
             visionSystemInitialized = true;
@@ -402,6 +416,13 @@ public class RobotMap {
 
     public boolean isVisionSystemReady() {
         return visionSystemInitialized;
+    }
+
+    /**
+     * Get the VisionLocalizer instance
+     */
+    public VisionLocalizer getVisionLocalizer() {
+        return visionLocalizer;
     }
 
     /**

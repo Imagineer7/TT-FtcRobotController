@@ -13,47 +13,16 @@ import org.firstinspires.ftc.teamcode.util.auroraone.core.Blackboard;
 import org.firstinspires.ftc.teamcode.util.auroraone.subsystems.localization.VisionLocalizer;
 
 /**
- * AURORA ONE - Autonomous Template
+ * Basic Center Auto - Simple autonomous routine
  *
- * This class serves as a comprehensive template for creating autonomous routines for the robot.
- * It provides a structured framework using the StateMachine for defining the sequence of actions
- * the robot should perform during the autonomous period.
+ * This autonomous routine performs a simple two-step movement:
+ * 1. Drive to center position (0, 0)
+ * 2. Drive +24 inches along the X-axis to position (24, 0)
  *
- * TEMPLATE FEATURES:
- * ==================
- * - StateMachine integration for robust state management
- * - Customizable autonomous sequences with waypoints
- * - Alliance color and starting position selection
- * - Comprehensive error handling and recovery
- * - Performance monitoring and telemetry
- * - Timeout protection and safety measures
- * - Modular action system for reusable behaviors
- *
- * USAGE INSTRUCTIONS:
- * ===================
- * 1. Copy this template and rename it (e.g., "RedLeftAuto.java")
- * 2. Update the @Autonomous annotation with your specific name
- * 3. Customize the autonomous sequence in setupAutonomousSequence()
- * 4. Modify starting positions and alliance-specific logic
- * 5. Add custom states and actions as needed
- * 6. Test thoroughly and tune timing/positions
- *
- * CUSTOMIZATION POINTS:
- * =====================
- * - Alliance color (RED/BLUE)
- * - Starting position (LEFT/RIGHT)
- * - Autonomous sequence steps
- * - Waypoint positions
- * - Action timing and parameters
- * - Scoring strategies
- * - Parking positions
- *
- * @author Tundra Tech Robotics
- * @version 1.0
- * @since 2025-10-16
+ * Uses vision-based start position detection with fallback to configured position.
  */
-@Autonomous(name = "Aurora Auto Template", group = "Aurora", preselectTeleOp = "Aurora TeleOp")
-public class AutoTemplate extends LinearOpMode {
+@Autonomous(name = "Basic Center Auto", group = "Aurora", preselectTeleOp = "Aurora TeleOp")
+public class BasicCenterAuto extends LinearOpMode {
 
     // =========================================================================================
     // CONFIGURATION CONSTANTS
@@ -61,25 +30,23 @@ public class AutoTemplate extends LinearOpMode {
 
     /**
      * Alliance color selection
-     * Change this to BLUE for blue alliance
      */
     private static final Alliance ALLIANCE = Alliance.RED;
 
     /**
      * Starting position selection
-     * Change this to RIGHT for right starting position
      */
     private static final StartPosition START_POSITION = StartPosition.LEFT;
 
     /**
      * Maximum autonomous runtime before timeout (seconds)
      */
-    private static final double MAX_AUTO_TIME = 29.5; // Leave 0.5s buffer
+    private static final double MAX_AUTO_TIME = 29.5;
 
     /**
      * Enable debug telemetry and logging
      */
-    private static final boolean DEBUG_MODE = false;
+    private static final boolean DEBUG_MODE = true;
 
     // =========================================================================================
     // ALLIANCE AND POSITION ENUMS
@@ -123,11 +90,8 @@ public class AutoTemplate extends LinearOpMode {
 
     public enum AutoStep {
         INITIALIZE("Initialize robot systems"),
-        MOVE_TO_SCORING("Move to scoring position"),
-        SCORE_PRELOAD("Score preloaded element"),
-        COLLECT_ELEMENTS("Collect game elements"),
-        SCORE_COLLECTED("Score collected elements"),
-        PARK("Park in designated zone"),
+        DRIVE_TO_CENTER("Drive to center (0,0)"),
+        DRIVE_PLUS_24X("Drive +24 inches on X-axis"),
         COMPLETE("Autonomous complete");
 
         private final String description;
@@ -155,8 +119,6 @@ public class AutoTemplate extends LinearOpMode {
 
     // Autonomous state tracking
     private AutoStep currentStep;
-    private int elementsCollected;
-    private int elementsScored;
     private boolean emergencyStop;
 
     // Current robot position tracking
@@ -164,14 +126,9 @@ public class AutoTemplate extends LinearOpMode {
     private double robotY = 0.0;
     private double robotHeading = 0.0;
 
-    // Waypoints and positions (customize these for your field strategy)
-    private final Pose2D[] waypoints = {
-        new Pose2D(24, 72, 0),   // Scoring zone approach
-        new Pose2D(48, 48, 45),  // Collection zone 1
-        new Pose2D(72, 24, 90),  // Collection zone 2
-        new Pose2D(96, 72, 180), // Alternative scoring position
-        new Pose2D(120, 24, 270) // Parking zone
-    };
+    // Target positions for our basic auto
+    private final Pose2D CENTER_POSITION = new Pose2D(0, 0, 0);
+    private final Pose2D PLUS_24X_POSITION = new Pose2D(24, 0, 0);
 
     // =========================================================================================
     // MAIN AUTONOMOUS ENTRY POINT
@@ -187,7 +144,7 @@ public class AutoTemplate extends LinearOpMode {
             displayInitializationInfo();
 
             // Wait for start
-            logger.info("AutoTemplate", "Waiting for start...");
+            logger.info("BasicCenterAuto", "Waiting for start...");
             waitForStart();
 
             // Check if OpMode was stopped during init
@@ -197,14 +154,14 @@ public class AutoTemplate extends LinearOpMode {
 
             // Start autonomous timer
             autonomousTimer.reset();
-            logger.info("AutoTemplate", String.format(java.util.Locale.US,
-                "Starting %s %s autonomous", ALLIANCE.getName(), START_POSITION.getName()));
+            logger.info("BasicCenterAuto", String.format(java.util.Locale.US,
+                "Starting Basic Center Auto - %s %s", ALLIANCE.getName(), START_POSITION.getName()));
 
             // Run the autonomous sequence
             runAutonomousSequence();
 
         } catch (Exception e) {
-            logger.error("AutoTemplate", "Autonomous failed: " + e.getMessage());
+            logger.error("BasicCenterAuto", "Autonomous failed: " + e.getMessage());
             handleEmergencyStop("Unexpected error: " + e.getMessage());
         } finally {
             // Cleanup and final status
@@ -229,7 +186,7 @@ public class AutoTemplate extends LinearOpMode {
         autonomousTimer = new ElapsedTime();
         stepTimer = new ElapsedTime();
 
-        // Initialize robot hardware - fixed constructor call
+        // Initialize robot hardware
         robotMap = new RobotMap(hardwareMap, telemetry);
 
         // Initialize state machine
@@ -243,24 +200,20 @@ public class AutoTemplate extends LinearOpMode {
         // Try to set initial position from vision, fallback to configured position
         if (!trySetStartPositionFromVision()) {
             setInitialPosition();
-            logger.info("AutoTemplate", "Using configured start position - vision detection failed or unavailable");
+            logger.info("BasicCenterAuto", "Using configured start position - vision detection failed or unavailable");
         }
 
         // Initialize tracking variables
         currentStep = AutoStep.INITIALIZE;
-        elementsCollected = 0;
-        elementsScored = 0;
         emergencyStop = false;
 
-        logger.info("AutoTemplate", "Robot initialization complete");
+        logger.info("BasicCenterAuto", "Robot initialization complete");
     }
 
     /**
      * Setup custom autonomous states in the state machine
      */
     private void setupAutonomousStates() {
-        // Add custom autonomous states to the state machine
-
         // AUTO_INIT State - Autonomous initialization
         stateMachine.addState(new StateMachine.BaseState(StateMachine.State.AUTO_INIT) {
             @Override
@@ -268,10 +221,6 @@ public class AutoTemplate extends LinearOpMode {
                 super.onEntry();
                 currentStep = AutoStep.INITIALIZE;
                 stepTimer.reset();
-
-                // Set initial robot configuration
-                // stateMachine.getDriveHandler().setCurrentMode(
-                //     stateMachine.getDriveHandler().DriveMode.NORMAL);
 
                 // Initialize localization
                 if (stateMachine.getLocalizationUnifier() != null) {
@@ -282,7 +231,7 @@ public class AutoTemplate extends LinearOpMode {
                 }
 
                 blackboard.put("auto.current_step", currentStep.name());
-                logger.info("AutoTemplate", "Autonomous initialization started");
+                logger.info("BasicCenterAuto", "Autonomous initialization started");
             }
 
             @Override
@@ -301,7 +250,7 @@ public class AutoTemplate extends LinearOpMode {
             @Override
             public void onEntry() {
                 super.onEntry();
-                logger.info("AutoTemplate", "Autonomous sequence started");
+                logger.info("BasicCenterAuto", "Autonomous sequence started");
             }
 
             @Override
@@ -313,7 +262,7 @@ public class AutoTemplate extends LinearOpMode {
 
                 // Check for timeout
                 if (autonomousTimer.seconds() > MAX_AUTO_TIME) {
-                    logger.warn("AutoTemplate", "Autonomous timeout reached");
+                    logger.warn("BasicCenterAuto", "Autonomous timeout reached");
                     stateMachine.triggerEvent(StateMachine.Event.AUTO_COMPLETE);
                 }
 
@@ -332,13 +281,14 @@ public class AutoTemplate extends LinearOpMode {
                 currentStep = AutoStep.COMPLETE;
 
                 // Stop all robot movement
-                // stateMachine.getDriveHandler().emergencyStop();
-                // stateMachine.getShooterHandler().emergencyStop();
+                if (stateMachine.getDriveHandler() != null) {
+                    stateMachine.getDriveHandler().emergencyStop();
+                }
 
                 // Log final statistics
                 logAutonomousStatistics();
 
-                logger.info("AutoTemplate", "Autonomous sequence completed");
+                logger.info("BasicCenterAuto", "Autonomous sequence completed");
             }
 
             @Override
@@ -360,18 +310,14 @@ public class AutoTemplate extends LinearOpMode {
     }
 
     /**
-     * Set the initial robot position based on alliance and starting position
-     */
-    /**
      * Try to set start position from vision detection
-     * @return true if vision-based position was successfully set, false otherwise
      */
     private boolean trySetStartPositionFromVision() {
         try {
             // Get VisionLocalizer from RobotMap
             VisionLocalizer visionLocalizer = robotMap.getVisionLocalizer();
             if (visionLocalizer == null || !visionLocalizer.isInitialized()) {
-                logger.warn("AutoTemplate", "VisionLocalizer not available or not initialized");
+                logger.warn("BasicCenterAuto", "VisionLocalizer not available or not initialized");
                 return false;
             }
 
@@ -415,7 +361,7 @@ public class AutoTemplate extends LinearOpMode {
                         telemetry.addData("Confidence", "%.2f", confidence);
                         telemetry.update();
 
-                        logger.info("AutoTemplate", String.format(java.util.Locale.US,
+                        logger.info("BasicCenterAuto", String.format(java.util.Locale.US,
                             "Vision start position set: (%.1f, %.1f, %.1f°) confidence: %.2f",
                             position[0], position[1], position[2], confidence));
 
@@ -434,10 +380,10 @@ public class AutoTemplate extends LinearOpMode {
 
             telemetry.addData("Vision Start", "❌ TIMEOUT - No reliable detection");
             telemetry.update();
-            logger.warn("AutoTemplate", "Vision start position detection timed out");
+            logger.warn("BasicCenterAuto", "Vision start position detection timed out");
 
         } catch (Exception e) {
-            logger.error("AutoTemplate", "Vision start position detection failed: " + e.getMessage());
+            logger.error("BasicCenterAuto", "Vision start position detection failed: " + e.getMessage());
             telemetry.addData("Vision Start", "❌ ERROR - " + e.getMessage());
             telemetry.update();
         }
@@ -455,7 +401,7 @@ public class AutoTemplate extends LinearOpMode {
         blackboard.put("auto.alliance", ALLIANCE.name());
         blackboard.put("auto.start_position", START_POSITION.name());
 
-        logger.info("AutoTemplate", String.format(java.util.Locale.US,
+        logger.info("BasicCenterAuto", String.format(java.util.Locale.US,
             "Starting position set: (%.1f, %.1f, %.1f°)",
             startPos.getX(), startPos.getY(), startPos.getTheta()));
     }
@@ -535,24 +481,12 @@ public class AutoTemplate extends LinearOpMode {
                 // Already handled in state machine
                 break;
 
-            case MOVE_TO_SCORING:
-                executeMoveToScoring();
+            case DRIVE_TO_CENTER:
+                executeDriveToCenter();
                 break;
 
-            case SCORE_PRELOAD:
-                executeScorePreload();
-                break;
-
-            case COLLECT_ELEMENTS:
-                executeCollectElements();
-                break;
-
-            case SCORE_COLLECTED:
-                executeScoreCollected();
-                break;
-
-            case PARK:
-                executePark();
+            case DRIVE_PLUS_24X:
+                executeDrivePlus24X();
                 break;
 
             case COMPLETE:
@@ -563,142 +497,45 @@ public class AutoTemplate extends LinearOpMode {
     }
 
     /**
-     * Execute move to scoring position step
+     * Execute drive to center (0,0) step
      */
-    private void executeMoveToScoring() {
+    private void executeDriveToCenter() {
         if (stepTimer.seconds() < 0.1) {
-            logger.info("AutoTemplate", "Moving to scoring position...");
+            logger.info("BasicCenterAuto", "Driving to center position (0,0)...");
 
-            // Get scoring position based on alliance
-            Pose2D scoringPos = getAdjustedWaypoint(0); // First waypoint is scoring zone
-
-            // Command drive to scoring position
-            blackboard.put("drive.target.x", scoringPos.getX());
-            blackboard.put("drive.target.y", scoringPos.getY());
-            blackboard.put("drive.target.heading", scoringPos.getTheta());
+            // Command drive to center position
+            blackboard.put("drive.target.x", CENTER_POSITION.getX());
+            blackboard.put("drive.target.y", CENTER_POSITION.getY());
+            blackboard.put("drive.target.heading", CENTER_POSITION.getTheta());
 
             stateMachine.triggerEvent(StateMachine.Event.START_DRIVING);
         }
 
-        // Check if arrived at scoring position
-        if (isAtTarget() || stepTimer.seconds() > 3.0) {
-            advanceToNextStep(AutoStep.SCORE_PRELOAD);
+        // Check if arrived at center position
+        if (isAtTarget() || stepTimer.seconds() > 10.0) {
+            logger.info("BasicCenterAuto", "Arrived at center position");
+            advanceToNextStep(AutoStep.DRIVE_PLUS_24X);
         }
     }
 
     /**
-     * Execute score preload step
+     * Execute drive +24 inches on X-axis step
      */
-    private void executeScorePreload() {
+    private void executeDrivePlus24X() {
         if (stepTimer.seconds() < 0.1) {
-            logger.info("AutoTemplate", "Scoring preloaded element...");
+            logger.info("BasicCenterAuto", "Driving +24 inches on X-axis to (24,0)...");
 
-            // Start shooter and prepare to score
-            // stateMachine.getShooterHandler().setCurrentPreset(
-            //     stateMachine.getShooterHandler().ShooterPreset.HIGH_GOAL);
-            stateMachine.triggerEvent(StateMachine.Event.START_SHOOTING);
-        }
-
-        // Wait for shooting to complete - check if shooter handler is available
-        boolean shootingComplete = true;
-        if (stateMachine.getShooterHandler() != null) {
-            shootingComplete = !stateMachine.getShooterHandler().isShooting();
-        }
-
-        if (shootingComplete || stepTimer.seconds() > 4.0) {
-            elementsScored++;
-            advanceToNextStep(AutoStep.COLLECT_ELEMENTS);
-        }
-    }
-
-    /**
-     * Execute collect elements step
-     */
-    private void executeCollectElements() {
-        if (stepTimer.seconds() < 0.1) {
-            logger.info("AutoTemplate", "Collecting game elements...");
-
-            // Move to collection zone
-            Pose2D collectionPos = getAdjustedWaypoint(1); // Second waypoint is collection zone
-
-            blackboard.put("drive.target.x", collectionPos.getX());
-            blackboard.put("drive.target.y", collectionPos.getY());
-            blackboard.put("drive.target.heading", collectionPos.getTheta());
-
-            stateMachine.triggerEvent(StateMachine.Event.START_DRIVING);
-            stateMachine.triggerEvent(StateMachine.Event.START_COLLECTION);
-        }
-
-        // Check if collection is complete or timeout
-        // Note: Using timeout for now since Collector.hasGameElement() doesn't exist yet
-        if (stepTimer.seconds() > 5.0) {
-            // Assume we collected something for demo purposes
-            elementsCollected = 1;
-            stateMachine.triggerEvent(StateMachine.Event.STOP_COLLECTION);
-            advanceToNextStep(AutoStep.SCORE_COLLECTED);
-        }
-    }
-
-    /**
-     * Execute score collected elements step
-     */
-    private void executeScoreCollected() {
-        if (elementsCollected == 0) {
-            // Skip if no elements collected
-            advanceToNextStep(AutoStep.PARK);
-            return;
-        }
-
-        if (stepTimer.seconds() < 0.1) {
-            logger.info("AutoTemplate", "Scoring collected elements...");
-
-            // Return to scoring position
-            Pose2D scoringPos = getAdjustedWaypoint(0);
-
-            blackboard.put("drive.target.x", scoringPos.getX());
-            blackboard.put("drive.target.y", scoringPos.getY());
-            blackboard.put("drive.target.heading", scoringPos.getTheta());
+            // Command drive to +24X position
+            blackboard.put("drive.target.x", PLUS_24X_POSITION.getX());
+            blackboard.put("drive.target.y", PLUS_24X_POSITION.getY());
+            blackboard.put("drive.target.heading", PLUS_24X_POSITION.getTheta());
 
             stateMachine.triggerEvent(StateMachine.Event.START_DRIVING);
         }
 
-        // Start shooting when in position
-        if (isAtTarget() && stepTimer.seconds() > 2.0) {
-            stateMachine.triggerEvent(StateMachine.Event.START_SHOOTING);
-        }
-
-        // Check if shooting is complete
-        boolean shootingComplete = true;
-        if (stateMachine.getShooterHandler() != null) {
-            shootingComplete = !stateMachine.getShooterHandler().isShooting();
-        }
-
-        if (shootingComplete || stepTimer.seconds() > 8.0) {
-            elementsScored += elementsCollected;
-            advanceToNextStep(AutoStep.PARK);
-        }
-    }
-
-    /**
-     * Execute park step
-     */
-    private void executePark() {
-        if (stepTimer.seconds() < 0.1) {
-            logger.info("AutoTemplate", "Parking robot...");
-
-            // Move to parking position
-            Pose2D parkingPos = getAdjustedWaypoint(4); // Last waypoint is parking zone
-
-            blackboard.put("drive.target.x", parkingPos.getX());
-            blackboard.put("drive.target.y", parkingPos.getY());
-            blackboard.put("drive.target.heading", parkingPos.getTheta());
-
-            stateMachine.triggerEvent(StateMachine.Event.START_DRIVING);
-        }
-
-        // Check if parked or timeout
-        if (isAtTarget() || stepTimer.seconds() > 4.0) {
-            logger.info("AutoTemplate", "Parking complete");
+        // Check if arrived at +24X position
+        if (isAtTarget() || stepTimer.seconds() > 10.0) {
+            logger.info("BasicCenterAuto", "Arrived at +24X position");
             advanceToNextStep(AutoStep.COMPLETE);
         }
     }
@@ -711,7 +548,7 @@ public class AutoTemplate extends LinearOpMode {
      * Advance to the next step in the autonomous sequence
      */
     private void advanceToNextStep(AutoStep nextStep) {
-        logger.info("AutoTemplate", String.format(java.util.Locale.US,
+        logger.info("BasicCenterAuto", String.format(java.util.Locale.US,
             "Step transition: %s -> %s (%.2fs)",
             currentStep.name(), nextStep.name(), stepTimer.seconds()));
 
@@ -739,33 +576,11 @@ public class AutoTemplate extends LinearOpMode {
     }
 
     /**
-     * Get waypoint adjusted for alliance color
-     */
-    private Pose2D getAdjustedWaypoint(int index) {
-        if (index >= waypoints.length) {
-            return waypoints[waypoints.length - 1];
-        }
-
-        Pose2D waypoint = waypoints[index];
-
-        // Adjust for blue alliance (mirror across field center)
-        if (ALLIANCE == Alliance.BLUE) {
-            return new Pose2D(
-                Tunables.FIELD_WIDTH - waypoint.getX(),
-                waypoint.getY(),
-                180 - waypoint.getTheta()
-            );
-        }
-
-        return waypoint;
-    }
-
-    /**
      * Handle emergency stop condition
      */
     private void handleEmergencyStop(String reason) {
         emergencyStop = true;
-        logger.error("AutoTemplate", "Emergency stop: " + reason);
+        logger.error("BasicCenterAuto", "Emergency stop: " + reason);
 
         // Stop all subsystems
         if (stateMachine != null) {
@@ -786,11 +601,13 @@ public class AutoTemplate extends LinearOpMode {
     private void displayInitializationInfo() {
         while (!isStarted() && !isStopRequested()) {
             telemetry.clear();
-            telemetry.addData("=== AURORA ONE AUTONOMOUS ===", "");
+            telemetry.addData("=== BASIC CENTER AUTO ===", "");
             telemetry.addData("Alliance", ALLIANCE.getName());
             telemetry.addData("Start Position", START_POSITION.getName());
             telemetry.addData("Max Runtime", String.format(java.util.Locale.US, "%.1fs", MAX_AUTO_TIME));
             telemetry.addData("Debug Mode", DEBUG_MODE ? "ENABLED" : "DISABLED");
+            telemetry.addData("", "");
+            telemetry.addData("Sequence", "Start → Center(0,0) → +24X(24,0)");
             telemetry.addData("", "");
             telemetry.addData("Status", "Ready to start!");
             telemetry.addData("", "Press PLAY to begin autonomous");
@@ -813,7 +630,7 @@ public class AutoTemplate extends LinearOpMode {
         telemetry.clear();
 
         // Header
-        telemetry.addData("=== AURORA ONE AUTO ===", "");
+        telemetry.addData("=== BASIC CENTER AUTO ===", "");
         telemetry.addData("Alliance", ALLIANCE.getName());
         telemetry.addData("Runtime", String.format(java.util.Locale.US, "%.1fs / %.1fs",
                          autonomousTimer.seconds(), MAX_AUTO_TIME));
@@ -821,10 +638,6 @@ public class AutoTemplate extends LinearOpMode {
         // Current status
         telemetry.addData("Current Step", currentStep.getDescription());
         telemetry.addData("Step Time", String.format(java.util.Locale.US, "%.1fs", stepTimer.seconds()));
-
-        // Performance metrics
-        telemetry.addData("Elements Collected", elementsCollected);
-        telemetry.addData("Elements Scored", elementsScored);
 
         // State machine status
         if (stateMachine != null) {
@@ -834,20 +647,38 @@ public class AutoTemplate extends LinearOpMode {
         }
 
         // Position information
-        telemetry.addData("Position", String.format(java.util.Locale.US,
+        telemetry.addData("Current Position", String.format(java.util.Locale.US,
                          "(%.1f, %.1f, %.0f°)", robotX, robotY, robotHeading));
 
         // Target information
         double targetX = blackboard.get("drive.target.x", 0.0);
         double targetY = blackboard.get("drive.target.y", 0.0);
-        if (targetX != 0.0 || targetY != 0.0) {
-            telemetry.addData("Target", String.format(java.util.Locale.US, "(%.1f, %.1f)", targetX, targetY));
+        if (targetX != 0.0 || targetY != 0.0 || currentStep != AutoStep.INITIALIZE) {
+            telemetry.addData("Target Position", String.format(java.util.Locale.US, "(%.1f, %.1f)", targetX, targetY));
             double distanceToTarget = Math.sqrt(
                 Math.pow(robotX - targetX, 2) + Math.pow(robotY - targetY, 2)
             );
             telemetry.addData("Distance to Target", String.format(java.util.Locale.US, "%.1f\"", distanceToTarget));
             telemetry.addData("At Target", isAtTarget() ? "YES" : "NO");
         }
+
+        // Progress indicator
+        String progress = "";
+        switch (currentStep) {
+            case INITIALIZE:
+                progress = "🔄 Initializing...";
+                break;
+            case DRIVE_TO_CENTER:
+                progress = "🎯 → Center (0,0)";
+                break;
+            case DRIVE_PLUS_24X:
+                progress = "🎯 → +24X (24,0)";
+                break;
+            case COMPLETE:
+                progress = "✅ Complete!";
+                break;
+        }
+        telemetry.addData("Progress", progress);
 
         // Debug information
         if (DEBUG_MODE && stateMachine != null) {
@@ -863,26 +694,25 @@ public class AutoTemplate extends LinearOpMode {
      */
     private void logAutonomousStatistics() {
         String stats = String.format(java.util.Locale.US,
-            "Autonomous Statistics:\n" +
+            "Basic Center Auto Statistics:\n" +
             "  Runtime: %.2f seconds\n" +
-            "  Elements Collected: %d\n" +
-            "  Elements Scored: %d\n" +
             "  Final Step: %s\n" +
+            "  Final Position: (%.1f, %.1f, %.1f°)\n" +
             "  Alliance: %s %s",
             autonomousTimer.seconds(),
-            elementsCollected,
-            elementsScored,
             currentStep.name(),
+            robotX, robotY, robotHeading,
             ALLIANCE.getName(),
             START_POSITION.getName()
         );
 
-        logger.info("AutoTemplate", stats);
+        logger.info("BasicCenterAuto", stats);
 
         // Store statistics in blackboard for post-match analysis
         blackboard.put("auto.final_runtime", autonomousTimer.seconds());
-        blackboard.put("auto.elements_collected", elementsCollected);
-        blackboard.put("auto.elements_scored", elementsScored);
+        blackboard.put("auto.final_x", robotX);
+        blackboard.put("auto.final_y", robotY);
+        blackboard.put("auto.final_heading", robotHeading);
         blackboard.put("auto.completed_successfully", currentStep == AutoStep.COMPLETE);
     }
 
@@ -895,11 +725,11 @@ public class AutoTemplate extends LinearOpMode {
                 stateMachine.stop();
             }
 
-            logger.info("AutoTemplate", "Autonomous cleanup completed");
+            logger.info("BasicCenterAuto", "Autonomous cleanup completed");
 
         } catch (Exception e) {
             // Log error but don't throw - we're already cleaning up
-            logger.error("AutoTemplate", "Error during cleanup: " + e.getMessage());
+            logger.error("BasicCenterAuto", "Error during cleanup: " + e.getMessage());
         }
     }
 }

@@ -95,6 +95,12 @@ public class LocalizationUnifier implements VisionLocalizer.LocalizationCallback
     private double[] previousPosition = {0, 0, 0};
     private long previousPositionTimestamp = 0;
 
+    // Vision drift correction protection
+    private int consecutiveHighDriftCount = 0;
+    private double lastDriftAmount = 0.0;
+    private static final int REQUIRED_DRIFT_CONFIRMATIONS = 5; // Require 5 consecutive high drift readings
+    private static final double DRIFT_THRESHOLD = 24.0; // 24 inch drift threshold
+
     // Statistics and monitoring
     private int totalFusionUpdates = 0;
     private int visionBasedUpdates = 0;
@@ -462,20 +468,41 @@ public class LocalizationUnifier implements VisionLocalizer.LocalizationCallback
 
             odometryOnlyUpdates++;
 
-            // Sync odometry with vision occasionally for drift correction
+            // Sync odometry with vision occasionally for drift correction (with robust validation)
             if (hasValidVisionData() && lastVisionConfidence > Tunables.LOCALIZATION_CONFIDENCE_THRESHOLD) {
                 double positionDrift = Math.sqrt(
                     Math.pow(lastVisionPosition[0] - lastOdometryPosition[0], 2) +
                     Math.pow(lastVisionPosition[1] - lastOdometryPosition[1], 2)
                 );
 
-                // If drift is significant, correct odometry
-                if (positionDrift > 12.0) { // 12 inch drift threshold
-                    if (odometry != null) {
-                        odometry.setPosition(lastVisionPosition[0], lastVisionPosition[1], lastVisionPosition[2]);
-                        telemetry.addLine("🔄 Odometry corrected by vision (drift: " + String.format("%.1f", positionDrift) + "\")");
+                lastDriftAmount = positionDrift;
+
+                // Check if drift exceeds threshold
+                if (positionDrift > DRIFT_THRESHOLD) {
+                    consecutiveHighDriftCount++;
+
+                    // Only correct odometry after multiple consecutive confirmations
+                    if (consecutiveHighDriftCount >= REQUIRED_DRIFT_CONFIRMATIONS) {
+                        if (odometry != null) {
+                            odometry.setPosition(lastVisionPosition[0], lastVisionPosition[1], lastVisionPosition[2]);
+                            telemetry.addLine("🔄 Odometry corrected by vision after " + REQUIRED_DRIFT_CONFIRMATIONS +
+                                           " confirmations (drift: " + String.format("%.1f", positionDrift) + "\")");
+                        }
+                        consecutiveHighDriftCount = 0; // Reset counter after correction
+                    } else {
+                        telemetry.addData("Drift Warning", "High drift detected (%d/%d confirmations): %.1f\"",
+                                        consecutiveHighDriftCount, REQUIRED_DRIFT_CONFIRMATIONS, positionDrift);
                     }
+                } else {
+                    // Reset counter if drift is back to normal
+                    if (consecutiveHighDriftCount > 0) {
+                        telemetry.addData("Drift Cleared", "Count reset, drift now: %.1f\"", positionDrift);
+                    }
+                    consecutiveHighDriftCount = 0;
                 }
+            } else {
+                // Reset drift counter if vision data becomes invalid
+                consecutiveHighDriftCount = 0;
             }
         } else if (hasValidVisionData()) {
             // Fallback to vision if odometry is unavailable or robot is tipped

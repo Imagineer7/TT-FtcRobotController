@@ -399,9 +399,10 @@ public class Tunables {
 
     /**
      * Sensor fusion weights (vision, odometry) - must sum to 1.0
+     * Odometry is heavily favored for post-initialization tracking
      */
-    public static final double LOCALIZATION_VISION_WEIGHT = 0.3;
-    public static final double LOCALIZATION_ODOMETRY_WEIGHT = 0.7;
+    public static final double LOCALIZATION_VISION_WEIGHT = 0.15;
+    public static final double LOCALIZATION_ODOMETRY_WEIGHT = 0.85;
 
     /**
      * Get normalized fusion weights for sensor fusion
