@@ -164,7 +164,13 @@ public class AURORAAutonomous extends LinearOpMode {
      */
     private void initializeOdometry() {
         try {
+            telemetry.addLine("Attempting to get odometry device 'odo'...");
+            telemetry.update();
+
             odometry = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
+
+            telemetry.addLine("Device found! Configuring...");
+            telemetry.update();
 
             // Set odometry pod offsets (adjust these for your robot configuration)
             // X offset: how far sideways from center is the X (forward) pod (left is positive)
@@ -183,16 +189,33 @@ public class AURORAAutonomous extends LinearOpMode {
             );
 
             // Reset position and recalibrate IMU
+            telemetry.addLine("Resetting position and calibrating IMU...");
+            telemetry.update();
             odometry.resetPosAndIMU();
 
             telemetry.addLine("✅ Odometry initialized successfully");
             telemetry.addData("Device Version", odometry.getDeviceVersion());
+            telemetry.addData("Device Status", odometry.getDeviceStatus());
             telemetry.addData("X Offset (mm)", odometry.getXOffset(DistanceUnit.MM));
             telemetry.addData("Y Offset (mm)", odometry.getYOffset(DistanceUnit.MM));
+            telemetry.addData("Yaw Scalar", odometry.getYawScalar());
 
+        } catch (IllegalArgumentException e) {
+            odometry = null;
+            telemetry.addLine("⚠️ Odometry device 'odo' not found in hardware configuration!");
+            telemetry.addLine("");
+            telemetry.addLine("To fix this:");
+            telemetry.addLine("1. Go to Robot Configuration on the Driver Station");
+            telemetry.addLine("2. Add an I2C device named 'odo'");
+            telemetry.addLine("3. Set device type to 'goBILDA Pinpoint'");
+            telemetry.addLine("");
+            telemetry.addLine("Error: " + e.getMessage());
         } catch (Exception e) {
             odometry = null;
-            telemetry.addLine("⚠️ Odometry initialization failed: " + e.getMessage());
+            telemetry.addLine("⚠️ Odometry initialization failed!");
+            telemetry.addLine("Error type: " + e.getClass().getSimpleName());
+            telemetry.addLine("Error: " + e.getMessage());
+            telemetry.addLine("");
             telemetry.addLine("Autonomous will run without odometry feedback");
         }
         telemetry.update();
@@ -226,34 +249,25 @@ public class AURORAAutonomous extends LinearOpMode {
 
         // Example 2: Scoring sequence with shooter (ACTIVE)
         // Start shooter in warmup mode while moving to save time
-        startShooterWarmup(ShooterConfig.ShooterPreset.LONG_RANGE);
+        startShooterWarmup(ShooterConfig.ShooterPreset.SHORT_RANGE);
 
         // Move to scoring position
-        moveForward(30);
-        sleep(300);
-
-        // Turn to face basket
-        turnToAngle(90);
-        sleep(300);
-
-        // Fine positioning
-        moveLeft(6);
+        moveForward(35);
         sleep(300);
 
         // Transition from warmup to full power and fire 3 shots
         telemetry.addLine("Scoring...");
         telemetry.update();
-        fireMultipleShots(3, ShooterConfig.ShooterPreset.LONG_RANGE, false);
+        fireMultipleShots(3, ShooterConfig.ShooterPreset.SHORT_RANGE, false);
         sleep(500);
 
         // Move away from basket
-        moveRight(6);
+        moveLeft(12);
         sleep(300);
 
         // Return to safe zone
         turnToAngle(0);
         sleep(300);
-        moveBackward(30);
 
         telemetry.addLine("✅ Sequence Complete!");
         telemetry.update();
