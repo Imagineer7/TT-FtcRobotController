@@ -898,11 +898,15 @@ public class StateMachine {
      */
     private void updateSubsystems() {
         // Update each subsystem - uncomment when methods are available
-        // driveHandler.update();
+        if (driveHandler != null) {
+            driveHandler.update();
+        }
         // shooterHandler.update();
         // collector.update();
         // obstacleSensors.update();
-        // localizationUnifier.update();
+        if (localizationUnifier != null) {
+            localizationUnifier.update();
+        }
         // visionLocalizer.update();
     }
 

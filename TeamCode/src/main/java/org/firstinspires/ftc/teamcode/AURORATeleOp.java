@@ -36,7 +36,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.SmartTelemetryManager;
  * - System: Back + D-pad Left (toggle driver mode), Back (cancel semi-auto), D-pad Right (cycle telemetry)
  * <p>
  * Gamepad 2 (Operator - Shooting only):
- * - Range Selection: Right bumper (long range), Left bumper (short range)
+ * - Left trigger: Warmup mode (spins shooter at 65% RPM to save power)
  * - A: Single shot (uses selected range)
  * - Y: Continuous shooting (rapid fire)
  * - Right trigger: Manual shooter power control
@@ -65,6 +65,8 @@ public class AURORATeleOp extends LinearOpMode {
 
     // Emergency stop tracking
     private boolean emergencyStop = false;
+
+    private boolean cycleTelemetry = false;
 
     @Override
     public void runOpMode() {
@@ -115,8 +117,10 @@ public class AURORATeleOp extends LinearOpMode {
             handlePrecisionToggle();
             handleEmergencyStop();
 
+            cycleTelemetry = gamepad1.x || gamepad2.dpad_left;
+
             // Handle telemetry page cycling through smart telemetry manager
-            smartTelemetry.handlePageCycling(gamepad1.x);
+            smartTelemetry.handlePageCycling(cycleTelemetry);
 
             // Add debug information about gamepad inputs for troubleshooting
             //addGamepadDebugInfo();

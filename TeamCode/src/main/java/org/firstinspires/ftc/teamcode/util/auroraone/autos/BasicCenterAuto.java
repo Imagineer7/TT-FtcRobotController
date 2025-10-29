@@ -214,6 +214,7 @@ public class BasicCenterAuto extends LinearOpMode {
      * Setup custom autonomous states in the state machine
      */
     private void setupAutonomousStates() {
+
         // AUTO_INIT State - Autonomous initialization
         stateMachine.addState(new StateMachine.BaseState(StateMachine.State.AUTO_INIT) {
             @Override
@@ -240,7 +241,7 @@ public class BasicCenterAuto extends LinearOpMode {
 
                 // Complete initialization after brief setup time
                 if (getStateDuration() > 0.5) {
-                    stateMachine.triggerEvent(StateMachine.Event.AUTO_START);
+                    stateMachine.triggerEvent(StateMachine.Event.START_DRIVING);
                 }
             }
         });
@@ -260,6 +261,9 @@ public class BasicCenterAuto extends LinearOpMode {
                 // Execute current step in autonomous sequence
                 executeCurrentStep();
 
+                // Command DriveHandler to move toward target position
+                commandDriveToTarget();
+
                 // Check for timeout
                 if (autonomousTimer.seconds() > MAX_AUTO_TIME) {
                     logger.warn("BasicCenterAuto", "Autonomous timeout reached");
@@ -269,6 +273,15 @@ public class BasicCenterAuto extends LinearOpMode {
                 // Check for emergency conditions
                 if (emergencyStop || isStopRequested()) {
                     stateMachine.triggerEvent(StateMachine.Event.EMERGENCY_STOP);
+                }
+            }
+
+            @Override
+            public void onExit() {
+                super.onExit();
+                // Stop driving when exiting AUTO_RUNNING
+                if (stateMachine.getDriveHandler() != null) {
+                    stateMachine.getDriveHandler().setDriveInputs(0, 0, 0);
                 }
             }
         });
@@ -299,14 +312,23 @@ public class BasicCenterAuto extends LinearOpMode {
             }
         });
 
-        // Setup transitions
+        // Setup transitions AFTER states are defined
+        // Use AUTO_START to go from IDLE to AUTO_INIT (avoids conflict with default SYSTEM_INIT)
+        stateMachine.addTransition(StateMachine.State.IDLE,
+                                 StateMachine.State.AUTO_INIT,
+                                 StateMachine.Event.AUTO_START);
+
         stateMachine.addTransition(StateMachine.State.AUTO_INIT,
                                  StateMachine.State.AUTO_RUNNING,
-                                 StateMachine.Event.AUTO_START);
+                                 StateMachine.Event.START_DRIVING);
 
         stateMachine.addTransition(StateMachine.State.AUTO_RUNNING,
                                  StateMachine.State.AUTO_COMPLETE,
                                  StateMachine.Event.AUTO_COMPLETE);
+
+        stateMachine.addTransition(StateMachine.State.AUTO_COMPLETE,
+                                 StateMachine.State.IDLE,
+                                 StateMachine.Event.SYSTEM_READY);
     }
 
     /**
@@ -434,7 +456,10 @@ public class BasicCenterAuto extends LinearOpMode {
     private void runAutonomousSequence() {
         // Start the state machine
         stateMachine.start();
-        stateMachine.triggerEvent(StateMachine.Event.SYSTEM_INIT);
+
+        // Directly transition to AUTO_INIT state using the AUTO_START event
+        // We don't use SYSTEM_INIT because it conflicts with default transitions
+        stateMachine.triggerEvent(StateMachine.Event.AUTO_START);
 
         // Main autonomous loop
         while (opModeIsActive() && !emergencyStop) {
@@ -470,6 +495,70 @@ public class BasicCenterAuto extends LinearOpMode {
                 robotHeading = posArray[2];
             }
         }
+    }
+
+    /**
+     * Command DriveHandler to move toward target position
+     * Uses simple proportional control for autonomous navigation
+     */
+    private void commandDriveToTarget() {
+        if (stateMachine.getDriveHandler() == null) {
+            return;
+        }
+
+        // Get target position from blackboard
+        double targetX = blackboard.get("drive.target.x", robotX);
+        double targetY = blackboard.get("drive.target.y", robotY);
+        double targetHeading = blackboard.get("drive.target.heading", robotHeading);
+
+        // Calculate error
+        double errorX = targetX - robotX;
+        double errorY = targetY - robotY;
+        double errorHeading = normalizeAngle(targetHeading - robotHeading);
+
+        // Calculate distance to target
+        double distanceError = Math.sqrt(errorX * errorX + errorY * errorY);
+
+        // If we're close enough, stop moving
+        if (distanceError < Tunables.AUTO_POSITION_TOLERANCE &&
+            Math.abs(errorHeading) < Tunables.AUTO_HEADING_TOLERANCE) {
+            stateMachine.getDriveHandler().setDriveInputs(0, 0, 0);
+            return;
+        }
+
+        // Simple proportional control
+        double kP_translation = 0.05;  // Proportional gain for translation
+        double kP_rotation = 0.02;      // Proportional gain for rotation
+
+        // Calculate drive commands (field-relative)
+        double commandX = errorX * kP_translation;
+        double commandY = errorY * kP_translation;
+        double commandRotation = errorHeading * kP_rotation;
+
+        // Limit max speed
+        double maxSpeed = 0.6;  // 60% max speed for autonomous
+        double commandMagnitude = Math.sqrt(commandX * commandX + commandY * commandY);
+        if (commandMagnitude > maxSpeed) {
+            commandX = (commandX / commandMagnitude) * maxSpeed;
+            commandY = (commandY / commandMagnitude) * maxSpeed;
+        }
+
+        // Limit rotation speed
+        double maxRotation = 0.4;  // 40% max rotation for autonomous
+        commandRotation = Math.max(-maxRotation, Math.min(maxRotation, commandRotation));
+
+        // Send commands to DriveHandler
+        // Note: setDriveInputs expects (axial=forward/back, lateral=left/right, yaw=rotation)
+        stateMachine.getDriveHandler().setDriveInputs(commandY, commandX, commandRotation);
+    }
+
+    /**
+     * Normalize angle to [-180, 180] degrees
+     */
+    private double normalizeAngle(double angle) {
+        while (angle > 180.0) angle -= 360.0;
+        while (angle < -180.0) angle += 360.0;
+        return angle;
     }
 
     /**

@@ -14,11 +14,11 @@ public class ShooterConfig {
 
     // Preset configurations for different scenarios
     public enum ShooterPreset {
-        LONG_RANGE("Long Range", 0.85, 3400, 1.5, 2.0),
-        SHORT_RANGE("Short Range", 0.60, 2800, 1.2, 1.2),
-        RAPID_FIRE("Rapid Fire", 0.80, 3900, 0.8, 1.0),
-        PRECISION("Precision", 0.90, 4800, 2.0, 2.5),
-        BATTERY_SAVER("Battery Saver", 0.65, 3000, 1.8, 1.5);
+        LONG_RANGE("Long Range", 0.85, 4200, 1.0, 1.2),
+        SHORT_RANGE("Short Range", 0.8, 2850, 0.8, 0.8),
+        RAPID_FIRE("Rapid Fire", 0.80, 3900, 0.8, 0.7),
+        PRECISION("Precision", 0.90, 4800, 2.0, 1.5),
+        BATTERY_SAVER("Battery Saver", 0.65, 3000, 1.8, 1.0);
 
         private final String name;
         private final double power;
@@ -48,9 +48,14 @@ public class ShooterConfig {
     private double feedPower = 1.0;
     private double feedTime = 0.3;
     private double rpmTolerance = 75;
+    private double shootingRpmTolerance = 50; // Stricter RPM tolerance for consistent shot distances
     private double rpmStabilityTime = 0.25;
     private boolean useRpmSpinup = true;
     private double maxSpinupTime = 3.0;
+
+    // Warmup mode parameters
+    private double warmupRpmPercentage = 0.65; // Warmup runs at 65% of target RPM to save power
+    private double warmupSpinupTime = 0.8; // Faster spinup time for warmup mode
 
     // Battery voltage compensation
     private boolean batteryCompensation = true;
@@ -109,9 +114,20 @@ public class ShooterConfig {
     public double getRpmTolerance() { return rpmTolerance; }
     public void setRpmTolerance(double rpmTolerance) { this.rpmTolerance = rpmTolerance; }
 
+    public double getShootingRpmTolerance() { return shootingRpmTolerance; }
+    public void setShootingRpmTolerance(double shootingRpmTolerance) { this.shootingRpmTolerance = shootingRpmTolerance; }
+
     public boolean isUseRpmSpinup() { return useRpmSpinup; }
     public void setUseRpmSpinup(boolean useRpmSpinup) { this.useRpmSpinup = useRpmSpinup; }
 
     public boolean isBatteryCompensation() { return batteryCompensation; }
     public void setBatteryCompensation(boolean batteryCompensation) { this.batteryCompensation = batteryCompensation; }
+
+    public double getWarmupRpmPercentage() { return warmupRpmPercentage; }
+    public void setWarmupRpmPercentage(double warmupRpmPercentage) { this.warmupRpmPercentage = warmupRpmPercentage; }
+
+    public double getWarmupSpinupTime() { return warmupSpinupTime; }
+    public void setWarmupSpinupTime(double warmupSpinupTime) { this.warmupSpinupTime = warmupSpinupTime; }
+
+    public double getWarmupTargetRPM() { return currentPreset.getTargetRPM() * warmupRpmPercentage; }
 }

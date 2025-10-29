@@ -10,20 +10,29 @@ import org.firstinspires.ftc.teamcode.util.auroraone.core.Blackboard;
 
 /**
  * AURORA ONE - Drive Handler
- * Advanced mecanum drive system with efficiency optimization and predictive control
+ * Advanced mecanum drive system for autonomous operation with intelligent direction verification
  *
- * This class is responsible for managing the robot's drive system, including motor control and movement logic.
- * It provides methods to control the robot's speed, direction, and overall movement behavior.
- * It uses mechanum as the main drive type.
+ * This class manages the robot's drive system for autonomous modes, including motor control,
+ * movement execution, and intelligent odometry-based direction verification.
+ * It provides methods to execute autonomous movement commands and automatically detects
+ * and corrects motor wiring issues.
  *
  * Features:
  * - Dynamic power scaling based on battery voltage
  * - Predictive movement with acceleration curves
  * - Energy-efficient driving modes
  * - Anti-tip protection for high-speed maneuvers
- * - Driver performance analytics
+ * - Intelligent direction verification using odometry feedback
+ * - Automatic motor direction correction for autonomous reliability
+ * - Performance analytics and monitoring
  * - Integration with Aurora One State Machine system
  * - Centralized tunable parameters via Tunables class
+ *
+ * Autonomous Direction Verification:
+ * The system continuously compares commanded movement directions (from path planner)
+ * with actual robot movement (from odometry). If motors are wired incorrectly and the
+ * robot moves opposite to commands, the system automatically inverts motor directions
+ * to ensure autonomous paths execute correctly.
  */
 public class DriveHandler {
 
@@ -83,15 +92,26 @@ public class DriveHandler {
     // Safety systems
     private boolean antiTipEnabled = true;
 
-    // Fine movement control
+    // Fine movement control (for precision adjustments)
     private double fineX = 0.0;
     private double fineY = 0.0;
     private double fineRotation = 0.0;
 
-    // Manual drive inputs with deadzone applied
-    private double manualAxial = 0.0;
-    private double manualLateral = 0.0;
-    private double manualYaw = 0.0;
+    // Commanded drive inputs (from autonomous control system)
+    private double commandedAxial = 0.0;    // Forward/backward command
+    private double commandedLateral = 0.0;  // Left/right command
+    private double commandedYaw = 0.0;      // Rotation command
+
+    // Intelligent direction verification
+    private boolean directionVerificationEnabled = Tunables.DRIVE_DIRECTION_VERIFICATION_ENABLED;
+    private int directionMismatchCount = 0;
+    private int directionCorrectCount = 0;
+    private boolean motorDirectionsInverted = false;
+    private double lastCommandedVelocityX = 0.0;
+    private double lastCommandedVelocityY = 0.0;
+    private ElapsedTime directionCheckTimer = new ElapsedTime();
+    private int totalDirectionCorrections = 0;
+    private boolean directionMismatchDetected = false;
 
     /**
      * Constructor - Initialize with RobotMap
@@ -147,18 +167,22 @@ public class DriveHandler {
     }
 
     /**
-     * Set drive inputs manually (primary input method for Aurora One)
-     * Applies deadzone from Tunables automatically
+     * Set autonomous drive commands (primary input method for Aurora One)
+     * This is called by the autonomous control system to command robot movement
+     *
+     * @param axial Forward/backward velocity command (-1.0 to 1.0)
+     * @param lateral Left/right velocity command (-1.0 to 1.0)
+     * @param yaw Rotational velocity command (-1.0 to 1.0)
      */
     public void setDriveInputs(double axial, double lateral, double yaw) {
-        // Apply deadzone from Tunables
-        this.manualAxial = applyDeadzone(axial);
-        this.manualLateral = applyDeadzone(lateral);
-        this.manualYaw = applyDeadzone(yaw * Tunables.DRIVE_ROTATION_SENSITIVITY);
+        // Store commanded velocities (no deadzone in auto - precise control needed)
+        this.commandedAxial = axial;
+        this.commandedLateral = lateral;
+        this.commandedYaw = yaw * Tunables.DRIVE_ROTATION_SENSITIVITY;
     }
 
     /**
-     * Apply deadzone to input value
+     * Apply deadzone to input value (used for safety checks only in auto)
      */
     private double applyDeadzone(double input) {
         return Math.abs(input) < Tunables.DRIVE_DEADZONE ? 0.0 : input;
@@ -172,10 +196,14 @@ public class DriveHandler {
 
         updateBatteryStatus();
 
-        // Get drive inputs
-        double axial = manualAxial;
-        double lateral = manualLateral;
-        double yaw = manualYaw;
+        // Get commanded velocities from autonomous control
+        double axial = commandedAxial;
+        double lateral = commandedLateral;
+        double yaw = commandedYaw;
+
+        // Store commanded velocity for direction verification
+        lastCommandedVelocityX = lateral;
+        lastCommandedVelocityY = axial;
 
         // Apply field-relative transformation if enabled
         if (fieldRelative) {
@@ -192,6 +220,11 @@ public class DriveHandler {
 
         // Apply smooth acceleration
         applySmoothAcceleration();
+
+        // Perform intelligent direction verification using odometry
+        if (directionVerificationEnabled) {
+            performDirectionVerification();
+        }
 
         // Set motor powers
         setMotorPowers();
@@ -227,10 +260,17 @@ public class DriveHandler {
         blackboard.put("drive.analytics.sharp_turns", sharpTurns);
         blackboard.put("drive.analytics.average_speed", averageSpeed);
 
-        // Drive inputs (for state machine monitoring)
-        blackboard.put("drive.input.axial", manualAxial);
-        blackboard.put("drive.input.lateral", manualLateral);
-        blackboard.put("drive.input.yaw", manualYaw);
+        // Direction verification status
+        blackboard.put("drive.verification.enabled", directionVerificationEnabled);
+        blackboard.put("drive.verification.mismatch_count", directionMismatchCount);
+        blackboard.put("drive.verification.total_corrections", totalDirectionCorrections);
+        blackboard.put("drive.verification.motors_inverted", motorDirectionsInverted);
+        blackboard.put("drive.verification.mismatch_detected", directionMismatchDetected);
+
+        // Autonomous drive commands (for state machine monitoring)
+        blackboard.put("drive.command.axial", commandedAxial);
+        blackboard.put("drive.command.lateral", commandedLateral);
+        blackboard.put("drive.command.yaw", commandedYaw);
 
         // Check for autonomous drive commands from Blackboard
         boolean autoActive = blackboard.get("drive.auto.active", false);
@@ -409,6 +449,145 @@ public class DriveHandler {
     }
 
     /**
+     * Perform intelligent direction verification using odometry feedback
+     * Compares commanded autonomous movement direction with actual odometry velocity
+     * Auto-corrects motor directions if consistent mismatch detected
+     *
+     * This is critical for autonomous operation where motors may be wired incorrectly
+     * and the robot moves opposite to the path planner's commands.
+     */
+    private void performDirectionVerification() {
+        // Only check periodically to reduce CPU load
+        if (directionCheckTimer.seconds() < 0.1) { // Check every 100ms
+            return;
+        }
+        directionCheckTimer.reset();
+
+        // Get commanded movement magnitude (from autonomous path planner)
+        double commandedMagnitude = Math.sqrt(
+            lastCommandedVelocityX * lastCommandedVelocityX +
+            lastCommandedVelocityY * lastCommandedVelocityY
+        );
+
+        // Skip verification if commanded movement is too small
+        // (robot should be stopped or holding position)
+        if (commandedMagnitude < Tunables.DRIVE_MIN_INPUT_FOR_VALIDATION) {
+            directionMismatchDetected = false;
+            return;
+        }
+
+        // Get actual velocity from odometry via Blackboard
+        double actualVelocityX = blackboard.get("robot.velocity.x", 0.0);
+        double actualVelocityY = blackboard.get("robot.velocity.y", 0.0);
+
+        // Calculate actual velocity magnitude
+        double actualMagnitude = Math.sqrt(
+            actualVelocityX * actualVelocityX +
+            actualVelocityY * actualVelocityY
+        );
+
+        // Skip verification if actual velocity is too small (robot might be stuck or starting)
+        if (actualMagnitude < Tunables.DRIVE_MIN_VELOCITY_FOR_VALIDATION) {
+            directionMismatchDetected = false;
+            return;
+        }
+
+        // Calculate commanded direction angle (in degrees) - where autonomous wants to go
+        double commandedAngle = Math.toDegrees(Math.atan2(lastCommandedVelocityY, lastCommandedVelocityX));
+
+        // Calculate actual direction angle (in degrees) - where robot is actually going
+        double actualAngle = Math.toDegrees(Math.atan2(actualVelocityY, actualVelocityX));
+
+        // Calculate angular difference
+        double angleDifference = Math.abs(normalizeAngleDegrees(actualAngle - commandedAngle));
+
+        // Check if directions are opposite (mismatch)
+        if (angleDifference > Tunables.DRIVE_DIRECTION_MISMATCH_THRESHOLD) {
+            directionMismatchCount++;
+            directionCorrectCount = 0; // Reset correct count
+            directionMismatchDetected = true;
+
+            // Check if we have enough consecutive mismatches to trigger correction
+            if (directionMismatchCount >= Tunables.DRIVE_DIRECTION_MISMATCH_CONFIRMATIONS) {
+                handleDirectionMismatch(commandedAngle, actualAngle, angleDifference);
+            }
+        } else {
+            // Direction is correct
+            directionCorrectCount++;
+            directionMismatchDetected = false;
+
+            // Reset mismatch count after enough correct readings
+            if (directionCorrectCount >= Tunables.DRIVE_CORRECT_DIRECTION_RESET_COUNT) {
+                directionMismatchCount = 0;
+            }
+        }
+    }
+
+    /**
+     * Handle detected direction mismatch - apply auto-correction based on mode
+     * This is critical for autonomous - if motors are backwards, the entire path will fail
+     */
+    private void handleDirectionMismatch(double commandedAngle, double actualAngle, double angleDifference) {
+        // Log the mismatch
+        blackboard.put("drive.verification.last_mismatch_time", System.currentTimeMillis());
+        blackboard.put("drive.verification.commanded_angle", commandedAngle);
+        blackboard.put("drive.verification.actual_angle", actualAngle);
+        blackboard.put("drive.verification.angle_difference", angleDifference);
+
+        // Apply correction based on auto-correction mode
+        switch (Tunables.DRIVE_AUTO_CORRECTION_MODE) {
+            case 0: // Disabled - log only
+                blackboard.put("drive.verification.alert", "Direction mismatch detected - logging only");
+                break;
+
+            case 1: // Invert motor directions
+                if (!motorDirectionsInverted) {
+                    invertMotorDirections();
+                    totalDirectionCorrections++;
+                    motorDirectionsInverted = true;
+                    blackboard.put("drive.verification.alert", "Motor directions auto-corrected!");
+                }
+                break;
+
+            case 2: // Stop and alert (safety mode)
+                emergencyStop();
+                blackboard.put("drive.verification.alert", "CRITICAL: Direction mismatch - motors stopped!");
+                break;
+        }
+
+        // Reset mismatch counter to avoid repeated corrections
+        directionMismatchCount = 0;
+    }
+
+    /**
+     * Invert all motor directions to correct backwards operation
+     */
+    private void invertMotorDirections() {
+        if (!isInitialized()) return;
+
+        // Invert all motor directions
+        leftFront.setDirection(leftFront.getDirection() == DcMotor.Direction.FORWARD ?
+            DcMotor.Direction.REVERSE : DcMotor.Direction.FORWARD);
+        rightFront.setDirection(rightFront.getDirection() == DcMotor.Direction.FORWARD ?
+            DcMotor.Direction.REVERSE : DcMotor.Direction.FORWARD);
+        leftBack.setDirection(leftBack.getDirection() == DcMotor.Direction.FORWARD ?
+            DcMotor.Direction.REVERSE : DcMotor.Direction.FORWARD);
+        rightBack.setDirection(rightBack.getDirection() == DcMotor.Direction.FORWARD ?
+            DcMotor.Direction.REVERSE : DcMotor.Direction.FORWARD);
+
+        blackboard.put("drive.verification.last_correction_time", System.currentTimeMillis());
+    }
+
+    /**
+     * Normalize angle to -180 to 180 degrees
+     */
+    private double normalizeAngleDegrees(double angle) {
+        while (angle > 180) angle -= 360;
+        while (angle < -180) angle += 360;
+        return angle;
+    }
+
+    /**
      * Emergency stop - immediately stop all motors
      */
     public void emergencyStop() {
@@ -419,10 +598,10 @@ public class DriveHandler {
         leftBack.setPower(0);
         rightBack.setPower(0);
 
-        // Reset drive inputs
-        manualAxial = 0;
-        manualLateral = 0;
-        manualYaw = 0;
+        // Reset commanded velocities
+        commandedAxial = 0;
+        commandedLateral = 0;
+        commandedYaw = 0;
         clearFineMovement();
     }
 
@@ -639,5 +818,72 @@ public class DriveHandler {
         fineX = 0.0;
         fineY = 0.0;
         fineRotation = 0.0;
+    }
+
+    // === DIRECTION VERIFICATION CONTROL ===
+
+    /**
+     * Enable or disable direction verification
+     */
+    public void setDirectionVerificationEnabled(boolean enabled) {
+        this.directionVerificationEnabled = enabled;
+        if (!enabled) {
+            // Reset counters when disabled
+            directionMismatchCount = 0;
+            directionCorrectCount = 0;
+            directionMismatchDetected = false;
+        }
+    }
+
+    /**
+     * Check if direction verification is enabled
+     */
+    public boolean isDirectionVerificationEnabled() {
+        return directionVerificationEnabled;
+    }
+
+    /**
+     * Get direction verification status
+     */
+    public DirectionVerificationStatus getDirectionVerificationStatus() {
+        return new DirectionVerificationStatus(
+            directionVerificationEnabled,
+            directionMismatchDetected,
+            motorDirectionsInverted,
+            directionMismatchCount,
+            totalDirectionCorrections
+        );
+    }
+
+    /**
+     * Reset direction verification (useful after manual motor configuration)
+     */
+    public void resetDirectionVerification() {
+        directionMismatchCount = 0;
+        directionCorrectCount = 0;
+        motorDirectionsInverted = false;
+        totalDirectionCorrections = 0;
+        directionMismatchDetected = false;
+    }
+
+    /**
+     * Data container for direction verification status
+     */
+    public static class DirectionVerificationStatus {
+        public final boolean enabled;
+        public final boolean mismatchDetected;
+        public final boolean motorsInverted;
+        public final int mismatchCount;
+        public final int totalCorrections;
+
+        public DirectionVerificationStatus(boolean enabled, boolean mismatchDetected,
+                                          boolean motorsInverted, int mismatchCount,
+                                          int totalCorrections) {
+            this.enabled = enabled;
+            this.mismatchDetected = mismatchDetected;
+            this.motorsInverted = motorsInverted;
+            this.mismatchCount = mismatchCount;
+            this.totalCorrections = totalCorrections;
+        }
     }
 }

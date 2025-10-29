@@ -43,10 +43,20 @@ public class VisionLocalizer {
     private VisionPortal visionPortal;
 
     // Camera configuration using Tunables
+    // Position: X=19.5" (right), Y=26.8" (forward from robot center)
     private static final Position CAMERA_POSITION = new Position(DistanceUnit.INCH,
             19.5, 26.8, 0, 0); // This could be moved to Tunables in the future
+
+    // Camera Orientation: Yaw=180° (rear-facing), Pitch=-90° (horizontal), Roll=180° (upside-down)
+    // NOTE: The roll=180° parameter corrects AprilTag detection calculations for upside-down mounting.
+    // For the camera STREAM display to appear right-side up on the Driver Station:
+    //   1. On the Robot Controller, go to: Configure Robot → Webcams → "Webcam 1"
+    //   2. Find the "Rotation" or "Orientation" setting
+    //   3. Set it to "180 degrees" or "Upside Down"
+    // If the hardware config doesn't have this option, the stream will appear upside-down but
+    // AprilTag detections will still work correctly due to the roll parameter below.
     private static final YawPitchRollAngles CAMERA_ORIENTATION = new YawPitchRollAngles(AngleUnit.DEGREES,
-            180, -90, 0, 0); // Rear-facing camera
+            180, -90, 180, 0); // Rear-facing, horizontal, upside-down mount
 
     // State management
     private boolean isInitialized = false;
@@ -148,8 +158,15 @@ public class VisionLocalizer {
      */
     private void applyCameraOptimization() {
         try {
-            // Wait for camera to be ready
+            // Wait for camera to be ready with timeout
+            ElapsedTime waitTimer = new ElapsedTime();
+            double maxWaitSeconds = 5.0; // 5 second timeout
+
             while (visionPortal.getCameraState() != VisionPortal.CameraState.STREAMING) {
+                if (waitTimer.seconds() > maxWaitSeconds) {
+                    telemetry.addLine("⚠️ VisionLocalizer: Camera streaming timeout - continuing anyway");
+                    return; // Exit without applying settings
+                }
                 Thread.sleep(20);
             }
 

@@ -475,6 +475,59 @@ public class Tunables {
     public static final double SENSOR_UPDATE_PERIOD = 0.02; // 50Hz
 
     // =========================================================================================
+    // INTELLIGENT DRIVE DIRECTION VERIFICATION
+    // =========================================================================================
+
+    /**
+     * Enable intelligent direction verification using odometry feedback
+     * CRITICAL for autonomous operation - detects if motors are wired backwards
+     * and automatically corrects so path following works correctly
+     */
+    public static final boolean DRIVE_DIRECTION_VERIFICATION_ENABLED = true;
+
+    /**
+     * Minimum velocity magnitude (in/s) to validate direction
+     * Below this threshold, direction validation is skipped to avoid noise
+     * Prevents false positives when robot is starting/stopping
+     */
+    public static final double DRIVE_MIN_VELOCITY_FOR_VALIDATION = 2.0; // 2 in/s
+
+    /**
+     * Minimum commanded velocity magnitude to validate direction
+     * Below this threshold, robot should be near stationary anyway
+     * In autonomous: minimum path planner velocity command
+     */
+    public static final double DRIVE_MIN_INPUT_FOR_VALIDATION = 0.15; // 15% of max velocity
+
+    /**
+     * Direction mismatch angle threshold (degrees)
+     * If commanded vs actual direction differs by more than this, it's considered a mismatch
+     * 120° means robot is moving roughly opposite to commanded direction
+     */
+    public static final double DRIVE_DIRECTION_MISMATCH_THRESHOLD = 120.0; // 120 degrees = roughly opposite
+
+    /**
+     * Number of consecutive mismatches required before auto-correction
+     * Prevents false positives from sensor noise or momentary slippage
+     * At 100ms check rate, 10 = 1 second of consistent backwards movement
+     */
+    public static final int DRIVE_DIRECTION_MISMATCH_CONFIRMATIONS = 10; // ~1 second at 100ms check rate
+
+    /**
+     * Auto-correction mode for direction mismatches
+     * 0 = Disabled (log only) - for testing/diagnosis
+     * 1 = Invert motor directions - RECOMMENDED for competition
+     * 2 = Stop and alert (safety mode) - for initial testing
+     */
+    public static final int DRIVE_AUTO_CORRECTION_MODE = 1;
+
+    /**
+     * Reset mismatch counter after this many correct readings
+     * Prevents lingering mismatch state after correction
+     */
+    public static final int DRIVE_CORRECT_DIRECTION_RESET_COUNT = 5;
+
+    // =========================================================================================
     // Private constructor to prevent instantiation
     private Tunables() {
         throw new UnsupportedOperationException("Tunables is a utility class and cannot be instantiated");

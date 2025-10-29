@@ -38,10 +38,14 @@ public class EnhancedDecodeHelper {
     // State management
     private boolean shooterRunning = false;
     private boolean isShooting = false;
+    private boolean warmupMode = false; // Track if shooter is in warmup mode
+    private double warmupStartTime = Double.NEGATIVE_INFINITY;
     private double lastShotTime = 0;
     private double shooterStartTime = Double.NEGATIVE_INFINITY;
     private double feedStartTime = Double.NEGATIVE_INFINITY;
     private boolean prevButtonState = false;
+    private boolean prevWarmupButtonState = false;
+    private boolean firstShotFired = false; // Track if first shot has been fired
 
     // RPM tracking
     private int lastEncoderPosition = 0;
@@ -49,17 +53,20 @@ public class EnhancedDecodeHelper {
     private double currentRPM = 0;
     private boolean rpmIsStable = false;
     private double lastStableRpmTime = 0;
+    private double lastRpmInRangeTime = 0; // Track when RPM returns to range after a shot
+    private int consecutiveStableReadings = 0; // Count consecutive stable RPM readings
     private static final double COUNTS_PER_REV = 28.0;
 
-    // Dynamic RPM control
+    // Dynamic RPM control (Balanced for fast, stable convergence)
     private double currentPower = 0;
     private double rpmError = 0;
     private double lastRpmError = 0;
     private double rpmErrorSum = 0;
-    private static final double RPM_KP = 0.0001; // Proportional gain
-    private static final double RPM_KI = 0.00005; // Integral gain
-    private static final double RPM_KD = 0.00002; // Derivative gain
-    private static final double MAX_POWER_ADJUSTMENT = 0.3; // Maximum power adjustment
+    private static final double RPM_KP = 0.00015; // Proportional gain (reduced for stability)
+    private static final double RPM_KI = 0.00004; // Integral gain (reduced to prevent windup)
+    private static final double RPM_KD = 0.00003; // Derivative gain (reduced for smoother response)
+    private static final double MAX_POWER_ADJUSTMENT = 0.15; // Maximum power adjustment per cycle (prevents overcorrection)
+    private static final double MAX_POWER_RATE = 0.08; // Maximum power change per update (smoothing)
 
     // Safety systems
     private boolean emergencyStop = false;
@@ -144,21 +151,157 @@ public class EnhancedDecodeHelper {
     }
 
     /**
+     * Handle warmup button - spins shooter at lower RPM to save power while staying ready
+     * Call this method in your teleop loop with a dedicated warmup button
+     *
+     * @param warmupButtonPressed - true if warmup button is pressed
+     * @param preset - the shooter preset to use (determines target RPM)
+     */
+    public void handleWarmupButton(boolean warmupButtonPressed, ShooterConfig.ShooterPreset preset) {
+        // Update performance monitoring
+        monitor.updateLoopTiming();
+
+        // Apply preset configuration
+        config.setPreset(preset);
+
+        if (warmupButtonPressed && !prevWarmupButtonState) {
+            // Button press edge - start warmup
+            if (!shooterRunning && !warmupMode) {
+                startWarmup();
+            }
+        } else if (!warmupButtonPressed && prevWarmupButtonState) {
+            // Button release edge - stop warmup (but only if not shooting)
+            if (warmupMode && !isShooting) {
+                stopWarmup();
+            }
+        }
+
+        // Keep warmup running
+        if (warmupMode && !isShooting) {
+            updateWarmup();
+        }
+
+        prevWarmupButtonState = warmupButtonPressed;
+    }
+
+    /**
+     * Start warmup mode - spins shooter at reduced RPM
+     */
+    private void startWarmup() {
+        double batteryVoltage = voltageSensor != null ? voltageSensor.getVoltage() : 12.0;
+
+        // Calculate warmup target RPM (typically 65% of full target)
+        double warmupTargetRpm = config.getWarmupTargetRPM();
+        double feedforwardPower = calculateFeedforwardPower(warmupTargetRpm, batteryVoltage);
+
+        currentPower = feedforwardPower;
+        currentPower = Math.min(0.7, Math.max(0.0, currentPower)); // Cap at 0.7 for warmup
+
+        shooter.setPower(currentPower);
+        shooterRunning = true;
+        warmupMode = true;
+        warmupStartTime = clock.seconds();
+        shooterStartTime = warmupStartTime;
+
+        // Reset RPM tracking
+        lastEncoderPosition = shooter.getCurrentPosition();
+        lastRpmCheckTime = warmupStartTime;
+        currentRPM = 0;
+        rpmIsStable = false;
+        rpmError = 0;
+        lastRpmError = 0;
+        rpmErrorSum = 0;
+    }
+
+    /**
+     * Update warmup mode - maintains warmup RPM with gentle control
+     */
+    private void updateWarmup() {
+        updateRPM();
+
+        // Use gentler PID control for warmup (target is warmup RPM, not full RPM)
+        double warmupTargetRpm = config.getWarmupTargetRPM();
+        double currentTime = clock.seconds();
+        double timeSinceWarmupStart = currentTime - warmupStartTime;
+
+        // Only adjust after initial spinup
+        if (timeSinceWarmupStart > config.getWarmupSpinupTime()) {
+            double error = warmupTargetRpm - currentRPM;
+
+            // Simple proportional control for warmup (no integral/derivative needed)
+            double powerAdjustment = error * RPM_KP * 0.5; // Half gain for gentle control
+            powerAdjustment = Math.max(-0.05, Math.min(0.05, powerAdjustment));
+
+            currentPower += powerAdjustment;
+            currentPower = Math.max(0.0, Math.min(0.7, currentPower));
+
+            shooter.setPower(currentPower);
+        }
+    }
+
+    /**
+     * Stop warmup mode
+     */
+    private void stopWarmup() {
+        stopShooter();
+        warmupMode = false;
+    }
+
+    /**
      * Start shooter with voltage compensation and dynamic RPM control
+     * Now intelligently handles transition from warmup mode
      */
     public void startShooter() {
         double batteryVoltage = voltageSensor != null ? voltageSensor.getVoltage() : 12.0;
-        currentPower = config.getPower(batteryVoltage);
+        double targetRpm = config.getTargetRPM();
+
+        // Check if we're transitioning from warmup mode
+        boolean transitioningFromWarmup = warmupMode;
+        double currentRpmAtStart = currentRPM;
+
+        if (transitioningFromWarmup) {
+            // We're already spinning - calculate how much more power we need
+            warmupMode = false; // Exit warmup mode
+
+            // Calculate feedforward for full target RPM
+            double feedforwardPower = calculateFeedforwardPower(targetRpm, batteryVoltage);
+
+            // Blend current power with target power based on RPM difference
+            double rpmRatio = currentRpmAtStart / targetRpm;
+            if (rpmRatio > 0.5) {
+                // Already spinning significantly - smooth transition
+                currentPower = currentPower * 0.3 + feedforwardPower * 0.7;
+            } else {
+                // Low RPM - use mostly feedforward
+                currentPower = feedforwardPower;
+            }
+        } else {
+            // Starting from zero - use feedforward
+            double basePower = config.getPower(batteryVoltage);
+            double feedforwardPower = calculateFeedforwardPower(targetRpm, batteryVoltage);
+
+            // Blend base power with feedforward (70% feedforward, 30% base)
+            currentPower = (feedforwardPower * 0.7) + (basePower * 0.3);
+        }
+
+        currentPower = Math.min(1.0, Math.max(0.0, currentPower));
 
         shooter.setPower(currentPower);
         shooterRunning = true;
         shooterStartTime = clock.seconds();
+        firstShotFired = false; // Reset first shot flag when shooter starts
 
-        // Reset RPM tracking and control
-        lastEncoderPosition = shooter.getCurrentPosition();
-        lastRpmCheckTime = shooterStartTime;
-        currentRPM = 0;
-        rpmIsStable = false;
+        // Reset or maintain RPM tracking based on transition
+        if (!transitioningFromWarmup) {
+            lastEncoderPosition = shooter.getCurrentPosition();
+            lastRpmCheckTime = shooterStartTime;
+            currentRPM = 0;
+            rpmIsStable = false;
+        }
+        // If transitioning, keep existing RPM values for continuity
+
+        lastRpmInRangeTime = 0;
+        consecutiveStableReadings = 0;
         rpmError = 0;
         lastRpmError = 0;
         rpmErrorSum = 0;
@@ -211,37 +354,60 @@ public class EnhancedDecodeHelper {
      * Dynamic power adjustment to reach target RPM using PID-like control
      */
     private void adjustPowerForTargetRPM(double deltaTime) {
+        // Skip if in warmup mode (warmup has its own control)
+        if (warmupMode) {
+            return;
+        }
+
         double targetRpm = config.getTargetRPM();
         lastRpmError = rpmError;
         rpmError = targetRpm - currentRPM;
 
-        // Only start adjusting power after initial spinup time
-        if (clock.seconds() - shooterStartTime < 1.0) {
-            return;
+        // Let feedforward work first - delay PID intervention
+        double timeSinceStart = clock.seconds() - shooterStartTime;
+        if (timeSinceStart < 0.6) {
+            return; // Give feedforward more time to stabilize
         }
 
         // PID-like control calculation
         double proportional = rpmError * RPM_KP;
 
-        // Integral term (with windup protection)
-        rpmErrorSum += rpmError * deltaTime;
-        if (Math.abs(rpmErrorSum) > 1000) { // Prevent windup
-            rpmErrorSum = Math.signum(rpmErrorSum) * 1000;
+        // Integral term with adaptive windup protection
+        // Reduce integral accumulation when close to target to prevent overshoot
+        double integralGain = RPM_KI;
+        if (Math.abs(rpmError) < 100) {
+            // Near target - reduce integral contribution
+            integralGain *= 0.5;
         }
-        double integral = rpmErrorSum * RPM_KI;
 
-        // Derivative term
+        rpmErrorSum += rpmError * deltaTime;
+        // Dynamic windup limit based on error magnitude
+        double windupLimit = Math.max(500, 2000 - Math.abs(rpmError));
+        if (Math.abs(rpmErrorSum) > windupLimit) {
+            rpmErrorSum = Math.signum(rpmErrorSum) * windupLimit;
+        }
+        double integral = rpmErrorSum * integralGain;
+
+        // Derivative term for damping
         double derivative = ((rpmError - lastRpmError) / deltaTime) * RPM_KD;
 
         // Calculate power adjustment
         double powerAdjustment = proportional + integral + derivative;
 
-        // Limit the adjustment magnitude
+        // Limit the adjustment magnitude to prevent large jumps
         powerAdjustment = Math.max(-MAX_POWER_ADJUSTMENT,
                          Math.min(MAX_POWER_ADJUSTMENT, powerAdjustment));
 
-        // Apply adjustment to current power
-        currentPower += powerAdjustment;
+        // Apply rate limiting for smooth power changes
+        double targetPower = currentPower + powerAdjustment;
+        double powerDelta = targetPower - currentPower;
+
+        // Limit how fast power can change
+        if (Math.abs(powerDelta) > MAX_POWER_RATE) {
+            powerDelta = Math.signum(powerDelta) * MAX_POWER_RATE;
+        }
+
+        currentPower += powerDelta;
 
         // Ensure power stays within valid range
         currentPower = Math.max(0.0, Math.min(1.0, currentPower));
@@ -251,7 +417,7 @@ public class EnhancedDecodeHelper {
     }
 
     /**
-     * Enhanced readiness check with failure detection
+     * Enhanced readiness check with failure detection and RPM validation
      */
     public boolean isShooterReady() {
         double currentTime = clock.seconds();
@@ -259,22 +425,80 @@ public class EnhancedDecodeHelper {
 
         boolean intervalReady = (currentTime - lastShotTime >= shotInterval);
         boolean spinupReady;
+        boolean rpmInRange = true;
 
-        if (config.isUseRpmSpinup()) {
-            spinupReady = isRPMReady();
+        // Only check spinup time for the first shot
+        if (!firstShotFired) {
+            if (config.isUseRpmSpinup()) {
+                spinupReady = isRPMReady();
 
-            // Detect spinup failures
-            if (shooterRunning && (currentTime - shooterStartTime > 5.0) && !spinupReady) {
-                consecutiveFailures++;
-                if (consecutiveFailures >= MAX_FAILURES) {
-                    emergencyStop = true;
+                // Detect spinup failures
+                if (shooterRunning && (currentTime - shooterStartTime > 5.0) && !spinupReady) {
+                    consecutiveFailures++;
+                    if (consecutiveFailures >= MAX_FAILURES) {
+                        emergencyStop = true;
+                    }
                 }
+            } else {
+                spinupReady = (currentTime - shooterStartTime >= config.getSpinupTime());
             }
         } else {
-            spinupReady = (currentTime - shooterStartTime >= config.getSpinupTime());
+            // After first shot, spinup is always ready but we check RPM stability
+            spinupReady = true;
+
+            // Always validate RPM is in range for subsequent shots
+            if (config.isUseRpmSpinup()) {
+                updateRPM();
+                double targetRpm = config.getTargetRPM();
+                double rpmDifference = Math.abs(currentRPM - targetRpm);
+
+                // Preferential firing zone: Fire when RPM is very close to target (±25 RPM)
+                // This ensures all shots fire at nearly identical RPM, not scattered across tolerance
+                double preferredTolerance = 30.0; // Slightly wider preferred zone for faster firing
+                boolean inPreferredZone = rpmDifference <= preferredTolerance;
+
+                // Acceptable zone: Within shooting tolerance (±50 RPM) but not ideal
+                boolean inAcceptableZone = rpmDifference <= config.getShootingRpmTolerance();
+
+                if (inPreferredZone) {
+                    // RPM is in preferred zone (very close to target) - prioritize firing here
+                    if (lastRpmInRangeTime == 0) {
+                        lastRpmInRangeTime = currentTime;
+                        consecutiveStableReadings = 1;
+                    } else {
+                        consecutiveStableReadings++;
+                    }
+
+                    // Minimal stability requirements in preferred zone: 0.15s AND 2 readings
+                    // This makes shots fire quickly when RPM is close to target
+                    if ((currentTime - lastRpmInRangeTime < 0.15) || (consecutiveStableReadings < 2)) {
+                        rpmInRange = false;
+                    }
+                } else if (inAcceptableZone) {
+                    // RPM is acceptable but not in preferred zone
+                    // Wait a bit to see if it settles into preferred zone
+                    if (lastRpmInRangeTime == 0) {
+                        lastRpmInRangeTime = currentTime;
+                        consecutiveStableReadings = 1;
+                    } else {
+                        consecutiveStableReadings++;
+                    }
+
+                    // Moderate stability requirements in acceptable zone: 0.3s AND 3 readings
+                    // This gives RPM some time to settle without being too slow
+                    if ((currentTime - lastRpmInRangeTime < 0.3) || (consecutiveStableReadings < 3)) {
+                        rpmInRange = false;
+                    }
+                } else {
+                    // RPM is out of acceptable range
+                    rpmInRange = false;
+                    lastRpmInRangeTime = 0; // Reset stability timer
+                    consecutiveStableReadings = 0;
+                }
+            }
         }
 
-        return shooterRunning && spinupReady && intervalReady && !emergencyStop;
+        return shooterRunning && spinupReady && intervalReady && rpmInRange && !emergencyStop;
     }
 
     /**
@@ -288,6 +512,11 @@ public class EnhancedDecodeHelper {
             isShooting = true;
             feedStartTime = currentTime;
             lastShotTime = currentTime;
+            firstShotFired = true; // Mark that first shot has been fired
+
+            // Reset RPM stability tracking for next shot
+            lastRpmInRangeTime = 0;
+            consecutiveStableReadings = 0;
 
             // Record shot attempt
             double spinupTime = currentTime - shooterStartTime;
@@ -306,7 +535,8 @@ public class EnhancedDecodeHelper {
     }
 
     /**
-     * Smart autonomous shooting with adaptive timing
+     * Smart autonomous shooting with RPM-based timing
+     * Uses preset shot interval and maintains RPM between shots
      */
     public void autoShootSmart(int numShots, boolean keepShooterRunning, ShooterConfig.ShooterPreset preset) {
         if (numShots <= 0) return;
@@ -315,34 +545,24 @@ public class EnhancedDecodeHelper {
         if (!shooterRunning) startShooter();
 
         int shotsFired = 0;
-        double adaptiveInterval = config.getShotInterval();
+        double shotInterval = config.getShotInterval();
 
-        // Wait for spinup
+        // Wait for initial spinup
         while (!isShooterReady() && !emergencyStop) {
             updateRPM();
-
-            if (monitor.isPerformanceDegraded()) {
-                adaptiveInterval *= 1.2; // Increase interval if performance is poor
-            }
+            monitor.updateLoopTiming();
         }
 
-        // Fire shots with adaptive timing
+        // Fire shots with consistent timing
         while (shotsFired < numShots && !emergencyStop) {
             if (fireSingleShot()) {
                 shotsFired++;
-
-                // Adaptive timing based on performance
-                if (monitor.getAccuracy() < 80) {
-                    adaptiveInterval *= 1.1; // Slow down if accuracy is poor
-                } else if (monitor.getAccuracy() > 95) {
-                    adaptiveInterval *= 0.95; // Speed up if accuracy is excellent
-                }
             }
 
-            // Wait for next shot with performance monitoring
+            // Wait for next shot while maintaining RPM with PID control
             double waitStart = clock.seconds();
-            while (clock.seconds() - waitStart < adaptiveInterval && shotsFired < numShots) {
-                updateRPM();
+            while (clock.seconds() - waitStart < shotInterval && shotsFired < numShots) {
+                updateRPM(); // Continuously maintain target RPM between shots
                 monitor.updateLoopTiming();
             }
         }
@@ -385,6 +605,26 @@ public class EnhancedDecodeHelper {
         return rpmIsStable && (currentTime - lastStableRpmTime >= 0.25);
     }
 
+    /**
+     * Calculate feedforward power based on target RPM
+     * This provides a better starting point than the preset power
+     */
+    private double calculateFeedforwardPower(double targetRpm, double batteryVoltage) {
+        // Empirical relationship: RPM ≈ power * voltage * constant
+        // Solve for power: power = RPM / (voltage * constant)
+
+        // Calibration constant (adjust based on your motor/wheel)
+        // For typical shooter: ~5000 RPM at full power (1.0) and 12V
+        double rpmPerVoltPerPower = 416.67; // 5000 / (12 * 1.0)
+
+        // Calculate required power
+        double voltage = Math.max(batteryVoltage, 10.5);
+        double estimatedPower = targetRpm / (voltage * rpmPerVoltPerPower);
+
+        // Clamp to valid range
+        return Math.min(1.0, Math.max(0.3, estimatedPower));
+    }
+
     private void startFeedServos() {
         feedServo1.setPower(-config.getFeedPower());
         feedServo2.setPower(config.getFeedPower());
@@ -398,14 +638,19 @@ public class EnhancedDecodeHelper {
     public void stopShooter() {
         shooter.setPower(0.0);
         shooterRunning = false;
+        warmupMode = false; // Exit warmup mode
+        firstShotFired = false; // Reset first shot flag when shooter stops
     }
 
     public void reset() {
         stopShooter();
         stopFeedServos();
         isShooting = false;
+        warmupMode = false;
         lastShotTime = 0;
         prevButtonState = false;
+        prevWarmupButtonState = false;
+        firstShotFired = false;
         emergencyStop = false;
         consecutiveFailures = 0;
         monitor.reset();
@@ -419,4 +664,20 @@ public class EnhancedDecodeHelper {
     public double getCurrentRPM() { updateRPM(); return currentRPM; }
     public boolean isShooterRunning() { return shooterRunning; }
     public boolean isShooting() { return isShooting; }
+    public boolean isWarmupMode() { return warmupMode; }
+    public double getTargetRPM() { return warmupMode ? config.getWarmupTargetRPM() : config.getTargetRPM(); }
+
+    /**
+     * Check if RPM is within shooting tolerance
+     * Useful for telemetry and diagnostics
+     */
+    public boolean isRPMInShootingRange() {
+        if (!shooterRunning || !config.isUseRpmSpinup()) {
+            return true; // Not using RPM control
+        }
+        updateRPM();
+        double targetRpm = config.getTargetRPM();
+        double rpmDifference = Math.abs(currentRPM - targetRpm);
+        return rpmDifference <= config.getShootingRpmTolerance();
+    }
 }

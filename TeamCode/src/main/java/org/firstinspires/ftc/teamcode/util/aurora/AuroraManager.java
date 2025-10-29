@@ -283,22 +283,29 @@ public class AuroraManager {
         // Determine shooting preset based on bumper inputs
         ShooterConfig.ShooterPreset currentPreset = ShooterConfig.ShooterPreset.LONG_RANGE; // default
 
-        if (gamepad.right_bumper) {
+        if (gamepad.y) {
             currentPreset = ShooterConfig.ShooterPreset.LONG_RANGE;
-        } else if (gamepad.left_bumper) {
+        } else if (gamepad.a) {
             currentPreset = ShooterConfig.ShooterPreset.SHORT_RANGE;
         }
 
-        // Smart shooting with gamepad.a (single shot) and gamepad.y (continuous)
-        boolean singleShot = gamepad.a;
-        boolean continuousShot = gamepad.y;
+        // Warmup mode with left trigger (65% RPM to save power, quick spinup)
+        if (gamepad.left_trigger > 0.05) {
+            shooterSystem.handleWarmupButton(true, currentPreset);
+        } else {
+            shooterSystem.handleWarmupButton(false, currentPreset);
+        }
 
-        if (singleShot) {
+        // Smart shooting with gamepad.a (single shot) and gamepad.y (continuous)
+        boolean shortshot = gamepad.a;
+        boolean longshot = gamepad.y;
+
+        if (shortshot) {
             shooterSystem.handleShootButton(true, currentPreset);
             shootingMode = true;
-        } else if (continuousShot) {
+        } else if (longshot) {
             // For continuous shooting, use rapid fire preset
-            shooterSystem.handleShootButton(true, ShooterConfig.ShooterPreset.RAPID_FIRE);
+            shooterSystem.handleShootButton(true, currentPreset);
             shootingMode = true;
         } else {
             shooterSystem.handleShootButton(false, currentPreset);
@@ -306,9 +313,12 @@ public class AuroraManager {
         }
 
         // Manual shooter control with right trigger - use startShooter instead
-        if (gamepad.right_trigger > 0.05) {
+        if (gamepad.right_trigger > 0.05  && !shootingMode) {
             shooterSystem.startShooter();
             shootingMode = true;
+        } else if (gamepad.right_trigger <= 0.05 && !shortshot && !longshot) {
+            shooterSystem.stopShooter();
+            shootingMode = false;
         }
 
         // Manual feed servo control with gamepad.b - use fireSingleShot for feed control
