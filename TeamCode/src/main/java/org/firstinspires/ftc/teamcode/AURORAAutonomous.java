@@ -59,7 +59,7 @@ public class AURORAAutonomous extends LinearOpMode {
 
     // Robot systems
     private AuroraManager robotManager;
-    private GoBildaPinpointDriver odometry;
+    GoBildaPinpointDriver odometry; // Declare OpMode member for the Odometry Computer
     private SmartMechanumDrive driveSystem;
 
     // Timing
@@ -103,6 +103,8 @@ public class AURORAAutonomous extends LinearOpMode {
 
     // Emergency stop flag
     private boolean emergencyStop = false;
+
+    //odometry = hardwareMap.get(GoBildaPinpointDriver.class, "odo"); init later
 
     @Override
     public void runOpMode() {
