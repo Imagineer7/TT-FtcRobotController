@@ -54,8 +54,8 @@ import org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver;
  * turnRelative(-45);
  * </pre>
  */
-@Autonomous(name="AURORA Autonomous", group="Competition")
-public class AURORAAutonomous extends LinearOpMode {
+@Autonomous(name="RED AutoAurora", group="Competition")
+public class REDAutoAurora extends LinearOpMode {
 
     // Robot systems
     private AuroraManager robotManager;
@@ -72,6 +72,8 @@ public class AURORAAutonomous extends LinearOpMode {
     private static final double MAX_MOVE_TIME = 5.0; // seconds
     private static final double MIN_POWER = 0.15; // Minimum motor power
     private static final double MAX_POWER = 0.6; // Maximum motor power for autonomous
+    private static final double SETTLING_TIME = 0.3; // seconds to remain at target before completing
+    private static final int STABILITY_CHECKS = 3; // Number of consecutive checks within tolerance required
 
     // Smooth motion profile parameters
     private static final double ACCELERATION_DISTANCE = 6.0; // inches to accelerate over
@@ -121,7 +123,7 @@ public class AURORAAutonomous extends LinearOpMode {
 
         // Set drive mode to precision for autonomous
         if (driveSystem != null) {
-            driveSystem.setCurrentMode(SmartMechanumDrive.DriveMode.PRECISION);
+            driveSystem.setCurrentMode(SmartMechanumDrive.DriveMode.NORMAL);
         }
 
         telemetry.clear();
@@ -186,8 +188,8 @@ public class AURORAAutonomous extends LinearOpMode {
             // X (forward) pod should increase when robot moves forward
             // Y (strafe) pod should increase when robot moves left
             odometry.setEncoderDirections(
-                GoBildaPinpointDriver.EncoderDirection.FORWARD,
-                GoBildaPinpointDriver.EncoderDirection.FORWARD
+                    GoBildaPinpointDriver.EncoderDirection.FORWARD,
+                    GoBildaPinpointDriver.EncoderDirection.FORWARD
             );
 
             // Reset position and recalibrate IMU
@@ -230,45 +232,21 @@ public class AURORAAutonomous extends LinearOpMode {
         telemetry.addLine("Starting Autonomous Sequence...");
         telemetry.update();
 
-        // Example autonomous sequence with shooter integration
-        // Customize this section with your specific autonomous routine
+        // Start shooter at FULL POWER while moving to save time
+        startShooter(ShooterConfig.ShooterPreset.SHORT_RANGE);
 
-        // Example 1: Simple movement test (commented out)
-        /*
-        moveForward(24);
-        sleep(500);
-        moveRight(12);
-        sleep(500);
-        turnToAngle(90);
-        sleep(500);
-        moveBackward(18);
-        sleep(500);
-        moveLeft(12);
-        sleep(500);
-        turnToAngle(initialHeading);
-        sleep(500);
-        */
-
-        // Example 2: Scoring sequence with shooter (ACTIVE)
-        // Start shooter in warmup mode while moving to save time
-        startShooterWarmup(ShooterConfig.ShooterPreset.SHORT_RANGE);
-
-        // Move to scoring position
-        moveForward(35);
+        // Move back from goal zone (odometry-based with timeout fallback)
+        moveBackward(28, 1.3);
         sleep(300);
 
-        // Transition from warmup to full power and fire 3 shots
+        // Fire 3 shots - shooter should already be at speed
         telemetry.addLine("Scoring...");
         telemetry.update();
-        fireMultipleShots(3, ShooterConfig.ShooterPreset.SHORT_RANGE, false);
+        fireMultipleShots(3, ShooterConfig.ShooterPreset.SHORT_RANGE, false, 10.0);
         sleep(500);
 
-        // Move away from basket
-        moveLeft(12);
-        sleep(300);
-
-        // Return to safe zone
-        turnToAngle(0);
+        // Move out of launch zone
+        moveLeft(12, 1.6);
         sleep(300);
 
         telemetry.addLine("✅ Sequence Complete!");
@@ -284,7 +262,16 @@ public class AURORAAutonomous extends LinearOpMode {
      * @param inches Distance to move in inches
      */
     public void moveLeft(double inches) {
-        moveRobotRelative(inches, 0, getCurrentHeading());
+        moveLeft(inches, MAX_MOVE_TIME);
+    }
+
+    /**
+     * Move left (strafe) relative to robot's current orientation with custom timeout
+     * @param inches Distance to move in inches
+     * @param timeoutSeconds Maximum time allowed for this movement
+     */
+    public void moveLeft(double inches, double timeoutSeconds) {
+        moveRobotRelative(inches, 0, getCurrentHeading(), timeoutSeconds);
     }
 
     /**
@@ -292,7 +279,16 @@ public class AURORAAutonomous extends LinearOpMode {
      * @param inches Distance to move in inches
      */
     public void moveRight(double inches) {
-        moveRobotRelative(-inches, 0, getCurrentHeading());
+        moveRight(inches, MAX_MOVE_TIME);
+    }
+
+    /**
+     * Move right (strafe) relative to robot's current orientation with custom timeout
+     * @param inches Distance to move in inches
+     * @param timeoutSeconds Maximum time allowed for this movement
+     */
+    public void moveRight(double inches, double timeoutSeconds) {
+        moveRobotRelative(-inches, 0, getCurrentHeading(), timeoutSeconds);
     }
 
     /**
@@ -300,7 +296,16 @@ public class AURORAAutonomous extends LinearOpMode {
      * @param inches Distance to move in inches
      */
     public void moveForward(double inches) {
-        moveRobotRelative(0, inches, getCurrentHeading());
+        moveForward(inches, MAX_MOVE_TIME);
+    }
+
+    /**
+     * Move forward relative to robot's current orientation with custom timeout
+     * @param inches Distance to move in inches
+     * @param timeoutSeconds Maximum time allowed for this movement
+     */
+    public void moveForward(double inches, double timeoutSeconds) {
+        moveRobotRelative(0, inches, getCurrentHeading(), timeoutSeconds);
     }
 
     /**
@@ -308,7 +313,16 @@ public class AURORAAutonomous extends LinearOpMode {
      * @param inches Distance to move in inches
      */
     public void moveBackward(double inches) {
-        moveRobotRelative(0, -inches, getCurrentHeading());
+        moveBackward(inches, MAX_MOVE_TIME);
+    }
+
+    /**
+     * Move backward relative to robot's current orientation with custom timeout
+     * @param inches Distance to move in inches
+     * @param timeoutSeconds Maximum time allowed for this movement
+     */
+    public void moveBackward(double inches, double timeoutSeconds) {
+        moveRobotRelative(0, -inches, getCurrentHeading(), timeoutSeconds);
     }
 
     /**
@@ -316,6 +330,15 @@ public class AURORAAutonomous extends LinearOpMode {
      * @param targetDegrees Target heading in degrees (0-360)
      */
     public void turnToAngle(double targetDegrees) {
+        turnToAngle(targetDegrees, MAX_MOVE_TIME);
+    }
+
+    /**
+     * Turn to an absolute field heading with custom timeout
+     * @param targetDegrees Target heading in degrees (0-360)
+     * @param timeoutSeconds Maximum time allowed for this movement
+     */
+    public void turnToAngle(double targetDegrees, double timeoutSeconds) {
         if (odometry == null || driveSystem == null || !opModeIsActive() || emergencyStop) return;
 
         telemetry.addData("Action", "Turning to " + targetDegrees + "°");
@@ -329,7 +352,16 @@ public class AURORAAutonomous extends LinearOpMode {
         double startHeading = getCurrentHeading();
         double totalAngle = Math.abs(normalizeAngle(targetDegrees - startHeading));
 
-        while (opModeIsActive() && !emergencyStop && moveTimer.seconds() < MAX_MOVE_TIME) {
+        while (opModeIsActive() && !emergencyStop) {
+            // TIMEOUT CHECK FIRST - This overrides everything else
+            if (moveTimer.seconds() >= timeoutSeconds) {
+                stopRobot(); // FORCE STOP motors immediately
+                telemetry.addData("Status", "⚠️ Turn timeout!");
+                telemetry.update();
+                sleep(100); // Brief pause to ensure motors stop
+                break;
+            }
+
             odometry.update();
 
             double currentHeading = getCurrentHeading();
@@ -337,6 +369,8 @@ public class AURORAAutonomous extends LinearOpMode {
 
             // Check if we've reached the target
             if (Math.abs(headingError) < HEADING_TOLERANCE) {
+                telemetry.addData("Status", "✅ Heading reached!");
+                telemetry.update();
                 break;
             }
 
@@ -355,10 +389,14 @@ public class AURORAAutonomous extends LinearOpMode {
             telemetry.addData("Current Heading", "%.1f°", currentHeading);
             telemetry.addData("Target Heading", "%.1f°", targetDegrees);
             telemetry.addData("Error", "%.1f°", headingError);
+            telemetry.addData("Timer", "%.2f / %.2f sec", moveTimer.seconds(), timeoutSeconds);
             telemetry.addData("Base Power", "%.2f", rotationPower / smoothMultiplier);
             telemetry.addData("Smooth Multiplier", "%.2f", smoothMultiplier);
             telemetry.addData("Final Power", "%.2f", rotationPower);
             telemetry.update();
+
+            // Small delay to prevent loop overrun
+            sleep(10);
         }
 
         stopRobot();
@@ -369,9 +407,18 @@ public class AURORAAutonomous extends LinearOpMode {
      * @param degrees Degrees to turn (positive = counterclockwise, negative = clockwise)
      */
     public void turnRelative(double degrees) {
+        turnRelative(degrees, MAX_MOVE_TIME);
+    }
+
+    /**
+     * Turn relative to current heading with custom timeout
+     * @param degrees Degrees to turn (positive = counterclockwise, negative = clockwise)
+     * @param timeoutSeconds Maximum time allowed for this movement
+     */
+    public void turnRelative(double degrees, double timeoutSeconds) {
         double currentHeading = getCurrentHeading();
         double targetHeading = normalizeAngle(currentHeading + degrees);
-        turnToAngle(targetHeading);
+        turnToAngle(targetHeading, timeoutSeconds);
     }
 
     /**
@@ -381,6 +428,17 @@ public class AURORAAutonomous extends LinearOpMode {
      * @param targetHeading Target heading in degrees
      */
     public void moveToPosition(double targetX, double targetY, double targetHeading) {
+        moveToPosition(targetX, targetY, targetHeading, MAX_MOVE_TIME);
+    }
+
+    /**
+     * Move to an absolute field position with custom timeout
+     * @param targetX Target X position in inches
+     * @param targetY Target Y position in inches
+     * @param targetHeading Target heading in degrees
+     * @param timeoutSeconds Maximum time allowed for this movement
+     */
+    public void moveToPosition(double targetX, double targetY, double targetHeading, double timeoutSeconds) {
         if (odometry == null || driveSystem == null || !opModeIsActive() || emergencyStop) return;
 
         telemetry.addData("Action", String.format("Moving to (%.1f, %.1f) @ %.1f°", targetX, targetY, targetHeading));
@@ -388,6 +446,8 @@ public class AURORAAutonomous extends LinearOpMode {
 
         resetPID();
         moveTimer.reset();
+        ElapsedTime settlingTimer = new ElapsedTime();
+        int stabilityCounter = 0;
 
         // Calculate total distance for motion profiling
         odometry.update();
@@ -398,7 +458,16 @@ public class AURORAAutonomous extends LinearOpMode {
         double totalDistance = Math.sqrt(Math.pow(targetX - startX, 2) + Math.pow(targetY - startY, 2));
         double totalAngle = Math.abs(normalizeAngle(targetHeading - startHeading));
 
-        while (opModeIsActive() && !emergencyStop && moveTimer.seconds() < MAX_MOVE_TIME) {
+        while (opModeIsActive() && !emergencyStop) {
+            // TIMEOUT CHECK FIRST - This overrides everything else
+            if (moveTimer.seconds() >= timeoutSeconds) {
+                stopRobot(); // FORCE STOP motors immediately
+                telemetry.addData("Status", "⚠️ Movement timeout!");
+                telemetry.update();
+                sleep(100); // Brief pause to ensure motors stop
+                break;
+            }
+
             odometry.update();
             Pose2D currentPos = odometry.getPosition();
 
@@ -412,10 +481,25 @@ public class AURORAAutonomous extends LinearOpMode {
             double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
             double headingError = normalizeAngle(targetHeading - currentHeading);
 
-            // Check if we've reached the target
-            if (distance < POSITION_TOLERANCE && Math.abs(headingError) < HEADING_TOLERANCE) {
-                break;
+            // Check if we're within tolerance
+            boolean atTarget = distance < POSITION_TOLERANCE && Math.abs(headingError) < HEADING_TOLERANCE;
+
+            if (atTarget) {
+                stabilityCounter++;
+                // Require multiple consecutive checks at target to confirm stability
+                if (stabilityCounter >= STABILITY_CHECKS) {
+                    // Reset PID integrals when settled to prevent drift
+                    positionErrorIntegral = 0;
+                    headingErrorIntegral = 0;
+                    telemetry.addData("Status", "✅ Target reached!");
+                    telemetry.update();
+                    break;
+                }
+            } else {
+                stabilityCounter = 0;
+                settlingTimer.reset();
             }
+
 
             // Convert field-relative errors to robot-relative
             double angleToTarget = Math.atan2(deltaY, deltaX);
@@ -445,9 +529,15 @@ public class AURORAAutonomous extends LinearOpMode {
             telemetry.addData("Current", "X: %.1f, Y: %.1f, H: %.1f°", currentX, currentY, currentHeading);
             telemetry.addData("Target", "X: %.1f, Y: %.1f, H: %.1f°", targetX, targetY, targetHeading);
             telemetry.addData("Distance", "%.1f in", distance);
+            telemetry.addData("Heading Error", "%.1f°", headingError);
+            telemetry.addData("Stability", "%d/%d", stabilityCounter, STABILITY_CHECKS);
+            telemetry.addData("Timer", "%.2f / %.2f sec", moveTimer.seconds(), timeoutSeconds);
             telemetry.addData("Smooth Mult", "%.2f", smoothMultiplier);
             telemetry.addData("Powers", "F: %.2f, S: %.2f, R: %.2f", forwardPower, strafePower, rotationPower);
             telemetry.update();
+
+            // Small delay to prevent loop overrun
+            sleep(10);
         }
 
         stopRobot();
@@ -461,6 +551,17 @@ public class AURORAAutonomous extends LinearOpMode {
     public void strafeToPosition(double targetX, double targetY) {
         double currentHeading = getCurrentHeading();
         moveToPosition(targetX, targetY, currentHeading);
+    }
+
+    /**
+     * Strafe to a field position while maintaining current heading with custom timeout
+     * @param targetX Target X position in inches
+     * @param targetY Target Y position in inches
+     * @param timeoutSeconds Maximum time allowed for this movement
+     */
+    public void strafeToPosition(double targetX, double targetY, double timeoutSeconds) {
+        double currentHeading = getCurrentHeading();
+        moveToPosition(targetX, targetY, currentHeading, timeoutSeconds);
     }
 
     // ========================================================================================
@@ -562,13 +663,144 @@ public class AURORAAutonomous extends LinearOpMode {
      * @param keepRunning If true, keeps shooter running after shots complete
      */
     public void fireMultipleShots(int numShots, ShooterConfig.ShooterPreset preset, boolean keepRunning) {
+        fireMultipleShots(numShots, preset, keepRunning, 10.0); // Default 10 second timeout
+    }
+
+    /**
+     * Fire multiple shots in rapid succession with timeout
+     *
+     * @param numShots Number of shots to fire
+     * @param preset The shooting preset to use
+     * @param keepRunning If true, keeps shooter running after shots complete
+     * @param timeoutSeconds Maximum time allowed for shooting sequence
+     */
+    public void fireMultipleShots(int numShots, ShooterConfig.ShooterPreset preset, boolean keepRunning, double timeoutSeconds) {
         if (robotManager == null || robotManager.getShooterSystem() == null || emergencyStop) return;
+
+        // STOP DRIVE MOTORS IMMEDIATELY - keep them stopped during shooting
+        stopRobot();
 
         telemetry.addData("Shooter", "Firing %d shots - %s", numShots, preset.getName());
         telemetry.update();
 
-        // Use the smart auto-shoot function
-        robotManager.getShooterSystem().autoShootSmart(numShots, keepRunning, preset);
+        ElapsedTime shootTimer = new ElapsedTime();
+
+        // Set preset and start shooter
+        robotManager.getShooterSystem().getConfig().setPreset(preset);
+        if (!robotManager.getShooterSystem().isShooterRunning()) {
+            robotManager.getShooterSystem().startShooter();
+        }
+
+        int shotsFired = 0;
+        double shotInterval = robotManager.getShooterSystem().getConfig().getShotInterval();
+
+        // Fire shots with timeout protection
+        ElapsedTime shotAttemptTimer = new ElapsedTime();
+        double maxTimePerShot = 5.0; // Max 5 seconds per shot attempt (increased to allow recovery)
+
+        while (opModeIsActive() && !emergencyStop && shotsFired < numShots && shootTimer.seconds() < timeoutSeconds) {
+            shotAttemptTimer.reset();
+
+            telemetry.addData("🎯 Preparing Shot", String.format("%d/%d", shotsFired + 1, numShots));
+            telemetry.update();
+
+            // Wait for shooter to be ready (with per-shot timeout)
+            while (opModeIsActive() && !robotManager.getShooterSystem().isShooterReady() && shotAttemptTimer.seconds() < maxTimePerShot) {
+                stopRobot(); // Keep drive motors stopped
+                telemetry.addData("🔄 Status", "Waiting for ready...");
+                telemetry.addData("RPM", "%.0f", robotManager.getShooterSystem().getCurrentRPM());
+                telemetry.addData("Ready?", robotManager.getShooterSystem().isShooterReady() ? "YES" : "NO");
+                telemetry.addData("Shots", String.format("%d/%d", shotsFired, numShots));
+                telemetry.addData("Total Timer", String.format("%.1f / %.1f sec", shootTimer.seconds(), timeoutSeconds));
+                telemetry.addData("Shot Wait", String.format("%.1f / %.1f sec", shotAttemptTimer.seconds(), maxTimePerShot));
+                telemetry.update();
+                sleep(100);
+            }
+
+            // Check if we timed out waiting for ready
+            if (!robotManager.getShooterSystem().isShooterReady()) {
+                telemetry.addData("⚠️ Shot " + (shotsFired + 1), "Timed out waiting for ready");
+                telemetry.addData("Final RPM", "%.0f", robotManager.getShooterSystem().getCurrentRPM());
+                telemetry.addData("Was Ready?", "NO");
+                telemetry.update();
+                sleep(1000); // Give time to read the error
+                break;
+            }
+
+            telemetry.addData("✅ Shooter Ready", "Firing shot " + (shotsFired + 1) + "...");
+            telemetry.update();
+
+            // Fire the shot
+            if (robotManager.getShooterSystem().fireSingleShot()) {
+                shotsFired++;
+                telemetry.addData("🔥 Shot " + shotsFired + "/" + numShots, "STARTED");
+                telemetry.update();
+
+                // Wait for the shot to complete (feed servos to finish)
+                // MUST keep calling fireSingleShot() so it can check elapsed time and stop servos
+                // But it only returns true once, so this won't double-count
+                ElapsedTime shotCompleteTimer = new ElapsedTime();
+                while (opModeIsActive() && shotCompleteTimer.seconds() < 1.5) {
+                    // Keep calling to update shooter state - this stops servos when time elapses
+                    robotManager.getShooterSystem().fireSingleShot();
+                    stopRobot(); // Keep drive motors stopped
+
+                    if (!robotManager.getShooterSystem().isShooting()) {
+                        break;
+                    }
+
+                    telemetry.addData("🔥 Shot " + shotsFired + "/" + numShots, String.format("Feeding... %.1fs", shotCompleteTimer.seconds()));
+                    telemetry.update();
+                    sleep(50);
+                }
+
+                telemetry.addData("✅ Shot " + shotsFired + "/" + numShots, "COMPLETE");
+                telemetry.update();
+                sleep(200); // Brief pause to read status
+
+                // Wait for shot interval before next shot (only if more shots remaining)
+                if (shotsFired < numShots) {
+                    telemetry.addData("⏳ Waiting", String.format("Next shot in %.1fs...", shotInterval));
+                    telemetry.update();
+
+                    ElapsedTime intervalTimer = new ElapsedTime();
+                    while (opModeIsActive() && intervalTimer.seconds() < shotInterval) {
+                        stopRobot(); // Keep drive motors stopped
+                        telemetry.addData("⏳ Interval Wait", String.format("%.1f / %.1f sec", intervalTimer.seconds(), shotInterval));
+                        telemetry.addData("Shots Complete", String.format("%d/%d", shotsFired, numShots));
+                        telemetry.addData("RPM", "%.0f", robotManager.getShooterSystem().getCurrentRPM());
+                        telemetry.update();
+                        sleep(100);
+                    }
+
+                    telemetry.addData("✅ Interval Complete", "Ready for shot " + (shotsFired + 1));
+                    telemetry.update();
+                }
+            } else {
+                // Failed to fire, wait a bit and try again
+                telemetry.addData("⚠️ Failed", "Shot " + (shotsFired + 1) + " did not fire, retrying...");
+                telemetry.addData("Shooter Ready?", robotManager.getShooterSystem().isShooterReady() ? "YES" : "NO");
+                telemetry.addData("RPM", "%.0f", robotManager.getShooterSystem().getCurrentRPM());
+                telemetry.update();
+                sleep(500);
+            }
+        }
+
+        // FORCE STOP shooter immediately
+        if (!keepRunning) {
+            robotManager.getShooterSystem().stopShooter();
+        }
+
+        // Stop drive motors in case they were moving during shooting
+        stopRobot();
+
+        if (shootTimer.seconds() >= timeoutSeconds) {
+            telemetry.addData("Shooter", "⚠️ Timeout! Fired %d/%d shots", shotsFired, numShots);
+        } else {
+            telemetry.addData("Shooter", "✅ Complete! Fired %d shots", shotsFired);
+        }
+        telemetry.update();
+        sleep(300);
     }
 
     /**
@@ -683,8 +915,9 @@ public class AURORAAutonomous extends LinearOpMode {
      * @param strafeInches Strafe distance (positive = left, negative = right)
      * @param forwardInches Forward distance (positive = forward, negative = backward)
      * @param maintainHeading Heading to maintain during movement
+     * @param timeoutSeconds Maximum time allowed for this movement
      */
-    private void moveRobotRelative(double strafeInches, double forwardInches, double maintainHeading) {
+    private void moveRobotRelative(double strafeInches, double forwardInches, double maintainHeading, double timeoutSeconds) {
         if (odometry == null || driveSystem == null || !opModeIsActive() || emergencyStop) return;
 
         // Get starting position
@@ -704,7 +937,7 @@ public class AURORAAutonomous extends LinearOpMode {
         double targetY = startY + fieldDeltaY;
 
         // Move to the calculated position
-        moveToPosition(targetX, targetY, maintainHeading);
+        moveToPosition(targetX, targetY, maintainHeading, timeoutSeconds);
     }
 
     /**
@@ -716,10 +949,16 @@ public class AURORAAutonomous extends LinearOpMode {
         // Proportional term
         double pTerm = KP_POSITION * error;
 
-        // Integral term (with anti-windup)
-        positionErrorIntegral += error;
-        if (Math.abs(positionErrorIntegral) > 50) {
-            positionErrorIntegral = Math.signum(positionErrorIntegral) * 50;
+        // Integral term (with anti-windup and dead zone)
+        // Don't accumulate integral when very close to target to prevent windup
+        if (Math.abs(error) > POSITION_TOLERANCE * 0.5) {
+            positionErrorIntegral += error;
+            if (Math.abs(positionErrorIntegral) > 50) {
+                positionErrorIntegral = Math.signum(positionErrorIntegral) * 50;
+            }
+        } else {
+            // Decay integral when close to target
+            positionErrorIntegral *= 0.8;
         }
         double iTerm = KI_POSITION * positionErrorIntegral;
 
@@ -733,9 +972,15 @@ public class AURORAAutonomous extends LinearOpMode {
         // Clamp output to valid range
         output = Math.max(-MAX_POWER, Math.min(MAX_POWER, output));
 
-        // Apply minimum power threshold
-        if (Math.abs(output) > 0 && Math.abs(output) < MIN_POWER) {
-            output = Math.signum(output) * MIN_POWER;
+        // Apply minimum power threshold, but reduce it when very close to target
+        double minPowerThreshold = MIN_POWER;
+        if (Math.abs(error) < POSITION_TOLERANCE * 2) {
+            // Scale down minimum power when close to target
+            minPowerThreshold = MIN_POWER * 0.5;
+        }
+
+        if (Math.abs(output) > 0 && Math.abs(output) < minPowerThreshold) {
+            output = Math.signum(output) * minPowerThreshold;
         }
 
         return output;
@@ -825,10 +1070,16 @@ public class AURORAAutonomous extends LinearOpMode {
         // Proportional term
         double pTerm = KP_HEADING * error;
 
-        // Integral term (with anti-windup)
-        headingErrorIntegral += error;
-        if (Math.abs(headingErrorIntegral) > 100) {
-            headingErrorIntegral = Math.signum(headingErrorIntegral) * 100;
+        // Integral term (with anti-windup and dead zone)
+        // Don't accumulate integral when very close to target
+        if (Math.abs(error) > HEADING_TOLERANCE * 0.5) {
+            headingErrorIntegral += error;
+            if (Math.abs(headingErrorIntegral) > 100) {
+                headingErrorIntegral = Math.signum(headingErrorIntegral) * 100;
+            }
+        } else {
+            // Decay integral when close to target
+            headingErrorIntegral *= 0.8;
         }
         double iTerm = KI_HEADING * headingErrorIntegral;
 
@@ -842,9 +1093,14 @@ public class AURORAAutonomous extends LinearOpMode {
         // Clamp output to valid range
         output = Math.max(-MAX_POWER, Math.min(MAX_POWER, output));
 
-        // Apply minimum power threshold
-        if (Math.abs(output) > 0 && Math.abs(output) < MIN_POWER) {
-            output = Math.signum(output) * MIN_POWER;
+        // Apply minimum power threshold, reduced when close to target
+        double minPowerThreshold = MIN_POWER;
+        if (Math.abs(error) < HEADING_TOLERANCE * 2) {
+            minPowerThreshold = MIN_POWER * 0.5;
+        }
+
+        if (Math.abs(output) > 0 && Math.abs(output) < minPowerThreshold) {
+            output = Math.signum(output) * minPowerThreshold;
         }
 
         return output;
@@ -915,9 +1171,9 @@ public class AURORAAutonomous extends LinearOpMode {
 
         while (opModeIsActive() && timer.seconds() < seconds) {
             moveToPosition(
-                holdPos.getX(DistanceUnit.INCH),
-                holdPos.getY(DistanceUnit.INCH),
-                holdHeading
+                    holdPos.getX(DistanceUnit.INCH),
+                    holdPos.getY(DistanceUnit.INCH),
+                    holdHeading
             );
         }
         stopRobot();

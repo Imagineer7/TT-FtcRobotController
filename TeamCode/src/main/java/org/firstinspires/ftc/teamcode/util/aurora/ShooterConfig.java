@@ -15,7 +15,7 @@ public class ShooterConfig {
     // Preset configurations for different scenarios
     public enum ShooterPreset {
         LONG_RANGE("Long Range", 0.85, 4200, 1.0, 1.2),
-        SHORT_RANGE("Short Range", 0.8, 2850, 0.8, 0.8),
+        SHORT_RANGE("Short Range", 0.8, 2870, 0.8, 0.8),
         RAPID_FIRE("Rapid Fire", 0.80, 3900, 0.8, 0.7),
         PRECISION("Precision", 0.90, 4800, 2.0, 1.5),
         BATTERY_SAVER("Battery Saver", 0.65, 3000, 1.8, 1.0);

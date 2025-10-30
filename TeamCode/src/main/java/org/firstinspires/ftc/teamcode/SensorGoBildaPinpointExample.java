@@ -78,6 +78,8 @@ public class SensorGoBildaPinpointExample extends LinearOpMode {
 
         odo = hardwareMap.get(GoBildaPinpointDriver.class,"odo");
 
+        telemetry.addData("Status", odo.getDeviceStatus());
+
         /*
         Set the odometry pod positions relative to the point that the odometry computer tracks around.
         The X pod offset refers to how far sideways from the tracking point the
@@ -118,6 +120,7 @@ public class SensorGoBildaPinpointExample extends LinearOpMode {
         odo.resetPosAndIMU();
 
         telemetry.addData("Status", "Initialized");
+        telemetry.addData("Odo Status", odo.getDeviceStatus());
         telemetry.addData("X offset", odo.getXOffset(DistanceUnit.MM));
         telemetry.addData("Y offset", odo.getYOffset(DistanceUnit.MM));
         telemetry.addData("Device Version Number:", odo.getDeviceVersion());
@@ -128,7 +131,7 @@ public class SensorGoBildaPinpointExample extends LinearOpMode {
         waitForStart();
         resetRuntime();
 
-
+        telemetry.addData("Odo Status", odo.getDeviceStatus());
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
 
