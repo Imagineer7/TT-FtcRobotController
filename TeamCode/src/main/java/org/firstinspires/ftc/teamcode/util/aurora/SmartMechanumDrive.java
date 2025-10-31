@@ -60,6 +60,7 @@ public class SmartMechanumDrive {
     private double[] lastMotorPowers = new double[4];
     private double[] targetMotorPowers = new double[4];
     private static final double ACCELERATION_LIMIT = 5.0; // Power units per second
+    private boolean enableAccelerationLimiting = true; // Can be disabled for PID control
 
     // Battery optimization
     private double nominalVoltage = 12.0;
@@ -259,6 +260,14 @@ public class SmartMechanumDrive {
      * Apply smooth acceleration to prevent wheel slip and jerky movement
      */
     private void applySmoothAcceleration() {
+        // If acceleration limiting is disabled (e.g., for PID control), apply target directly
+        if (!enableAccelerationLimiting) {
+            for (int i = 0; i < 4; i++) {
+                lastMotorPowers[i] = targetMotorPowers[i];
+            }
+            return;
+        }
+
         double deltaTime = accelerationTimer.seconds();
         accelerationTimer.reset();
 
@@ -347,6 +356,14 @@ public class SmartMechanumDrive {
      */
     public void toggleFieldRelative() {
         fieldRelative = !fieldRelative;
+    }
+
+    /**
+     * Set whether to enable smooth acceleration limiting
+     * Should be disabled for PID-controlled autonomous movement
+     */
+    public void setAccelerationLimiting(boolean enable) {
+        this.enableAccelerationLimiting = enable;
     }
 
     /**

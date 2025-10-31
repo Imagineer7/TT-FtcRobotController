@@ -290,13 +290,18 @@ public class AuroraManager {
         }
 
         // Warmup mode with left trigger (65% RPM to save power, quick spinup)
-        if (gamepad.left_trigger > 0.05) {
+        // Priority: warmup mode should continue running while left trigger is held
+        boolean warmupActive = gamepad.left_trigger > 0.1;
+        if (warmupActive) {
             shooterSystem.handleWarmupButton(true, currentPreset);
+            // Don't process other shooter controls while in warmup mode
+            return;
         } else {
             shooterSystem.handleWarmupButton(false, currentPreset);
         }
 
         // Smart shooting with gamepad.a (single shot) and gamepad.y (continuous)
+        // Only process these if NOT in warmup mode
         boolean shortshot = gamepad.a;
         boolean longshot = gamepad.y;
 

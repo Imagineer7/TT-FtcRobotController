@@ -164,21 +164,20 @@ public class EnhancedDecodeHelper {
         // Apply preset configuration
         config.setPreset(preset);
 
-        if (warmupButtonPressed && !prevWarmupButtonState) {
-            // Button press edge - start warmup
-            if (!shooterRunning && !warmupMode) {
+        if (warmupButtonPressed) {
+            // Button is being held - start warmup if not already running
+            if (!warmupMode && !isShooting) {
                 startWarmup();
             }
-        } else if (!warmupButtonPressed && prevWarmupButtonState) {
-            // Button release edge - stop warmup (but only if not shooting)
+            // Keep warmup running while button is held
+            if (warmupMode && !isShooting) {
+                updateWarmup();
+            }
+        } else {
+            // Button released - stop warmup (but only if not shooting)
             if (warmupMode && !isShooting) {
                 stopWarmup();
             }
-        }
-
-        // Keep warmup running
-        if (warmupMode && !isShooting) {
-            updateWarmup();
         }
 
         prevWarmupButtonState = warmupButtonPressed;
