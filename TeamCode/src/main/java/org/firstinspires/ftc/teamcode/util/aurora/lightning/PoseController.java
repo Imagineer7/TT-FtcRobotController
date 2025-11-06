@@ -90,6 +90,16 @@ public class PoseController {
     private int endWaypointIndex = 0;     // Where to end in the path (for partial execution)
     private boolean autoAdvance = true;   // Automatically advance to next waypoint when at target
 
+    // Waypoint pause control
+    private List<Integer> pauseWaypointIndices = new ArrayList<>();  // Indices of waypoints to pause at
+    private boolean isPausedAtWaypoint = false;  // True when paused at a pause waypoint
+    private long pauseStartTimeNanos = 0;  // When the pause started
+    private double pauseDurationSeconds = 0;  // How long to pause (0 = indefinite)
+
+    // Overshoot detection
+    public boolean enableOvershootDetection = true;  // Enable automatic skip if closer to next waypoint
+    public double overshootThreshold = 1.5;  // Multiplier for posTolerance (e.g., 1.5x tolerance)
+
     /**
      * Constructor
      */
@@ -431,6 +441,62 @@ public class PoseController {
         totalWaypoints = 0;
         startWaypointIndex = 0;
         endWaypointIndex = 0;
+        pauseWaypointIndices.clear();
+        isPausedAtWaypoint = false;
+    }
+
+    /**
+     * Add a waypoint index where the robot should pause
+     * @param waypointIndex The index in the path to pause at (0-based)
+     */
+    public void addPauseAtWaypoint(int waypointIndex) {
+        if (!pauseWaypointIndices.contains(waypointIndex)) {
+            pauseWaypointIndices.add(waypointIndex);
+        }
+    }
+
+    /**
+     * Add a waypoint index where the robot should pause for a specific duration
+     * @param waypointIndex The index in the path to pause at (0-based)
+     * @param durationSeconds How long to pause (seconds). Use 0 for indefinite pause.
+     */
+    public void addPauseAtWaypoint(int waypointIndex, double durationSeconds) {
+        addPauseAtWaypoint(waypointIndex);
+        // Store duration for when we reach this waypoint
+        // For now, this sets a global pause duration. Could be enhanced to store per-waypoint durations.
+        this.pauseDurationSeconds = durationSeconds;
+    }
+
+    /**
+     * Remove a pause waypoint
+     * @param waypointIndex The index to remove from pause list
+     */
+    public void removePauseAtWaypoint(int waypointIndex) {
+        pauseWaypointIndices.remove(Integer.valueOf(waypointIndex));
+    }
+
+    /**
+     * Clear all pause waypoints
+     */
+    public void clearPauseWaypoints() {
+        pauseWaypointIndices.clear();
+        isPausedAtWaypoint = false;
+    }
+
+    /**
+     * Check if currently paused at a waypoint
+     * @return true if paused at a pause waypoint
+     */
+    public boolean isPausedAtWaypoint() {
+        return isPausedAtWaypoint;
+    }
+
+    /**
+     * Resume from a pause waypoint
+     */
+    public void resumeFromPause() {
+        isPausedAtWaypoint = false;
+        pauseStartTimeNanos = 0;
     }
 
     /**
@@ -622,18 +688,94 @@ public class PoseController {
         }
 
         // Handle automatic waypoint advancement
-        if (isFollowingPath && autoAdvance && atTarget() && !waypointQueue.isEmpty()) {
-            // Remove current waypoint
-            waypointQueue.poll();
-            currentWaypointIndex++;
+        if (isFollowingPath && autoAdvance && !waypointQueue.isEmpty()) {
+            boolean shouldAdvance = false;
 
-            // Set next waypoint as target
-            if (!waypointQueue.isEmpty()) {
-                Pose next = waypointQueue.peek();
-                setTarget(next.x, next.y, next.heading);
-            } else {
-                // Path complete
-                isFollowingPath = false;
+            // Check if paused at a waypoint
+            if (isPausedAtWaypoint) {
+                // Check if pause duration has elapsed
+                if (pauseDurationSeconds > 0) {
+                    double elapsedSeconds = (System.nanoTime() - pauseStartTimeNanos) / 1e9;
+                    if (elapsedSeconds >= pauseDurationSeconds) {
+                        // Pause duration complete, resume
+                        isPausedAtWaypoint = false;
+                        pauseStartTimeNanos = 0;
+                        shouldAdvance = true;
+                    }
+                }
+                // If pauseDurationSeconds == 0, wait for manual resumeFromPause() call
+                // Don't advance
+            } else if (atTarget()) {
+                // At target, check if this is a pause waypoint
+                if (pauseWaypointIndices.contains(currentWaypointIndex)) {
+                    // Start pause
+                    isPausedAtWaypoint = true;
+                    pauseStartTimeNanos = System.nanoTime();
+                    // Don't advance yet
+                } else {
+                    // Not a pause waypoint, advance normally
+                    shouldAdvance = true;
+                }
+            } else if (enableOvershootDetection && waypointQueue.size() > 1) {
+                // Overshoot detection: check if we're closer to the next waypoint than the current one
+                Pose currentTarget = waypointQueue.peek();
+
+                // Get the next waypoint (peek at position 1 in queue)
+                Pose nextWaypoint = null;
+                int count = 0;
+                for (Pose p : waypointQueue) {
+                    if (count == 1) {
+                        nextWaypoint = p;
+                        break;
+                    }
+                    count++;
+                }
+
+                if (nextWaypoint != null && currentTarget != null) {
+                    // Get current position
+                    double x = positionManager.getCurrentX();
+                    double y = positionManager.getCurrentY();
+
+                    double fx = signX * x;
+                    double fy = signY * y;
+
+                    // Distance to current target
+                    double distToCurrent = Math.hypot(
+                        signX * currentTarget.x - fx,
+                        signY * currentTarget.y - fy
+                    );
+
+                    // Distance to next waypoint
+                    double distToNext = Math.hypot(
+                        signX * nextWaypoint.x - fx,
+                        signY * nextWaypoint.y - fy
+                    );
+
+                    // If we're closer to the next waypoint and beyond tolerance of current,
+                    // AND not a pause waypoint, skip current
+                    if (distToNext < distToCurrent &&
+                        distToCurrent > posTolerance * overshootThreshold &&
+                        !pauseWaypointIndices.contains(currentWaypointIndex)) {
+                        // We've overshot, skip to next waypoint
+                        shouldAdvance = true;
+                    }
+                }
+            }
+
+            // Advance to next waypoint if needed
+            if (shouldAdvance) {
+                // Remove current waypoint
+                waypointQueue.poll();
+                currentWaypointIndex++;
+
+                // Set next waypoint as target
+                if (!waypointQueue.isEmpty()) {
+                    Pose next = waypointQueue.peek();
+                    setTarget(next.x, next.y, next.heading);
+                } else {
+                    // Path complete
+                    isFollowingPath = false;
+                }
             }
         }
 
