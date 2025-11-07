@@ -93,12 +93,14 @@ public class PoseController {
     private int startWaypointIndex = 0;   // Where to start in the path (for partial execution)
     private int endWaypointIndex = 0;     // Where to end in the path (for partial execution)
     private boolean autoAdvance = true;   // Automatically advance to next waypoint when at target
+    private boolean isReverseMode = false;  // Track if running path in reverse
 
     // Waypoint pause control
     private List<Integer> pauseWaypointIndices = new ArrayList<>();  // Indices of waypoints to pause at
+    private java.util.Map<Integer, Double> pauseDurations = new java.util.HashMap<>();  // Per-waypoint pause durations
     private boolean isPausedAtWaypoint = false;  // True when paused at a pause waypoint
     private long pauseStartTimeNanos = 0;  // When the pause started
-    private double pauseDurationSeconds = 0;  // How long to pause (0 = indefinite)
+    private boolean pauseWaypointAlreadyHandled = false;  // Track if we've already paused at this waypoint
 
     // Overshoot detection
     public boolean enableOvershootDetection = true;  // Enable automatic skip if closer to next waypoint
@@ -126,7 +128,8 @@ public class PoseController {
             if (dt > 0) {
                 targetVelocityX = (x - prevTargetX) / dt;
                 targetVelocityY = (y - prevTargetY) / dt;
-                targetVelocityHeading = angleWrap(heading - prevTargetHeading) / dt;
+                // FIXED: Convert heading difference to radians before angleWrap
+                targetVelocityHeading = angleWrap(Math.toRadians(heading - prevTargetHeading)) / dt;
             }
         }
 
@@ -468,17 +471,20 @@ public class PoseController {
         startWaypointIndex = 0;
         endWaypointIndex = 0;
         pauseWaypointIndices.clear();
+        pauseDurations.clear();  // FIXED: Clear pause durations too
         isPausedAtWaypoint = false;
+        pauseWaypointAlreadyHandled = false;
     }
 
     /**
-     * Add a waypoint index where the robot should pause
+     * Add a waypoint index where the robot should pause indefinitely
      * @param waypointIndex The index in the path to pause at (0-based)
      */
     public void addPauseAtWaypoint(int waypointIndex) {
         if (!pauseWaypointIndices.contains(waypointIndex)) {
             pauseWaypointIndices.add(waypointIndex);
         }
+        pauseDurations.put(waypointIndex, 0.0);  // 0 = indefinite pause
     }
 
     /**
@@ -487,10 +493,11 @@ public class PoseController {
      * @param durationSeconds How long to pause (seconds). Use 0 for indefinite pause.
      */
     public void addPauseAtWaypoint(int waypointIndex, double durationSeconds) {
-        addPauseAtWaypoint(waypointIndex);
-        // Store duration for when we reach this waypoint
-        // For now, this sets a global pause duration. Could be enhanced to store per-waypoint durations.
-        this.pauseDurationSeconds = durationSeconds;
+        if (!pauseWaypointIndices.contains(waypointIndex)) {
+            pauseWaypointIndices.add(waypointIndex);
+        }
+        // FIXED: Store per-waypoint duration in map
+        pauseDurations.put(waypointIndex, durationSeconds);
     }
 
     /**
@@ -499,6 +506,7 @@ public class PoseController {
      */
     public void removePauseAtWaypoint(int waypointIndex) {
         pauseWaypointIndices.remove(Integer.valueOf(waypointIndex));
+        pauseDurations.remove(waypointIndex);  // FIXED: Remove duration too
     }
 
     /**
@@ -506,7 +514,9 @@ public class PoseController {
      */
     public void clearPauseWaypoints() {
         pauseWaypointIndices.clear();
+        pauseDurations.clear();  // FIXED: Clear durations too
         isPausedAtWaypoint = false;
+        pauseWaypointAlreadyHandled = false;
     }
 
     /**
@@ -519,10 +529,13 @@ public class PoseController {
 
     /**
      * Resume from a pause waypoint
+     * This will allow the robot to advance to the next waypoint
      */
     public void resumeFromPause() {
+        // FIXED: Set flag to allow advancement instead of just clearing pause state
         isPausedAtWaypoint = false;
         pauseStartTimeNanos = 0;
+        pauseWaypointAlreadyHandled = true;  // Mark this waypoint as handled
     }
 
     /**
@@ -541,7 +554,9 @@ public class PoseController {
         }
 
         isFollowingPath = true;
+        isReverseMode = false;  // FIXED: Track forward mode
         currentWaypointIndex = startWaypointIndex;
+        pauseWaypointAlreadyHandled = false;  // Reset pause handling
 
         // Set first waypoint as target
         if (!waypointQueue.isEmpty()) {
@@ -568,7 +583,9 @@ public class PoseController {
         }
 
         isFollowingPath = true;
+        isReverseMode = true;  // FIXED: Track reverse mode
         currentWaypointIndex = endWaypointIndex;
+        pauseWaypointAlreadyHandled = false;  // Reset pause handling
 
         // Set first waypoint as target
         if (!waypointQueue.isEmpty()) {
@@ -721,27 +738,29 @@ public class PoseController {
 
             // Check if paused at a waypoint
             if (isPausedAtWaypoint) {
-                // Check if pause duration has elapsed
-                if (pauseDurationSeconds > 0) {
+                // FIXED: Get pause duration for current waypoint from map
+                Double pauseDuration = pauseDurations.get(currentWaypointIndex);
+                if (pauseDuration != null && pauseDuration > 0) {
                     double elapsedSeconds = (System.nanoTime() - pauseStartTimeNanos) / 1e9;
-                    if (elapsedSeconds >= pauseDurationSeconds) {
+                    if (elapsedSeconds >= pauseDuration) {
                         // Pause duration complete, resume
                         isPausedAtWaypoint = false;
                         pauseStartTimeNanos = 0;
+                        pauseWaypointAlreadyHandled = true;  // Mark as handled
                         shouldAdvance = true;
                     }
                 }
-                // If pauseDurationSeconds == 0, wait for manual resumeFromPause() call
+                // If pauseDuration == null or 0, wait for manual resumeFromPause() call
                 // Don't advance
             } else if (atTarget()) {
-                // At target, check if this is a pause waypoint
-                if (pauseWaypointIndices.contains(currentWaypointIndex)) {
+                // At target, check if this is a pause waypoint AND we haven't already paused here
+                if (pauseWaypointIndices.contains(currentWaypointIndex) && !pauseWaypointAlreadyHandled) {
                     // Start pause
                     isPausedAtWaypoint = true;
                     pauseStartTimeNanos = System.nanoTime();
                     // Don't advance yet
                 } else {
-                    // Not a pause waypoint, advance normally
+                    // Not a pause waypoint or already handled, advance normally
                     shouldAdvance = true;
                 }
             } else if (enableOvershootDetection && waypointQueue.size() > 1) {
@@ -764,19 +783,16 @@ public class PoseController {
                     double x = positionManager.getCurrentX();
                     double y = positionManager.getCurrentY();
 
-                    double fx = signX * x;
-                    double fy = signY * y;
-
-                    // Distance to current target
+                    // FIXED: Calculate distances with proper sign handling
                     double distToCurrent = Math.hypot(
-                        signX * currentTarget.x - fx,
-                        signY * currentTarget.y - fy
+                        signX * (currentTarget.x - x),
+                        signY * (currentTarget.y - y)
                     );
 
                     // Distance to next waypoint
                     double distToNext = Math.hypot(
-                        signX * nextWaypoint.x - fx,
-                        signY * nextWaypoint.y - fy
+                        signX * (nextWaypoint.x - x),
+                        signY * (nextWaypoint.y - y)
                     );
 
                     // If we're closer to the next waypoint and beyond tolerance of current,
@@ -794,7 +810,15 @@ public class PoseController {
             if (shouldAdvance) {
                 // Remove current waypoint
                 waypointQueue.poll();
-                currentWaypointIndex++;
+
+                // FIXED: Update index based on direction
+                if (isReverseMode) {
+                    currentWaypointIndex--;
+                } else {
+                    currentWaypointIndex++;
+                }
+
+                pauseWaypointAlreadyHandled = false;  // Reset for next waypoint
 
                 // Set next waypoint as target
                 if (!waypointQueue.isEmpty()) {
@@ -837,36 +861,37 @@ public class PoseController {
         // 2) Calculate heading error FIRST to determine if this is truly an in-place rotation
         double desiredHeading = targetHeading != null ? Math.toRadians(targetHeading) : heading;
         if (headingMode == HeadingMode.FaceTarget) {
-            desiredHeading = Math.atan2(dy, dx); // face the target (already in radians)
+            // FIXED: Only calculate face-target heading if we're not at the target position
+            if (positionError > 0.1) {
+                desiredHeading = Math.atan2(dy, dx); // face the target (already in radians)
+            } else {
+                // At target position, maintain current heading to avoid undefined behavior
+                desiredHeading = heading;
+            }
         }
         double headingErr = angleWrap(desiredHeading - h);
         double headingErrorDegrees = Math.toDegrees(Math.abs(headingErr));
 
-        // Check if we should lock position (within tolerance AND significant heading error)
-        // Only lock for in-place rotations, not during normal driving
+        // FIXED: Position lock management - lock when within tolerance AND release when error increases
         if (!positionLocked && positionError <= posTolerance && headingErrorDegrees > Math.toDegrees(angTolerance)) {
             positionLocked = true;  // Lock position, only worry about heading now
+        } else if (positionLocked && positionError > posTolerance) {
+            positionLocked = false;  // CRITICAL FIX: Release lock when moving to new target
         }
 
         // If position is locked, we're doing in-place rotation (only care about heading)
         boolean isInPlaceRotation = positionLocked;
 
-        // 2) Rotate error into robot frame (so "forward" is axial, "left" is lateral)
+        // 2) Rotate heading for robot frame (no longer need robot-frame position errors)
         // Robot frame rotation by -heading
         double cosH = Math.cos(-h);
         double sinH = Math.sin(-h);
-        double ex_robot = dx * cosH - dy * sinH; // forward/back
-        double ey_robot = dx * sinH + dy * cosH; // left/right
 
         // 3) Position P-control + Feed-forward -> desired translational powers
         // Choose velocity source: actual robot velocity or target velocity
         double feedForwardVX = useRobotVelocityFeedForward ? robotVelocityX : targetVelocityX;
         double feedForwardVY = useRobotVelocityFeedForward ? robotVelocityY : targetVelocityY;
         double feedForwardVHeading = useRobotVelocityFeedForward ? robotVelocityHeading : targetVelocityHeading;
-
-        // Rotate velocity into robot frame for feed-forward
-        double vx_robot = feedForwardVX * cosH - feedForwardVY * sinH;
-        double vy_robot = feedForwardVX * sinH + feedForwardVY * cosH;
 
         // Apply separate gains per axis
         // Note: We use field-frame gains (kP_x, kP_y, kV_x, kV_y) applied to field-frame errors/velocities,
@@ -920,9 +945,15 @@ public class PoseController {
         double ftx = signX * targetX, fty = signY * targetY;
         double dist = Math.hypot(ftx - fx, fty - fy);
 
-        double desiredHeading = (headingMode == HeadingMode.FaceTarget)
-                ? Math.atan2((fty - fy), (ftx - fx))
-                : (targetHeading != null ? Math.toRadians(targetHeading) : heading);
+        // FIXED: Only calculate face-target heading if we're not at the target position
+        double desiredHeading;
+        if (headingMode == HeadingMode.FaceTarget && dist > 0.1) {
+            desiredHeading = Math.atan2((fty - fy), (ftx - fx));
+        } else if (headingMode == HeadingMode.FaceTarget) {
+            desiredHeading = heading;  // At target, maintain current heading
+        } else {
+            desiredHeading = (targetHeading != null ? Math.toRadians(targetHeading) : heading);
+        }
 
         double dTheta = Math.abs(angleWrap(desiredHeading - h));
         return dist <= posTolerance && dTheta <= angTolerance;

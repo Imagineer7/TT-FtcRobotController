@@ -15,7 +15,6 @@ public class PositionManager {
 
     // Position data
     private double currentX, currentY, currentHeading;
-    private double targetX, targetY, targetHeading;
     private boolean isPositionValid;
 
     // Start position reference for navigation and distance calculations
@@ -33,7 +32,16 @@ public class PositionManager {
     // Known AprilTag positions for vision positioning
     private Map<Integer, double[]> knownTagPositions;
 
-    public void LightningPositioningManager(HardwareMap hardwareMap, Telemetry telemetry, FieldMap.Alliance alliance) {
+    // Position staleness tracking
+    private long lastUpdateTimeNanos = 0;
+
+    /**
+     * Constructor - Initialize the PositionManager
+     * @param hardwareMap Hardware map from OpMode
+     * @param telemetry Telemetry for logging
+     * @param alliance Alliance color (RED or BLUE)
+     */
+    public PositionManager(HardwareMap hardwareMap, Telemetry telemetry, FieldMap.Alliance alliance) {
         this.hardwareMap = hardwareMap;
         this.telemetry = telemetry;
         this.alliance = alliance;
@@ -67,6 +75,14 @@ public class PositionManager {
     private void loadKnownTagPositions() {
         knownTagPositions = new HashMap<>();
 
+        // Null safety check
+        if (fieldMap == null) {
+            if (telemetry != null) {
+                telemetry.addData("PositionManager", "FieldMap not initialized, skipping tag loading");
+            }
+            return;
+        }
+
         // Load goal AprilTag positions from field map
         FieldMap.FieldPosition redGoal = fieldMap.getLocation("RED_GOAL");
         FieldMap.FieldPosition blueGoal = fieldMap.getLocation("BLUE_GOAL");
@@ -91,13 +107,14 @@ public class PositionManager {
      *
      * @param x       Current X position in inches
      * @param y       Current Y position in inches
-     * @param heading Current heading in degrees (0-360)
+     * @param heading Current heading in degrees (will be normalized to 0-360)
      */
     public void updatePosition(double x, double y, double heading) {
         this.currentX = x;
         this.currentY = y;
-        this.currentHeading = heading;
+        this.currentHeading = normalizeHeading(heading);
         this.isPositionValid = true;
+        this.lastUpdateTimeNanos = System.nanoTime();
     }
 
     /**
@@ -126,11 +143,13 @@ public class PositionManager {
             odoHelper.updatePosition();
             this.currentX = odoHelper.getX();
             this.currentY = odoHelper.getY();
-            this.currentHeading = odoHelper.getHeadingDegrees();
+            this.currentHeading = normalizeHeading(odoHelper.getHeadingDegrees());
             this.isPositionValid = true;
+            this.lastUpdateTimeNanos = System.nanoTime();
             return true;
         } catch (Exception e) {
-            telemetry.addData("PositionManager", "Odometry update failed: " + e.getMessage());
+            telemetry.addData("PositionManager ERROR", "Odometry update failed: " + e.getMessage());
+            this.isPositionValid = false;  // Mark position as invalid on failure
             return false;
         }
     }
@@ -194,14 +213,14 @@ public class PositionManager {
      *
      * @param x       Starting X position in inches
      * @param y       Starting Y position in inches
-     * @param heading Starting heading in degrees
+     * @param heading Starting heading in degrees (will be normalized to 0-360)
      */
     public void setStartPosition(double x, double y, double heading) {
         this.startX = x;
         this.startY = y;
-        this.startHeading = heading;
+        this.startHeading = normalizeHeading(heading);
         this.hasStartPosition = true;
-        telemetry.addData("Start Position Set", "(%.1f, %.1f) @ %.1f°", x, y, heading);
+        telemetry.addData("Start Position Set", "(%.1f, %.1f) @ %.1f°", x, y, this.startHeading);
     }
 
     /**
@@ -282,15 +301,11 @@ public class PositionManager {
     /**
      * Calculate heading change from starting position
      *
-     * @return Difference in heading (current - start), or 0 if start not set
+     * @return Difference in heading (current - start) in -180 to 180 range, or 0 if start not set
      */
     public double getHeadingChangeFromStart() {
         if (!hasStartPosition) return 0;
-        double delta = currentHeading - startHeading;
-        // Normalize to -180 to 180
-        while (delta > 180) delta -= 360;
-        while (delta < -180) delta += 360;
-        return delta;
+        return normalizeAngleDelta(currentHeading - startHeading);
     }
 
     /**
@@ -336,13 +351,7 @@ public class PositionManager {
      */
     public double calculateTurnAngleToTarget(double targetX, double targetY) {
         double bearingToTarget = calculateBearing(currentX, currentY, targetX, targetY);
-        double turnAngle = bearingToTarget - currentHeading;
-
-        // Normalize to -180 to 180
-        while (turnAngle > 180) turnAngle -= 360;
-        while (turnAngle < -180) turnAngle += 360;
-
-        return turnAngle;
+        return normalizeAngleDelta(bearingToTarget - currentHeading);
     }
 
     // ========== PUBLIC POSITION GETTER METHODS ==========
@@ -400,6 +409,7 @@ public class PositionManager {
      * @return Zone information string (e.g., "Long Range Launch Zone", "Red Parking Zone")
      */
     public String getCurrentZone() {
+        if (fieldMap == null) return "FIELD_MAP_NOT_INITIALIZED";
         return fieldMap.getZoneInfo(currentX, currentY);
     }
 
@@ -409,6 +419,7 @@ public class PositionManager {
      * @return true if in any launch zone
      */
     public boolean isInLaunchZone() {
+        if (fieldMap == null) return false;
         return fieldMap.isInLaunchZone(currentX, currentY);
     }
 
@@ -418,6 +429,7 @@ public class PositionManager {
      * @return true if in any parking zone
      */
     public boolean isInParkingZone() {
+        if (fieldMap == null) return false;
         return fieldMap.isInParkingZone(currentX, currentY);
     }
 
@@ -427,6 +439,7 @@ public class PositionManager {
      * @return true if in any loading zone
      */
     public boolean isInLoadingZone() {
+        if (fieldMap == null) return false;
         return fieldMap.isInLoadingZone(currentX, currentY);
     }
 
@@ -436,6 +449,7 @@ public class PositionManager {
      * @return true if in parking zone for current alliance
      */
     public boolean isInAllianceParkingZone() {
+        if (fieldMap == null) return false;
         return fieldMap.isInAllianceParkingZone(currentX, currentY, alliance);
     }
 
@@ -445,6 +459,7 @@ public class PositionManager {
      * @return true if in loading zone for current alliance
      */
     public boolean isInAllianceLoadingZone() {
+        if (fieldMap == null) return false;
         return fieldMap.isInAllianceLoadingZone(currentX, currentY, alliance);
     }
 
@@ -454,6 +469,7 @@ public class PositionManager {
      * @return true if in area for current alliance
      */
     public boolean isInAllianceArea() {
+        if (fieldMap == null) return false;
         return fieldMap.isInAllianceArea(currentX, currentY, alliance);
     }
 
@@ -465,6 +481,7 @@ public class PositionManager {
      * @return FieldPosition of closest goal, or null if none found
      */
     public FieldMap.FieldPosition getClosestGoal() {
+        if (fieldMap == null) return null;
         return fieldMap.getClosestGoal(currentX, currentY);
     }
 
@@ -474,6 +491,7 @@ public class PositionManager {
      * @return FieldPosition of closest parking zone, or null if none found
      */
     public FieldMap.FieldPosition getClosestParkingZone() {
+        if (fieldMap == null) return null;
         return fieldMap.getClosestParkingZone(currentX, currentY);
     }
 
@@ -483,6 +501,7 @@ public class PositionManager {
      * @return FieldPosition of alliance loading zone, or null if not defined
      */
     public FieldMap.FieldPosition getAllianceLoadingZone() {
+        if (fieldMap == null) return null;
         return fieldMap.getLoadingZone();
     }
 
@@ -493,6 +512,7 @@ public class PositionManager {
      * @return FieldPosition with location data, or null if not found
      */
     public FieldMap.FieldPosition getLocation(String name) {
+        if (fieldMap == null) return null;
         return fieldMap.getLocation(name);
     }
 
@@ -500,18 +520,20 @@ public class PositionManager {
      * Get all locations of a specific type
      *
      * @param type ElementType to query (GOAL, PARKING_ZONE, etc.)
-     * @return List of matching FieldPositions
+     * @return List of matching FieldPositions, or empty list if fieldMap not initialized
      */
     public java.util.List<FieldMap.FieldPosition> getLocationsByType(FieldMap.ElementType type) {
+        if (fieldMap == null) return new java.util.ArrayList<>();
         return fieldMap.getLocationsByType(type);
     }
 
     /**
      * Get all locations for current alliance
      *
-     * @return List of FieldPositions for current alliance
+     * @return List of FieldPositions for current alliance, or empty list if fieldMap not initialized
      */
     public java.util.List<FieldMap.FieldPosition> getAllianceLocations() {
+        if (fieldMap == null) return new java.util.ArrayList<>();
         return fieldMap.getLocationsByAlliance(alliance);
     }
 
@@ -586,9 +608,11 @@ public class PositionManager {
                 currentY = 0;
                 currentHeading = 0;
                 isPositionValid = true;
+                lastUpdateTimeNanos = System.nanoTime();
                 telemetry.addData("PositionManager", "Odometry reset to origin");
             } catch (Exception e) {
                 telemetry.addData("PositionManager", "Failed to reset odometry: " + e.getMessage());
+                isPositionValid = false;
             }
         }
     }
@@ -598,7 +622,7 @@ public class PositionManager {
      *
      * @param x       X position in inches
      * @param y       Y position in inches
-     * @param heading Heading in degrees
+     * @param heading Heading in degrees (will be normalized to 0-360)
      */
     public void setOdometryPosition(double x, double y, double heading) {
         if (useOdometry && odoHelper != null) {
@@ -606,11 +630,13 @@ public class PositionManager {
                 odoHelper.setPosition(x, y, heading);
                 currentX = x;
                 currentY = y;
-                currentHeading = heading;
+                currentHeading = normalizeHeading(heading);
                 isPositionValid = true;
-                telemetry.addData("PositionManager", "Odometry position set to (%.1f, %.1f) @ %.1f°", x, y, heading);
+                lastUpdateTimeNanos = System.nanoTime();
+                telemetry.addData("PositionManager", "Odometry position set to (%.1f, %.1f) @ %.1f°", x, y, currentHeading);
             } catch (Exception e) {
                 telemetry.addData("PositionManager", "Failed to set odometry position: " + e.getMessage());
+                isPositionValid = false;
             }
         }
     }
@@ -688,6 +714,71 @@ public class PositionManager {
         if (useOdometry && odoHelper != null) {
             odoHelper.addTelemetry();
         }
+    }
+
+    /**
+     * Normalize heading to 0-360 degree range
+     * @param heading Heading in degrees (can be any value)
+     * @return Normalized heading in 0-360 range
+     */
+    private double normalizeHeading(double heading) {
+        heading = heading % 360;
+        if (heading < 0) {
+            heading += 360;
+        }
+        return heading;
+    }
+
+    /**
+     * Normalize angle delta to -180 to 180 degree range
+     * Used for calculating turn angles and heading changes
+     * @param angle Angle difference in degrees
+     * @return Normalized angle in -180 to 180 range
+     */
+    private double normalizeAngleDelta(double angle) {
+        angle = angle % 360;
+        if (angle > 180) {
+            angle -= 360;
+        }
+        if (angle < -180) {
+            angle += 360;
+        }
+        return angle;
+    }
+
+    /**
+     * Check if position data is fresh (recently updated)
+     * @param maxAgeSeconds Maximum acceptable age in seconds
+     * @return true if position is valid and fresh, false if stale or invalid
+     */
+    public boolean isPositionFresh(double maxAgeSeconds) {
+        if (!isPositionValid) {
+            return false;
+        }
+        if (lastUpdateTimeNanos == 0) {
+            return false;  // Never updated
+        }
+        double ageSeconds = (System.nanoTime() - lastUpdateTimeNanos) / 1e9;
+        return ageSeconds < maxAgeSeconds;
+    }
+
+    /**
+     * Get the age of the current position data in seconds
+     * @return Age in seconds, or -1 if never updated
+     */
+    public double getPositionAgeSeconds() {
+        if (lastUpdateTimeNanos == 0) {
+            return -1;
+        }
+        return (System.nanoTime() - lastUpdateTimeNanos) / 1e9;
+    }
+
+    /**
+     * Get the current alliance
+     * @return Alliance color (RED or BLUE)
+     */
+    public FieldMap.Alliance getAlliance() {
+        return alliance;
     }
 
     /**

@@ -114,9 +114,8 @@ public class AuroraLightningCore {
                 driveSystem = robotManager.getDriveSystem();
             }
 
-            // Initialize position manager
-            positionManager = new PositionManager();
-            positionManager.LightningPositioningManager(hardwareMap, telemetry, alliance);
+            // Initialize position manager with proper constructor
+            positionManager = new PositionManager(hardwareMap, telemetry, alliance);
 
             // Initialize pose controller
             poseController = new PoseController(driveSystem, positionManager);
