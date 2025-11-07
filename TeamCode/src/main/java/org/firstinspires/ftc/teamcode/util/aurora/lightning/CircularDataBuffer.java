@@ -215,6 +215,7 @@ public class CircularDataBuffer<T> {
 
     /**
      * Calculate variance
+     * Only works if T extends Number
      */
     public double getVariance() {
         if (size < 2) return 0;
@@ -223,8 +224,11 @@ public class CircularDataBuffer<T> {
         double sumSquaredDiff = 0;
 
         for (int i = 0; i < size; i++) {
-            double diff = get(i).doubleValue() - mean;
-            sumSquaredDiff += diff * diff;
+            T value = get(i);
+            if (value instanceof Number) {
+                double diff = ((Number) value).doubleValue() - mean;
+                sumSquaredDiff += diff * diff;
+            }
         }
 
         return sumSquaredDiff / (size - 1);
@@ -232,6 +236,7 @@ public class CircularDataBuffer<T> {
 
     /**
      * Get median value
+     * Only works if T extends Number
      */
     public double getMedian() {
         if (size == 0) return 0;
@@ -239,7 +244,10 @@ public class CircularDataBuffer<T> {
         // Copy to array and sort
         double[] values = new double[size];
         for (int i = 0; i < size; i++) {
-            values[i] = get(i).doubleValue();
+            T value = get(i);
+            if (value instanceof Number) {
+                values[i] = ((Number) value).doubleValue();
+            }
         }
         java.util.Arrays.sort(values);
 
@@ -252,6 +260,7 @@ public class CircularDataBuffer<T> {
 
     /**
      * Get percentile value (0.0 to 1.0)
+     * Only works if T extends Number
      * @param percentile Percentile (0.0 = min, 0.5 = median, 1.0 = max)
      */
     public double getPercentile(double percentile) {
@@ -262,7 +271,10 @@ public class CircularDataBuffer<T> {
         // Copy to array and sort
         double[] values = new double[size];
         for (int i = 0; i < size; i++) {
-            values[i] = get(i).doubleValue();
+            T value = get(i);
+            if (value instanceof Number) {
+                values[i] = ((Number) value).doubleValue();
+            }
         }
         java.util.Arrays.sort(values);
 
@@ -272,6 +284,7 @@ public class CircularDataBuffer<T> {
 
     /**
      * Calculate simple moving average over last N values
+     * Only works if T extends Number
      * @param n Number of recent values to average
      */
     public double getMovingAverage(int n) {
@@ -280,7 +293,10 @@ public class CircularDataBuffer<T> {
 
         double sum = 0;
         for (int i = size - n; i < size; i++) {
-            sum += get(i).doubleValue();
+            T value = get(i);
+            if (value instanceof Number) {
+                sum += ((Number) value).doubleValue();
+            }
         }
         return sum / n;
     }
@@ -288,24 +304,36 @@ public class CircularDataBuffer<T> {
     /**
      * Calculate rate of change (derivative)
      * Returns change per sample
+     * Only works if T extends Number
      */
     public double getRateOfChange() {
         if (size < 2) return 0;
-        return getLast().doubleValue() - getFirst().doubleValue();
+        T first = getFirst();
+        T last = getLast();
+        if (first instanceof Number && last instanceof Number) {
+            return ((Number) last).doubleValue() - ((Number) first).doubleValue();
+        }
+        return 0;
     }
 
     /**
      * Detect if current value is an outlier
      * Uses 3-sigma rule (value is >3 std deviations from mean)
+     * Only works if T extends Number
      */
     public boolean isCurrentValueOutlier() {
         if (size < 10) return false;  // Need enough data
 
         double mean = getMean();
         double stdDev = getStdDev();
-        double current = getLast().doubleValue();
+        T lastValue = getLast();
 
-        return Math.abs(current - mean) > 3 * stdDev;
+        if (lastValue instanceof Number) {
+            double current = ((Number) lastValue).doubleValue();
+            return Math.abs(current - mean) > 3 * stdDev;
+        }
+
+        return false;
     }
 
     /**
