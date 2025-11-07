@@ -41,6 +41,11 @@ public class AuroraLightningCore {
     private PathPlanner pathPlanner;
     private EnhancedDecodeHelper shooter;  // Optional shooter system
 
+    // ======== Intelligence Systems ========
+    private PerformanceMonitor performanceMonitor;
+    private EventLogger eventLogger;
+    private MotionProfiler motionProfiler;
+
     // ======== Timing ========
     private ElapsedTime runtime = new ElapsedTime();
     private ElapsedTime operationTimer = new ElapsedTime();
@@ -109,6 +114,13 @@ public class AuroraLightningCore {
             telemetry.addData("AuroraLightning", "Initializing...");
             telemetry.update();
 
+            // Initialize intelligence systems first
+            performanceMonitor = new PerformanceMonitor(telemetry);
+            eventLogger = new EventLogger(1000);  // Store last 1000 events
+            motionProfiler = new MotionProfiler(telemetry);
+
+            eventLogger.info("SYSTEM", "AuroraLightningCore initialization started");
+
             // Initialize drive system if not already provided
             if (driveSystem == null && robotManager != null) {
                 driveSystem = robotManager.getDriveSystem();
@@ -116,9 +128,11 @@ public class AuroraLightningCore {
 
             // Initialize position manager with proper constructor
             positionManager = new PositionManager(hardwareMap, telemetry, alliance);
+            eventLogger.info("SYSTEM", "PositionManager initialized");
 
             // Initialize pose controller
             poseController = new PoseController(driveSystem, positionManager);
+            eventLogger.info("SYSTEM", "PoseController initialized");
 
             // Configure default gains
             poseController.setAllGains(
@@ -133,20 +147,24 @@ public class AuroraLightningCore {
             // Initialize path planner
             pathPlanner = new PathPlanner();
             pathPlanner.smoothingFactor = defaultSmoothingFactor;
+            eventLogger.info("SYSTEM", "PathPlanner initialized");
 
             // Initialize shooter (optional - may fail if hardware not present)
             try {
                 shooter = new EnhancedDecodeHelper(hardwareMap);
                 telemetry.addData("Shooter", "Initialized");
+                eventLogger.info("SHOOTER", "Initialized successfully");
             } catch (Exception e) {
                 shooter = null;
                 telemetry.addData("Shooter", "Not available");
+                eventLogger.warning("SHOOTER", "Hardware not available: " + e.getMessage());
             }
 
             // Reset runtime
             runtime.reset();
 
             isInitialized = true;
+            eventLogger.info("SYSTEM", "AuroraLightningCore initialized successfully");
             telemetry.addData("AuroraLightning", "Initialized successfully!");
             telemetry.update();
 
@@ -155,6 +173,9 @@ public class AuroraLightningCore {
         } catch (Exception e) {
             telemetry.addData("AuroraLightning", "Init failed: " + e.getMessage());
             telemetry.update();
+            if (eventLogger != null) {
+                eventLogger.critical("SYSTEM", "Initialization failed: " + e.getMessage());
+            }
             isInitialized = false;
             return false;
         }
@@ -167,15 +188,79 @@ public class AuroraLightningCore {
     public void update() {
         if (!isInitialized) return;
 
+        // Start performance monitoring for this loop
+        performanceMonitor.startLoop();
+
         if (emergencyStop) {
             poseController.stopPath();
             driveSystem.setDriveInputs(0, 0, 0);
             driveSystem.update();
+            performanceMonitor.endLoop();
             return;
         }
 
         // Update pose controller (handles position tracking and path following)
+        eventLogger.startProfile("PoseController.update");
         poseController.update();
+        eventLogger.endProfile("PoseController.update");
+
+        // Get current state for analysis
+        double[] pos = getCurrentPosition();
+        double[] vel = getCurrentVelocity();
+
+        // Update motion profiler with current state
+        motionProfiler.update(
+            pos[0], pos[1], pos[2],  // position
+            vel[0], vel[1], vel[2]   // velocity
+        );
+
+        // Sync target with motion profiler
+        double[] target = poseController.getTargetPosition();
+        Double targetHeading = poseController.getTargetHeading();
+        if (target != null) {
+            motionProfiler.setTarget(
+                target[0], target[1],
+                targetHeading != null ? targetHeading : pos[2]
+            );
+
+            // Track position error
+            double posError = Math.hypot(target[0] - pos[0], target[1] - pos[1]);
+            performanceMonitor.recordPositionError(posError);
+        } else {
+            // No target, clear motion profiler target
+            motionProfiler.clearTarget();
+        }
+
+        // Track velocity for performance monitor
+        performanceMonitor.recordVelocity(vel[0], vel[1]);
+
+        // Mark odometry update
+        performanceMonitor.markOdometryUpdate();
+
+        // End performance monitoring for this loop
+        performanceMonitor.endLoop();
+
+        // Check for warnings
+        if (performanceMonitor.hasWarnings()) {
+            for (String warning : performanceMonitor.getWarnings()) {
+                eventLogger.warning("PERFORMANCE", warning);
+            }
+            performanceMonitor.clearWarnings();
+        }
+
+        // Check for motion anomalies
+        if (motionProfiler.isDiverging()) {
+            eventLogger.warning("MOTION", "Robot diverging from target");
+        }
+        if (motionProfiler.isOscillating()) {
+            eventLogger.warning("MOTION", "Oscillating motion detected - check PID gains");
+        }
+        if (motionProfiler.isStuck()) {
+            eventLogger.error("MOTION", "Robot appears stuck - check for obstacles");
+        }
+        if (motionProfiler.isSlipping()) {
+            eventLogger.warning("MOTION", "Wheel slip detected");
+        }
     }
 
     // ======== Position Control Methods ========
@@ -801,6 +886,33 @@ public class AuroraLightningCore {
     }
 
     /**
+     * Get the PerformanceMonitor instance
+     *
+     * @return PerformanceMonitor instance
+     */
+    public PerformanceMonitor getPerformanceMonitor() {
+        return performanceMonitor;
+    }
+
+    /**
+     * Get the EventLogger instance
+     *
+     * @return EventLogger instance
+     */
+    public EventLogger getEventLogger() {
+        return eventLogger;
+    }
+
+    /**
+     * Get the MotionProfiler instance
+     *
+     * @return MotionProfiler instance
+     */
+    public MotionProfiler getMotionProfiler() {
+        return motionProfiler;
+    }
+
+    /**
      * Check if system is initialized
      *
      * @return true if ready to use
@@ -875,9 +987,95 @@ public class AuroraLightningCore {
             }
         }
 
+        // Performance metrics
+        if (performanceMonitor != null) {
+            performanceMonitor.addTelemetry();
+        }
+
+        // Motion analysis
+        if (motionProfiler != null && isFollowingPath()) {
+            telemetry.addData("--- Motion Analysis ---", "");
+            telemetry.addData("Motion Quality", "%.0f/100", motionProfiler.getMotionQualityScore());
+            telemetry.addData("Velocity", "%.1f in/s", motionProfiler.getCurrentVelocity());
+
+            if (motionProfiler.getCurrentDistanceToTarget() >= 0) {
+                String convergenceStatus = "Steady";
+                if (motionProfiler.isConverging()) convergenceStatus = "✓ Converging";
+                else if (motionProfiler.isDiverging()) convergenceStatus = "❌ Diverging";
+                else if (motionProfiler.isOscillating()) convergenceStatus = "⚠️ Oscillating";
+
+                telemetry.addData("Status", "%s (%.1f\"/s)",
+                    convergenceStatus, motionProfiler.getConvergenceRate());
+            }
+        }
+
         if (emergencyStop) {
             telemetry.addData("STATUS", "⚠️ EMERGENCY STOP ⚠️");
         }
+    }
+
+    /**
+     * Add event log telemetry (recent events)
+     */
+    public void addEventLogTelemetry() {
+        if (!isInitialized || eventLogger == null) return;
+
+        telemetry.addData("=== EVENT LOG ===", "");
+        telemetry.addData("Summary", eventLogger.getSummary());
+
+        // Show last 5 events
+        List<EventLogger.Event> recent = eventLogger.getRecentEvents(5);
+        for (EventLogger.Event event : recent) {
+            telemetry.addData("", event.toString());
+        }
+    }
+
+    /**
+     * Add detailed performance telemetry
+     */
+    public void addDetailedPerformanceTelemetry() {
+        if (!isInitialized || performanceMonitor == null) return;
+
+        PerformanceMonitor.PerformanceSummary summary = performanceMonitor.getSummary();
+
+        telemetry.addData("=== DETAILED PERFORMANCE ===", "");
+        telemetry.addData("Total Loops", "%d (%.1fs runtime)", summary.totalLoops, summary.totalRuntime);
+        telemetry.addData("Loop Time", "Avg:%.1fms Max:%.1fms", summary.avgLoopTime, summary.maxLoopTime);
+        telemetry.addData("Loop Rate", "%.0f Hz (target: 50 Hz)", summary.loopRate);
+
+        if (summary.avgPositionError > 0) {
+            telemetry.addData("Position Error", "Avg:%.2f\" Max:%.2f\"",
+                summary.avgPositionError, summary.maxPositionError);
+        }
+
+        if (summary.batteryVoltage > 0) {
+            String trend = summary.batteryTrend < -0.05 ? "↓" : (summary.batteryTrend > 0.05 ? "↑" : "−");
+            telemetry.addData("Battery", "%.2fV %s (%.3fV/s)",
+                summary.batteryVoltage, trend, summary.batteryTrend);
+        }
+
+        telemetry.addData("Odometry Rate", "%.0f Hz", summary.odometryRate);
+        if (summary.visionRate > 0) {
+            telemetry.addData("Vision Rate", "%.0f Hz", summary.visionRate);
+        }
+    }
+
+    /**
+     * Add detailed motion profiler telemetry
+     */
+    public void addMotionProfilerTelemetry() {
+        if (!isInitialized || motionProfiler == null) return;
+
+        motionProfiler.addTelemetry();
+    }
+
+    /**
+     * Get motion analysis summary
+     */
+    public MotionProfiler.MotionAnalysisSummary getMotionAnalysis() {
+        if (!isInitialized || motionProfiler == null) return null;
+
+        return motionProfiler.getAnalysisSummary();
     }
 }
 
