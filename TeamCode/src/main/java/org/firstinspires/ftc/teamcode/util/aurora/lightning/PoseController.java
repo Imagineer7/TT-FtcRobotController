@@ -18,7 +18,7 @@ public class PoseController {
     // Position P-gains (separate per axis for better tuning)
     public double kP_x = 0.06;          // position gain for X axis (forward/back in field frame)
     public double kP_y = 0.06;          // position gain for Y axis (left/right in field frame) - may need different value for strafe
-    public double kP_theta = 0.03;      // heading gain (yaw)
+    public double kP_theta = 0.10;      // heading gain (yaw) - Reduced for smoother turning
 
     // Feed-forward gains (velocity-based prediction, separate per axis)
     public double kV_x = 0.0;           // velocity feed-forward for X axis (start at 0, tune up if needed)
@@ -26,27 +26,30 @@ public class PoseController {
     public double kV_theta = 0.0;       // rotational velocity feed-forward (start at 0, tune up if needed)
 
     // Output limits
-    public double maxAxial = 0.9;       // clamp for axial power
-    public double maxLateral = 0.9;     // clamp for lateral power
-    public double maxYaw = 0.7;         // clamp for yaw power
+    public double maxAxial = 0.5;       // clamp for axial power
+    public double maxLateral = 0.5;     // clamp for lateral power
+    public double maxYaw = 1.0;         // clamp for yaw power - MAXIMUM for turning
 
     // Tolerances
     public double posTolerance = 2;  // inches
     public double angTolerance = Math.toRadians(5); // radians
 
+    // Deadband - minimum error before applying control (prevents tiny corrections)
+    public double headingDeadband = Math.toRadians(2); // 2 degrees - don't correct if within this
+
     // ======== Coordinate & Axis Config ========
     // Define how your odometry axes map to "field" directions.
     // By convention here: +x = field forward (away from your driver wall), +y = field left (driver-left)
     // If your odometry differs, fix it by flipping signs here (no other math changes needed).
-    public int signX = +1;  // flip to -1 if your reported +x is actually "backwards"
-    public int signY = +1;  // flip to -1 if your reported +y is actually "right"
+    public int signX = -1;  // FIXED: Odometry reports negative for forward movement
+    public int signY = -1;  // FIXED: Odometry reports negative for left movement
     public int signHeading = +1; // flip to -1 if your heading increases clockwise (should be CCW)
 
     // If your drive expects a different robot-centric direction for "axial/lateral", adjust here:
     // axial = forward/back (robot +X), lateral = left/right (robot +Y)
-    public int signAxialOut = +1;   // flip if your robot forward power is inverted
-    public int signLateralOut = +1; // flip if your strafe direction is inverted
-    public int signYawOut = +1;     // flip if yaw is inverted
+    public int signAxialOut = 1;   // Output sign - leave at +1 (odometry signs handle direction)
+    public int signLateralOut = 1; // Output sign - leave at +1 (odometry signs handle direction)
+    public int signYawOut = 1;     // flip if yaw is inverted
 
     // ======== Heading Mode ========
     public enum HeadingMode {
@@ -60,6 +63,7 @@ public class PoseController {
     private Double targetHeading = null;
     private HeadingMode headingMode = HeadingMode.Hold;
     private boolean hasTarget = false;
+    private boolean positionLocked = false;  // True when position is within tolerance, only correct heading
 
     // ======== Feed-forward state ========
     private Double prevTargetX = null;
@@ -135,6 +139,7 @@ public class PoseController {
         this.targetHeading = heading;
         this.headingMode = HeadingMode.Hold;
         this.hasTarget = true;
+        this.positionLocked = false;  // Reset position lock for new target
         this.lastUpdateTimeNanos = currentTime;
     }
 
@@ -159,6 +164,7 @@ public class PoseController {
         this.targetY = y;
         this.headingMode = HeadingMode.FaceTarget;
         this.hasTarget = true;
+        this.positionLocked = false;  // Reset position lock for new target
         this.lastUpdateTimeNanos = currentTime;
     }
 
@@ -170,6 +176,7 @@ public class PoseController {
         this.targetY = null;
         this.targetHeading = null;
         this.hasTarget = false;
+        this.positionLocked = false;  // Reset position lock
 
         // Reset feed-forward state
         this.prevTargetX = null;
@@ -189,6 +196,25 @@ public class PoseController {
      */
     public boolean hasTarget() {
         return hasTarget;
+    }
+
+    /**
+     * Get the current target heading for debugging
+     * @return Target heading in degrees, or null if no target
+     */
+    public Double getTargetHeading() {
+        return targetHeading;
+    }
+
+    /**
+     * Get the current target position for debugging
+     * @return [x, y] array, or null if no target
+     */
+    public double[] getTargetPosition() {
+        if (targetX == null || targetY == null) {
+            return null;
+        }
+        return new double[]{targetX, targetY};
     }
 
     // ======== Velocity and Feed-Forward Getters ========
@@ -627,7 +653,9 @@ public class PoseController {
      * @return true if all waypoints have been visited
      */
     public boolean isPathComplete() {
-        return isFollowingPath && waypointQueue.isEmpty();
+        // Path is complete if we were following a path and the queue is now empty
+        // OR if we started following but are no longer (path was stopped/completed)
+        return !isFollowingPath && waypointQueue.isEmpty() && totalWaypoints > 0;
     }
 
     /**
@@ -773,8 +801,10 @@ public class PoseController {
                     Pose next = waypointQueue.peek();
                     setTarget(next.x, next.y, next.heading);
                 } else {
-                    // Path complete
+                    // Path complete - stop the robot
                     isFollowingPath = false;
+                    // Clear target to stop all movement (don't hold position)
+                    clearTarget();
                 }
             }
         }
@@ -802,6 +832,24 @@ public class PoseController {
         // 1) Field-frame error
         double dx = ftx - fx;
         double dy = fty - fy;
+        double positionError = Math.hypot(dx, dy);
+
+        // 2) Calculate heading error FIRST to determine if this is truly an in-place rotation
+        double desiredHeading = targetHeading != null ? Math.toRadians(targetHeading) : heading;
+        if (headingMode == HeadingMode.FaceTarget) {
+            desiredHeading = Math.atan2(dy, dx); // face the target (already in radians)
+        }
+        double headingErr = angleWrap(desiredHeading - h);
+        double headingErrorDegrees = Math.toDegrees(Math.abs(headingErr));
+
+        // Check if we should lock position (within tolerance AND significant heading error)
+        // Only lock for in-place rotations, not during normal driving
+        if (!positionLocked && positionError <= posTolerance && headingErrorDegrees > Math.toDegrees(angTolerance)) {
+            positionLocked = true;  // Lock position, only worry about heading now
+        }
+
+        // If position is locked, we're doing in-place rotation (only care about heading)
+        boolean isInPlaceRotation = positionLocked;
 
         // 2) Rotate error into robot frame (so "forward" is axial, "left" is lateral)
         // Robot frame rotation by -heading
@@ -830,17 +878,20 @@ public class PoseController {
         double axial = controlX_field * cosH - controlY_field * sinH;
         double lateral = controlX_field * sinH + controlY_field * cosH;
 
-        // 4) Heading control
-        double yaw;
-        double desiredHeading = targetHeading != null ? targetHeading : heading;
-
-        if (headingMode == HeadingMode.FaceTarget) {
-            desiredHeading = Math.atan2(dy, dx); // face the target
+        // FOR IN-PLACE ROTATIONS: Zero out axial and lateral to only use yaw
+        if (isInPlaceRotation) {
+            axial = 0;
+            lateral = 0;
         }
 
-        // Note: desiredHeading is in field frame; wrap and compare to current heading
-        double headingErr = angleWrap(desiredHeading - h);
-        yaw = kP_theta * headingErr + kV_theta * feedForwardVHeading;
+        // 4) Heading control (headingErr already calculated above)
+        // Apply deadband to prevent tiny corrections
+        double yaw;
+        if (Math.abs(headingErr) < headingDeadband) {
+            yaw = 0;  // Within deadband, don't apply yaw correction
+        } else {
+            yaw = kP_theta * headingErr + kV_theta * feedForwardVHeading;
+        }
 
         // 5) Output sign & clamp
         axial   = clamp(signAxialOut   * axial,   -maxAxial,   maxAxial);
@@ -871,7 +922,7 @@ public class PoseController {
 
         double desiredHeading = (headingMode == HeadingMode.FaceTarget)
                 ? Math.atan2((fty - fy), (ftx - fx))
-                : (targetHeading != null ? targetHeading : heading);
+                : (targetHeading != null ? Math.toRadians(targetHeading) : heading);
 
         double dTheta = Math.abs(angleWrap(desiredHeading - h));
         return dist <= posTolerance && dTheta <= angTolerance;

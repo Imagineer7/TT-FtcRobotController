@@ -578,6 +578,8 @@ public class AuroraManager {
     public MovementRecorder getMovementRecorder() { return movementRecorder; }
     public boolean isSystemsHealthy() { return systemsHealthy; }
     public boolean isRecordingMode() { return recordingMode; }
+    public HardwareMap getHardwareMap() { return hardwareMap; }
+    public Telemetry getTelemetry() { return telemetry; }
 
     /**
      * Get initialization status and error information

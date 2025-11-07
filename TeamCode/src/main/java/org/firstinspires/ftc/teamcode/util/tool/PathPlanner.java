@@ -144,9 +144,18 @@ public class PathPlanner {
             // Calculate segment length
             double segmentLength = start.distanceTo(end);
 
+            // Check if this is an in-place rotation (position doesn't change)
+            boolean isInPlaceRotation = segmentLength < 0.1; // Less than 0.1 inches
+
             // Determine number of points for this segment
-            int numPoints = Math.max(minPointsPerSegment,
+            int numPoints;
+            if (isInPlaceRotation) {
+                // For in-place rotations, just add the end point (no interpolation)
+                numPoints = 1;
+            } else {
+                numPoints = Math.max(minPointsPerSegment,
                                     (int) Math.ceil(segmentLength / waypointSpacing));
+            }
 
             // Generate points along the segment
             for (int j = 0; j < numPoints; j++) {
@@ -156,9 +165,13 @@ public class PathPlanner {
                 double x = start.x + (end.x - start.x) * t;
                 double y = start.y + (end.y - start.y) * t;
 
-                // Heading interpolation
-                double heading = interpolateHeading ?
-                    start.heading + start.headingDifference(end) * t : start.heading;
+                // Heading: don't interpolate for in-place rotations or if disabled
+                double heading;
+                if (isInPlaceRotation || !interpolateHeading) {
+                    heading = start.heading; // Keep start heading until we reach the waypoint
+                } else {
+                    heading = start.heading + start.headingDifference(end) * t;
+                }
 
                 path.add(new Pose(x, y, heading));
             }
