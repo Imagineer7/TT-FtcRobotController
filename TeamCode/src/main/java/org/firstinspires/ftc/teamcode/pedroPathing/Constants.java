@@ -10,15 +10,17 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 
 public class Constants {
     /**
      * Robot mass in kilograms (for centripetal force compensation)
-     * TODO: Weigh your robot and update this value
      * Tip: Stand on a scale with your robot, then subtract your weight
      */
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(5); // Update this with your robot's actual mass in kg
+            .forwardZeroPowerAcceleration(-35.66)
+            .lateralZeroPowerAcceleration(-55.63)
+            .mass(9); // Update this with your robot's actual mass in kg
 
     /**
      * Path constraints: (maxPower, maxAccel, maxDecel, maxAngularVelocity)
@@ -41,7 +43,9 @@ public class Constants {
             .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
-            .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD);
+            .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
+            .xVelocity(60.92)
+            .yVelocity(50.99);
 
     /**
      * Pinpoint Odometry Computer Configuration
@@ -58,13 +62,14 @@ public class Constants {
      * - strafePodX = X offset of strafe encoder (your Y_OFFSET converted)
      */
     public static PinpointConstants localizerConstants = new PinpointConstants()
-            .forwardPodY(-6.06)  // -154mm converted to inches (forward pod BEHIND center)
-            .strafePodX(0)       // 0mm = at centerline
+            .forwardPodY(-6.62)
+            .strafePodX(4.71)
             .distanceUnit(DistanceUnit.INCH)
-            .hardwareMapName("odo");  // Matches your hardware config
-    // Encoder directions are set to FORWARD by default in Pedro Pathing
-    // This matches your OdoHelper configuration: both encoders FORWARD
-    // Run "Localization Test" to verify movement directions are correct
+            .hardwareMapName("odo")  // Matches your hardware config
+            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);  // Strafe pod reversed so Y increases when moving left
+    // Forward encoder direction is FORWARD by default
+    // Strafe encoder is REVERSED to correct localization direction
+    // Run "Localization Test" to verify: Forward = X increases, Left = Y increases
 
     /**
      * Creates a Follower instance with the configured constants
