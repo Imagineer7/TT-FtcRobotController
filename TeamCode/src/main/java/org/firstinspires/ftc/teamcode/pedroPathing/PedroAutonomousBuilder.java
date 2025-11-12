@@ -6,6 +6,7 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import org.firstinspires.ftc.teamcode.util.aurora.EnhancedDecodeHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
+import org.firstinspires.ftc.teamcode.util.aurora.vision.AuroraAprilTagLocalizer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +43,7 @@ public class PedroAutonomousBuilder {
     private final List<AutonomousStep> steps;
     private final Follower follower;
     private EnhancedDecodeHelper shooter;
+    private AuroraAprilTagLocalizer aprilTagLocalizer;
 
     private int currentStepIndex;
     private double stepStartTime;
@@ -51,6 +53,12 @@ public class PedroAutonomousBuilder {
     private double reconnectDistanceThreshold = 6.0; // inches
     private double reconnectHeadingThreshold = Math.toRadians(20); // radians
     private boolean autoConnectEnabled = true;
+
+    // Starting pose configuration
+    private Pose defaultStartPose = new Pose(0, 0, 0);
+    private boolean useAprilTagForStart = false;
+    private double aprilTagDetectionTimeout = 2.0; // seconds
+    private double minAprilTagConfidence = 0.5;
 
     /**
      * Create a new autonomous builder
@@ -71,6 +79,16 @@ public class PedroAutonomousBuilder {
      */
     public PedroAutonomousBuilder withShooter(EnhancedDecodeHelper shooter) {
         this.shooter = shooter;
+        return this;
+    }
+
+    /**
+     * Set the AprilTag localizer for position detection
+     * @param localizer AuroraAprilTagLocalizer instance
+     * @return this builder for chaining
+     */
+    public PedroAutonomousBuilder withAprilTagLocalizer(AuroraAprilTagLocalizer localizer) {
+        this.aprilTagLocalizer = localizer;
         return this;
     }
 
@@ -190,6 +208,115 @@ public class PedroAutonomousBuilder {
     public PedroAutonomousBuilder setAutoConnectEnabled(boolean enabled) {
         this.autoConnectEnabled = enabled;
         return this;
+    }
+
+    /**
+     * Set the default starting pose (fallback if AprilTag detection fails)
+     * @param x X coordinate in inches
+     * @param y Y coordinate in inches
+     * @param heading Heading in radians
+     * @return this builder for chaining
+     */
+    public PedroAutonomousBuilder setDefaultStartPose(double x, double y, double heading) {
+        this.defaultStartPose = new Pose(x, y, heading);
+        return this;
+    }
+
+    /**
+     * Set the default starting pose (fallback if AprilTag detection fails)
+     * @param pose Starting pose
+     * @return this builder for chaining
+     */
+    public PedroAutonomousBuilder setDefaultStartPose(Pose pose) {
+        this.defaultStartPose = pose;
+        return this;
+    }
+
+    /**
+     * Enable AprilTag-based starting pose detection
+     * @param enabled true to use AprilTag for starting pose (default: false)
+     * @return this builder for chaining
+     */
+    public PedroAutonomousBuilder setUseAprilTagForStart(boolean enabled) {
+        this.useAprilTagForStart = enabled;
+        return this;
+    }
+
+    /**
+     * Set the timeout for AprilTag detection at start
+     * @param timeoutSeconds Maximum time to wait for AprilTag detection (default: 2.0)
+     * @return this builder for chaining
+     */
+    public PedroAutonomousBuilder setAprilTagDetectionTimeout(double timeoutSeconds) {
+        this.aprilTagDetectionTimeout = timeoutSeconds;
+        return this;
+    }
+
+    /**
+     * Set minimum confidence threshold for AprilTag starting pose
+     * @param confidence Minimum confidence value 0.0-1.0 (default: 0.5)
+     * @return this builder for chaining
+     */
+    public PedroAutonomousBuilder setMinAprilTagConfidence(double confidence) {
+        this.minAprilTagConfidence = Math.max(0.0, Math.min(1.0, confidence));
+        return this;
+    }
+
+    /**
+     * Get the starting pose for the robot
+     * If AprilTag detection is enabled and configured, attempts to get pose from AprilTags
+     * Falls back to default pose if AprilTag detection fails or times out
+     *
+     * @return Starting pose (either from AprilTag or default)
+     */
+    public Pose getStartingPose() {
+        if (!useAprilTagForStart || aprilTagLocalizer == null) {
+            return defaultStartPose;
+        }
+
+        // Try to get pose from AprilTag with timeout
+        double startTime = System.currentTimeMillis() / 1000.0;
+        double elapsedTime = 0;
+
+        while (elapsedTime < aprilTagDetectionTimeout) {
+            // Update AprilTag localizer
+            aprilTagLocalizer.updatePosition();
+
+            // Check if we have a valid position with sufficient confidence
+            if (aprilTagLocalizer.hasValidPosition() &&
+                aprilTagLocalizer.getPositionConfidence() >= minAprilTagConfidence) {
+
+                // Get position in path follower coordinates
+                double[] position = aprilTagLocalizer.getCurrentPositionPathFollower();
+                return new Pose(position[0], position[1], position[2]);
+            }
+
+            // Small delay to avoid busy waiting
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+
+            elapsedTime = (System.currentTimeMillis() / 1000.0) - startTime;
+        }
+
+        // Timeout or no valid detection - use default
+        return defaultStartPose;
+    }
+
+    /**
+     * Initialize the robot starting pose
+     * Call this before start() to set the initial position
+     * Uses AprilTag detection if enabled, otherwise uses default pose
+     *
+     * @return The pose that was set (for verification)
+     */
+    public Pose initializeStartingPose() {
+        Pose startPose = getStartingPose();
+        follower.setStartingPose(startPose);
+        return startPose;
     }
 
     /**

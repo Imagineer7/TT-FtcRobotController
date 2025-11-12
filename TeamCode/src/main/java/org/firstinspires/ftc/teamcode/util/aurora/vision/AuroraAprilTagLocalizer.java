@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
  * - Automatic camera optimization for AprilTag detection
  * - Position confidence scoring and outlier rejection
  *
- * @author Aurora Team
+ * @author FTC #26581 Tundra Tech
  * @version 2.0
  */
 public class AuroraAprilTagLocalizer {
@@ -340,6 +340,52 @@ public class AuroraAprilTagLocalizer {
      */
     public double[] getCurrentPosition() {
         return new double[]{robotX, robotY, robotHeading};
+    }
+
+    /**
+     * Get current robot position in path follower coordinates
+     * Converts from AprilTag coordinates (center origin, ±72) to
+     * path follower coordinates (bottom-left origin, 0-144)
+     *
+     * @return [x, y, heading] in path follower coordinate system
+     */
+    public double[] getCurrentPositionPathFollower() {
+        double[] pathCoords = convertAprilTagToPathFollower(robotX, robotY);
+        return new double[]{pathCoords[0], pathCoords[1], robotHeading};
+    }
+
+    /**
+     * Convert AprilTag coordinates to path follower coordinates
+     *
+     * AprilTag system: Center of field is (0, 0), corners are (±72, ±72)
+     * Path follower system: Bottom-left corner is (0, 0), top-right is (144, 144)
+     *
+     * @param aprilTagX X coordinate in AprilTag system
+     * @param aprilTagY Y coordinate in AprilTag system
+     * @return [x, y] in path follower coordinate system
+     */
+    public static double[] convertAprilTagToPathFollower(double aprilTagX, double aprilTagY) {
+        // Add 72 to shift from center-origin to bottom-left origin
+        double pathX = aprilTagX + 72.0;
+        double pathY = aprilTagY + 72.0;
+        return new double[]{pathX, pathY};
+    }
+
+    /**
+     * Convert path follower coordinates to AprilTag coordinates
+     *
+     * Path follower system: Bottom-left corner is (0, 0), top-right is (144, 144)
+     * AprilTag system: Center of field is (0, 0), corners are (±72, ±72)
+     *
+     * @param pathX X coordinate in path follower system
+     * @param pathY Y coordinate in path follower system
+     * @return [x, y] in AprilTag coordinate system
+     */
+    public static double[] convertPathFollowerToAprilTag(double pathX, double pathY) {
+        // Subtract 72 to shift from bottom-left origin to center-origin
+        double aprilTagX = pathX - 72.0;
+        double aprilTagY = pathY - 72.0;
+        return new double[]{aprilTagX, aprilTagY};
     }
 
     /**
