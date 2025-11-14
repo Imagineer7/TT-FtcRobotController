@@ -518,6 +518,7 @@ public class PedroAutonomousBuilder {
         private final int numShots;
         private final ShooterConfig.ShooterPreset preset;
         private EnhancedDecodeHelper.AutoShootResult lastResult;
+        private boolean shootingStarted = false;
 
         public ShootAction(EnhancedDecodeHelper shooter, int numShots, ShooterConfig.ShooterPreset preset) {
             this.shooter = shooter;
@@ -528,11 +529,17 @@ public class PedroAutonomousBuilder {
         @Override
         public void onStart(Follower follower, double startTime) {
             lastResult = null;
+            shootingStarted = false;
             shooter.startAutoShootSmart(numShots, preset);
         }
 
         @Override
         public boolean update(Follower follower, double elapsedTime) {
+            // CRITICAL: Update follower continuously during shooting to maintain position tracking
+            follower.update();
+
+            shootingStarted = true;
+
             // Update and store result once per update cycle
             lastResult = shooter.updateAutoShootSmart();
 
@@ -549,7 +556,7 @@ public class PedroAutonomousBuilder {
 
         @Override
         public String getName() {
-            if (lastResult == null) {
+            if (lastResult == null || !shootingStarted) {
                 return "Shooting (0/" + numShots + ")";
             }
             return "Shooting (" + lastResult.shotsFired + "/" + lastResult.targetShots + ")";
@@ -561,8 +568,10 @@ public class PedroAutonomousBuilder {
      */
     private static class TurnToHeadingAction implements AutonomousStep {
         private final double targetHeading;
-        private static final double HEADING_TOLERANCE = Math.toRadians(2); // 2 degrees
+        private static final double HEADING_TOLERANCE = Math.toRadians(3); // Increased to 3 degrees for reliability
+        private static final double TIMEOUT = 2.0; // 2 second timeout
         private boolean turnStarted = false;
+        private double turnStartTime = 0;
 
         public TurnToHeadingAction(double targetHeading) {
             this.targetHeading = targetHeading;
@@ -571,9 +580,9 @@ public class PedroAutonomousBuilder {
         @Override
         public void onStart(Follower follower, double startTime) {
             Pose currentPose = follower.getPose();
+            turnStartTime = startTime;
 
             // Create a very short path (0.1 inches forward) to trigger heading change
-            // This ensures Pedro Pathing actually executes the turn
             double forwardDist = 0.1;
             double newX = currentPose.getX() + Math.cos(currentPose.getHeading()) * forwardDist;
             double newY = currentPose.getY() + Math.sin(currentPose.getHeading()) * forwardDist;
@@ -596,15 +605,26 @@ public class PedroAutonomousBuilder {
                 return false;
             }
 
-            // Wait for path to complete
-            if (follower.isBusy()) {
-                return false;
+            // Check timeout first
+            if (elapsedTime > TIMEOUT) {
+                return true; // Force completion on timeout
             }
 
-            // Verify heading is close enough
+            // Check heading accuracy
             double currentHeading = follower.getPose().getHeading();
             double headingError = Math.abs(normalizeAngle(currentHeading - targetHeading));
-            return headingError < HEADING_TOLERANCE;
+
+            // Complete if heading is good, OR if path finished and heading is close enough
+            if (headingError < HEADING_TOLERANCE) {
+                return true;
+            }
+
+            // Also complete if path is done and we're within a reasonable range (5 degrees)
+            if (!follower.isBusy() && headingError < Math.toRadians(5)) {
+                return true;
+            }
+
+            return false;
         }
 
         @Override
