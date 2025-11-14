@@ -20,7 +20,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
 
 @Autonomous(name = "Blue Short Range", group = "Autonomous")
 @Configurable // Panels
-public class PedroBuilderAutonomous extends OpMode {
+public class BlueShortRange extends OpMode {
 
     private TelemetryManager panelsTelemetry;
     private Follower follower;
