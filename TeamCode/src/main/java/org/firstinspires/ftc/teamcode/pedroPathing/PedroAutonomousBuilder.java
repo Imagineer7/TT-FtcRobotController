@@ -1,4 +1,4 @@
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       package org.firstinspires.ftc.teamcode.pedroPathing;
+package org.firstinspires.ftc.teamcode.pedroPathing;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierCurve;
@@ -511,15 +511,13 @@ public class PedroAutonomousBuilder {
     }
 
     /**
-     * Shooting action step using EnhancedDecodeHelper
+     * Shooting action step using EnhancedDecodeHelper.autoShootSmart()
      */
     private static class ShootAction implements AutonomousStep {
         private final EnhancedDecodeHelper shooter;
         private final int numShots;
         private final ShooterConfig.ShooterPreset preset;
-        private boolean started;
-        private int shotsFired;
-        private double lastShotTime;
+        private EnhancedDecodeHelper.AutoShootResult lastResult;
 
         public ShootAction(EnhancedDecodeHelper shooter, int numShots, ShooterConfig.ShooterPreset preset) {
             this.shooter = shooter;
@@ -529,38 +527,20 @@ public class PedroAutonomousBuilder {
 
         @Override
         public void onStart(Follower follower, double startTime) {
-            started = false;
-            shotsFired = 0;
-            lastShotTime = 0;
-            shooter.getConfig().setPreset(preset);
-            shooter.startShooter();
+            lastResult = null;
+            shooter.startAutoShootSmart(numShots, preset);
         }
 
         @Override
         public boolean update(Follower follower, double elapsedTime) {
-            // Keep updating follower position even while shooting
-            // This is important for accurate localization
+            // Update and store result once per update cycle
+            lastResult = shooter.updateAutoShootSmart();
 
-            // Check if shooter is ready
-            if (!started && shooter.isShooterReady()) {
-                started = true;
-            }
-
-            // Fire shots
-            if (started && shotsFired < numShots) {
-                if (shooter.fireSingleShot()) {
-                    shotsFired++;
-                    lastShotTime = elapsedTime;
-                }
-            }
-
-            // Complete when all shots fired and feeding is done
-            boolean allShotsFired = shotsFired >= numShots;
-            boolean notCurrentlyShooting = !shooter.isShooting();
-            boolean enoughTimeElapsed = elapsedTime > lastShotTime + 0.5;
-
-            if (allShotsFired && notCurrentlyShooting && enoughTimeElapsed) {
+            // Complete when all shots are fired
+            if (lastResult.isComplete) {
+                // Stop both shooter and feed servos
                 shooter.stopShooter();
+                shooter.stopFeedServos();
                 return true;
             }
 
@@ -569,7 +549,10 @@ public class PedroAutonomousBuilder {
 
         @Override
         public String getName() {
-            return "Shooting (" + shotsFired + "/" + numShots + ")";
+            if (lastResult == null) {
+                return "Shooting (0/" + numShots + ")";
+            }
+            return "Shooting (" + lastResult.shotsFired + "/" + lastResult.targetShots + ")";
         }
     }
 
@@ -579,6 +562,7 @@ public class PedroAutonomousBuilder {
     private static class TurnToHeadingAction implements AutonomousStep {
         private final double targetHeading;
         private static final double HEADING_TOLERANCE = Math.toRadians(2); // 2 degrees
+        private boolean turnStarted = false;
 
         public TurnToHeadingAction(double targetHeading) {
             this.targetHeading = targetHeading;
@@ -586,32 +570,46 @@ public class PedroAutonomousBuilder {
 
         @Override
         public void onStart(Follower follower, double startTime) {
-            // Create a point turn path to target heading
             Pose currentPose = follower.getPose();
-            follower.followPath(
-                follower.pathBuilder()
-                    .addPath(new com.pedropathing.geometry.BezierLine(
-                        new Pose(currentPose.getX(), currentPose.getY(), currentPose.getHeading()),
-                        new Pose(currentPose.getX(), currentPose.getY(), targetHeading)
-                    ))
-                    .setConstantHeadingInterpolation(targetHeading)
-                    .build()
-            );
+
+            // Create a very short path (0.1 inches forward) to trigger heading change
+            // This ensures Pedro Pathing actually executes the turn
+            double forwardDist = 0.1;
+            double newX = currentPose.getX() + Math.cos(currentPose.getHeading()) * forwardDist;
+            double newY = currentPose.getY() + Math.sin(currentPose.getHeading()) * forwardDist;
+
+            PathChain turnPath = follower.pathBuilder()
+                .addPath(new com.pedropathing.geometry.BezierLine(
+                    new Pose(currentPose.getX(), currentPose.getY(), currentPose.getHeading()),
+                    new Pose(newX, newY, targetHeading)
+                ))
+                .setLinearHeadingInterpolation(currentPose.getHeading(), targetHeading)
+                .build();
+
+            follower.followPath(turnPath);
+            turnStarted = true;
         }
 
         @Override
         public boolean update(Follower follower, double elapsedTime) {
-            if (!follower.isBusy()) {
-                double currentHeading = follower.getPose().getHeading();
-                double headingError = Math.abs(normalizeAngle(currentHeading - targetHeading));
-                return headingError < HEADING_TOLERANCE;
+            if (!turnStarted) {
+                return false;
             }
-            return false;
+
+            // Wait for path to complete
+            if (follower.isBusy()) {
+                return false;
+            }
+
+            // Verify heading is close enough
+            double currentHeading = follower.getPose().getHeading();
+            double headingError = Math.abs(normalizeAngle(currentHeading - targetHeading));
+            return headingError < HEADING_TOLERANCE;
         }
 
         @Override
         public String getName() {
-            return "Turn to " + Math.toDegrees(targetHeading) + "°";
+            return "Turn to " + String.format(java.util.Locale.US, "%.1f°", Math.toDegrees(targetHeading));
         }
 
         private double normalizeAngle(double angle) {

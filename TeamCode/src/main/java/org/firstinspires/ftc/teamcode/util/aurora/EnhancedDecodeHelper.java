@@ -451,16 +451,15 @@ public class EnhancedDecodeHelper {
                 double targetRpm = config.getTargetRPM();
                 double rpmDifference = Math.abs(currentRPM - targetRpm);
 
-                // Preferential firing zone: Fire when RPM is very close to target (±25 RPM)
-                // This ensures all shots fire at nearly identical RPM, not scattered across tolerance
-                double preferredTolerance = 30.0; // Slightly wider preferred zone for faster firing
+                // Tighter preferred zone for consistency: ±25 RPM
+                double preferredTolerance = 25.0;
                 boolean inPreferredZone = rpmDifference <= preferredTolerance;
 
-                // Acceptable zone: Within shooting tolerance (±50 RPM) but not ideal
+                // Reasonable acceptable zone: ±50 RPM
                 boolean inAcceptableZone = rpmDifference <= config.getShootingRpmTolerance();
 
                 if (inPreferredZone) {
-                    // RPM is in preferred zone (very close to target) - prioritize firing here
+                    // RPM is in preferred zone - short but consistent wait
                     if (lastRpmInRangeTime == 0) {
                         lastRpmInRangeTime = currentTime;
                         consecutiveStableReadings = 1;
@@ -468,14 +467,12 @@ public class EnhancedDecodeHelper {
                         consecutiveStableReadings++;
                     }
 
-                    // Minimal stability requirements in preferred zone: 0.15s AND 2 readings
-                    // This makes shots fire quickly when RPM is close to target
-                    if ((currentTime - lastRpmInRangeTime < 0.15) || (consecutiveStableReadings < 2)) {
+                    // Require 0.12s AND 2 consecutive readings for consistency
+                    if ((currentTime - lastRpmInRangeTime < 0.12) || (consecutiveStableReadings < 2)) {
                         rpmInRange = false;
                     }
                 } else if (inAcceptableZone) {
-                    // RPM is acceptable but not in preferred zone
-                    // Wait a bit to see if it settles into preferred zone
+                    // RPM is acceptable but not ideal - require more stability
                     if (lastRpmInRangeTime == 0) {
                         lastRpmInRangeTime = currentTime;
                         consecutiveStableReadings = 1;
@@ -483,9 +480,8 @@ public class EnhancedDecodeHelper {
                         consecutiveStableReadings++;
                     }
 
-                    // Moderate stability requirements in acceptable zone: 0.3s AND 3 readings
-                    // This gives RPM some time to settle without being too slow
-                    if ((currentTime - lastRpmInRangeTime < 0.3) || (consecutiveStableReadings < 3)) {
+                    // Require 0.2s AND 3 consecutive readings in acceptable zone
+                    if ((currentTime - lastRpmInRangeTime < 0.2) || (consecutiveStableReadings < 3)) {
                         rpmInRange = false;
                     }
                 } else {
@@ -506,6 +502,7 @@ public class EnhancedDecodeHelper {
     public boolean fireSingleShot() {
         double currentTime = clock.seconds();
 
+        // Check if we can start a new shot
         if (!isShooting && isShooterReady()) {
             startFeedServos();
             isShooting = true;
@@ -525,6 +522,7 @@ public class EnhancedDecodeHelper {
             return true;
         }
 
+        // Handle ongoing shot - stop feed servos when feed time expires
         if (isShooting && (currentTime - feedStartTime >= config.getFeedTime())) {
             stopFeedServos();
             isShooting = false;
@@ -533,8 +531,107 @@ public class EnhancedDecodeHelper {
         return false;
     }
 
+    // Smart shooting state for async operation
+    private int autoShootTargetShots = 0;
+    private int autoShootShotsFired = 0;
+    private boolean autoShootInProgress = false;
+    private double autoShootLastShotTime = 0;
+
     /**
-     * Smart autonomous shooting with RPM-based timing
+     * Result class for autoShootSmart operations
+     */
+    public static class AutoShootResult {
+        public final boolean isComplete;
+        public final int shotsFired;
+        public final int targetShots;
+        public final boolean isWaitingForRPM;
+
+        public AutoShootResult(boolean isComplete, int shotsFired, int targetShots, boolean isWaitingForRPM) {
+            this.isComplete = isComplete;
+            this.shotsFired = shotsFired;
+            this.targetShots = targetShots;
+            this.isWaitingForRPM = isWaitingForRPM;
+        }
+    }
+
+    /**
+     * Start autonomous smart shooting sequence (non-blocking)
+     * Call this once to begin, then call updateAutoShootSmart() in your loop
+     */
+    public void startAutoShootSmart(int numShots, ShooterConfig.ShooterPreset preset) {
+        if (numShots <= 0) return;
+
+        config.setPreset(preset);
+        autoShootTargetShots = numShots;
+        autoShootShotsFired = 0;
+        autoShootInProgress = true;
+        autoShootLastShotTime = 0;
+        firstShotFired = false; // Reset first shot flag to ensure proper spinup
+
+        if (!shooterRunning) {
+            startShooter();
+        }
+    }
+
+    /**
+     * Update autonomous shooting sequence (non-blocking)
+     * Call this in your loop after starting with startAutoShootSmart()
+     *
+     * @return AutoShootResult containing completion status and progress
+     */
+    public AutoShootResult updateAutoShootSmart() {
+        if (!autoShootInProgress) {
+            return new AutoShootResult(true, autoShootShotsFired, autoShootTargetShots, false);
+        }
+
+        double currentTime = clock.seconds();
+        boolean waitingForRPM = false;
+
+        // Handle active shot - check if feed servos should stop
+        if (isShooting && (currentTime - feedStartTime >= config.getFeedTime())) {
+            stopFeedServos();
+            isShooting = false;
+            lastShotTime = currentTime;
+            // Reset RPM stability tracking for next shot
+            lastRpmInRangeTime = 0;
+            consecutiveStableReadings = 0;
+        }
+
+        // Update RPM control
+        updateRPM();
+        monitor.updateLoopTiming();
+
+        // Check if we can fire the next shot
+        if (!isShooting && autoShootShotsFired < autoShootTargetShots) {
+            // Check if shooter is ready for next shot
+            if (isShooterReady()) {
+                // Fire next shot
+                startFeedServos();
+                isShooting = true;
+                feedStartTime = currentTime;
+                autoShootShotsFired++;
+                firstShotFired = true;
+
+                // Record shot attempt
+                double spinupTime = currentTime - shooterStartTime;
+                monitor.recordShotAttempt(true, spinupTime);
+                consecutiveFailures = 0;
+            } else {
+                waitingForRPM = true;
+            }
+        }
+
+        // Check if complete - all shots fired AND feed servos have finished
+        if (autoShootShotsFired >= autoShootTargetShots && !isShooting) {
+            autoShootInProgress = false;
+            return new AutoShootResult(true, autoShootShotsFired, autoShootTargetShots, false);
+        }
+
+        return new AutoShootResult(false, autoShootShotsFired, autoShootTargetShots, waitingForRPM);
+    }
+
+    /**
+     * Smart autonomous shooting with RPM-based timing (blocking version)
      * Uses preset shot interval and maintains RPM between shots
      */
     public void autoShootSmart(int numShots, boolean keepShooterRunning, ShooterConfig.ShooterPreset preset) {
@@ -629,7 +726,7 @@ public class EnhancedDecodeHelper {
         feedServo2.setPower(config.getFeedPower());
     }
 
-    private void stopFeedServos() {
+    public void stopFeedServos() {
         feedServo1.setPower(0.0);
         feedServo2.setPower(0.0);
     }

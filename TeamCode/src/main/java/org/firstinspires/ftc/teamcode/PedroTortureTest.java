@@ -18,9 +18,9 @@ import org.firstinspires.ftc.teamcode.pedroPathing.PedroAutonomousBuilder;
 import org.firstinspires.ftc.teamcode.util.aurora.EnhancedDecodeHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
 
-@Autonomous(name = "Blue Short Range", group = "Autonomous")
+@Autonomous(name = "TortureTest", group = "Autonomous")
 @Configurable // Panels
-public class PedroBuilderAutonomous extends OpMode {
+public class PedroTortureTest extends OpMode {
 
     private TelemetryManager panelsTelemetry;
     private Follower follower;
@@ -45,7 +45,7 @@ public class PedroBuilderAutonomous extends OpMode {
 
         // Initialize Pedro Pathing
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(21, 123, Math.toRadians(143)));
+        follower.setStartingPose(new Pose(25.994, 130.17, Math.toRadians(143)));
 
         // Initialize shooter
         shooter = new EnhancedDecodeHelper(hardwareMap);
@@ -64,16 +64,29 @@ public class PedroBuilderAutonomous extends OpMode {
     /**
      * Build the autonomous sequence here!
      * This is where you define your paths and actions in order.
+     * 
+     * The PedroAutonomousBuilder automatically handles:
+     * - State machine generation
+     * - Continuous position tracking during ALL actions
+     * - Shooter integration with EnhancedDecodeHelper
+     * - Action timing and sequencing
+     * 
+     * IMPORTANT: In loop(), always call follower.update() BEFORE autoBuilder.update()!
      */
     private void buildAutonomousSequence() {
         autoBuilder = new PedroAutonomousBuilder(follower)
                 .withShooter(shooter)
 
-                // Example sequence - customize this for your autonomous!
                 .addPath(paths.Path1)
-                .addTurnToHeading(Math.toRadians(138))  // Convert degrees to radians
-                .addShootAction(3, ShooterConfig.ShooterPreset.SHORT_RANGE)  // Fire 3 shots
-                .addPath(paths.Path2);
+                .addPath(paths.Path2)
+                .addPath(paths.Path3)
+                .addPath(paths.Path4)
+                .addPath(paths.Path4)
+                .addPath(paths.Path5)
+                .addPath(paths.Path6)
+                .addPath(paths.Path7)
+                .addPath(paths.Path8);
+
     }
 
     @Override
@@ -117,41 +130,88 @@ public class PedroBuilderAutonomous extends OpMode {
         panelsTelemetry.update(telemetry);
     }
 
-    /**
-     * Define your paths here
-     */
-    public static class Paths {
-        public PathChain Path1;
-        public PathChain Path2;
-        public PathChain Path3;
-        public PathChain Path4;
-        public PathChain Path5;
-        public PathChain Path6;
-        public PathChain Path7;
-        public PathChain Path8;
+public static class Paths {
+  public PathChain Path1;
+  public PathChain Path2;
+  public PathChain Path3;
+  public PathChain Path4;
+  public PathChain Path5;
+  public PathChain Path6;
+  public PathChain Path7;
+  public PathChain Path8;
+  public Paths(Follower follower) {
+    Path1 = follower
+      .pathBuilder()
+      .addPath(
+        new BezierCurve(
+          new Pose(25.994, 130.178),
+          new Pose(24.756, 123.782),
+          new Pose(17.536, 114.911),
+          new Pose(16.092, 109.960)
+        )
+      )
+      .setLinearHeadingInterpolation(Math.toRadians(143), Math.toRadians(180))
+      .build();
+    Path2 = follower
+      .pathBuilder()
+      .addPath(
+        new BezierLine(new Pose(16.092, 109.960), new Pose(16.298, 81.696))
+      )
+      .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
+      .build();
+    Path3 = follower
+      .pathBuilder()
+      .addPath(
+        new BezierCurve(
+          new Pose(16.298, 81.696),
+          new Pose(72.206, 71.794),
+          new Pose(8.871, 59.209)
+        )
+      )
+      .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(0))
+      .build();
+    Path4 = follower
+      .pathBuilder()
+      .addPath(
+        new BezierLine(new Pose(8.871, 59.209), new Pose(134.716, 58.797))
+      )
+      .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+      .build();
+    Path5 = follower
+      .pathBuilder()
+      .addPath(
+        new BezierLine(new Pose(134.716, 58.797), new Pose(38.785, 33.421))
+      )
+      .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(180))
+      .build();
+    Path6 = follower
+      .pathBuilder()
+      .addPath(
+        new BezierCurve(
+          new Pose(38.785, 33.421),
+          new Pose(97.169, 72.000),
+          new Pose(16.298, 69.731)
+        )
+      )
+      .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(0))
+      .build();
+    Path7 = follower
+      .pathBuilder()
+      .addPath(
+        new BezierLine(new Pose(16.298, 69.731), new Pose(127.496, 69.731))
+      )
+      .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+      .build();
+    Path8 = follower
+      .pathBuilder()
+      .addPath(
+        new BezierLine(new Pose(127.496, 69.731), new Pose(105.215, 33.421))
+      )
+      .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+      .build();
+  }
+}
 
-        public Paths(Follower follower) {
-            Path1 = follower
-                    .pathBuilder()
-                    .addPath(
-                            new BezierLine(new Pose(21.134, 123.073), new Pose(39.988, 104.426))
-                    )
-                    .setLinearHeadingInterpolation(Math.toRadians(143), Math.toRadians(136))
-                    .build();
-
-            Path2 = follower
-                    .pathBuilder()
-                    .addPath(
-                            new BezierCurve(
-                                    new Pose(39.988, 104.426),
-                                    new Pose(60.086, 85.364),
-                                    new Pose(60.086, 58.843)
-                            )
-                    )
-                    .setLinearHeadingInterpolation(Math.toRadians(136), Math.toRadians(270))
-                    .build();
-        }
-    }
 
     /**
      * Draw robot on Panels field with heading indicator
