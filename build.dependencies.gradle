@@ -15,10 +15,18 @@ dependencies {
     implementation 'org.firstinspires.ftc:Vision:11.0.0'
     implementation 'androidx.appcompat:appcompat:1.2.0'
 
-    // Pedro Pathing
-    implementation 'com.pedropathing:ftc:2.0.4'
-    implementation 'com.pedropathing:telemetry:1.0.0'
-    implementation 'com.bylazar:fullpanels:1.0.9'
-    implementation "com.bylazar:camerastream:1.0.0"
+    // Pedro Pathing (with FTC Dashboard excluded for Sloth compatibility)
+    implementation('com.pedropathing:ftc:2.0.4') {
+        exclude group: "com.acmerobotics.dashboard"
+    }
+    implementation('com.pedropathing:telemetry:1.0.0') {
+        exclude group: "com.acmerobotics.dashboard"
+    }
+    implementation('com.bylazar:fullpanels:1.0.10') {
+        exclude group: "com.acmerobotics.dashboard"
+    }
+    implementation("com.bylazar:camerastream:1.0.0") {
+        exclude group: "com.acmerobotics.dashboard"
+    }
 }
 

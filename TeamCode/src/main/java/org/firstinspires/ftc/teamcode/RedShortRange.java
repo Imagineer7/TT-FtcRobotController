@@ -18,9 +18,9 @@ import org.firstinspires.ftc.teamcode.pedroPathing.PedroAutonomousBuilder;
 import org.firstinspires.ftc.teamcode.util.aurora.EnhancedDecodeHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
 
-@Autonomous(name = "Blue Short Range", group = "Pedro Autonomous")
+@Autonomous(name = "Red Short Range", group = "Pedro Autonomous")
 @Configurable // Panels
-public class BlueShortRange extends OpMode {
+public class RedShortRange extends OpMode {
 
     private TelemetryManager panelsTelemetry;
     private Follower follower;
@@ -45,7 +45,7 @@ public class BlueShortRange extends OpMode {
 
         // Initialize Pedro Pathing
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(21, 123, Math.toRadians(143)));
+        follower.setStartingPose(new Pose(125.35, 122.65, Math.toRadians(37)));
 
         // Initialize shooter
         shooter = new EnhancedDecodeHelper(hardwareMap);
@@ -69,9 +69,9 @@ public class BlueShortRange extends OpMode {
         autoBuilder = new PedroAutonomousBuilder(follower)
                 .withShooter(shooter)
 
-                // Example sequence - customize this for your autonomous!
+
                 .addPath(paths.Path1)
-                .addTurnToHeading(Math.toRadians(138))  // Convert degrees to radians
+                .addTurnToHeading(Math.toRadians(44))  // Convert degrees to radians
                 .addShootAction(3, ShooterConfig.ShooterPreset.SHORT_RANGE)  // Fire 3 shots
                 .addPath(paths.Path2);
     }
@@ -121,34 +121,29 @@ public class BlueShortRange extends OpMode {
      * Define your paths here
      */
     public static class Paths {
+
         public PathChain Path1;
         public PathChain Path2;
-        public PathChain Path3;
-        public PathChain Path4;
-        public PathChain Path5;
-        public PathChain Path6;
-        public PathChain Path7;
-        public PathChain Path8;
 
         public Paths(Follower follower) {
             Path1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(21.134, 123.073), new Pose(39.988, 104.426))
+                            new BezierLine(new Pose(125.353, 122.659), new Pose(104.426, 103.597))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(143), Math.toRadians(136))
+                    .setLinearHeadingInterpolation(Math.toRadians(37), Math.toRadians(44))
                     .build();
 
             Path2 = follower
                     .pathBuilder()
                     .addPath(
                             new BezierCurve(
-                                    new Pose(39.988, 104.426),
-                                    new Pose(60.086, 85.364),
-                                    new Pose(60.086, 58.843)
+                                    new Pose(104.426, 103.597),
+                                    new Pose(83.499, 84.535),
+                                    new Pose(88.058, 63.609)
                             )
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(136), Math.toRadians(270))
+                    .setLinearHeadingInterpolation(Math.toRadians(44), Math.toRadians(270))
                     .build();
         }
     }

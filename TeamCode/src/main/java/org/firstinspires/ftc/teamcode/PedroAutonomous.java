@@ -14,7 +14,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-@Autonomous(name = "Pedro Pathing Autonomous", group = "Autonomous")
+@Autonomous(name = "Pedro Pathing Autonomous", group = "Pedro Autonomous")
 @Configurable // Panels
 public class PedroAutonomous extends OpMode {
 

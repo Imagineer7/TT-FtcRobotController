@@ -33,7 +33,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
  * - Thresholds are configurable for fine-tuning
  * - Robot pose is continuously tracked even during actions
  */
-@Autonomous(name = "Advanced Pedro with Connectors", group = "Autonomous")
+@Autonomous(name = "Advanced Pedro with Connectors", group = "Pedro Autonomous")
 public class AdvancedPedroAutonomous extends OpMode {
 
     // Telemetry

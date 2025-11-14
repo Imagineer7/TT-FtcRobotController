@@ -19,6 +19,7 @@ import org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver;
 
 /**
  * AURORA Autonomous - Intelligent Odometry-Based Autonomous OpMode
+ * [Sloth Test - Modified]
  *
  * Features:
  * - Precise odometry-based movement control
@@ -54,7 +55,7 @@ import org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver;
  * turnRelative(-45);
  * </pre>
  */
-@Autonomous(name="RED AutoAurora", group="Competition")
+@Autonomous(name="RED AutoAurora", group="Timed Autonomous")
 public class REDAutoAurora extends LinearOpMode {
 
     // Robot systems

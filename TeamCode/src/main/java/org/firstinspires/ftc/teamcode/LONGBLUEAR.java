@@ -54,7 +54,7 @@ import org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver;
  * turnRelative(-45);
  * </pre>
  */
-@Autonomous(name="LONG BLUE AR ", group="Competition")
+@Autonomous(name="LONG BLUE AR ", group="Timed Autonomous")
 public class LONGBLUEAR extends LinearOpMode {
 
     // Robot systems

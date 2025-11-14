@@ -54,8 +54,8 @@ import org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver;
  * turnRelative(-45);
  * </pre>
  */
-@Autonomous(name="BLUE AutoAurora", group="Competition")
-public class AURORAAutonomousBlue extends LinearOpMode {
+@Autonomous(name="BLUE AutoAurora", group="Timed Autonomous")
+public class BLUEAutoAurora extends LinearOpMode {
 
     // Robot systems
     private AuroraManager robotManager;
