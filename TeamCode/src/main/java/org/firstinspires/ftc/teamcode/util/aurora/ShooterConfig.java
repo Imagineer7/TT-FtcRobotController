@@ -14,7 +14,7 @@ public class ShooterConfig {
 
     // Preset configurations for different scenarios
     public enum ShooterPreset {
-        LONG_RANGE("Long Range", 0.85, 4200, 1.0, 1.2),
+        LONG_RANGE("Long Range", 0.85, 4000, 1.0, 1.2),
         SHORT_RANGE("Short Range", 0.8, 2780, 0.35, 0.8),  // Slightly increased from 0.3
         RAPID_FIRE("Rapid Fire", 0.80, 3900, 0.3, 0.7),    // Balanced speed/consistency
         PRECISION("Precision", 0.90, 4800, 2.0, 1.5),
@@ -46,7 +46,7 @@ public class ShooterConfig {
 
     // Advanced parameters
     private double feedPower = 1.0;
-    private double feedTime = 0.3;
+    private double feedTime = 0.2;
     private double rpmTolerance = 75;
     private double shootingRpmTolerance = 50; // Back to 50 RPM for consistency
     private double rpmStabilityTime = 0.25;

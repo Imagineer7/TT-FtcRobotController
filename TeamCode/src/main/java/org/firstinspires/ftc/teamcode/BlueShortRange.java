@@ -62,8 +62,7 @@ public class BlueShortRange extends OpMode {
     }
 
     /**
-     * Build the autonomous sequence here!
-     * This is where you define your paths and actions in order.
+     * Main method to build the autonomous sequence
      */
     private void buildAutonomousSequence() {
         autoBuilder = new PedroAutonomousBuilder(follower)
@@ -121,14 +120,9 @@ public class BlueShortRange extends OpMode {
      * Define your paths here
      */
     public static class Paths {
+
         public PathChain Path1;
         public PathChain Path2;
-        public PathChain Path3;
-        public PathChain Path4;
-        public PathChain Path5;
-        public PathChain Path6;
-        public PathChain Path7;
-        public PathChain Path8;
 
         public Paths(Follower follower) {
             Path1 = follower
@@ -136,7 +130,7 @@ public class BlueShortRange extends OpMode {
                     .addPath(
                             new BezierLine(new Pose(21.134, 123.073), new Pose(39.988, 104.426))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(143), Math.toRadians(136))
+                    .setLinearHeadingInterpolation(Math.toRadians(143), Math.toRadians(138))
                     .build();
 
             Path2 = follower
@@ -144,11 +138,11 @@ public class BlueShortRange extends OpMode {
                     .addPath(
                             new BezierCurve(
                                     new Pose(39.988, 104.426),
-                                    new Pose(60.086, 85.364),
-                                    new Pose(60.086, 58.843)
+                                    new Pose(47.655, 97.796),
+                                    new Pose(23.827, 97.588)
                             )
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(136), Math.toRadians(270))
+                    .setLinearHeadingInterpolation(Math.toRadians(128), Math.toRadians(270))
                     .build();
         }
     }

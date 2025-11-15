@@ -8,6 +8,7 @@ package org.firstinspires.ftc.teamcode.util.aurora;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -28,12 +29,30 @@ public class EnhancedDecodeHelper {
     private DcMotor shooter;
     private CRServo feedServo1;
     private CRServo feedServo2;
+    private Servo light;
     private VoltageSensor voltageSensor;
 
     // Enhanced systems
     private ShooterConfig config;
     private PerformanceMonitor monitor;
     private ElapsedTime clock;
+
+    // RGB Light color constants
+    private static final double LIGHT_OFF = 0.0;
+    private static final double LIGHT_RED = 0.277;
+    private static final double LIGHT_ORANGE = 0.333;
+    private static final double LIGHT_YELLOW = 0.388;
+    private static final double LIGHT_SAGE = 0.444;
+    private static final double LIGHT_GREEN = 0.5;
+    private static final double LIGHT_BLUE = 0.611;
+    private static final double LIGHT_INDIGO = 0.666;
+    private static final double LIGHT_VIOLET = 0.722;
+    private static final double LIGHT_WHITE = 1.0;
+
+    // Light flash control
+    private double lastFlashTime = 0;
+    private boolean flashState = false;
+    private static final double FLASH_INTERVAL = 0.3; // 300ms flash interval
 
     // State management
     private boolean shooterRunning = false;
@@ -82,6 +101,13 @@ public class EnhancedDecodeHelper {
         feedServo1 = hardwareMap.get(CRServo.class, "servo1");
         feedServo2 = hardwareMap.get(CRServo.class, "servo2");
 
+        // Try to get light indicator (may not exist on all robots)
+        try {
+            light = hardwareMap.get(Servo.class, "light");
+        } catch (Exception e) {
+            light = null;
+        }
+
         // Try to get voltage sensor (may not exist on all robots)
         try {
             voltageSensor = hardwareMap.voltageSensor.iterator().next();
@@ -117,6 +143,7 @@ public class EnhancedDecodeHelper {
             if (shooterRunning) {
                 stopShooter();
             }
+            updateLightIndicator();
             return false;
         }
 
@@ -145,6 +172,9 @@ public class EnhancedDecodeHelper {
         } else if (buttonPressed && isShooterReady()) {
             shotFired = fireSingleShot();
         }
+
+        // Update light indicator after all state changes
+        updateLightIndicator();
 
         prevButtonState = buttonPressed;
         return shotFired;
@@ -180,6 +210,9 @@ public class EnhancedDecodeHelper {
             }
         }
 
+        // Update light indicator after all state changes
+        updateLightIndicator();
+
         prevWarmupButtonState = warmupButtonPressed;
     }
 
@@ -201,6 +234,11 @@ public class EnhancedDecodeHelper {
         warmupMode = true;
         warmupStartTime = clock.seconds();
         shooterStartTime = warmupStartTime;
+
+        // Immediately set light to red to indicate spinning up
+        if (light != null) {
+            light.setPosition(LIGHT_RED);
+        }
 
         // Reset RPM tracking
         lastEncoderPosition = shooter.getCurrentPosition();
@@ -289,6 +327,11 @@ public class EnhancedDecodeHelper {
         shooterRunning = true;
         shooterStartTime = clock.seconds();
         firstShotFired = false; // Reset first shot flag when shooter starts
+
+        // Immediately set light to red to indicate spinning up
+        if (light != null) {
+            light.setPosition(LIGHT_RED);
+        }
 
         // Reset or maintain RPM tracking based on transition
         if (!transitioningFromWarmup) {
@@ -600,6 +643,7 @@ public class EnhancedDecodeHelper {
         // Update RPM control
         updateRPM();
         monitor.updateLoopTiming();
+        updateLightIndicator();
 
         // Check if we can fire the next shot
         if (!isShooting && autoShootShotsFired < autoShootTargetShots) {
@@ -647,6 +691,7 @@ public class EnhancedDecodeHelper {
         while (!isShooterReady() && !emergencyStop) {
             updateRPM();
             monitor.updateLoopTiming();
+            updateLightIndicator();
         }
 
         // Fire shots with consistent timing
@@ -660,6 +705,7 @@ public class EnhancedDecodeHelper {
             while (clock.seconds() - waitStart < shotInterval && shotsFired < numShots) {
                 updateRPM(); // Continuously maintain target RPM between shots
                 monitor.updateLoopTiming();
+                updateLightIndicator();
             }
         }
 
@@ -775,5 +821,132 @@ public class EnhancedDecodeHelper {
         double targetRpm = config.getTargetRPM();
         double rpmDifference = Math.abs(currentRPM - targetRpm);
         return rpmDifference <= config.getShootingRpmTolerance();
+    }
+
+    /**
+     * Update RGB light indicator based on system state
+     * Should be called regularly (in telemetry update or main loop)
+     */
+    public void updateLightIndicator() {
+        if (light == null) return;
+
+        double currentTime = clock.seconds();
+
+        // Check for failure conditions first (highest priority)
+        if (emergencyStop || consecutiveFailures >= MAX_FAILURES) {
+            // Flashing red for critical failure
+            setFlashingLight(LIGHT_RED, currentTime);
+            return;
+        }
+
+        // Check for low voltage warning (only if critically low)
+        if (voltageSensor != null && voltageSensor.getVoltage() < 10.5) {
+            // Flashing yellow/red for low voltage
+            if (currentTime - lastFlashTime >= FLASH_INTERVAL) {
+                flashState = !flashState;
+                lastFlashTime = currentTime;
+            }
+            light.setPosition(flashState ? LIGHT_YELLOW : LIGHT_RED);
+            return;
+        }
+
+        // Normal operation states - check isShooting first (highest priority)
+        if (isShooting) {
+            // Yellow when actively firing
+            light.setPosition(LIGHT_YELLOW);
+            return;
+        }
+
+        // Not shooting - check if shooter is running
+        if (!shooterRunning) {
+            // Blue for normal operation (idle)
+            light.setPosition(LIGHT_BLUE);
+            return;
+        }
+
+        // Shooter is running - determine if ready or spinning up
+        // Show RED immediately when motor starts, don't wait for RPM measurement
+        double timeSinceStart = currentTime - shooterStartTime;
+        boolean lightIsReady = false;
+
+        if (config.isUseRpmSpinup()) {
+            // Need to wait a bit before we have valid RPM readings
+            if (timeSinceStart < 0.15) {
+                // Too early to have RPM data - definitely still spinning up (show red)
+                lightIsReady = false;
+            } else {
+                // We have RPM data - check if in range
+                double targetRpm = warmupMode ? config.getWarmupTargetRPM() : config.getTargetRPM();
+                double rpmDifference = Math.abs(currentRPM - targetRpm);
+                double tolerance = config.getRpmTolerance();
+
+                // Ready when: RPM is close to target AND has been running long enough
+                lightIsReady = (rpmDifference <= tolerance) && (timeSinceStart > 0.5);
+            }
+        } else {
+            // Time-based spinup
+            lightIsReady = (timeSinceStart >= config.getSpinupTime());
+        }
+
+        if (lightIsReady) {
+            // Green when ready to fire
+            light.setPosition(LIGHT_GREEN);
+        } else {
+            // Red when spinning up (motor powered but not at target RPM)
+            light.setPosition(LIGHT_RED);
+        }
+    }
+
+    /**
+     * Helper method for flashing light patterns
+     */
+    private void setFlashingLight(double color, double currentTime) {
+        if (currentTime - lastFlashTime >= FLASH_INTERVAL) {
+            flashState = !flashState;
+            lastFlashTime = currentTime;
+        }
+        light.setPosition(flashState ? color : LIGHT_OFF);
+    }
+
+    /**
+     * Manually set light color (for testing or special modes)
+     */
+    public void setLightColor(double color) {
+        if (light != null) {
+            light.setPosition(color);
+        }
+    }
+
+    /**
+     * Get current light color
+     */
+    public double getLightColor() {
+        if (light != null) {
+            return light.getPosition();
+        }
+        return LIGHT_OFF;
+    }
+
+    /**
+     * Turn light off
+     */
+    public void turnLightOff() {
+        if (light != null) {
+            light.setPosition(LIGHT_OFF);
+        }
+    }
+
+    /**
+     * Get diagnostic info for light indicator troubleshooting
+     */
+    public String getLightDiagnostics() {
+        if (light == null) return "Light: NULL";
+
+        double currentTime = clock.seconds();
+        double timeSinceStart = currentTime - shooterStartTime;
+
+        return String.format("Light: %.3f | Running: %b | Shooting: %b | TimeSince: %.2fs | RPM: %.0f | Ready: %b",
+                light.getPosition(), shooterRunning, isShooting, timeSinceStart, currentRPM,
+                shooterRunning && (timeSinceStart >= 0.15));
     }
 }
