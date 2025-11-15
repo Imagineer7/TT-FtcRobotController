@@ -11,6 +11,9 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver;
 
 /**
  * EnhancedDecodeHelper - Next-generation shooter control system
@@ -21,7 +24,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * - Battery voltage compensation
  * - Predictive maintenance alerts
  * - Advanced safety systems
- * - Machine learning shot optimization (future)
+ * - Machine learning shot optimization
  */
 public class EnhancedDecodeHelper {
 
@@ -31,6 +34,7 @@ public class EnhancedDecodeHelper {
     private CRServo feedServo2;
     private Servo light;
     private VoltageSensor voltageSensor;
+    private GoBildaPinpointDriver odometry;
 
     // Enhanced systems
     private ShooterConfig config;
@@ -113,6 +117,22 @@ public class EnhancedDecodeHelper {
             voltageSensor = hardwareMap.voltageSensor.iterator().next();
         } catch (Exception e) {
             voltageSensor = null;
+        }
+
+        // Initialize odometry (may not exist on all robots)
+        try {
+            odometry = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
+
+            // Configure odometry with specified settings
+            odometry.setOffsets(-6.62, 4.71, DistanceUnit.INCH);
+            odometry.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
+            odometry.setEncoderDirections(
+                    GoBildaPinpointDriver.EncoderDirection.FORWARD,
+                    GoBildaPinpointDriver.EncoderDirection.REVERSED  // Strafe pod reversed
+            );
+            odometry.resetPosAndIMU();
+        } catch (Exception e) {
+            odometry = null;
         }
 
         // Configure shooter motor
@@ -948,5 +968,119 @@ public class EnhancedDecodeHelper {
         return String.format("Light: %.3f | Running: %b | Shooting: %b | TimeSince: %.2fs | RPM: %.0f | Ready: %b",
                 light.getPosition(), shooterRunning, isShooting, timeSinceStart, currentRPM,
                 shooterRunning && (timeSinceStart >= 0.15));
+    }
+
+    // ========== ODOMETRY METHODS ==========
+
+    /**
+     * Update odometry position tracking
+     * Call this regularly (in your main loop) to keep position data current
+     */
+    public void updateOdometry() {
+        if (odometry != null) {
+            odometry.update();
+        }
+    }
+
+    /**
+     * Get current robot position from odometry
+     * @return Pose2D containing X, Y position and heading, or null if odometry not available
+     */
+    public Pose2D getPosition() {
+        if (odometry != null) {
+            return odometry.getPosition();
+        }
+        return null;
+    }
+
+    /**
+     * Get current robot velocity from odometry
+     * @return Pose2D containing X, Y velocity and angular velocity, or null if odometry not available
+     */
+    public Pose2D getVelocity() {
+        if (odometry != null) {
+            return odometry.getVelocity();
+        }
+        return null;
+    }
+
+    /**
+     * Get X position in specified units
+     * @param unit Distance unit (INCH, CM, MM, etc.)
+     * @return X position or 0.0 if odometry not available
+     */
+    public double getPosX(DistanceUnit unit) {
+        if (odometry != null) {
+            return odometry.getPosX(unit);
+        }
+        return 0.0;
+    }
+
+    /**
+     * Get Y position in specified units
+     * @param unit Distance unit (INCH, CM, MM, etc.)
+     * @return Y position or 0.0 if odometry not available
+     */
+    public double getPosY(DistanceUnit unit) {
+        if (odometry != null) {
+            return odometry.getPosY(unit);
+        }
+        return 0.0;
+    }
+
+    /**
+     * Get heading in radians
+     * @return Heading in radians or 0.0 if odometry not available
+     */
+    public double getHeading() {
+        if (odometry != null) {
+            Pose2D pos = odometry.getPosition();
+            return pos.getHeading(org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS);
+        }
+        return 0.0;
+    }
+
+    /**
+     * Set robot position (useful for initialization or field-relative positioning)
+     * @param pose Pose2D containing desired X, Y, and heading
+     */
+    public void setPosition(Pose2D pose) {
+        if (odometry != null) {
+            odometry.setPosition(pose);
+        }
+    }
+
+    /**
+     * Reset odometry position to origin (0, 0, 0) and recalibrate IMU
+     * Robot MUST be stationary when calling this
+     */
+    public void resetOdometry() {
+        if (odometry != null) {
+            odometry.resetPosAndIMU();
+        }
+    }
+
+    /**
+     * Check if odometry is available and working
+     * @return true if odometry hardware is present and ready
+     */
+    public boolean hasOdometry() {
+        if (odometry == null) {
+            return false;
+        }
+        try {
+            GoBildaPinpointDriver.DeviceStatus status = odometry.getDeviceStatus();
+            return status == GoBildaPinpointDriver.DeviceStatus.READY;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get direct access to odometry driver for advanced use
+     * @return GoBildaPinpointDriver instance or null if not available
+     */
+    public GoBildaPinpointDriver getOdometry() {
+        return odometry;
     }
 }
