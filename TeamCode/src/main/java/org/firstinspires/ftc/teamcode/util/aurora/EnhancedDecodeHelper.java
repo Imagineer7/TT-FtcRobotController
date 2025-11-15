@@ -97,9 +97,18 @@ public class EnhancedDecodeHelper {
     private static final int MAX_FAILURES = 3;
 
     /**
-     * Constructor with enhanced initialization
+     * Constructor with enhanced initialization (without odometry - for autonomous)
      */
     public EnhancedDecodeHelper(HardwareMap hardwareMap) {
+        this(hardwareMap, false);  // Default: no odometry
+    }
+
+    /**
+     * Constructor with enhanced initialization
+     * @param hardwareMap The hardware map
+     * @param enableOdometry Set to true to initialize odometry (for TeleOp), false for autonomous
+     */
+    public EnhancedDecodeHelper(HardwareMap hardwareMap, boolean enableOdometry) {
         // Initialize hardware
         shooter = hardwareMap.get(DcMotor.class, "shooter");
         feedServo1 = hardwareMap.get(CRServo.class, "servo1");
@@ -119,20 +128,24 @@ public class EnhancedDecodeHelper {
             voltageSensor = null;
         }
 
-        // Initialize odometry (may not exist on all robots)
-        try {
-            odometry = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
+        // Initialize odometry ONLY if explicitly enabled (for TeleOp use)
+        if (enableOdometry) {
+            try {
+                odometry = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
 
-            // Configure odometry with specified settings
-            odometry.setOffsets(-6.62, 4.71, DistanceUnit.INCH);
-            odometry.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
-            odometry.setEncoderDirections(
-                    GoBildaPinpointDriver.EncoderDirection.FORWARD,
-                    GoBildaPinpointDriver.EncoderDirection.REVERSED  // Strafe pod reversed
-            );
-            odometry.resetPosAndIMU();
-        } catch (Exception e) {
-            odometry = null;
+                // Configure odometry with specified settings
+                odometry.setOffsets(-6.62, 4.71, DistanceUnit.INCH);
+                odometry.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
+                odometry.setEncoderDirections(
+                        GoBildaPinpointDriver.EncoderDirection.FORWARD,
+                        GoBildaPinpointDriver.EncoderDirection.REVERSED  // Strafe pod reversed
+                );
+                odometry.resetPosAndIMU();
+            } catch (Exception e) {
+                odometry = null;
+            }
+        } else {
+            odometry = null;  // Explicitly disable odometry for autonomous
         }
 
         // Configure shooter motor
