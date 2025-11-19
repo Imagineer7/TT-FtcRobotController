@@ -249,6 +249,20 @@ public class PerformanceMonitor {
     }
 
     /**
+     * Get average spinup time in seconds
+     */
+    public double getAverageSpinupTime() {
+        return averageSpinupTime;
+    }
+
+    /**
+     * Get success rate percentage (0-100)
+     */
+    public double getSuccessRate() {
+        return getAccuracy(); // Accuracy is already success rate in percentage
+    }
+
+    /**
      * Reset all statistics
      */
     public void reset() {

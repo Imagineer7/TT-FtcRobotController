@@ -11,6 +11,9 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
+import org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver;
 
 /**
  * EnhancedDecodeHelper - Next-generation shooter control system
@@ -21,7 +24,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  * - Battery voltage compensation
  * - Predictive maintenance alerts
  * - Advanced safety systems
- * - Machine learning shot optimization (future)
+ * - Machine learning shot optimization
  */
 public class EnhancedDecodeHelper {
 
@@ -31,10 +34,12 @@ public class EnhancedDecodeHelper {
     private CRServo feedServo2;
     private Servo light;
     private VoltageSensor voltageSensor;
+    private GoBildaPinpointDriver odometry;
 
     // Enhanced systems
     private ShooterConfig config;
     private PerformanceMonitor monitor;
+    private RpmLearningSystem rpmLearning;
     private ElapsedTime clock;
 
     // RGB Light color constants
@@ -66,26 +71,96 @@ public class EnhancedDecodeHelper {
     private boolean prevWarmupButtonState = false;
     private boolean firstShotFired = false; // Track if first shot has been fired
 
-    // RPM tracking
+    // RPM tracking with momentum detection
     private int lastEncoderPosition = 0;
     private double lastRpmCheckTime = 0;
     private double currentRPM = 0;
+    private double previousRPM = 0;
+    private double rpmVelocity = 0; // Rate of RPM change
     private boolean rpmIsStable = false;
     private double lastStableRpmTime = 0;
     private double lastRpmInRangeTime = 0; // Track when RPM returns to range after a shot
     private int consecutiveStableReadings = 0; // Count consecutive stable RPM readings
     private static final double COUNTS_PER_REV = 28.0;
+    private static final double RPM_CHECK_INTERVAL_NORMAL = 0.1; // 100ms normal
+    private static final double RPM_CHECK_INTERVAL_RECOVERY = 0.05; // 50ms during recovery for faster response
 
-    // Dynamic RPM control (Balanced for fast, stable convergence)
+    // Dynamic RPM control (Optimized for fast recovery after shooting)
     private double currentPower = 0;
     private double rpmError = 0;
     private double lastRpmError = 0;
     private double rpmErrorSum = 0;
-    private static final double RPM_KP = 0.00015; // Proportional gain (reduced for stability)
-    private static final double RPM_KI = 0.00004; // Integral gain (reduced to prevent windup)
-    private static final double RPM_KD = 0.00003; // Derivative gain (reduced for smoother response)
-    private static final double MAX_POWER_ADJUSTMENT = 0.15; // Maximum power adjustment per cycle (prevents overcorrection)
-    private static final double MAX_POWER_RATE = 0.08; // Maximum power change per update (smoothing)
+
+    // ML Performance tracking for learning
+    private double mlDataCollectionStartTime = 0;
+    private double mlTargetRpmAtStart = 0;
+    private double mlMaxOvershoot = 0;
+    private boolean mlDataCollectionActive = false;
+    private double mlLastStableTime = 0;
+
+    // Adaptive PID gains - now sourced from ML system
+    private static final double RPM_KP = 0.00020; // Default fallback values
+    private static final double RPM_KP_RECOVERY = 0.00042;
+    private static final double RPM_KI = 0.00005;
+    private static final double RPM_KI_RECOVERY = 0.00004;
+    private static final double RPM_KD = 0.00005;
+    private static final double RPM_KD_RECOVERY = 0.00015;
+
+    private static final double MAX_POWER_ADJUSTMENT = 0.20; // Steady-state adjustment limit
+    private static final double MAX_POWER_ADJUSTMENT_RECOVERY = 0.25; // Recovery limit - reduced
+    private static final double MAX_POWER_RATE = 0.12; // Steady-state rate limit
+    private static final double MAX_POWER_RATE_RECOVERY = 0.20; // Recovery rate - reduced for smoother control
+
+    // Recovery mode tracking with overshoot detection
+    private boolean inRecoveryMode = false;
+    private double recoveryStartTime = 0;
+    private double lastTargetRpm = 0;
+    private boolean wasUnderTarget = true; // Track if we're approaching from below
+    private static final double RECOVERY_ERROR_THRESHOLD = 150; // RPM error to trigger recovery mode
+    private static final double RECOVERY_BOOST_DURATION = 0.5; // Extended for smoother transition
+
+     // Shot compensation boost - adaptive learning system
+    private boolean shotBoostActive = false;
+    private double shotBoostStartTime = 0;
+
+    // Adaptive boost parameters (learned from each shot)
+    private double shotBoostDelay = 0.020; // Default: 20ms delay after feed servos fire
+    private double shotBoostDuration = 0.180; // Default: 180ms boost duration
+    private double shotBoostPower = 0.18; // Default: Extra 18% power during boost
+
+    // Learning system state
+    private double lastShotRpmDrop = 0; // Track RPM drop from last shot
+    private double lastShotRecoveryTime = 0; // Track how long recovery took
+    private int shotsAnalyzed = 0; // Count shots used for learning
+    private boolean learningEnabled = false; // Default OFF - enable only in training mode
+
+    // Enhanced trajectory tracking
+    private double shotRpmBeforeFiring = 0; // RPM just before shot
+    private double shotRpmMin = 0; // Lowest RPM reached during shot
+    private double shotRpmRecoveryStart = 0; // When recovery began
+    private double shotRpmOvershoot = 0; // Peak overshoot above target
+    private boolean trackingShot = false;
+
+    // Adaptive learning rates
+    private double learningRate = 0.015; // 1.5% adjustment (reduced from 5%)
+    private double learningRateFineTune = 0.005; // 0.5% for fine-tuning after 20 shots
+
+    // NEW: Shot interval learning
+    private double learnedShotInterval = 0.150; // Start at 150ms default
+    private double minShotInterval = 0.120; // Absolute minimum (120ms)
+    private double maxShotInterval = 0.250; // Maximum if needed
+    private boolean lastShotSuccessful = false;
+    private int consecutiveSuccessfulShots = 0;
+
+    // NEW: Adaptive RPM tolerance learning
+    private double firstShotRpmTolerance = 25.0; // Tight for first shot
+    private double learnedRapidFireTolerance = 40.0; // Looser for rapid shots
+    private double minRapidFireTolerance = 25.0;
+    private double maxRapidFireTolerance = 60.0;
+
+    // Feed timing - NOT learned (fixed by config to prevent multi-ball ejection)
+    private double lastRpmBeforeFeed = 0;
+    private double rpmDropDuringFeed = 0;
 
     // Safety systems
     private boolean emergencyStop = false;
@@ -93,9 +168,18 @@ public class EnhancedDecodeHelper {
     private static final int MAX_FAILURES = 3;
 
     /**
-     * Constructor with enhanced initialization
+     * Constructor with enhanced initialization (without odometry - for autonomous)
      */
     public EnhancedDecodeHelper(HardwareMap hardwareMap) {
+        this(hardwareMap, false);  // Default: no odometry
+    }
+
+    /**
+     * Constructor with enhanced initialization
+     * @param hardwareMap The hardware map
+     * @param enableOdometry Set to true to initialize odometry (for TeleOp), false for autonomous
+     */
+    public EnhancedDecodeHelper(HardwareMap hardwareMap, boolean enableOdometry) {
         // Initialize hardware
         shooter = hardwareMap.get(DcMotor.class, "shooter");
         feedServo1 = hardwareMap.get(CRServo.class, "servo1");
@@ -115,15 +199,42 @@ public class EnhancedDecodeHelper {
             voltageSensor = null;
         }
 
+        // Initialize odometry ONLY if explicitly enabled (for TeleOp use)
+        if (enableOdometry) {
+            try {
+                odometry = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
+
+                // Configure odometry with specified settings
+                // forwardPodY(-6.62) and strafePodX(4.71)
+                // X pod (forward) offset = strafePodX = 4.71
+                // Y pod (strafe) offset = forwardPodY = -6.62
+                odometry.setOffsets(4.71, -6.62, DistanceUnit.INCH);
+                odometry.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
+                odometry.setEncoderDirections(
+                        GoBildaPinpointDriver.EncoderDirection.FORWARD,
+                        GoBildaPinpointDriver.EncoderDirection.REVERSED  // Strafe pod reversed
+                );
+                odometry.resetPosAndIMU();
+            } catch (Exception e) {
+                odometry = null;
+            }
+        } else {
+            odometry = null;  // Explicitly disable odometry for autonomous
+        }
+
         // Configure shooter motor
         shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // Initialize enhanced systems
         config = new ShooterConfig();
         monitor = new PerformanceMonitor();
+        rpmLearning = new RpmLearningSystem();
         clock = new ElapsedTime();
 
         reset();
+
+        // Load previously learned boost parameters if available
+        loadBoostParametersFromFile();
     }
 
     /**
@@ -328,6 +439,9 @@ public class EnhancedDecodeHelper {
         shooterStartTime = clock.seconds();
         firstShotFired = false; // Reset first shot flag when shooter starts
 
+        // Start ML data collection for this spinup cycle
+        startMlDataCollection(targetRpm);
+
         // Immediately set light to red to indicate spinning up
         if (light != null) {
             light.setPosition(LIGHT_RED);
@@ -350,11 +464,14 @@ public class EnhancedDecodeHelper {
     }
 
     /**
-     * Enhanced RPM calculation with dynamic power adjustment
+     * Enhanced RPM calculation with adaptive update rate and momentum tracking
+     * Now includes trajectory tracking during shots
      */
     private void updateRPM() {
         if (!shooterRunning) {
             currentRPM = 0;
+            previousRPM = 0;
+            rpmVelocity = 0;
             rpmIsStable = false;
             return;
         }
@@ -362,11 +479,42 @@ public class EnhancedDecodeHelper {
         double currentTime = clock.seconds();
         int currentPosition = shooter.getCurrentPosition();
 
-        if (currentTime - lastRpmCheckTime >= 0.1) {
+        // Use faster check interval during recovery for quicker response
+        double checkInterval = inRecoveryMode ? RPM_CHECK_INTERVAL_RECOVERY : RPM_CHECK_INTERVAL_NORMAL;
+
+        if (currentTime - lastRpmCheckTime >= checkInterval) {
             double deltaTime = currentTime - lastRpmCheckTime;
             int deltaPosition = currentPosition - lastEncoderPosition;
 
+            previousRPM = currentRPM;
             currentRPM = Math.abs((deltaPosition / deltaTime) * 60.0 / COUNTS_PER_REV);
+
+            // Calculate RPM velocity (rate of change) for momentum prediction
+            rpmVelocity = (currentRPM - previousRPM) / deltaTime;
+
+            // Track shot trajectory for learning
+            if (trackingShot && learningEnabled) {
+                double targetRpm = config.getTargetRPM();
+
+                // Track minimum RPM during shot
+                if (shotRpmMin == 0 || currentRPM < shotRpmMin) {
+                    shotRpmMin = currentRPM;
+                    shotRpmRecoveryStart = currentTime;
+                }
+
+                // Track overshoot above target
+                if (currentRPM > targetRpm) {
+                    double overshoot = currentRPM - targetRpm;
+                    shotRpmOvershoot = Math.max(shotRpmOvershoot, overshoot);
+                }
+
+                // Track recovery time (when RPM returns to acceptable range)
+                if (shotRpmMin > 0 && Math.abs(currentRPM - targetRpm) < 50) {
+                    if (lastShotRecoveryTime == 0) {
+                        lastShotRecoveryTime = currentTime - shotRpmRecoveryStart;
+                    }
+                }
+            }
 
             // Dynamic RPM control - adjust power to reach target RPM
             adjustPowerForTargetRPM(deltaTime);
@@ -393,7 +541,8 @@ public class EnhancedDecodeHelper {
     }
 
     /**
-     * Dynamic power adjustment to reach target RPM using PID-like control
+     * Adaptive PID control with fast recovery mode and steady-state stability
+     * Now uses learned gains from ML system
      */
     private void adjustPowerForTargetRPM(double deltaTime) {
         // Skip if in warmup mode (warmup has its own control)
@@ -405,48 +554,131 @@ public class EnhancedDecodeHelper {
         lastRpmError = rpmError;
         rpmError = targetRpm - currentRPM;
 
-        // Let feedforward work first - delay PID intervention
-        double timeSinceStart = clock.seconds() - shooterStartTime;
-        if (timeSinceStart < 0.6) {
-            return; // Give feedforward more time to stabilize
+        // Update ML system with voltage compensation learning
+        if (voltageSensor != null) {
+            rpmLearning.updateVoltageCompensation(voltageSensor.getVoltage(), targetRpm, currentRPM);
         }
 
-        // PID-like control calculation
-        double proportional = rpmError * RPM_KP;
+        // Continue ML data collection
+        updateMlDataCollection();
+
+        // Let feedforward work first - reduced delay for faster initial response
+        double timeSinceStart = clock.seconds() - shooterStartTime;
+        if (timeSinceStart < 0.4) { // Reduced from 0.6s to 0.4s
+            return;
+        }
+
+        double currentTime = clock.seconds();
+        double errorMagnitude = Math.abs(rpmError);
+
+        // Handle shot compensation boost with smooth ramp (using adaptive parameters)
+        double boostPowerContribution = 0.0;
+        if (shotBoostActive) {
+            double timeSinceBoostStart = currentTime - shotBoostStartTime;
+            double boostStartTime = shotBoostDelay;
+            double boostEndTime = shotBoostDelay + shotBoostDuration;
+
+            if (timeSinceBoostStart >= boostStartTime && timeSinceBoostStart < boostEndTime) {
+                // Calculate boost progress (0.0 to 1.0)
+                double boostProgress = (timeSinceBoostStart - boostStartTime) / shotBoostDuration;
+
+                // Apply boost with smooth ramp-down in last 30% to prevent sudden drop
+                if (boostProgress < 0.7) {
+                    // Full boost for first 70% of duration
+                    boostPowerContribution = shotBoostPower;
+                } else {
+                    // Linear ramp-down for last 30%
+                    double rampFactor = (1.0 - boostProgress) / 0.3;
+                    boostPowerContribution = shotBoostPower * rampFactor;
+                }
+            } else if (timeSinceBoostStart >= boostEndTime) {
+                // Boost complete - analyze shot performance for learning
+                if (learningEnabled) {
+                    analyzeAndLearnFromShot();
+                }
+                shotBoostActive = false;
+            }
+        }
+
+        // Determine if we should be in recovery mode (aggressive) or steady state (stable)
+        if (errorMagnitude > RECOVERY_ERROR_THRESHOLD) {
+            // Large error detected - enter or continue recovery mode
+            if (!inRecoveryMode) {
+                inRecoveryMode = true;
+                recoveryStartTime = currentTime;
+                // Clear integral term when entering recovery to prevent windup
+                rpmErrorSum = 0;
+            }
+        } else if (inRecoveryMode) {
+            // Check if we should exit recovery mode
+            double timeInRecovery = currentTime - recoveryStartTime;
+            if (timeInRecovery > RECOVERY_BOOST_DURATION || errorMagnitude < 50) {
+                // Exit recovery mode after duration or when close to target
+                inRecoveryMode = false;
+            }
+        }
+
+        // Get learned PID gains from ML system
+        double[] learnedGains = inRecoveryMode ?
+            rpmLearning.getLearnedGainsRecovery() :
+            rpmLearning.getLearnedGainsSteadyState();
+        double kp = learnedGains[0];
+        double ki = learnedGains[1];
+        double kd = learnedGains[2];
+        double maxAdjustment = inRecoveryMode ? MAX_POWER_ADJUSTMENT_RECOVERY : MAX_POWER_ADJUSTMENT;
+        double maxRate = inRecoveryMode ? MAX_POWER_RATE_RECOVERY : MAX_POWER_RATE;
+
+        // Apply voltage compensation from ML system
+        double voltageCompensation = rpmLearning.getVoltageCompensationFactor();
+        if (voltageSensor != null) {
+            double voltageRatio = voltageSensor.getVoltage() / 12.0;
+            voltageCompensation *= voltageRatio;
+        }
+        kp *= voltageCompensation;
+
+        // Momentum-based gain scaling - reduce gains if RPM is recovering quickly
+        if (inRecoveryMode && rpmVelocity > 0 && errorMagnitude < 200) {
+            // RPM is increasing and we're getting close - scale back to prevent overshoot
+            double momentumFactor = Math.max(0.7, 1.0 - (rpmVelocity / 1000.0));
+            kp *= momentumFactor;
+            maxAdjustment *= momentumFactor;
+        }
+
+        // Proportional term
+        double proportional = rpmError * kp;
 
         // Integral term with adaptive windup protection
-        // Reduce integral accumulation when close to target to prevent overshoot
-        double integralGain = RPM_KI;
-        if (Math.abs(rpmError) < 100) {
-            // Near target - reduce integral contribution
+        double integralGain = ki;
+        if (!inRecoveryMode && errorMagnitude < 75) {
+            // Near target in steady state - reduce integral to prevent oscillation
             integralGain *= 0.5;
         }
 
         rpmErrorSum += rpmError * deltaTime;
-        // Dynamic windup limit based on error magnitude
-        double windupLimit = Math.max(500, 2000 - Math.abs(rpmError));
+
+        // Dynamic windup limit - tighter in steady state, looser in recovery
+        double windupLimit = inRecoveryMode ? 1000 : Math.max(400, 1500 - errorMagnitude * 2);
         if (Math.abs(rpmErrorSum) > windupLimit) {
             rpmErrorSum = Math.signum(rpmErrorSum) * windupLimit;
         }
         double integral = rpmErrorSum * integralGain;
 
-        // Derivative term for damping
-        double derivative = ((rpmError - lastRpmError) / deltaTime) * RPM_KD;
+        // Derivative term for damping (more aggressive in recovery)
+        double derivative = ((rpmError - lastRpmError) / deltaTime) * kd;
 
         // Calculate power adjustment
         double powerAdjustment = proportional + integral + derivative;
 
-        // Limit the adjustment magnitude to prevent large jumps
-        powerAdjustment = Math.max(-MAX_POWER_ADJUSTMENT,
-                         Math.min(MAX_POWER_ADJUSTMENT, powerAdjustment));
+        // Limit the adjustment magnitude
+        powerAdjustment = Math.max(-maxAdjustment, Math.min(maxAdjustment, powerAdjustment));
 
         // Apply rate limiting for smooth power changes
-        double targetPower = currentPower + powerAdjustment;
+        double targetPower = currentPower + powerAdjustment + boostPowerContribution;
         double powerDelta = targetPower - currentPower;
 
-        // Limit how fast power can change
-        if (Math.abs(powerDelta) > MAX_POWER_RATE) {
-            powerDelta = Math.signum(powerDelta) * MAX_POWER_RATE;
+        // Limit how fast power can change based on mode
+        if (Math.abs(powerDelta) > maxRate) {
+            powerDelta = Math.signum(powerDelta) * maxRate;
         }
 
         currentPower += powerDelta;
@@ -460,10 +692,13 @@ public class EnhancedDecodeHelper {
 
     /**
      * Enhanced readiness check with failure detection and RPM validation
+     * Now uses learned shot interval and adaptive RPM tolerance
      */
     public boolean isShooterReady() {
         double currentTime = clock.seconds();
-        double shotInterval = config.getShotInterval();
+
+        // Use learned shot interval (or config default if not learning)
+        double shotInterval = learningEnabled ? learnedShotInterval : config.getShotInterval();
 
         boolean intervalReady = (currentTime - lastShotTime >= shotInterval);
         boolean spinupReady;
@@ -494,12 +729,14 @@ public class EnhancedDecodeHelper {
                 double targetRpm = config.getTargetRPM();
                 double rpmDifference = Math.abs(currentRPM - targetRpm);
 
-                // Tighter preferred zone for consistency: ±25 RPM
-                double preferredTolerance = 25.0;
-                boolean inPreferredZone = rpmDifference <= preferredTolerance;
+                // Use adaptive tolerance (learned or default)
+                double preferredTolerance = learningEnabled ?
+                    Math.min(firstShotRpmTolerance, learnedRapidFireTolerance) : 25.0;
+                double acceptableTolerance = learningEnabled ?
+                    learnedRapidFireTolerance : config.getShootingRpmTolerance();
 
-                // Reasonable acceptable zone: ±50 RPM
-                boolean inAcceptableZone = rpmDifference <= config.getShootingRpmTolerance();
+                boolean inPreferredZone = rpmDifference <= preferredTolerance;
+                boolean inAcceptableZone = rpmDifference <= acceptableTolerance;
 
                 if (inPreferredZone) {
                     // RPM is in preferred zone - short but consistent wait
@@ -510,8 +747,8 @@ public class EnhancedDecodeHelper {
                         consecutiveStableReadings++;
                     }
 
-                    // Require 0.12s AND 2 consecutive readings for consistency
-                    if ((currentTime - lastRpmInRangeTime < 0.12) || (consecutiveStableReadings < 2)) {
+                    // Require 0.08s AND 2 consecutive readings for consistency (reduced from 0.12s)
+                    if ((currentTime - lastRpmInRangeTime < 0.08) || (consecutiveStableReadings < 2)) {
                         rpmInRange = false;
                     }
                 } else if (inAcceptableZone) {
@@ -523,8 +760,8 @@ public class EnhancedDecodeHelper {
                         consecutiveStableReadings++;
                     }
 
-                    // Require 0.2s AND 3 consecutive readings in acceptable zone
-                    if ((currentTime - lastRpmInRangeTime < 0.2) || (consecutiveStableReadings < 3)) {
+                    // Require 0.15s AND 3 consecutive readings in acceptable zone (reduced from 0.2s)
+                    if ((currentTime - lastRpmInRangeTime < 0.15) || (consecutiveStableReadings < 3)) {
                         rpmInRange = false;
                     }
                 } else {
@@ -540,22 +777,103 @@ public class EnhancedDecodeHelper {
     }
 
     /**
-     * Enhanced single shot with success tracking
+     * Start ML data collection for current spinup/shooting cycle
+     */
+    private void startMlDataCollection(double targetRpm) {
+        if (!rpmLearning.isLearningEnabled()) return;
+
+        mlDataCollectionStartTime = clock.seconds();
+        mlTargetRpmAtStart = targetRpm;
+        mlMaxOvershoot = 0;
+        mlDataCollectionActive = true;
+        mlLastStableTime = 0;
+    }
+
+    /**
+     * Update ML data collection during RPM control
+     */
+    private void updateMlDataCollection() {
+        if (!mlDataCollectionActive || !rpmLearning.isLearningEnabled()) return;
+
+        double currentTime = clock.seconds();
+        double overshoot = Math.max(0, currentRPM - mlTargetRpmAtStart);
+        mlMaxOvershoot = Math.max(mlMaxOvershoot, overshoot);
+
+        // Check if RPM has stabilized for the first time
+        if (mlLastStableTime == 0 && rpmIsStable) {
+            mlLastStableTime = currentTime;
+        }
+    }
+
+    /**
+     * Finalize ML data collection and record performance sample
+     */
+    private void finalizeMlDataCollection() {
+        if (!mlDataCollectionActive || !rpmLearning.isLearningEnabled()) return;
+
+        double currentTime = clock.seconds();
+        double settlingTime = mlLastStableTime > 0 ?
+            (mlLastStableTime - mlDataCollectionStartTime) :
+            (currentTime - mlDataCollectionStartTime);
+
+        double voltage = voltageSensor != null ? voltageSensor.getVoltage() : 12.0;
+
+        // Record performance sample for ML learning
+        rpmLearning.recordPerformance(
+            mlTargetRpmAtStart,
+            currentRPM,
+            mlMaxOvershoot,
+            settlingTime,
+            voltage
+        );
+
+        mlDataCollectionActive = false;
+    }
+
+    /**
+     * Enhanced single shot with success tracking and fast recovery preparation
+     * Now uses learned feed time and tracks shot trajectory
      */
     public boolean fireSingleShot() {
         double currentTime = clock.seconds();
 
         // Check if we can start a new shot
         if (!isShooting && isShooterReady()) {
+            // Finalize ML data collection before shooting
+            finalizeMlDataCollection();
+
+            // Start trajectory tracking
+            if (learningEnabled) {
+                shotRpmBeforeFiring = currentRPM;
+                shotRpmMin = 0;
+                shotRpmOvershoot = 0;
+                shotRpmRecoveryStart = 0;
+                lastShotRecoveryTime = 0;
+                trackingShot = true;
+                lastRpmBeforeFeed = currentRPM;
+            }
+
             startFeedServos();
             isShooting = true;
             feedStartTime = currentTime;
             lastShotTime = currentTime;
             firstShotFired = true; // Mark that first shot has been fired
 
+            // Activate shot compensation boost
+            shotBoostActive = true;
+            shotBoostStartTime = currentTime;
+
+            // Prepare for fast recovery after shot
+            rpmErrorSum = 0; // Clear integral term to prevent windup during shot
+            inRecoveryMode = true; // Preemptively enter recovery mode
+            recoveryStartTime = currentTime;
+
             // Reset RPM stability tracking for next shot
             lastRpmInRangeTime = 0;
             consecutiveStableReadings = 0;
+
+            // Start new ML data collection cycle for post-shot recovery
+            startMlDataCollection(config.getTargetRPM());
 
             // Record shot attempt
             double spinupTime = currentTime - shooterStartTime;
@@ -566,9 +884,16 @@ public class EnhancedDecodeHelper {
         }
 
         // Handle ongoing shot - stop feed servos when feed time expires
-        if (isShooting && (currentTime - feedStartTime >= config.getFeedTime())) {
+        // Feed time is NOT learned (fixed from config to prevent multi-ball ejection)
+        double feedTime = config.getFeedTime();
+        if (isShooting && (currentTime - feedStartTime >= feedTime)) {
             stopFeedServos();
             isShooting = false;
+
+            // Calculate RPM drop during feed for learning analysis
+            if (learningEnabled && lastRpmBeforeFeed > 0) {
+                rpmDropDuringFeed = lastRpmBeforeFeed - currentRPM;
+            }
         }
 
         return false;
@@ -778,6 +1103,9 @@ public class EnhancedDecodeHelper {
     }
 
     public void stopShooter() {
+        // Finalize any ongoing ML data collection
+        finalizeMlDataCollection();
+
         shooter.setPower(0.0);
         shooterRunning = false;
         warmupMode = false; // Exit warmup mode
@@ -802,6 +1130,7 @@ public class EnhancedDecodeHelper {
     // Getters for monitoring and configuration
     public ShooterConfig getConfig() { return config; }
     public PerformanceMonitor getMonitor() { return monitor; }
+    public RpmLearningSystem getRpmLearning() { return rpmLearning; }
     public boolean isEmergencyStop() { return emergencyStop; }
     public double getCurrentRPM() { updateRPM(); return currentRPM; }
     public boolean isShooterRunning() { return shooterRunning; }
@@ -810,17 +1139,70 @@ public class EnhancedDecodeHelper {
     public double getTargetRPM() { return warmupMode ? config.getWarmupTargetRPM() : config.getTargetRPM(); }
 
     /**
-     * Check if RPM is within shooting tolerance
-     * Useful for telemetry and diagnostics
+     * Handle ML system controls (save, reset)
+     * Call this in your TeleOp loop with appropriate gamepad inputs
      */
-    public boolean isRPMInShootingRange() {
-        if (!shooterRunning || !config.isUseRpmSpinup()) {
-            return true; // Not using RPM control
+    public void handleMlControls(boolean saveButton, boolean resetButtonHeld, double resetHoldTime) {
+        // Save ML data
+        if (saveButton) {
+            if (rpmLearning.saveLearningData()) {
+                // Successfully saved - could trigger telemetry message
+            }
         }
-        updateRPM();
-        double targetRpm = config.getTargetRPM();
-        double rpmDifference = Math.abs(currentRPM - targetRpm);
-        return rpmDifference <= config.getShootingRpmTolerance();
+
+        // Reset ML data (requires holding button for 2+ seconds)
+        if (resetButtonHeld && resetHoldTime >= 2.0) {
+            rpmLearning.resetLearning();
+        }
+    }
+
+    /**
+     * Get ML system telemetry
+     */
+    public String getMlTelemetry() {
+        return rpmLearning.getLearningTelemetry();
+    }
+
+    /**
+     * Get ML performance metrics
+     */
+    public String getMlPerformanceMetrics() {
+        return rpmLearning.getPerformanceMetrics();
+    }
+
+    /**
+     * Get RPM learning telemetry (alias for compatibility)
+     */
+    public String getRpmLearningTelemetry() {
+        return rpmLearning.getLearningTelemetry();
+    }
+
+    /**
+     * Get RPM performance metrics (alias for compatibility)
+     */
+    public String getRpmPerformanceMetrics() {
+        return rpmLearning.getPerformanceMetrics();
+    }
+
+    /**
+     * Get total shots fired
+     */
+    public int getTotalShots() {
+        return monitor.getTotalShots();
+    }
+
+    /**
+     * Get average spinup time
+     */
+    public double getAverageSpinupTime() {
+        return monitor.getAverageSpinupTime();
+    }
+
+    /**
+     * Get success rate percentage
+     */
+    public double getSuccessRate() {
+        return monitor.getSuccessRate();
     }
 
     /**
@@ -948,5 +1330,433 @@ public class EnhancedDecodeHelper {
         return String.format("Light: %.3f | Running: %b | Shooting: %b | TimeSince: %.2fs | RPM: %.0f | Ready: %b",
                 light.getPosition(), shooterRunning, isShooting, timeSinceStart, currentRPM,
                 shooterRunning && (timeSinceStart >= 0.15));
+    }
+
+    // ========== ODOMETRY METHODS ==========
+
+    /**
+     * Update odometry position tracking
+     * Call this regularly (in your main loop) to keep position data current
+     */
+    public void updateOdometry() {
+        if (odometry != null) {
+            odometry.update();
+        }
+    }
+
+    /**
+     * Get current robot position from odometry
+     * @return Pose2D containing X, Y position and heading, or null if odometry not available
+     */
+    public Pose2D getPosition() {
+        if (odometry != null) {
+            return odometry.getPosition();
+        }
+        return null;
+    }
+
+    /**
+     * Get current robot velocity from odometry
+     * @return Pose2D containing X, Y velocity and angular velocity, or null if odometry not available
+     */
+    public Pose2D getVelocity() {
+        if (odometry != null) {
+            return odometry.getVelocity();
+        }
+        return null;
+    }
+
+    /**
+     * Get X position in specified units
+     * @param unit Distance unit (INCH, CM, MM, etc.)
+     * @return X position or 0.0 if odometry not available
+     */
+    public double getPosX(DistanceUnit unit) {
+        if (odometry != null) {
+            return odometry.getPosX(unit);
+        }
+        return 0.0;
+    }
+
+    /**
+     * Get Y position in specified units
+     * @param unit Distance unit (INCH, CM, MM, etc.)
+     * @return Y position or 0.0 if odometry not available
+     */
+    public double getPosY(DistanceUnit unit) {
+        if (odometry != null) {
+            return odometry.getPosY(unit);
+        }
+        return 0.0;
+    }
+
+    /**
+     * Get heading in radians
+     * @return Heading in radians or 0.0 if odometry not available
+     */
+    public double getHeading() {
+        if (odometry != null) {
+            Pose2D pos = odometry.getPosition();
+            return pos.getHeading(org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS);
+        }
+        return 0.0;
+    }
+
+    /**
+     * Set robot position (useful for initialization or field-relative positioning)
+     * @param pose Pose2D containing desired X, Y, and heading
+     */
+    public void setPosition(Pose2D pose) {
+        if (odometry != null) {
+            odometry.setPosition(pose);
+        }
+    }
+
+    /**
+     * Reset odometry position to origin (0, 0, 0) and recalibrate IMU
+     * Robot MUST be stationary when calling this
+     */
+    public void resetOdometry() {
+        if (odometry != null) {
+            odometry.resetPosAndIMU();
+        }
+    }
+
+    /**
+     * Check if odometry is available and working
+     * @return true if odometry hardware is present and ready
+     */
+    public boolean hasOdometry() {
+        if (odometry == null) {
+            return false;
+        }
+        try {
+            GoBildaPinpointDriver.DeviceStatus status = odometry.getDeviceStatus();
+            return status == GoBildaPinpointDriver.DeviceStatus.READY;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get direct access to odometry driver for advanced use
+     * @return GoBildaPinpointDriver instance or null if not available
+     */
+    public GoBildaPinpointDriver getOdometry() {
+        return odometry;
+    }
+
+    // ========== ADAPTIVE LEARNING SYSTEM ==========
+
+    /**
+     * Analyze shot performance and adapt boost parameters
+     * Called automatically after each shot completes
+     * Enhanced with multi-factor trajectory analysis
+     */
+    private void analyzeAndLearnFromShot() {
+        if (!learningEnabled) return;
+
+        shotsAnalyzed++;
+        trackingShot = false;
+
+        // Get current recovery metrics
+        double targetRpm = config.getTargetRPM();
+        double finalError = Math.abs(currentRPM - targetRpm);
+        double rpmDrop = shotRpmBeforeFiring - shotRpmMin; // How much RPM dropped
+
+        // Use adaptive learning rate (fine-tune after 20 shots)
+        double lr = (shotsAnalyzed < 20) ? learningRate : learningRateFineTune;
+
+        // Track shot success for interval learning
+        lastShotSuccessful = (finalError < 50); // Success if within 50 RPM
+
+        if (shotsAnalyzed >= 2) { // Start learning after just 2 shots (reduced from 3)
+            // CASE 1: Significant RPM drop and slow recovery
+            if (rpmDrop > 150 && finalError > 100) {
+                shotBoostPower = Math.min(0.30, shotBoostPower * (1.0 + lr));
+                shotBoostDuration = Math.min(0.300, shotBoostDuration + 0.005); // 5ms (reduced from 10ms)
+            }
+            // CASE 2: Good recovery but with overshoot
+            else if (finalError < 50 && shotRpmOvershoot > 50) {
+                shotBoostPower = Math.max(0.10, shotBoostPower * (1.0 - lr * 0.5));
+                shotBoostDuration = Math.max(0.100, shotBoostDuration - 0.005);
+            }
+            // CASE 3: Perfect shot - reinforce and fine-tune
+            else if (finalError < 30 && shotRpmOvershoot < 30) {
+                // Shot was excellent - tighten learning rate for precision
+                learningRateFineTune = Math.max(0.002, learningRateFineTune * 0.95);
+                consecutiveSuccessfulShots++;
+            }
+            // CASE 4: Slow recovery without overshoot
+            else if (lastShotRecoveryTime > 0.2 && shotRpmOvershoot < 30) {
+                shotBoostPower = Math.min(0.30, shotBoostPower * (1.0 + lr * 0.5));
+                shotBoostDelay = Math.max(0.010, shotBoostDelay - 0.002); // Start 2ms earlier
+            }
+            // CASE 5: Fast drop but good recovery
+            else if (rpmDrop > 200 && finalError < 40) {
+                // Current settings are working - maintain them
+                lastShotSuccessful = true;
+            }
+
+            // Learn shot interval timing
+            learnShotInterval();
+
+            // Learn RPM tolerance
+            learnRpmTolerance();
+        }
+
+        // Clamp all values to safe ranges
+        shotBoostPower = Math.max(0.10, Math.min(0.30, shotBoostPower));
+        shotBoostDuration = Math.max(0.100, Math.min(0.300, shotBoostDuration));
+        shotBoostDelay = Math.max(0.010, Math.min(0.050, shotBoostDelay));
+
+        lastShotRpmDrop = rpmDrop;
+
+        // Reset tracking variables
+        shotRpmMin = 0;
+        shotRpmOvershoot = 0;
+        shotRpmBeforeFiring = 0;
+        shotRpmRecoveryStart = 0;
+    }
+
+    /**
+     * Learn optimal shot interval timing
+     */
+    private void learnShotInterval() {
+        if (!learningEnabled) return;
+
+        if (lastShotSuccessful) {
+            consecutiveSuccessfulShots++;
+
+            // After 5 consecutive successful shots, try faster interval
+            if (consecutiveSuccessfulShots >= 5) {
+                learnedShotInterval = Math.max(minShotInterval,
+                    learnedShotInterval - 0.005); // Reduce by 5ms
+                consecutiveSuccessfulShots = 0; // Reset counter
+            }
+        } else {
+            // Shot failed (RPM not ready) - increase interval
+            learnedShotInterval = Math.min(maxShotInterval,
+                learnedShotInterval + 0.010); // Add 10ms
+            consecutiveSuccessfulShots = 0;
+        }
+    }
+
+    /**
+     * Learn optimal RPM tolerance for rapid fire
+     */
+    private void learnRpmTolerance() {
+        if (!learningEnabled || !firstShotFired) return;
+
+        if (lastShotSuccessful) {
+            // If shots are working at current tolerance, try tightening
+            if (consecutiveSuccessfulShots >= 8) {
+                learnedRapidFireTolerance = Math.max(minRapidFireTolerance,
+                    learnedRapidFireTolerance - 2.0); // Tighten by 2 RPM
+            }
+        } else {
+            // If shot failed, loosen tolerance
+            learnedRapidFireTolerance = Math.min(maxRapidFireTolerance,
+                learnedRapidFireTolerance + 5.0); // Loosen by 5 RPM
+        }
+    }
+
+    /**
+     * Get learning telemetry data for display
+     * @return Formatted string with learning parameters
+     */
+    public String getLearningTelemetry() {
+        return String.format("Boost Learning | Shots: %d | Delay: %.0fms | Duration: %.0fms | Power: %.1f%%",
+                shotsAnalyzed, shotBoostDelay * 1000, shotBoostDuration * 1000, shotBoostPower * 100);
+    }
+
+    /**
+     * Get detailed learning telemetry with all parameters
+     */
+    public String getDetailedLearningTelemetry() {
+        return String.format("Shots: %d | Interval: %.0fms | Tolerance: ±%.0f RPM",
+                shotsAnalyzed, learnedShotInterval * 1000, learnedRapidFireTolerance);
+    }
+
+    /**
+     * Get trajectory telemetry for current shot
+     */
+    public String getTrajectoryTelemetry() {
+        if (!trackingShot) return "Not tracking";
+        return String.format("RPM Before: %.0f | Min: %.0f | Drop: %.0f | Overshoot: %.0f",
+                shotRpmBeforeFiring, shotRpmMin,
+                shotRpmBeforeFiring - shotRpmMin, shotRpmOvershoot);
+    }
+
+    /**
+     * Get detailed boost parameters for tuning
+     */
+    public String getBoostParameters() {
+        return String.format("Delay: %.3f | Duration: %.3f | Power: %.3f",
+                shotBoostDelay, shotBoostDuration, shotBoostPower);
+    }
+
+    /**
+     * Manually adjust boost delay (for live tuning)
+     * @param delta Change in seconds (e.g., 0.005 for +5ms)
+     */
+    public void adjustBoostDelay(double delta) {
+        shotBoostDelay = Math.max(0.010, Math.min(0.050, shotBoostDelay + delta));
+    }
+
+    /**
+     * Manually adjust boost duration (for live tuning)
+     * @param delta Change in seconds (e.g., 0.010 for +10ms)
+     */
+    public void adjustBoostDuration(double delta) {
+        shotBoostDuration = Math.max(0.100, Math.min(0.300, shotBoostDuration + delta));
+    }
+
+    /**
+     * Manually adjust boost power (for live tuning)
+     * @param delta Change in power (e.g., 0.01 for +1%)
+     */
+    public void adjustBoostPower(double delta) {
+        shotBoostPower = Math.max(0.10, Math.min(0.30, shotBoostPower + delta));
+    }
+
+    /**
+     * Get all learned parameters (for saving/loading)
+     * Returns: [delay, duration, power, interval, tolerance, shotsAnalyzed]
+     */
+    public double[] getAllLearnedParameters() {
+        return new double[] {
+            shotBoostDelay,
+            shotBoostDuration,
+            shotBoostPower,
+            learnedShotInterval,
+            learnedRapidFireTolerance,
+            shotsAnalyzed
+        };
+    }
+
+    /**
+     * Set all learned parameters (for loading saved values)
+     */
+    public void setAllLearnedParameters(double delay, double duration, double power,
+                                       double shotInterval, double rpmTolerance,
+                                       int shots) {
+        shotBoostDelay = Math.max(0.010, Math.min(0.050, delay));
+        shotBoostDuration = Math.max(0.100, Math.min(0.300, duration));
+        shotBoostPower = Math.max(0.10, Math.min(0.30, power));
+        learnedShotInterval = Math.max(minShotInterval, Math.min(maxShotInterval, shotInterval));
+        learnedRapidFireTolerance = Math.max(minRapidFireTolerance, Math.min(maxRapidFireTolerance, rpmTolerance));
+        shotsAnalyzed = shots;
+    }
+
+    /**
+     * Get current boost parameters (for saving/loading) - backward compatibility
+     */
+    public double[] getBoostParametersArray() {
+        return new double[] { shotBoostDelay, shotBoostDuration, shotBoostPower };
+    }
+
+    /**
+     * Set boost parameters (for loading saved values) - backward compatibility
+     * @param delay Boost delay in seconds
+     * @param duration Boost duration in seconds
+     * @param power Boost power (0.0 to 1.0)
+     */
+    public void setBoostParameters(double delay, double duration, double power) {
+        shotBoostDelay = Math.max(0.010, Math.min(0.050, delay));
+        shotBoostDuration = Math.max(0.100, Math.min(0.300, duration));
+        shotBoostPower = Math.max(0.10, Math.min(0.30, power));
+    }
+
+    /**
+     * Enable or disable adaptive learning
+     * Controls BOTH shot boost learning AND PID learning systems
+     * @param enabled true to enable learning (training mode), false to use fixed parameters (competition mode)
+     */
+    public void setLearningEnabled(boolean enabled) {
+        learningEnabled = enabled;
+        rpmLearning.setLearningEnabled(enabled); // Also control PID learning
+    }
+
+    /**
+     * Check if learning is enabled
+     */
+    public boolean isLearningEnabled() {
+        return learningEnabled;
+    }
+
+    /**
+     * Reset learning statistics
+     */
+    public void resetLearning() {
+        shotsAnalyzed = 0;
+        lastShotRpmDrop = 0;
+        lastShotRecoveryTime = 0;
+    }
+
+    /**
+     * Get number of shots analyzed for learning
+     */
+    public int getShotsAnalyzed() {
+        return shotsAnalyzed;
+    }
+
+    /**
+     * Load all learned parameters from persistent storage
+     * Called automatically during initialization
+     * @return true if parameters loaded successfully, false if using defaults
+     */
+    public boolean loadBoostParametersFromFile() {
+        double[] params = ShooterBoostConfig.loadAllLearnedParameters();
+        if (params != null && params.length >= 6) {
+            shotBoostDelay = params[0];
+            shotBoostDuration = params[1];
+            shotBoostPower = params[2];
+            learnedShotInterval = params[3];
+            learnedRapidFireTolerance = params[4];
+            shotsAnalyzed = (int) params[5];
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Save all learned parameters to persistent storage
+     * Call this periodically during operation or at end of session
+     * @return true if save successful, false otherwise
+     */
+    public boolean saveBoostParametersToFile() {
+        return ShooterBoostConfig.saveAllLearnedParameters(
+            shotBoostDelay,
+            shotBoostDuration,
+            shotBoostPower,
+            learnedShotInterval,
+            learnedRapidFireTolerance,
+            shotsAnalyzed
+        );
+    }
+
+    /**
+     * Check if saved configuration exists
+     * @return true if previously learned parameters are available
+     */
+    public boolean hasSavedConfig() {
+        return ShooterBoostConfig.configExists();
+    }
+
+    /**
+     * Delete saved configuration and reset to defaults
+     * @return true if reset successful
+     */
+    public boolean resetSavedConfig() {
+        boolean deleted = ShooterBoostConfig.deleteSavedConfig();
+        if (deleted) {
+            // Reset to default values
+            shotBoostDelay = 0.020;
+            shotBoostDuration = 0.180;
+            shotBoostPower = 0.18;
+            shotsAnalyzed = 0;
+        }
+        return deleted;
     }
 }

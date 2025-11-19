@@ -110,10 +110,11 @@ public class AuroraManager {
 
         // Initialize shooter system with graceful error handling
         try {
-            shooterSystem = new EnhancedDecodeHelper(hardwareMap);
+            shooterSystem = new EnhancedDecodeHelper(hardwareMap, true);  // Enable odometry for TeleOp
             shooterInitialized = true;
             shooterInitError = ""; // Clear any previous error
             telemetry.addLine("✅ Shooter system initialized successfully");
+            telemetry.addLine("✅ Odometry tracking enabled");
 
         } catch (Exception e) {
             shooterSystem = null;
@@ -261,6 +262,9 @@ public class AuroraManager {
      */
     private void updateShooterSystem(Gamepad gamepad1, Gamepad gamepad2) {
         if (shooterSystem == null) return;
+
+        // Update odometry tracking
+        shooterSystem.updateOdometry();
 
         // Determine which gamepad controls utilities based on current mode
         if (currentDriverMode == DriverMode.DUAL_DRIVER) {
