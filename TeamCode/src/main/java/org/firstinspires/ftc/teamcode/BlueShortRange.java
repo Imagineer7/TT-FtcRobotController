@@ -72,6 +72,7 @@ public class BlueShortRange extends OpMode {
                 .addPath(paths.Path1)
                 .addTurnToHeading(Math.toRadians(138))  // Convert degrees to radians
                 .addShootAction(3, ShooterConfig.ShooterPreset.SHORT_RANGE)  // Fire 3 shots
+                .addWait(0.5)
                 .addPath(paths.Path2);
     }
 

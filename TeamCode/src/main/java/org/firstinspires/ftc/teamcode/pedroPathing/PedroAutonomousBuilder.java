@@ -156,6 +156,16 @@ public class PedroAutonomousBuilder {
     }
 
     /**
+     * Add a wait/pause action (milliseconds version)
+     * @param durationMilliseconds How long to wait in milliseconds
+     * @return this builder for chaining
+     */
+    public PedroAutonomousBuilder addWaitMillis(long durationMilliseconds) {
+        steps.add(new WaitAction(durationMilliseconds / 1000.0));
+        return this;
+    }
+
+    /**
      * Add a custom action with a lambda function
      * @param name Action name for telemetry
      * @param action BiConsumer that takes (follower, elapsedTime) and returns true when complete

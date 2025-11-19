@@ -5,9 +5,16 @@
 
 package org.firstinspires.ftc.teamcode;
 
+import com.bylazar.configurables.annotations.Configurable;
+import com.bylazar.field.FieldManager;
+import com.bylazar.field.PanelsField;
+import com.bylazar.field.Style;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraManager; //AURORA - Advanced Unified Robot Operating & Response Architecture
 import org.firstinspires.ftc.teamcode.util.aurora.SmartMechanumDrive;
@@ -35,33 +42,45 @@ import org.firstinspires.ftc.teamcode.util.aurora.SmartTelemetryManager;
  * - Semi-auto: Y (basket+shoot), B (precision), A (retreat), triggers (rotate/align)
  * - System: Back + D-pad Left (toggle driver mode), Back (cancel semi-auto), D-pad Right (cycle telemetry)
  * <p>
- * Gamepad 2 (Operator - Shooting only):
+ * Gamepad 2 (Operator - Shooting + ML Controls):
  * - Left trigger: Warmup mode (spins shooter at 65% RPM to save power)
  * - A: Single shot (uses selected range)
  * - Y: Continuous shooting (rapid fire)
  * - Right trigger: Manual shooter power control
  * - B: Manual feed servo control / Reset stats
  * - X: Emergency stop shooting
+ * - Left Bumper: Save ML learning data
+ * - Right Bumper (hold 2s): Reset ML to defaults
  * <p>
  * Smart Telemetry Pages:
  * - Overview: System status & critical info
  * - Drive: Movement & navigation systems
  * - Shooter: Shooting system & performance
- * - Performance: System metrics & diagnostics
+ * - Performance: System metrics & diagnostics (includes ML data)
  * - Controls: Control mapping & help
  * <p>
  * Emergency Stop: Both Start buttons (gamepad1.start && gamepad2.start)
  */
 @TeleOp(name="AURORA Enhanced TeleOp", group="Competition")
+@Configurable // Panels
 public class AURORATeleOp extends LinearOpMode {
 
     private AuroraManager robotManager;
     private SmartTelemetryManager smartTelemetry;
     private final ElapsedTime runtime = new ElapsedTime();
 
+    // Panels field visualization
+    private FieldManager panelsField;
+    private static final Style robotStyle = new Style("", "#00FF00", 0.75);
+    private static final Style headingStyle = new Style("", "#00FF00", 0.75);
+    private static final double ROBOT_RADIUS = 9.0;
+
     // Control state tracking
     private boolean prevPrecisionToggle = false;
     private boolean prevStatsReset = false;
+    private boolean prevMlSave = false;
+    private double mlResetButtonHoldStart = 0;
+    private boolean mlResetButtonHeld = false;
 
     // Emergency stop tracking
     private boolean emergencyStop = false;
@@ -73,6 +92,10 @@ public class AURORATeleOp extends LinearOpMode {
         // Initialize the robot systems
         telemetry.addLine("Initializing AURORA Robot Systems...");
         telemetry.update();
+
+        // Initialize Panels field visualization
+        panelsField = PanelsField.INSTANCE.getField();
+        panelsField.setOffsets(PanelsField.INSTANCE.getPresets().getPEDRO_PATHING());
 
         // Initialize the unified robot system manager
         robotManager = new AuroraManager(hardwareMap, telemetry);
@@ -98,9 +121,12 @@ public class AURORATeleOp extends LinearOpMode {
         telemetry.addLine("• Back + D-pad Left: Toggle driver mode");
         telemetry.addLine("• Y (GP1): Quick precision toggle");
         telemetry.addLine("• B (GP2): Reset performance stats");
+        telemetry.addLine("• LB (GP2): Save ML learning data");
+        telemetry.addLine("• RB (GP2, hold 2s): Reset ML data");
         telemetry.addLine("• Start + Start: Emergency stop");
         telemetry.addLine("");
         telemetry.addLine("⚡ Optimized for minimal lag!");
+        telemetry.addLine("🤖 ML System: Auto-learning PID gains");
         telemetry.update();
 
         // Wait for the game to start (driver presses PLAY)
@@ -115,6 +141,7 @@ public class AURORATeleOp extends LinearOpMode {
             // Handle special controls
             handleStatReset();
             handlePrecisionToggle();
+            handleMlControls();
             handleEmergencyStop();
 
             cycleTelemetry = gamepad1.x || gamepad2.dpad_left;
@@ -122,11 +149,19 @@ public class AURORATeleOp extends LinearOpMode {
             // Handle telemetry page cycling through smart telemetry manager
             smartTelemetry.handlePageCycling(cycleTelemetry);
 
+            // Update Panels field visualization with odometry data
+            updateFieldVisualization();
+
             // Add debug information about gamepad inputs for troubleshooting
             //addGamepadDebugInfo();
 
             // Update smart telemetry display
             smartTelemetry.updateDisplay(emergencyStop);
+        }
+
+        // Save ML data on exit
+        if (robotManager.getShooterSystem() != null) {
+            robotManager.getShooterSystem().getRpmLearning().saveLearningData();
         }
 
         // Graceful shutdown when OpMode ends
@@ -137,6 +172,7 @@ public class AURORATeleOp extends LinearOpMode {
         telemetry.clear();
         telemetry.addLine("AURORA Enhanced TeleOp stopped safely");
         telemetry.addLine("Smart telemetry system optimized performance!");
+        telemetry.addLine("🤖 ML learning data saved automatically");
         telemetry.update();
     }
 
@@ -209,6 +245,49 @@ public class AURORATeleOp extends LinearOpMode {
     }
 
     /**
+     * Update Panels field visualization with current robot position from odometry
+     */
+    private void updateFieldVisualization() {
+        if (robotManager.getShooterSystem() != null) {
+            Pose2D position = robotManager.getShooterSystem().getPosition();
+            if (position != null) {
+                // Convert Pose2D to coordinates for drawing
+                double x = position.getX(DistanceUnit.INCH);
+                double y = position.getY(DistanceUnit.INCH);
+                double heading = position.getHeading(AngleUnit.RADIANS);
+
+                // Draw robot on field
+                drawRobot(x, y, heading);
+            }
+        }
+
+        // Update the field display
+        panelsField.update();
+    }
+
+    /**
+     * Draw robot on Panels field with heading indicator
+     */
+    private void drawRobot(double x, double y, double heading) {
+        if (Double.isNaN(x) || Double.isNaN(y) || Double.isNaN(heading)) {
+            return;
+        }
+
+        panelsField.setStyle(robotStyle);
+        panelsField.moveCursor(x, y);
+        panelsField.circle(ROBOT_RADIUS);
+
+        // Draw heading line
+        double headingLength = ROBOT_RADIUS;
+        double x2 = x + Math.cos(heading) * headingLength;
+        double y2 = y + Math.sin(heading) * headingLength;
+
+        panelsField.setStyle(headingStyle);
+        panelsField.moveCursor(x, y);
+        panelsField.line(x2, y2);
+    }
+
+    /**
      * Add debug information about gamepad inputs
      * This method outputs the current state of the gamepad inputs to telemetry
      * to help troubleshoot any issues with gamepad control.
@@ -234,5 +313,56 @@ public class AURORATeleOp extends LinearOpMode {
 
         // Update the telemetry with the gamepad debug info
         telemetry.update();
+    }
+
+    /**
+     * Handle ML system controls (save and reset)
+     */
+    private void handleMlControls() {
+        if (robotManager.getShooterSystem() == null) return;
+
+        // Handle ML save button (Left Bumper)
+        boolean currentMlSave = gamepad2.left_bumper;
+        if (currentMlSave && !prevMlSave) {
+            // Save ML data
+            boolean saved = robotManager.getShooterSystem().getRpmLearning().saveLearningData();
+            if (saved) {
+                // Briefly show performance page to confirm save
+                smartTelemetry.showPerformance();
+            }
+        }
+        prevMlSave = currentMlSave;
+
+        // Handle ML reset button (Right Bumper - must hold for 2 seconds)
+        boolean currentMlReset = gamepad2.right_bumper;
+        double currentTime = runtime.seconds();
+
+        if (currentMlReset) {
+            if (!mlResetButtonHeld) {
+                // Just started holding button
+                mlResetButtonHeld = true;
+                mlResetButtonHoldStart = currentTime;
+            } else {
+                // Continue holding - check if held long enough
+                double holdTime = currentTime - mlResetButtonHoldStart;
+                if (holdTime >= 2.0) {
+                    // Reset ML system
+                    robotManager.getShooterSystem().getRpmLearning().resetLearning();
+                    mlResetButtonHeld = false; // Prevent repeated resets
+                    // Briefly show performance page to confirm reset
+                    smartTelemetry.showPerformance();
+                }
+            }
+        } else {
+            mlResetButtonHeld = false;
+        }
+
+        // Pass ML controls to shooter system
+        double holdTime = mlResetButtonHeld ? (currentTime - mlResetButtonHoldStart) : 0;
+        robotManager.getShooterSystem().handleMlControls(
+            currentMlSave && !prevMlSave,  // Save on button press edge
+            currentMlReset,                // Reset button state
+            holdTime                       // How long reset button has been held
+        );
     }
 }
