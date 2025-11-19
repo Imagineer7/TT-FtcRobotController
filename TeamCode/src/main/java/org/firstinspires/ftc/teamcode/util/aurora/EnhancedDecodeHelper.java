@@ -168,8 +168,40 @@ public class EnhancedDecodeHelper {
     private static final int MAX_FAILURES = 3;
 
     /**
-     * Constructor with enhanced initialization (without odometry - for autonomous)
+     * Constructor using unified hardware configuration (PREFERRED)
+     * @param hardware The unified hardware configuration
      */
+    public EnhancedDecodeHelper(AuroraHardwareConfig hardware) {
+        // Get hardware from unified config
+        shooter = hardware.getShooterMotor();
+        feedServo1 = hardware.getFeedServo1();
+        feedServo2 = hardware.getFeedServo2();
+        light = hardware.getLightServo();
+        voltageSensor = hardware.getVoltageSensor();
+        odometry = hardware.getOdometry();
+
+        // Configure shooter motor
+        if (shooter != null) {
+            shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        }
+
+        // Initialize enhanced systems
+        config = new ShooterConfig();
+        monitor = new PerformanceMonitor();
+        rpmLearning = new RpmLearningSystem();
+        clock = new ElapsedTime();
+
+        reset();
+
+        // Load previously learned boost parameters if available
+        loadBoostParametersFromFile();
+    }
+
+    /**
+     * Constructor with enhanced initialization (without odometry - for autonomous)
+     * @deprecated Use EnhancedDecodeHelper(AuroraHardwareConfig) instead
+     */
+    @Deprecated
     public EnhancedDecodeHelper(HardwareMap hardwareMap) {
         this(hardwareMap, false);  // Default: no odometry
     }
@@ -178,7 +210,9 @@ public class EnhancedDecodeHelper {
      * Constructor with enhanced initialization
      * @param hardwareMap The hardware map
      * @param enableOdometry Set to true to initialize odometry (for TeleOp), false for autonomous
+     * @deprecated Use EnhancedDecodeHelper(AuroraHardwareConfig) instead
      */
+    @Deprecated
     public EnhancedDecodeHelper(HardwareMap hardwareMap, boolean enableOdometry) {
         // Initialize hardware
         shooter = hardwareMap.get(DcMotor.class, "shooter");

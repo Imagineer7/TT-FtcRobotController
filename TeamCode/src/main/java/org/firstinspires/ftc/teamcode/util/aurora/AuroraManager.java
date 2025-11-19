@@ -38,6 +38,9 @@ public class AuroraManager {
     private PerformanceMonitor globalMonitor;
     private MovementRecorder movementRecorder;
 
+    // Unified hardware configuration
+    private AuroraHardwareConfig hardware;
+
     // Hardware references
     private HardwareMap hardwareMap;
     private Telemetry telemetry;
@@ -70,14 +73,28 @@ public class AuroraManager {
      * Initialize all robot systems
      */
     public AuroraManager(HardwareMap hardwareMap, Telemetry telemetry) {
+        this(hardwareMap, telemetry, true); // Default: with odometry for TeleOp
+    }
+
+    /**
+     * Initialize all robot systems with odometry control
+     * @param hardwareMap The hardware map
+     * @param telemetry Telemetry for logging
+     * @param enableOdometry Set to true for TeleOp, false for Autonomous
+     */
+    public AuroraManager(HardwareMap hardwareMap, Telemetry telemetry, boolean enableOdometry) {
         this.hardwareMap = hardwareMap;
         this.telemetry = telemetry;
 
-        try {
-            voltageSensor = hardwareMap.voltageSensor.iterator().next();
-        } catch (Exception e) {
-            voltageSensor = null;
+        // Initialize unified hardware configuration
+        hardware = new AuroraHardwareConfig(hardwareMap, telemetry);
+        if (enableOdometry) {
+            hardware.initializeWithOdometry();
+        } else {
+            hardware.initialize();
         }
+
+        voltageSensor = hardware.getVoltageSensor();
 
         globalMonitor = new PerformanceMonitor();
         initializeSystems();
@@ -87,40 +104,52 @@ public class AuroraManager {
      * Initialize all subsystems with error handling
      */
     private void initializeSystems() {
-        // Initialize drive system with graceful error handling
-        try {
-            DcMotor leftFront = hardwareMap.get(DcMotor.class, "frontLeft");
-            DcMotor rightFront = hardwareMap.get(DcMotor.class, "frontRight");
-            DcMotor leftBack = hardwareMap.get(DcMotor.class, "backLeft");
-            DcMotor rightBack = hardwareMap.get(DcMotor.class, "backRight");
-
-            driveSystem = new SmartMechanumDrive(leftFront, rightFront, leftBack, rightBack, null, voltageSensor);
-            driveInitialized = true;
-            driveInitError = ""; // Clear any previous error
-            telemetry.addLine("✅ Drive system initialized successfully");
-
-        } catch (Exception e) {
+        // Initialize drive system using unified hardware config
+        if (hardware.isDriveSystemInitialized()) {
+            try {
+                driveSystem = new SmartMechanumDrive(
+                    hardware.getFrontLeftMotor(),
+                    hardware.getFrontRightMotor(),
+                    hardware.getBackLeftMotor(),
+                    hardware.getBackRightMotor(),
+                    null,
+                    voltageSensor
+                );
+                driveInitialized = true;
+                driveInitError = "";
+                telemetry.addLine("✅ Drive system manager initialized");
+            } catch (Exception e) {
+                driveSystem = null;
+                driveInitialized = false;
+                driveInitError = e.getMessage();
+                telemetry.addLine("⚠️ Drive system manager failed: " + e.getMessage());
+            }
+        } else {
             driveSystem = null;
             driveInitialized = false;
-            driveInitError = e.getMessage();
-            telemetry.addLine("⚠️ Drive system failed: " + e.getMessage());
-            telemetry.addLine("   Check motor names in hardware configuration:");
-            telemetry.addLine("   Expected: leftFront, rightFront, leftBack, rightBack");
+            driveInitError = hardware.getDriveInitError();
         }
 
-        // Initialize shooter system with graceful error handling
-        try {
-            shooterSystem = new EnhancedDecodeHelper(hardwareMap, true);  // Enable odometry for TeleOp
-            shooterInitialized = true;
-            shooterInitError = ""; // Clear any previous error
-            telemetry.addLine("✅ Shooter system initialized successfully");
-            telemetry.addLine("✅ Odometry tracking enabled");
-
-        } catch (Exception e) {
+        // Initialize shooter system using unified hardware config
+        if (hardware.isShooterSystemInitialized()) {
+            try {
+                shooterSystem = new EnhancedDecodeHelper(hardware);
+                shooterInitialized = true;
+                shooterInitError = "";
+                telemetry.addLine("✅ Shooter system manager initialized");
+                if (hardware.isOdometryInitialized()) {
+                    telemetry.addLine("✅ Odometry tracking enabled");
+                }
+            } catch (Exception e) {
+                shooterSystem = null;
+                shooterInitialized = false;
+                shooterInitError = e.getMessage();
+                telemetry.addLine("⚠️ Shooter system manager failed: " + e.getMessage());
+            }
+        } else {
             shooterSystem = null;
             shooterInitialized = false;
-            shooterInitError = e.getMessage();
-            telemetry.addLine("⚠️ Shooter system failed: " + e.getMessage());
+            shooterInitError = hardware.getShooterInitError();
         }
 
         // Initialize movement recorder (this shouldn't fail)
@@ -132,7 +161,7 @@ public class AuroraManager {
             telemetry.addLine("⚠️ Movement recorder failed: " + e.getMessage());
         }
 
-        // System is healthy if at least one major subsystem works, or if we want to allow basic operation
+        // System is healthy if at least one major subsystem works
         systemsHealthy = true; // Always allow basic operation for debugging
 
         if (!driveInitialized && !shooterInitialized) {
@@ -580,6 +609,7 @@ public class AuroraManager {
     public EnhancedDecodeHelper getShooterSystem() { return shooterSystem; }
     public PerformanceMonitor getGlobalMonitor() { return globalMonitor; }
     public MovementRecorder getMovementRecorder() { return movementRecorder; }
+    public AuroraHardwareConfig getHardware() { return hardware; }
     public boolean isSystemsHealthy() { return systemsHealthy; }
     public boolean isRecordingMode() { return recordingMode; }
     public HardwareMap getHardwareMap() { return hardwareMap; }
