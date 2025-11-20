@@ -389,10 +389,12 @@ RPM_KP_RECOVERY = 0.0005, RPM_KI_RECOVERY = 0.00002, RPM_KD_RECOVERY = 0.00015
 **GoBilda Pinpoint Driver** (`util/tool/GoBildaPinpointDriver.java`):
 - Hardware interface for Pinpoint odometry computer
 - Returns Pose2D (x, y, heading) in millimeters and radians
-- **Configuration** (IMPORTANT):
+- **Configuration** (IMPORTANT - from `pedroPathing/Constants.java`):
   ```java
-  X_OFFSET = -154mm  // Forward pod is 154mm BEHIND robot center
-  Y_OFFSET = 0mm     // Strafe pod is at robot center
+  // Pedro Pathing uses different naming than Aurora Lightning
+  forwardPodY = -6.62 inches   // Y offset of forward encoder
+  strafePodX = 4.71 inches     // X offset of strafe encoder
+  strafeEncoderDirection = REVERSED  // Strafe pod reversed so Y increases when moving left
   ```
 - **Hardware Name**: `"odo"` in robot configuration
 
@@ -614,7 +616,7 @@ public class MyAuto extends OpMode {
 **Configuration** (`pedroPathing/Constants.java`):
 - Follower PID tuning
 - Mecanum drivetrain configuration
-- Pinpoint odometry settings (X_OFFSET=-154mm, Y_OFFSET=0mm)
+- Pinpoint odometry settings (forwardPodY=-6.62", strafePodX=4.71", strafeEncoder=REVERSED)
 - Path constraints (max speed, acceleration, deceleration)
 
 **Advantages**:
@@ -903,9 +905,9 @@ public class MyNewTeleOp extends LinearOpMode {
    - Verify spelling and capitalization
 
 2. **Robot drifts during autonomous**
-   - Recalibrate odometry offsets (-154mm, 0mm)
+   - Recalibrate odometry offsets (forwardPodY=-6.62", strafePodX=4.71")
    - Check motor directions
-   - Verify encoder connections
+   - Verify encoder connections and directions (strafe encoder should be REVERSED)
 
 3. **Shooter RPM unstable**
    - Tune PID gains
@@ -944,11 +946,17 @@ rightBack.setDirection(DcMotor.Direction.FORWARD);
 
 ### Odometry Calibration (CRITICAL)
 ```java
-// X_OFFSET: Forward pod is 154mm BEHIND robot center
-// Y_OFFSET: Strafe pod is at robot center
-odometry.setOffsets(-154, 0);  // in millimeters
+// Pedro Pathing Configuration (from pedroPathing/Constants.java)
+// forwardPodY: Y offset of forward encoder = -6.62 inches
+// strafePodX: X offset of strafe encoder = 4.71 inches
+// strafeEncoderDirection: REVERSED (so Y increases when moving left)
+
+public static PinpointConstants localizerConstants = new PinpointConstants()
+    .forwardPodY(-6.62)
+    .strafePodX(4.71)
+    .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);
 ```
-**If localization is wrong**, re-measure offsets from robot center to odometry pods.
+**If localization is wrong**, verify these offsets in `pedroPathing/Constants.java` and run "Localization Test" to ensure Forward = X increases, Left = Y increases.
 
 ### Hardware Names (Must Match Robot Config)
 - **Drive Motors**: `frontLeft`, `frontRight`, `backLeft`, `backRight`
@@ -1077,8 +1085,9 @@ This is a **competition-ready FTC DECODE robot codebase** with:
 - Heading: KP=0.025, KI=0.0005, KD=0.008
 - RPM: KP=0.0003, KI=0.00001, KD=0.0001
 
-### Odometry Offsets
-- X_OFFSET = -154mm (forward pod behind center)
-- Y_OFFSET = 0mm (strafe pod at center)
+### Odometry Offsets (Pedro Pathing)
+- forwardPodY = -6.62 inches (Y offset of forward encoder)
+- strafePodX = 4.71 inches (X offset of strafe encoder)
+- strafeEncoderDirection = REVERSED
 
 Good luck in the DECODE season! 🤖🏆
