@@ -16,8 +16,8 @@ repositories {
     mavenCentral()
     google() // Required for AndroidX libraries
     
-    // Optional: Uncomment this if you want to add Pedro Pathing later
-    // maven { url = "https://mymaven.bylazar.com/releases" }
+    // Pedro Pathing (Advanced Autonomous - Required for advanced auto features)
+    maven { url = "https://mymaven.bylazar.com/releases" }
 }
 
 dependencies {
@@ -34,13 +34,29 @@ dependencies {
     // AndroidX Support Library
     implementation 'androidx.appcompat:appcompat:1.2.0'
     
-    // Optional: Pedro Pathing (Advanced Path Following)
-    // Uncomment these lines if you want to use Pedro Pathing for autonomous:
-    //
-    // implementation('com.pedropathing:ftc:2.0.4') {
-    //     exclude group: "com.acmerobotics.dashboard"
-    // }
-    // implementation('com.pedropathing:telemetry:1.0.0') {
-    //     exclude group: "com.acmerobotics.dashboard"
-    // }
+    // ═══════════════════════════════════════════════════════════════════════
+    // ADVANCED FEATURES (Optional - Not required for basic robot operation)
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    // Pedro Pathing (Advanced Path Following for Autonomous)
+    // Version 2.0.4 - Provides smooth path following, field-centric navigation
+    // Used by: auto/pedro/ package OpModes
+    // Exclude FTC Dashboard to avoid conflicts with Panels
+    implementation('com.pedropathing:ftc:2.0.4') {
+        exclude group: "com.acmerobotics.dashboard"
+    }
+    implementation('com.pedropathing:telemetry:1.0.0') {
+        exclude group: "com.acmerobotics.dashboard"
+    }
+    
+    // Panels Dashboard (Advanced Telemetry & Field Visualization)
+    // Version 1.0.10 - Provides web-based dashboard with field view, telemetry
+    // Used by: PanelsDashboardHelper and advanced OpModes
+    // Exclude FTC Dashboard to use Panels exclusively
+    implementation('com.bylazar:fullpanels:1.0.10') {
+        exclude group: "com.acmerobotics.dashboard"
+    }
+    implementation('com.bylazar:camerastream:1.0.0') {
+        exclude group: "com.acmerobotics.dashboard"
+    }
 }
