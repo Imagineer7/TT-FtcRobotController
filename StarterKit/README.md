@@ -40,6 +40,12 @@ For complete game rules and programming context, see [docs/README-DECODE-Overvie
 
 ## 🚀 Quick Start (First-Time Setup)
 
+### ⚠️ Important First Step
+
+This starter kit requires the **FtcRobotController** module from the official FTC SDK. See [INSTALLATION.md](INSTALLATION.md) for detailed setup instructions.
+
+**Quick option:** Clone the official FTC SDK and copy this starter kit's TeamCode into it.
+
 ### Prerequisites
 
 1. **Android Studio Ladybug (2024.2) or later**
@@ -55,19 +61,17 @@ For complete game rules and programming context, see [docs/README-DECODE-Overvie
 
 ### Installation Steps
 
-1. **Clone this repository**
-   ```bash
-   git clone https://github.com/your-team/ftc-decode-starter-kit.git
-   cd ftc-decode-starter-kit
-   ```
+1. **Set up the project**
+   - **Recommended:** Follow [INSTALLATION.md](INSTALLATION.md) for complete instructions
+   - **Quick option:** Clone FTC SDK, copy this starter kit's code
 
 2. **Open in Android Studio**
-   - File → Open → Select the cloned directory
+   - File → Open → Select the project root directory
    - Wait for Gradle sync to complete (2-5 minutes first time)
 
 3. **Connect your Robot Controller**
    - Enable Developer Options and USB Debugging
-   - Connect via USB cable
+   - Connect via USB cable or wireless
    - See [docs/ADB-Setup-Guide.md](docs/ADB-Setup-Guide.md) for detailed instructions
 
 4. **Deploy and Run**
@@ -168,6 +172,7 @@ For complete game rules and programming context, see [docs/README-DECODE-Overvie
 
 | Document | Purpose |
 |----------|---------|
+| [INSTALLATION.md](INSTALLATION.md) | Complete installation and setup instructions |
 | [README-DECODE-Overview.md](docs/README-DECODE-Overview.md) | Game rules explained for programmers |
 | [Sloth-Quickstart.md](docs/Sloth-Quickstart.md) | Sloth framework setup and usage |
 | [ADB-Setup-Guide.md](docs/ADB-Setup-Guide.md) | Android Debug Bridge and deployment |
