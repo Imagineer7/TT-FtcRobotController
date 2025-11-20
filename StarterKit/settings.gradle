@@ -1,0 +1,11 @@
+/**
+ * settings.gradle
+ *
+ * Defines the multi-module project structure.
+ * In FTC projects, we typically have:
+ * - FtcRobotController (the base SDK module)
+ * - TeamCode (your custom robot code)
+ */
+
+include ':FtcRobotController'
+include ':TeamCode'

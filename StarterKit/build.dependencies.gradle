@@ -1,0 +1,46 @@
+/**
+ * build.dependencies.gradle
+ *
+ * Centralized dependency management for FTC SDK and external libraries.
+ * 
+ * Key Dependencies:
+ * - FTC SDK 11.0.0 (DECODE season)
+ * - Sloth Framework 0.2.4 (configured in TeamCode/build.gradle)
+ * - AndroidX AppCompat
+ *
+ * Note: Pedro Pathing is optional and not included by default to keep things simple.
+ * Advanced teams can add it later by uncommenting the Pedro Pathing section.
+ */
+
+repositories {
+    mavenCentral()
+    google() // Required for AndroidX libraries
+    
+    // Optional: Uncomment this if you want to add Pedro Pathing later
+    // maven { url = "https://mymaven.bylazar.com/releases" }
+}
+
+dependencies {
+    // FTC SDK Core Libraries (version 11.0.0 for DECODE season)
+    implementation 'org.firstinspires.ftc:Inspection:11.0.0'
+    implementation 'org.firstinspires.ftc:Blocks:11.0.0'
+    implementation 'org.firstinspires.ftc:RobotCore:11.0.0'
+    implementation 'org.firstinspires.ftc:RobotServer:11.0.0'
+    implementation 'org.firstinspires.ftc:OnBotJava:11.0.0'
+    implementation 'org.firstinspires.ftc:Hardware:11.0.0'
+    implementation 'org.firstinspires.ftc:FtcCommon:11.0.0'
+    implementation 'org.firstinspires.ftc:Vision:11.0.0'
+    
+    // AndroidX Support Library
+    implementation 'androidx.appcompat:appcompat:1.2.0'
+    
+    // Optional: Pedro Pathing (Advanced Path Following)
+    // Uncomment these lines if you want to use Pedro Pathing for autonomous:
+    //
+    // implementation('com.pedropathing:ftc:2.0.4') {
+    //     exclude group: "com.acmerobotics.dashboard"
+    // }
+    // implementation('com.pedropathing:telemetry:1.0.0') {
+    //     exclude group: "com.acmerobotics.dashboard"
+    // }
+}

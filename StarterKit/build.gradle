@@ -1,0 +1,29 @@
+/**
+ * Top-level build file for FTC DECODE Starter Kit.
+ *
+ * This file sets up the Android Gradle plugin and repositories for the entire project.
+ * Teams should rarely need to modify this file.
+ */
+
+buildscript {
+    repositories {
+        mavenCentral()
+        google()
+    }
+    dependencies {
+        // Android Gradle Plugin - required for building FTC Robot Controller apps
+        classpath 'com.android.tools.build:gradle:8.7.0'
+    }
+}
+
+// Configure repositories for all modules in the project
+allprojects {
+    repositories {
+        mavenCentral()
+        google()
+    }
+}
+
+repositories {
+    mavenCentral()
+}
