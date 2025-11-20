@@ -170,12 +170,23 @@ This starter kit requires the **FtcRobotController** module from the official FT
 
 ## 📚 Documentation
 
+### Getting Started
 | Document | Purpose |
 |----------|---------|
 | [INSTALLATION.md](INSTALLATION.md) | Complete installation and setup instructions |
 | [README-DECODE-Overview.md](docs/README-DECODE-Overview.md) | Game rules explained for programmers |
 | [Sloth-Quickstart.md](docs/Sloth-Quickstart.md) | Sloth framework setup and usage |
 | [ADB-Setup-Guide.md](docs/ADB-Setup-Guide.md) | Android Debug Bridge and deployment |
+
+### Advanced Features (Optional)
+| Document | Purpose |
+|----------|---------|
+| [Pedro-AdvancedAuto.md](docs/Pedro-AdvancedAuto.md) | Pedro Pathing for advanced autonomous |
+| [Panels-Dashboard-Guide.md](docs/Panels-Dashboard-Guide.md) | Enhanced telemetry and field visualization |
+
+### Contributing
+| Document | Purpose |
+|----------|---------|
 | [copilot-instructions.md](.github/copilot-instructions.md) | Guidelines for contributing code |
 
 ---
@@ -218,6 +229,72 @@ Edit `StarterAutoSkeleton.java`:
 If your robot configuration uses different names, update these files:
 - **StarterRobotManager.java** (lines 92-95): Motor names
 - **StarterShooter.java** (lines 61-62): Shooter motor and servo names
+
+---
+
+## 🚀 Advanced Features (Optional)
+
+Once you're comfortable with the basics, the starter kit includes advanced features for competitive teams:
+
+### Pedro Pathing (Advanced Autonomous)
+
+**What it is:**
+- Professional path-following library
+- Smooth bezier curve movements
+- Real-time pose tracking with odometry
+- Competition-tested reliability
+
+**What you need:**
+- GoBilda Pinpoint Odometry Computer (or 3-wheel dead wheels)
+- Understanding of coordinate systems
+- Time for tuning and calibration
+
+**Getting started:**
+1. Read [docs/Pedro-AdvancedAuto.md](docs/Pedro-AdvancedAuto.md)
+2. Study example OpModes: `auto/pedro/PedroAutoBlue.java` and `PedroAutoRed.java`
+3. Configure hardware in `auto/pedro/PedroConstants.java`
+4. Test with incremental paths
+
+**Benefits:**
+- ✅ ~1 inch accuracy vs ~6 inch with time-based
+- ✅ Adapts to obstacles and drift
+- ✅ Visual path planning on dashboard
+- ✅ Scales to complex multi-path strategies
+
+### Panels Dashboard (Enhanced Visualization)
+
+**What it is:**
+- Web-based dashboard for telemetry and field visualization
+- Real-time robot position display
+- Path visualization and debugging
+- Configurable parameters without redeploying
+
+**How to use:**
+1. Connect to Robot Controller Wi-Fi
+2. Open browser: **http://192.168.43.1:8080**
+3. Use `PanelsDashboardHelper` in your OpModes
+4. See live robot position and paths
+
+**Getting started:**
+1. Read [docs/Panels-Dashboard-Guide.md](docs/Panels-Dashboard-Guide.md)
+2. Look at examples in `auto/pedro/` OpModes
+3. Use `dashboard/PanelsDashboardHelper.java` API
+
+**Benefits:**
+- ✅ Better organized telemetry than Driver Station
+- ✅ Field visualization shows exactly where robot thinks it is
+- ✅ Remote monitoring from any device
+- ✅ Data logging for post-match analysis
+
+### When to Add Advanced Features
+
+**Recommended progression:**
+1. **Weeks 1-4:** Master basics (StarterTeleOp + StarterAutoSkeleton)
+2. **Weeks 5-6:** Add Panels dashboard for better telemetry
+3. **Weeks 7-8:** Install Pinpoint odometry hardware
+4. **Weeks 9+:** Transition to Pedro Pathing for autonomous
+
+**Don't rush!** Basic starter code can score 30+ points. Add advanced features when basic operation is reliable.
 
 ---
 
