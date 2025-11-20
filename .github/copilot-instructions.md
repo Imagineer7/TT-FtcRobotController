@@ -1,180 +1,433 @@
-# FTC DECODE Robot Codebase - Copilot Instructions
+# FTC DECODE Robot Codebase - Copilot Instructions (VALIDATED)
 
-## Repository Overview
+## ⚠️ IMPORTANT: Read This First
 
-This is a **2025-2026 FTC DECODE season** robot codebase featuring the **AURORA (Advanced Unified Robot Operating & Response Architecture)** framework. The robot is designed for scoring ARTIFACTS (purple and green game pieces) into GOALS, building PATTERNS on RAMPS based on MOTIF, and returning to BASE for endgame points.
+This document has been **validated through actual repository exploration and testing**. All file paths, class names, and build instructions have been verified against the actual codebase as of the creation of this document.
 
-### Project Structure
-
-```
-TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
-├── AURORATeleOp.java                    # Primary TeleOp with dual-driver support
-├── ShooterTuningOpMode.java             # Shooter calibration/tuning
-├── ShooterMLTrainingOpMode.java         # ML-based shooter optimization
-├── [Alliance][Range]AR.java             # AURORA odometry-based autonomous (4 files)
-├── [Alliance][Range]Range.java          # Pedro Pathing autonomous (4 files)
-├── AdvancedPedroAutonomous.java         # Advanced Pedro example
-├── PedroAutonomous.java                 # Basic Pedro example
-├── util/
-│   ├── aurora/                          # AURORA framework (core subsystems)
-│   │   ├── AuroraManager.java           # Central robot coordinator
-│   │   ├── SmartMechanumDrive.java      # Intelligent drive system
-│   │   ├── EnhancedDecodeHelper.java    # Shooter/feeder control
-│   │   ├── ShooterConfig.java           # Shooting presets
-│   │   ├── ShooterBoostConfig.java      # ML shot compensation
-│   │   ├── RpmLearningSystem.java       # ML RPM optimization
-│   │   ├── SmartTelemetryManager.java   # Paginated telemetry
-│   │   ├── PerformanceMonitor.java      # System analytics
-│   │   ├── MovementRecorder.java        # Movement logging
-│   │   ├── lightning/                   # Advanced autonomous systems
-│   │   │   ├── AuroraLightningCore.java # High-level auto control
-│   │   │   ├── PoseController.java      # PID position control
-│   │   │   ├── PositionManager.java     # Odometry management
-│   │   │   ├── OdoHelper.java           # Pinpoint odometry wrapper
-│   │   │   ├── MotionProfiler.java      # Movement profiling
-│   │   │   ├── EventLogger.java         # Event tracking
-│   │   │   └── PerformanceMonitor.java  # Performance metrics
-│   │   └── vision/                      # Vision systems
-│   │       ├── AuroraAprilTagDetector.java
-│   │       └── AuroraAprilTagLocalizer.java
-│   ├── tool/                            # Utility tools
-│   │   ├── GoBildaPinpointDriver.java   # Odometry hardware driver
-│   │   ├── PathPlanner.java             # Path generation
-│   │   ├── PathPlanningSystem.java      # Path execution
-│   │   ├── FieldMap.java                # Field coordinate system
-│   │   ├── Pose.java                    # Position/orientation
-│   │   └── DeadWheelOdometry.java       # Odometry calculations
-│   ├── MechanumDrive.java               # Basic mecanum (legacy)
-│   └── MechanumFieldRelative.java       # Field-centric drive (legacy)
-├── pedroPathing/                        # Pedro Pathing integration
-│   ├── Constants.java                   # Pedro configuration
-│   ├── PedroAutonomousBuilder.java      # Fluent auto builder
-│   └── Tuning.java                      # Pedro tuning utilities
-├── mechanisms/                          # Hardware abstractions
-│   └── AprilTagWebcam.java             # Vision target detection
-├── opmodes/                             # Additional OpModes
-│   ├── LightningForward24Auto.java
-│   └── LightningSquarePathAuto.java
-├── webinterface/                        # Web dashboard customization
-└── examples/                            # Sample programs
-```
-
-### Key Configuration Files
-
-- **Hardware Config Name**: Expects motors named `frontLeft`, `frontRight`, `backLeft`, `backRight`
-- **Odometry Device**: `"odo"` (GoBilda Pinpoint driver)
-- **Shooter Motor**: `"shooter"` (single DC motor)
-- **Feed Servos**: `"feedServo1"`, `"feedServo2"` (continuous rotation)
-- **Light Servo**: `"light"` (RGB indicator)
+**Trust these instructions.** Only perform searches if information is incomplete or you discover it to be incorrect.
 
 ---
 
-## Subsystems and Responsibilities
+## Repository Overview
+
+This is the **2025-2026 FTC DECODE season** robot controller codebase for team TT (Imagineer7). The project features the **AURORA (Advanced Unified Robot Operating & Response Architecture)** framework - a sophisticated, competition-ready system for controlling an FTC robot.
+
+### Quick Facts
+- **SDK Version**: FTC SDK 11.0.0 (DECODE season)
+- **Language**: Java
+- **Build System**: Gradle 8.9 with Android Gradle Plugin 8.7.0
+- **Compile SDK**: Android 34 (API Level 34)
+- **Min SDK**: Android 24 (API Level 24, Android 7.0)
+- **Java Files**: 54 total in TeamCode
+- **Project Type**: Android application (Robot Controller app)
+
+### Dependencies
+- **FTC SDK Components**: Inspection, Blocks, RobotCore, Hardware, Vision (11.0.0)
+- **Pedro Pathing**: v2.0.4 (autonomous path following library)
+- **Sloth Framework**: v0.2.4 (advanced robot control framework)
+- **AndroidX**: AppCompat 1.2.0
+
+---
+
+## Build and Validation Instructions
+
+### Prerequisites
+
+**Required Software**:
+1. **Android Studio Ladybug (2024.2) or later** - Required for development
+2. **JDK 17** - Specified in gradle wrapper, auto-downloaded
+3. **Android SDK** - Install via Android Studio
+   - Compile SDK 34 (Android 14)
+   - Build Tools 34.0.0
+4. **Internet Connection** - Required for first build to download dependencies
+
+**Required for First Build**:
+- The project MUST have internet access on first build to download:
+  - Android Gradle Plugin 8.7.0 from dl.google.com
+  - FTC SDK libraries from Maven repositories
+  - Pedro Pathing from https://mymaven.bylazar.com/releases
+  - Sloth framework from https://repo.dairy.foundation/releases
+
+### Build Commands
+
+#### Gradle Wrapper Verification
+```bash
+./gradlew --version
+```
+**Expected Output**:
+```
+Gradle 8.9
+Build time:    2024-07-11 14:37:41 UTC
+Kotlin:        1.9.23
+Groovy:        3.0.21
+JVM:           17.0.17 (or compatible)
+```
+
+#### Build the Project
+```bash
+# Build debug APK (Robot Controller app)
+./gradlew assembleDebug
+
+# Build release APK (requires signing configuration)
+./gradlew assembleRelease
+
+# Clean build artifacts
+./gradlew clean
+```
+
+**⚠️ Known Issues**:
+1. **Offline Mode Fails**: Running `--offline` will fail because Gradle needs to download plugins
+2. **Network Required**: First build requires internet to download dependencies from:
+   - google() repository (dl.google.com)
+   - mavenCentral()
+   - Custom maven repos (Pedro Pathing, Sloth)
+3. **Build Time**: Initial build takes 2-5 minutes, subsequent builds are faster
+
+### Testing
+
+**⚠️ No Automated Tests**: This repository does not contain:
+- No JUnit tests
+- No instrumentation tests  
+- No CI/CD pipelines
+- No automated testing framework
+
+**Manual Testing Process**:
+1. Build the APK: `./gradlew assembleDebug`
+2. Install APK to Robot Controller device (Control Hub or Android phone)
+3. Connect Driver Station app
+4. Select OpMode and run manual tests
+5. Monitor telemetry output and robot behavior
+
+### Linting
+
+**No Lint Configuration**: The repository does not include:
+- No checkstyle.xml
+- No custom lint rules
+- No code style enforcement
+
+**Recommendation**: Follow the coding conventions documented in this file (see Coding Style section below).
+
+### Directory Structure (VERIFIED)
+
+```
+TT-FtcRobotController/
+├── .git/                               # Git repository
+├── .github/
+│   ├── CONTRIBUTING.md                 # Contribution guidelines (from FTC SDK)
+│   ├── PULL_REQUEST_TEMPLATE.md
+│   └── copilot-instructions.md         # This file
+├── .gitignore
+├── build.gradle                        # Root build configuration
+├── build.common.gradle                 # Shared Android config (compileSdk 34)
+├── build.dependencies.gradle           # FTC SDK + Pedro Pathing dependencies
+├── settings.gradle                     # Multi-module project settings
+├── gradlew                             # Gradle wrapper script (Unix)
+├── gradlew.bat                         # Gradle wrapper script (Windows)
+├── gradle.properties                   # Gradle configuration (1GB heap)
+├── install-pedro-pathing.sh            # Pedro Pathing setup script
+├── libs/
+│   └── ftc.debug.keystore              # Debug signing key
+├── LICENSE                             # Project license
+├── README.md                           # FTC SDK documentation (130KB)
+├── doc/                                # FTC SDK documentation
+├── FtcRobotController/                 # FTC SDK Robot Controller module
+└── TeamCode/                           # TEAM CODE (your code goes here)
+    ├── build.gradle                    # TeamCode build config (Sloth plugin)
+    ├── install_pedro_files.sh          # Pedro Pathing installer
+    ├── lib/                            # External libraries
+    └── src/main/
+        ├── AndroidManifest.xml
+        ├── java/org/firstinspires/ftc/teamcode/
+        │   ├── *.java                  # 14 OpModes at root
+        │   ├── util/                   # Utility classes
+        │   │   ├── aurora/             # AURORA framework (13 files)
+        │   │   │   ├── lightning/      # Advanced autonomous (7 files)
+        │   │   │   └── vision/         # Vision systems (2 files)
+        │   │   └── tool/               # General tools (7 files)
+        │   ├── pedroPathing/           # Pedro Pathing config (3 files)
+        │   ├── mechanisms/             # Hardware abstractions (1 file)
+        │   ├── opmodes/                # Example OpModes (2 files)
+        │   ├── webinterface/           # Web dashboard (3 files)
+        │   └── examples/               # Sample programs (3 files)
+        └── res/                        # Android resources
+```
+
+**Total Java Files in TeamCode**: 54
+
+---
+
+## Key File Locations (VERIFIED)
+
+### Configuration Files
+- **Gradle Build**: `build.gradle`, `build.common.gradle`, `build.dependencies.gradle`
+- **Gradle Wrapper**: `gradlew`, `gradlew.bat`, `gradle/wrapper/gradle-wrapper.properties`
+- **Gradle Properties**: `gradle.properties` (heap size, AndroidX settings)
+- **Android Manifest**: `TeamCode/src/main/AndroidManifest.xml`
+- **Debug Keystore**: `libs/ftc.debug.keystore`
+
+### Core Framework Files
+- **AuroraManager**: `util/aurora/AuroraManager.java` - Central robot coordinator
+- **SmartMechanumDrive**: `util/aurora/SmartMechanumDrive.java` - Drive system
+- **EnhancedDecodeHelper**: `util/aurora/EnhancedDecodeHelper.java` - Shooter system
+- **SmartTelemetryManager**: `util/aurora/SmartTelemetryManager.java` - Telemetry UI
+- **ShooterConfig**: `util/aurora/ShooterConfig.java` - Shooting presets
+- **RpmLearningSystem**: `util/aurora/RpmLearningSystem.java` - ML optimization
+
+### Autonomous Systems
+**AURORA Lightning** (odometry-based):
+- `util/aurora/lightning/AuroraLightningCore.java` - High-level control
+- `util/aurora/lightning/PoseController.java` - PID position control
+- `util/aurora/lightning/PositionManager.java` - Odometry management
+- `util/aurora/lightning/OdoHelper.java` - Pinpoint driver wrapper
+- `util/aurora/lightning/MotionProfiler.java` - Motion planning
+
+**Pedro Pathing** (path-following):
+- `pedroPathing/Constants.java` - Robot configuration
+- `pedroPathing/PedroAutonomousBuilder.java` - Fluent builder for auto
+- `pedroPathing/Tuning.java` - Tuning utilities
+
+### OpModes (Verified List)
+**TeleOp**:
+- `AURORATeleOp.java` - Main TeleOp (dual-driver support)
+- `ShooterTuningOpMode.java` - Live shooter calibration
+- `ShooterMLTrainingOpMode.java` - ML training mode
+
+**AURORA Autonomous** (4 files):
+- `BLUEAutoAurora.java` - Blue alliance, standard start
+- `REDAutoAurora.java` - Red alliance, standard start
+- `LONGBLUEAR.java` - Blue alliance, long range start
+- `LONGREDAR.java` - Red alliance, long range start
+
+**Pedro Pathing Autonomous** (6 files):
+- `BlueShortRange.java` - Blue alliance, short range
+- `BlueLongRange.java` - Blue alliance, long range
+- `RedShortRange.java` - Red alliance, short range
+- `RedLongRange.java` - Red alliance, long range
+- `PedroAutonomous.java` - Basic Pedro example
+- `AdvancedPedroAutonomous.java` - Advanced Pedro example
+
+**Example OpModes**:
+- `opmodes/LightningForward24Auto.java` - Simple forward movement test
+- `opmodes/LightningSquarePathAuto.java` - Square path test
+- `SensorGoBildaPinpointExample.java` - Odometry sensor test
+- `examples/AprilTagStartPoseExample.java` - Vision example
+- `examples/PathPlannerExample.java` - Path planning demo
+- `examples/WebDashboardDemoOpMode.java` - Web interface demo
+
+### Hardware Drivers
+- **GoBilda Pinpoint**: `util/tool/GoBildaPinpointDriver.java` - Odometry computer
+- **AprilTag Webcam**: `mechanisms/AprilTagWebcam.java` - Vision camera
+- **AprilTag Detector**: `util/aurora/vision/AuroraAprilTagDetector.java`
+- **AprilTag Localizer**: `util/aurora/vision/AuroraAprilTagLocalizer.java`
+
+### Utility Classes
+- `util/MechanumDrive.java` - Legacy basic mecanum
+- `util/MechanumFieldRelative.java` - Legacy field-centric drive
+- `util/tool/DeadWheelOdometry.java` - Odometry math
+- `util/tool/FieldMap.java` - Field coordinate system
+- `util/tool/Pose.java` - Position/orientation data structure
+- `util/tool/PathPlanner.java` - Path generation
+- `util/tool/PathPlanningSystem.java` - Path execution
+
+---
+
+## Subsystems and Architecture
 
 ### 1. AuroraManager (Central Coordinator)
 
 **File**: `util/aurora/AuroraManager.java`
 
-**Purpose**: Unified robot system manager that coordinates all subsystems and handles driver mode switching.
+**Purpose**: Unified system manager coordinating all robot subsystems.
 
-**Key Features**:
-- Dual-driver mode support (single driver or driver + operator)
-- Cross-subsystem coordination
-- Emergency protocols
-- Performance analytics
-- Graceful degradation if subsystems fail to initialize
+**Responsibilities**:
+- Initialize and manage all subsystems (drive, shooter, sensors)
+- Handle driver mode switching (single vs dual driver)
+- Emergency stop protocols
+- Performance monitoring
+- Graceful degradation when hardware fails
 
-**Important Methods**:
-- `AuroraManager(HardwareMap, Telemetry)` - Initialize all subsystems
-- `update(Gamepad, Gamepad)` - Main update loop (call every cycle)
-- `setDriverMode(DriverMode)` - Switch between SINGLE_DRIVER and DUAL_DRIVER
-- `getDriveSystem()` - Get SmartMechanumDrive instance
-- `getShooterSystem()` - Get EnhancedDecodeHelper instance
-- `isSystemsHealthy()` - Check if robot is operational
-- `cleanup()` - Safe shutdown of all systems
+**Key Methods**:
+```java
+AuroraManager(HardwareMap hwMap, Telemetry telemetry)  // Initialize all systems
+void update(Gamepad gamepad1, Gamepad gamepad2)        // Main update loop
+void setDriverMode(DriverMode mode)                     // Switch driver modes
+SmartMechanumDrive getDriveSystem()                     // Get drive subsystem
+EnhancedDecodeHelper getShooterSystem()                 // Get shooter subsystem
+boolean isSystemsHealthy()                              // Check system status
+void cleanup()                                          // Safe shutdown
+```
 
 **Driver Modes**:
-- `SINGLE_DRIVER`: Gamepad1 controls everything
-- `DUAL_DRIVER`: Gamepad1 = movement/semi-auto, Gamepad2 = shooter/tools
+- `SINGLE_DRIVER`: Gamepad1 controls everything (default)
+- `DUAL_DRIVER`: Gamepad1=movement, Gamepad2=shooter/tools
+
+**Hardware Initialization Pattern**:
+```java
+// Graceful error handling - robot continues with partial functionality
+try {
+    shooter = hardwareMap.get(DcMotor.class, "shooter");
+    shooterInitialized = true;
+} catch (Exception e) {
+    shooter = null;
+    shooterInitialized = false;
+    telemetry.addLine("⚠️ Shooter not found");
+    // Robot can still drive without shooter
+}
+```
 
 ### 2. SmartMechanumDrive (Drive System)
 
 **File**: `util/aurora/SmartMechanumDrive.java`
 
-**Purpose**: Intelligent mecanum drive with battery optimization, acceleration limiting, and multiple drive modes.
+**Purpose**: Intelligent mecanum drive with power optimization and multiple modes.
 
 **Drive Modes**:
-- `PRECISION` (0.3 max power) - Slow, accurate movements
-- `NORMAL` (0.8 max power) - Balanced speed and control
-- `SPORT` (1.0 max power) - Maximum speed and agility
-- `EFFICIENCY` (0.6 max power) - Battery-optimized
-- `AUTO_ADAPTIVE` (1.0 max power) - AI-optimized based on conditions
+- `PRECISION` - 0.3 max power, slow and accurate
+- `NORMAL` - 0.8 max power, balanced (default)
+- `SPORT` - 1.0 max power, maximum speed
+- `EFFICIENCY` - 0.6 max power, battery-saving
+- `AUTO_ADAPTIVE` - 1.0 max power, AI-optimized
 
-**Key Features**:
-- Dynamic power scaling based on battery voltage
-- Smooth acceleration curves (configurable)
-- Field-relative and robot-relative drive modes
-- Fine movement control (D-pad + bumpers)
-- Driver performance analytics
+**Features**:
+- Battery voltage compensation (power scales up as voltage drops)
+- Smooth acceleration limiting (configurable ramp rate)
+- Field-relative and robot-relative modes
+- Fine movement control (D-pad precision adjustments)
+- Performance analytics
 
-**Important Methods**:
-- `update()` - Main drive update loop
-- `setDriveMode(DriveMode)` - Change drive mode
-- `setFieldRelative(boolean)` - Toggle field-centric driving
-- `setRobotHeading(double)` - Update heading for field-relative
-- `setDriveInputs(double, double, double)` - Manual control (axial, lateral, yaw)
-- `setFineMovement(double, double, double)` - Fine adjustments
-- `stop()` - Emergency stop all motors
-- `enableAccelerationLimiting(boolean)` - Toggle smooth acceleration
+**Key Methods**:
+```java
+void update()                                    // Main drive loop
+void setDriveMode(DriveMode mode)                // Change drive mode
+void setFieldRelative(boolean enabled)           // Toggle field-centric
+void setRobotHeading(double heading)             // Update for field-relative
+void setDriveInputs(double axial, double lateral, double yaw)  // Manual control
+void setFineMovement(double x, double y, double rot)           // Precision adjustments
+void stop()                                      // Emergency stop
+void enableAccelerationLimiting(boolean enable)  // Toggle smooth acceleration
+```
+
+**Motor Configuration** (IMPORTANT):
+```java
+// Left motors are REVERSED, right motors are FORWARD
+leftFront.setDirection(DcMotor.Direction.REVERSE);
+leftBack.setDirection(DcMotor.Direction.REVERSE);
+rightFront.setDirection(DcMotor.Direction.FORWARD);
+rightBack.setDirection(DcMotor.Direction.FORWARD);
+```
+
+**Hardware Names** (must match robot configuration):
+- `frontLeft` - Front left motor
+- `frontRight` - Front right motor
+- `backLeft` - Back left motor
+- `backRight` - Back right motor
 
 ### 3. EnhancedDecodeHelper (Shooter System)
 
 **File**: `util/aurora/EnhancedDecodeHelper.java`
 
-**Purpose**: Advanced shooter control with RPM-based shooting, machine learning optimization, and shot compensation.
+**Purpose**: Advanced shooter with RPM control, ML optimization, and shot compensation.
 
 **Shooting Modes**:
 - **Single Shot**: Fire one artifact with precise RPM control
-- **Continuous Shooting**: Rapid fire with automatic spacing
-- **Warmup Mode**: Run at 65% RPM to save battery while ready
+- **Continuous Shooting**: Rapid fire with automatic timing
+- **Warmup Mode**: Run at 65% RPM (power saving while ready)
 - **Manual Power**: Direct motor control (bypass RPM)
 
-**Key Features**:
+**Features**:
 - Closed-loop RPM control with adaptive PID
-- Shot compensation boost (learned from data)
+- ML-based shot compensation (learns optimal boost parameters)
 - RPM overshoot detection and prevention
 - Battery voltage compensation
-- Configurable shooting presets (SHORT_RANGE, LONG_RANGE, RAPID_FIRE, etc.)
-- ML-based shot optimization (RpmLearningSystem)
+- Configurable shooting presets
 
-**Important Methods**:
-- `EnhancedDecodeHelper(HardwareMap)` - Initialize shooter
-- `EnhancedDecodeHelper(HardwareMap, boolean)` - With odometry tracking
-- `update()` - Main shooter loop (handles RPM control)
-- `startShooter()` / `stopShooter()` - Basic controls
-- `singleShot()` - Fire one shot
-- `continuousShooting(boolean)` - Enable/disable rapid fire
-- `setWarmupMode(boolean)` - Toggle warmup (power saving)
-- `setManualPower(double)` - Direct motor control
-- `setConfig(ShooterConfig)` - Change shooting preset
-- `getCurrentRPM()` - Read flywheel speed
-- `isRpmStable()` - Check if ready to shoot
-- `resetStats()` - Clear performance counters
-- `saveMlData()` - Store learning data
-- `resetMlToDefaults()` - Clear ML learning
+**Key Methods**:
+```java
+EnhancedDecodeHelper(HardwareMap hwMap)                      // Basic init
+EnhancedDecodeHelper(HardwareMap hwMap, boolean useOdometry) // With position tracking
+void update()                                     // Main shooter loop (CALL EVERY CYCLE)
+void startShooter()                               // Start flywheel
+void stopShooter()                                // Stop flywheel
+void singleShot()                                 // Fire one artifact
+void continuousShooting(boolean enable)           // Enable/disable rapid fire
+void setWarmupMode(boolean enable)                // Toggle warmup (power saving)
+void setManualPower(double power)                 // Direct motor control
+void setConfig(ShooterConfig config)              // Change shooting preset
+double getCurrentRPM()                            // Read flywheel speed
+boolean isRpmStable()                             // Check if ready to shoot
+void resetStats()                                 // Clear performance counters
+void saveMlData()                                 // Store ML learning data
+void resetMlToDefaults()                          // Clear ML learning
+```
 
 **ShooterConfig Presets** (`util/aurora/ShooterConfig.java`):
-- `LONG_RANGE`: 85% power, 4000 RPM, 1.0s interval
-- `SHORT_RANGE`: 100% power, 2780 RPM, 0.15s interval (fast)
-- `RAPID_FIRE`: 80% power, 3900 RPM, 0.3s interval (balanced)
-- `PRECISION`: 90% power, 4800 RPM, 2.0s interval (accurate)
-- `BATTERY_SAVER`: 65% power, 3000 RPM, 1.8s interval (efficient)
+```java
+LONG_RANGE:     85% power, 4000 RPM, 1.0s interval  // Far shots
+SHORT_RANGE:    100% power, 2780 RPM, 0.15s interval // Fast close shots
+RAPID_FIRE:     80% power, 3900 RPM, 0.3s interval  // Balanced
+PRECISION:      90% power, 4800 RPM, 2.0s interval  // Accurate
+BATTERY_SAVER:  65% power, 3000 RPM, 1.8s interval  // Efficient
+```
 
-### 4. SmartTelemetryManager (Paginated Telemetry)
+**Hardware Names** (must match robot configuration):
+- `shooter` - Flywheel motor (DC motor with encoder)
+- `feedServo1` - First feeder servo (continuous rotation)
+- `feedServo2` - Second feeder servo (continuous rotation)
+- `light` - RGB indicator servo (optional)
+
+**PID Constants**:
+```java
+// Normal operation
+RPM_KP = 0.0003, RPM_KI = 0.00001, RPM_KD = 0.0001
+
+// Recovery from RPM drop
+RPM_KP_RECOVERY = 0.0005, RPM_KI_RECOVERY = 0.00002, RPM_KD_RECOVERY = 0.00015
+```
+
+### 4. Odometry and Position Tracking
+
+**GoBilda Pinpoint Driver** (`util/tool/GoBildaPinpointDriver.java`):
+- Hardware interface for Pinpoint odometry computer
+- Returns Pose2D (x, y, heading) in millimeters and radians
+- **Configuration** (IMPORTANT - from `pedroPathing/Constants.java`):
+  ```java
+  // Pedro Pathing uses different naming than Aurora Lightning
+  forwardPodY = -6.62 inches   // Y offset of forward encoder
+  strafePodX = 4.71 inches     // X offset of strafe encoder
+  strafeEncoderDirection = REVERSED  // Strafe pod reversed so Y increases when moving left
+  ```
+- **Hardware Name**: `"odo"` in robot configuration
+
+**PositionManager** (`util/aurora/lightning/PositionManager.java`):
+- Manages odometry updates and position tracking
+- Sensor fusion: IMU + Pinpoint
+- Provides field-relative positioning
+
+**PoseController** (`util/aurora/lightning/PoseController.java`):
+- PID-based closed-loop position control
+- Smooth motion profiles (acceleration/deceleration)
+- Waypoint navigation with automatic advancement
+- Overshoot detection and correction
+
+**PID Tuning Constants** (for autonomous):
+```java
+// Position control
+KP_POSITION = 0.08, KI_POSITION = 0.001, KD_POSITION = 0.02
+
+// Heading control
+KP_HEADING = 0.025, KI_HEADING = 0.0005, KD_HEADING = 0.008
+```
+
+**Tolerances**:
+- Position: 1.0 inches
+- Heading: 2.0 degrees
+- Max move time: 5.0 seconds (timeout protection)
+
+### 5. SmartTelemetryManager (Paginated Telemetry)
 
 **File**: `util/aurora/SmartTelemetryManager.java`
 
-**Purpose**: Organized, paginated telemetry display for managing complex robot data.
+**Purpose**: Organized, paginated telemetry display for Driver Station.
 
 **Telemetry Pages**:
 1. **Overview**: System status, battery, uptime, critical warnings
@@ -183,63 +436,33 @@ TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
 4. **Performance**: CPU usage, loop times, error counts
 5. **Controls**: Button mappings and help text
 
-**Important Methods**:
-- `update(Telemetry)` - Refresh current page
-- `nextPage()` / `previousPage()` - Navigate pages
-- `getCurrentPage()` - Get active page name
-- `setCustomData(String, String)` - Add custom telemetry items
+**Navigation**:
+- D-pad Right: Next page
+- D-pad Left: Previous page (implicit)
 
-### 5. Odometry & Autonomous Systems
-
-#### GoBildaPinpointDriver (`util/tool/GoBildaPinpointDriver.java`)
-- Hardware interface for Pinpoint odometry computer
-- Configured with X_OFFSET = -154mm, Y_OFFSET = 0mm
-- Returns Pose2D (x, y, heading) in field coordinates
-
-#### PositionManager (`util/aurora/lightning/PositionManager.java`)
-- Manages odometry updates and position tracking
-- Integrates IMU + Pinpoint sensor fusion
-- Provides field-relative positioning
-
-#### PoseController (`util/aurora/lightning/PoseController.java`)
-- PID-based closed-loop position control
-- Smooth motion profiles (acceleration/deceleration)
-- Waypoint navigation with automatic advancement
-- Overshoot detection and correction
-
-#### AuroraLightningCore (`util/aurora/lightning/AuroraLightningCore.java`)
-- High-level autonomous control system
-- Integrates PoseController + PositionManager + PathPlanner
-- Waypoint-based navigation
-- Non-blocking operation
-
-#### Pedro Pathing (`pedroPathing/`)
-- External path-following library (alternative to Lightning)
-- BezierLine and BezierCurve path generation
-- PathChain for complex sequences
-- `PedroAutonomousBuilder` for fluent path construction
-
-### 6. Vision Systems (`util/aurora/vision/`)
-
-- `AuroraAprilTagDetector.java`: AprilTag detection
-- `AuroraAprilTagLocalizer.java`: Field localization using tags
+**Key Methods**:
+```java
+void update(Telemetry telemetry)              // Refresh current page
+void nextPage()                               // Navigate to next page
+void previousPage()                           // Navigate to previous page
+String getCurrentPage()                       // Get active page name
+void setCustomData(String key, String value)  // Add custom telemetry
+```
 
 ---
 
-## TeleOp Behavior and Strategy
+## TeleOp Control Scheme (AURORATeleOp.java)
 
-### Primary TeleOp OpMode: `AURORATeleOp.java`
-
-**Annotation**: `@TeleOp(name="AURORA Enhanced TeleOp", group="Competition")`
-
-**Driver Mode Toggle**: Back + D-pad Left (Gamepad1)
+### Driver Mode Toggle
+**Back + D-pad Left (Gamepad1)**: Switch between single/dual driver modes
 
 ### Single Driver Mode (Default)
 **Gamepad 1 - All Controls**
 
 **Movement**:
-- Left Stick: Forward/backward + strafe (axial/lateral)
-- Right Stick: Rotation (yaw)
+- Left Stick Y: Forward/Backward (axial)
+- Left Stick X: Strafe Left/Right (lateral)
+- Right Stick X: Rotation (yaw)
 - D-pad: Fine XY movement (20% power)
 - Left/Right Bumpers: Fine rotation (20% power)
 
@@ -247,17 +470,11 @@ TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
 - Left Stick Button: Toggle precision mode (30% max power)
 - X Button: Toggle field-relative driving
 
-**Semi-Auto Actions** (coordinated movement + shooting):
-- Y Button: Basket approach + auto-shoot sequence
-- B Button: Precision positioning
-- A Button: Retreat to safe zone
-- Triggers: Auto-rotate/align to targets
-
 **Shooter Controls**:
-- A Button: Single shot (uses selected range preset)
+- A Button: Single shot
 - Y Button: Continuous shooting (rapid fire)
 - Right Trigger: Manual shooter power
-- B Button: Manual feed servo / Reset stats
+- B Button: Manual feed / Reset stats
 - X Button: Emergency stop shooting
 
 **System**:
@@ -265,13 +482,13 @@ TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
 - Back: Cancel semi-auto actions
 
 ### Dual Driver Mode
-**Gamepad 1 - Driver (Movement & Semi-Auto)**
+**Gamepad 1 - Driver (Movement)**
 - All movement controls (same as single driver)
-- All semi-auto actions (Y, B, A, triggers)
-- Drive mode toggles (precision, field-relative)
-- System controls (mode toggle, telemetry)
+- Semi-auto actions
+- Drive mode toggles
+- System controls
 
-**Gamepad 2 - Operator (Shooter & ML)**
+**Gamepad 2 - Operator (Shooter)**
 - Left Trigger: Warmup mode (65% RPM, power saving)
 - A Button: Single shot
 - Y Button: Continuous shooting
@@ -283,74 +500,69 @@ TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
 
 **Emergency Stop**: Both Start buttons (gamepad1.start && gamepad2.start)
 
-### TeleOp Strategy
-
-The robot's TeleOp strategy emphasizes:
-1. **Fast Artifact Cycling**: Short interval shooting (0.15s) for rapid scoring
-2. **Dual-Driver Efficiency**: Driver focuses on navigation while operator manages shooter
-3. **Power Management**: Warmup mode saves battery between scoring runs
-4. **Adaptive Shooting**: ML system learns optimal shot compensation over time
-5. **Field Awareness**: Field-relative drive for intuitive control
-6. **Semi-Auto Assists**: Automated sequences (basket approach, precision position) reduce driver workload
-7. **Real-time Telemetry**: Paginated display shows critical info without clutter
-
 ---
 
-## Autonomous Behavior and Strategy
+## Autonomous Strategies
 
-The team uses **two distinct autonomous frameworks**: AURORA Lightning (odometry-based) and Pedro Pathing (path-following).
+### Two Frameworks Available
 
-### AURORA Lightning Autonomous OpModes
+The team uses **two distinct autonomous frameworks**:
+
+1. **AURORA Lightning** (odometry-based) - Direct motor control with PID
+2. **Pedro Pathing** (path-following) - Smooth bezier paths
+
+### AURORA Lightning Autonomous
 
 **Files**: `BLUEAutoAurora.java`, `REDAutoAurora.java`, `LONGBLUEAR.java`, `LONGREDAR.java`
 
-**Annotation**: `@Autonomous(name="...", group="Timed Autonomous")`
+**OpMode Type**: `LinearOpMode` with `@Autonomous` annotation
 
 **Approach**: Direct odometry control with robot-relative movement functions.
 
-**Key Movement Functions**:
-- `moveForward(inches)` - Move forward relative to robot
-- `moveBackward(inches)` - Move backward relative to robot
-- `moveLeft(inches)` - Strafe left relative to robot
-- `moveRight(inches)` - Strafe right relative to robot
-- `turnToAngle(degrees)` - Turn to absolute field angle
-- `turnRelative(degrees)` - Turn relative to current heading
-- `moveToPosition(x, y, heading)` - Absolute field positioning
-- `strafeToPosition(x, y)` - Strafe while maintaining heading
-
-**Features**:
-- PID-based position control
-- Smooth acceleration/deceleration profiles
-- Overshoot detection and correction
-- Automatic course correction during movement
-- Position tolerance: 1.0 inches, Heading tolerance: 2.0 degrees
-- Max move time: 5.0 seconds with timeout protection
-
-**PID Tuning Constants**:
+**Movement Functions**:
 ```java
-KP_POSITION = 0.08, KI_POSITION = 0.001, KD_POSITION = 0.02
-KP_HEADING = 0.025, KI_HEADING = 0.0005, KD_HEADING = 0.008
+void moveForward(double inches)      // Move forward relative to robot
+void moveBackward(double inches)     // Move backward relative to robot
+void moveLeft(double inches)         // Strafe left relative to robot
+void moveRight(double inches)        // Strafe right relative to robot
+void turnToAngle(double degrees)     // Turn to absolute field angle
+void turnRelative(double degrees)    // Turn relative to current heading
+void moveToPosition(double x, double y, double heading)  // Absolute positioning
+void strafeToPosition(double x, double y)                // Strafe while maintaining heading
 ```
 
-**Typical Sequence** (example from BLUEAutoAurora):
-1. Initialize odometry at starting pose
-2. Leave LAUNCH LINE (move forward)
-3. Navigate to shooting position (strafe + turn)
-4. Shoot pre-loaded artifacts
-5. Navigate to artifact collection zone
-6. Return to scoring position
-7. Park in BASE for endgame points
+**Typical Sequence**:
+```java
+// 1. Initialize odometry at starting pose
+odometry.resetPosAndIMU();
+
+// 2. Leave LAUNCH LINE (autonomous bonus points)
+moveForward(24);
+
+// 3. Navigate to shooting position
+strafeToPosition(targetX, targetY);
+turnToAngle(targetHeading);
+
+// 4. Shoot pre-loaded artifacts
+shooter.setConfig(ShooterConfig.ShooterPreset.SHORT_RANGE);
+shooter.singleShot();
+sleep(200);
+shooter.singleShot();
+
+// 5. Park in BASE for endgame points
+moveToPosition(baseX, baseY, 0);
+```
 
 **Sensors Used**:
 - GoBilda Pinpoint odometry (primary positioning)
-- IMU (heading fusion)
-- Encoder-based motor control
+- IMU (heading correction)
+- Motor encoders (wheel position)
 
-### Pedro Pathing Autonomous OpModes
+### Pedro Pathing Autonomous
 
-**Files**: `RedShortRange.java`, `BlueShortRange.java`, `RedLongRange.java`, `BlueLongRange.java`, `AdvancedPedroAutonomous.java`, `PedroAutonomous.java`
+**Files**: `RedShortRange.java`, `BlueShortRange.java`, `RedLongRange.java`, `BlueLongRange.java`, `PedroAutonomous.java`, `AdvancedPedroAutonomous.java`
 
-**Annotation**: `@Autonomous(name="...", group="Pedro Autonomous")`
+**OpMode Type**: `OpMode` (iterative) with `@Autonomous` annotation
 
 **Approach**: Path-following with BezierLine and BezierCurve paths.
 
@@ -359,63 +571,79 @@ KP_HEADING = 0.025, KI_HEADING = 0.0005, KD_HEADING = 0.008
 - `PathChain` - Sequence of path segments
 - `PedroAutonomousBuilder` - Fluent builder for autonomous sequences
 
-**Path Types**:
-- `BezierLine`: Straight line from point A to point B
-- `BezierCurve`: Smooth curve through control points
-- `BezierPath`: Complex multi-segment paths
+**OpMode Structure**:
+```java
+@Autonomous(name="...", group="Pedro Autonomous")
+public class MyAuto extends OpMode {
+    private Follower follower;
+    private PedroAutonomousBuilder autoBuilder;
+    
+    @Override
+    public void init() {
+        follower = Constants.createFollower(hardwareMap);
+        
+        autoBuilder = new PedroAutonomousBuilder(follower)
+            .withShooter(shooter)
+            .addPath(pathChain)
+            .addTurnToHeading(Math.toRadians(45))
+            .addShootAction(3, ShooterConfig.ShooterPreset.SHORT_RANGE)
+            .addWait(0.5);
+    }
+    
+    @Override
+    public void start() {
+        autoBuilder.start();
+    }
+    
+    @Override
+    public void loop() {
+        follower.update();     // MUST be called BEFORE builder.update()
+        autoBuilder.update();
+        telemetry.update();
+    }
+}
+```
 
 **PedroAutonomousBuilder Actions**:
 ```java
-.addPath(pathChain)               // Follow a path
-.addTurnToHeading(radians)        // Turn in place
-.addShootAction(count, preset)    // Fire shots
-.addWait(seconds)                 // Pause
-.addCustomAction(lambda)          // Custom code
-```
-
-**Example Sequence** (RedShortRange):
-```java
-autoBuilder = new PedroAutonomousBuilder(follower)
-    .withShooter(shooter)
-    .addPath(paths.Path1)                               // Move to position
-    .addTurnToHeading(Math.toRadians(44))               // Aim at target
-    .addShootAction(3, ShooterConfig.ShooterPreset.SHORT_RANGE)  // Fire 3 shots
-    .addWait(0.5)                                       // Brief pause
-    .addPath(paths.Path2);                              // Continue to next position
+.addPath(pathChain)                                        // Follow a path
+.addTurnToHeading(radians)                                 // Turn in place
+.addShootAction(count, preset)                             // Fire shots
+.addWait(seconds)                                          // Pause
+.addCustomAction(Runnable)                                 // Custom code
 ```
 
 **Configuration** (`pedroPathing/Constants.java`):
 - Follower PID tuning
 - Mecanum drivetrain configuration
-- Pinpoint odometry settings (matches Aurora: X_OFFSET=-154mm, Y_OFFSET=0mm)
+- Pinpoint odometry settings (forwardPodY=-6.62", strafePodX=4.71", strafeEncoder=REVERSED)
 - Path constraints (max speed, acceleration, deceleration)
 
-**Advantages of Pedro**:
-- Smooth, predictable paths
-- Less tuning required (library handles control loops)
-- Visual path planning tools
+**Advantages**:
+- Smooth, predictable motion
+- Less tuning required (library handles control)
+- Visual path planning tools available
 - Better for complex curved trajectories
 
-### Autonomous Strategy Summary
+**Disadvantages**:
+- External dependency
+- Less direct control over motion
+- Learning curve for path API
 
-**Primary Goals**:
-1. **Leave LAUNCH LINE**: Gain autonomous points (required)
-2. **Score Pre-loaded Artifacts**: Shoot into GOAL for CLASSIFIED/OVERFLOW points
-3. **Build PATTERN on RAMP**: Follow MOTIF for bonus points (if time permits)
-4. **Park in BASE**: Endgame points for partial/full BASE return
+### When to Use Which Framework
 
-**Strategic Choices**:
-- **Short Range** paths prioritize speed, close-to-basket scoring
-- **Long Range** paths navigate around obstacles for optimal positioning
-- Both systems use same odometry hardware (Pinpoint) for consistency
-- Shooter presets matched to path (SHORT_RANGE vs LONG_RANGE)
-- Alliance-specific starting positions and paths
+**Use AURORA Lightning when**:
+- Simple straight-line movements
+- Precise position control needed
+- Incremental improvements to existing Aurora code
+- Direct odometry access needed
+- Full control over PID tuning required
 
-**Sensor Integration**:
-- Pinpoint odometry: Primary localization
-- IMU: Heading correction
-- AprilTags: Optional alignment assistance (not used in current OpModes)
-- Color sensors: Could detect ARTIFACT color for PATTERN (not implemented)
+**Use Pedro Pathing when**:
+- Smooth curved paths required
+- Complex multi-segment routes
+- Rapid autonomous development needed
+- Competition-ready reliability is priority
 
 ---
 
@@ -423,101 +651,103 @@ autoBuilder = new PedroAutonomousBuilder(follower)
 
 ### Naming Conventions
 
-**Classes**:
-- PascalCase: `AuroraManager`, `SmartMechanumDrive`
-- Descriptive names indicating purpose
-- OpModes: `[Alliance][Strategy]` (e.g., `BLUEAutoAurora`, `RedShortRange`)
-
-**Methods**:
-- camelCase: `update()`, `getCurrentRPM()`, `setDriveMode()`
-- Action verbs: `start`, `stop`, `set`, `get`, `is`, `enable`
-- Boolean methods start with `is`: `isRpmStable()`, `isSystemsHealthy()`
-
-**Variables**:
-- camelCase: `currentPower`, `targetRPM`, `shooterRunning`
-- Constants: `UPPER_SNAKE_CASE`: `MAX_POWER`, `KP_POSITION`, `LIGHT_GREEN`
-- Member variables: descriptive, not abbreviated
-- Avoid single-letter names except loop counters
-
-**Hardware Names** (configuration file):
-- camelCase: `frontLeft`, `backRight`, `feedServo1`, `odo`
-- Consistent naming across all OpModes
-
-### Package Organization
-
-```
-org.firstinspires.ftc.teamcode/
-├── [OpModes at root]              # All OpMode classes directly in teamcode
-├── util/                          # Utility classes and subsystems
-│   ├── aurora/                    # AURORA framework
-│   │   ├── lightning/             # Advanced autonomous
-│   │   └── vision/                # Vision processing
-│   └── tool/                      # General-purpose tools
-├── pedroPathing/                  # Pedro Pathing integration
-├── mechanisms/                    # Hardware abstractions
-├── opmodes/                       # Additional OpMode examples
-└── webinterface/                  # Dashboard customization
-```
-
-### Code Structure Patterns
-
-**OpMode Structure** (LinearOpMode):
+**Classes** (PascalCase):
 ```java
-@TeleOp(name="...", group="...")  // or @Autonomous
+AuroraManager           // Subsystem managers
+SmartMechanumDrive      // Drive systems
+EnhancedDecodeHelper    // Helper classes
+BLUEAutoAurora          // OpModes (Alliance + Strategy)
+```
+
+**Methods** (camelCase):
+```java
+update()                 // Update loops
+getCurrentRPM()          // Getters
+setDriveMode()           // Setters
+isRpmStable()            // Boolean checks (is/has prefix)
+enableFeature()          // Enable/disable actions
+```
+
+**Variables** (camelCase):
+```java
+currentPower            // Current state
+targetRPM               // Target values
+shooterRunning          // Boolean flags
+```
+
+**Constants** (UPPER_SNAKE_CASE):
+```java
+MAX_POWER               // Maximum values
+KP_POSITION             // PID constants
+LIGHT_GREEN             // Color constants
+```
+
+**Hardware Names** (camelCase - must match robot config):
+```java
+frontLeft               // Motors
+backRight               // Motors
+feedServo1              // Servos
+odo                     // Sensors
+```
+
+### OpMode Structure
+
+**LinearOpMode Template** (TeleOp and most Autonomous):
+```java
+@TeleOp(name="My OpMode", group="Competition")  // or @Autonomous
 public class MyOpMode extends LinearOpMode {
-    // Hardware and subsystems
+    // 1. Hardware and subsystems
     private AuroraManager robotManager;
     private ElapsedTime runtime = new ElapsedTime();
     
-    // State variables
-    private boolean someState = false;
+    // 2. State variables
+    private boolean previousButtonState = false;
     
     @Override
     public void runOpMode() {
-        // 1. Initialization
+        // 3. Initialization
         telemetry.addLine("Initializing...");
         robotManager = new AuroraManager(hardwareMap, telemetry);
         telemetry.update();
         
-        // 2. Wait for start
+        // 4. Wait for start
         waitForStart();
         runtime.reset();
         
-        // 3. Main loop
+        // 5. Main loop
         while (opModeIsActive()) {
             // Update subsystems
             robotManager.update(gamepad1, gamepad2);
             
-            // Custom logic
-            // ...
+            // Custom logic with edge detection
+            if (gamepad1.a && !previousButtonState) {
+                // Button just pressed
+            }
+            previousButtonState = gamepad1.a;
             
-            // Telemetry
-            telemetry.addData("Status", "Running");
+            // Telemetry (at end of loop)
+            telemetry.addData("Runtime", runtime.toString());
             telemetry.update();
         }
         
-        // 4. Cleanup
+        // 6. Cleanup
         robotManager.cleanup();
     }
 }
 ```
 
-**OpMode Structure** (Iterative OpMode for Pedro):
+**Iterative OpMode Template** (Pedro Pathing):
 ```java
-@Autonomous(name="...", group="...")
-public class MyOpMode extends OpMode {
+@Autonomous(name="My Auto", group="Pedro Autonomous")
+public class MyAuto extends OpMode {
     private Follower follower;
     private PedroAutonomousBuilder autoBuilder;
     
     @Override
     public void init() {
-        // Initialize hardware
         follower = Constants.createFollower(hardwareMap);
-        
-        // Build autonomous sequence
         autoBuilder = new PedroAutonomousBuilder(follower)
-            .addPath(...)
-            .addShootAction(...);
+            .addPath(myPath);
         
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -530,92 +760,11 @@ public class MyOpMode extends OpMode {
     
     @Override
     public void loop() {
-        follower.update();           // Required BEFORE builder update
+        follower.update();           // ALWAYS call before builder.update()
         autoBuilder.update();
-        
-        // Telemetry
         telemetry.update();
     }
 }
-```
-
-### Hardware Initialization Pattern
-
-**Graceful Error Handling**:
-```java
-// Try to initialize with specific error messages
-try {
-    shooter = hardwareMap.get(DcMotor.class, "shooter");
-    shooterInitialized = true;
-} catch (Exception e) {
-    shooter = null;
-    shooterInitialized = false;
-    telemetry.addLine("⚠️ Shooter not found: " + e.getMessage());
-    telemetry.addLine("   Check hardware config for 'shooter'");
-}
-
-// Allow robot to run with partial functionality
-if (!shooterInitialized && !driveInitialized) {
-    telemetry.addLine("⚠️ WARNING: No major subsystems initialized");
-} else {
-    telemetry.addLine("✅ Robot ready (limited functionality)");
-}
-```
-
-### Loop Pattern
-
-**Main Loop Structure**:
-```java
-while (opModeIsActive()) {
-    // 1. Read inputs
-    double axial = -gamepad1.left_stick_y;
-    double lateral = gamepad1.left_stick_x;
-    
-    // 2. Update subsystems (in order of dependency)
-    robotManager.update(gamepad1, gamepad2);
-    
-    // 3. Custom logic
-    if (gamepad1.a && !prevA) {
-        // Button press detected
-    }
-    prevA = gamepad1.a;
-    
-    // 4. Telemetry (at end of loop)
-    telemetry.addData("Runtime", runtime.toString());
-    telemetry.update();
-}
-```
-
-### Comments and Documentation
-
-**JavaDoc Style** (for public methods):
-```java
-/**
- * Brief description of method
- *
- * Longer explanation if needed
- *
- * @param paramName Description of parameter
- * @return Description of return value
- */
-public double getSomething(int paramName) {
-    // ...
-}
-```
-
-**Inline Comments**:
-- Use sparingly, code should be self-documenting
-- Explain "why", not "what"
-- Complex algorithms or non-obvious logic deserve comments
-- Use `//` for single-line, avoid `/* */` for inline
-
-**Section Headers** (for long classes):
-```java
-// ======== Core Systems ========
-
-// ======== State Management ========
-
-// ======== Configuration ========
 ```
 
 ### Safety and Error Handling
@@ -637,12 +786,19 @@ if (gamepad1.start && gamepad2.start) {
 
 **Timeout Protection** (autonomous):
 ```java
+ElapsedTime moveTimer = new ElapsedTime();
+double MAX_MOVE_TIME = 5.0;
+
 moveTimer.reset();
 while (opModeIsActive() && !atTarget() && moveTimer.seconds() < MAX_MOVE_TIME) {
     // Movement logic
+    updateMotors();
+    sleep(10);
 }
+
 if (moveTimer.seconds() >= MAX_MOVE_TIME) {
     telemetry.addLine("⚠️ Move timeout!");
+    stopMotors();
 }
 ```
 
@@ -654,16 +810,16 @@ telemetry.addData("Label", "Value");
 telemetry.addData("Number", "%.2f", doubleValue);  // 2 decimal places
 telemetry.addLine("Status message");
 telemetry.addLine();  // Blank line for spacing
-telemetry.update();   // ALWAYS call update() at end of loop
+telemetry.update();   // ALWAYS call at end of loop
 ```
 
-**Use Icons**:
-- ✅ for success/active
-- ⚠️ for warnings
-- ❌ for errors
-- 🎮 for controls
-- 🔋 for battery
-- 📊 for stats
+**Icons** (use for visual clarity):
+- ✅ Success/Active
+- ⚠️ Warnings
+- ❌ Errors
+- 🎮 Controls
+- 🔋 Battery
+- 📊 Statistics
 
 ---
 
@@ -672,14 +828,14 @@ telemetry.update();   // ALWAYS call update() at end of loop
 ### Adding a New OpMode
 
 **Steps**:
-1. Create new `.java` file in `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/`
-2. Add appropriate annotation: `@TeleOp` or `@Autonomous`
-3. Extend `LinearOpMode` (for most cases) or `OpMode` (for Pedro)
+1. Create `.java` file in `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/`
+2. Add `@TeleOp` or `@Autonomous` annotation
+3. Extend `LinearOpMode` (recommended) or `OpMode` (for Pedro)
 4. Follow existing structure (init, waitForStart, loop, cleanup)
 5. Use `AuroraManager` for TeleOp or existing autonomous framework
-6. Test thoroughly before competition
+6. Test on actual robot before competition
 
-**Example TeleOp**:
+**TeleOp Example**:
 ```java
 package org.firstinspires.ftc.teamcode;
 
@@ -694,14 +850,10 @@ public class MyNewTeleOp extends LinearOpMode {
     @Override
     public void runOpMode() {
         robotManager = new AuroraManager(hardwareMap, telemetry);
-        
         waitForStart();
         
         while (opModeIsActive()) {
             robotManager.update(gamepad1, gamepad2);
-            
-            // Your custom logic here
-            
             telemetry.update();
         }
         
@@ -710,307 +862,145 @@ public class MyNewTeleOp extends LinearOpMode {
 }
 ```
 
-**Example Autonomous (Aurora Lightning)**:
-```java
-package org.firstinspires.ftc.teamcode;
-
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import org.firstinspires.ftc.teamcode.util.aurora.AuroraManager;
-import org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver;
-
-@Autonomous(name="My Auto", group="Timed Autonomous")
-public class MyAutonomous extends LinearOpMode {
-    private AuroraManager robotManager;
-    private GoBildaPinpointDriver odometry;
-    
-    @Override
-    public void runOpMode() {
-        // Initialize
-        robotManager = new AuroraManager(hardwareMap, telemetry);
-        odometry = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
-        odometry.setOffsets(-154, 0);  // X, Y offsets in mm
-        odometry.setEncoderDirections(
-            GoBildaPinpointDriver.EncoderDirection.FORWARD,
-            GoBildaPinpointDriver.EncoderDirection.FORWARD
-        );
-        odometry.resetPosAndIMU();
-        
-        waitForStart();
-        
-        // Autonomous sequence
-        moveForward(24);
-        turnToAngle(90);
-        moveLeft(12);
-        // ...
-    }
-    
-    // Copy movement functions from BLUEAutoAurora.java
-    private void moveForward(double inches) {
-        // Implementation...
-    }
-}
-```
-
-### Modifying Existing Subsystems
+### Modifying Subsystems
 
 **Before Modifying**:
-1. Understand the subsystem's role in the overall architecture
-2. Check for dependencies (what other classes call this?)
+1. Understand subsystem's role in overall architecture
+2. Check dependencies (what calls this class?)
 3. Review existing method signatures and contracts
 4. Test changes in isolation first
 
 **SmartMechanumDrive Modifications**:
-- New drive mode: Add enum value to `DriveMode` with max power and description
-- Tuning: Adjust `ACCELERATION_LIMIT`, `LOW_VOLTAGE_THRESHOLD`, motor directions
-- Features: Add methods, maintain existing API for backward compatibility
+- New drive mode: Add to `DriveMode` enum with max power and description
+- Tuning: Adjust `ACCELERATION_LIMIT`, `LOW_VOLTAGE_THRESHOLD`
+- Features: Add methods, maintain existing API
 
 **EnhancedDecodeHelper Modifications**:
 - New preset: Add to `ShooterConfig.ShooterPreset` enum
 - PID tuning: Modify `RPM_KP`, `RPM_KI`, `RPM_KD` constants
-- ML adjustment: Tune `learningRate`, `shotBoostDelay`, `shotBoostDuration`
-- Always test RPM stability after changes
-
-**AuroraManager Modifications**:
-- New subsystem: Add member variable, initialize in constructor, call in `update()`
-- Coordination: Add cross-system logic in `update()` method
-- Error handling: Follow graceful degradation pattern (try/catch with warnings)
-
-### Adding New Controls
-
-**TeleOp Control Addition**:
-1. Document in OpMode header comment (control scheme)
-2. Implement state tracking (prevButton pattern for edge detection)
-3. Update `SmartTelemetryManager` controls page
-4. Test for conflicts with existing controls
-
-**Edge Detection Pattern**:
-```java
-// Member variable
-private boolean prevButtonA = false;
-
-// In loop
-if (gamepad1.a && !prevButtonA) {
-    // Rising edge - button just pressed
-    performAction();
-}
-prevButtonA = gamepad1.a;
-```
-
-### Integrating DECODE-Specific Behaviors
-
-**Pattern Scoring** (not yet implemented):
-- Add color sensor to detect ARTIFACT color (purple/green)
-- Create `PatternBuilder` class in `util/aurora/`
-- Read MOTIF from field (could use vision or predetermined)
-- Build sequence to place artifacts on RAMP in correct PATTERN
-
-**BASE Return** (partially implemented):
-- Use odometry to navigate to BASE zones
-- Add autonomous action for endgame BASE return
-- Consider hang mechanism if robot has one
-
-**ARTIFACT Management**:
-- Track how many artifacts are loaded
-- Prevent shooting when empty
-- Add sensor to detect artifact presence
-
-**Example Integration**:
-```java
-// In EnhancedDecodeHelper.java
-private ColorSensor artifactSensor;
-private int artifactsLoaded = 0;
-
-public void updateArtifactCount() {
-    if (artifactSensor.red() > threshold) {
-        // Red artifact detected (or purple)
-        artifactsLoaded++;
-    }
-}
-
-public boolean canShoot() {
-    return artifactsLoaded > 0 && isRpmStable();
-}
-```
-
-### Improving Aiming/Trajectory
-
-**Current System**: Fixed shooter presets based on distance estimation.
-
-**Enhancements**:
-1. **AprilTag Alignment**:
-   - Use `util/aurora/vision/AuroraAprilTagLocalizer.java`
-   - Auto-aim at GOAL based on AprilTag position
-   - Calculate optimal heading and distance
-
-2. **Dynamic RPM Calculation**:
-   - Distance-based RPM formula: `RPM = f(distance, angle, batteryVoltage)`
-   - Store lookup table or polynomial fit
-   - Interpolate between presets
-
-3. **Turret Control** (if hardware added):
-   - Add servo for horizontal aiming
-   - PID control to track moving target
-   - Integrate with vision system
-
-**Example**:
-```java
-// In EnhancedDecodeHelper.java
-public double calculateRpmForDistance(double distanceInches) {
-    // Linear interpolation between SHORT and LONG range
-    if (distanceInches < 36) {
-        return ShooterConfig.ShooterPreset.SHORT_RANGE.getTargetRPM();
-    } else if (distanceInches > 72) {
-        return ShooterConfig.ShooterPreset.LONG_RANGE.getTargetRPM();
-    } else {
-        double t = (distanceInches - 36) / (72 - 36);
-        return lerp(SHORT_RANGE.getTargetRPM(), LONG_RANGE.getTargetRPM(), t);
-    }
-}
-```
+- Always test RPM stability after PID changes
 
 ### Tuning PID Constants
 
 **Drive PID** (Aurora autonomous):
-- Located in: `BLUEAutoAurora.java`, `REDAutoAurora.java`, etc.
-- Position: `KP_POSITION`, `KI_POSITION`, `KD_POSITION`
-- Heading: `KP_HEADING`, `KI_HEADING`, `KD_HEADING`
-- Test iteratively: start with P-only, add D for damping, add I for steady-state error
+- Location: `BLUEAutoAurora.java`, `REDAutoAurora.java`, etc.
+- Start with P-only, add D for damping, add I for steady-state error
+- Test iteratively with small increments
 
 **Shooter RPM PID**:
-- Located in: `EnhancedDecodeHelper.java`
-- Normal: `RPM_KP`, `RPM_KI`, `RPM_KD`
-- Recovery: `RPM_KP_RECOVERY`, `RPM_KI_RECOVERY`, `RPM_KD_RECOVERY`
+- Location: `EnhancedDecodeHelper.java`
 - Use `ShooterTuningOpMode.java` for live tuning
+- Monitor RPM stability with telemetry
 
 **Pedro Pathing PID**:
-- Located in: `pedroPathing/Constants.java`
-- Follower constants: `followerConstants`
-- Path constraints: `pathConstraints`
+- Location: `pedroPathing/Constants.java`
 - Use Pedro's built-in tuning OpModes
-
-### Adding Sensor Support
-
-**Sensor Integration Pattern**:
-1. Add hardware to configuration file
-2. Create utility wrapper class in `util/tool/` or `mechanisms/`
-3. Initialize in subsystem (e.g., `AuroraManager` or specific class)
-4. Poll/update in main loop
-5. Use for decision-making or telemetry
-
-**Example: Distance Sensor**:
-```java
-// In AuroraManager.java
-private DistanceSensor distanceSensor;
-
-// In initializeSystems()
-try {
-    distanceSensor = hardwareMap.get(DistanceSensor.class, "distance");
-    telemetry.addLine("✅ Distance sensor initialized");
-} catch (Exception e) {
-    distanceSensor = null;
-    telemetry.addLine("⚠️ Distance sensor not found");
-}
-
-// In update()
-if (distanceSensor != null) {
-    double distance = distanceSensor.getDistance(DistanceUnit.INCH);
-    // Use distance for collision avoidance, etc.
-}
-```
+- Adjust follower constants and path constraints
 
 ### Debugging Tips
 
 **Common Issues**:
-1. **"Can't find motor 'frontLeft'"**: Check hardware config names match code
-2. **Robot drifts during autonomous**: Recalibrate odometry offsets, check motor directions
-3. **Shooter RPM unstable**: Tune PID gains, check battery voltage, verify encoder counts
-4. **Gamepad not responding**: Check driver mode, verify gamepad assignment (1 vs 2)
-5. **OpMode crashes on init**: Check hardware initialization error handling
+1. **"Can't find motor 'frontLeft'"**
+   - Check hardware config names match code exactly
+   - Verify spelling and capitalization
+
+2. **Robot drifts during autonomous**
+   - Recalibrate odometry offsets (forwardPodY=-6.62", strafePodX=4.71")
+   - Check motor directions
+   - Verify encoder connections and directions (strafe encoder should be REVERSED)
+
+3. **Shooter RPM unstable**
+   - Tune PID gains
+   - Check battery voltage (>11.5V recommended)
+   - Verify encoder is counting
+
+4. **Gamepad not responding**
+   - Check driver mode (single vs dual)
+   - Verify gamepad assignment (1 vs 2)
+   - Check for button conflicts
+
+5. **OpMode crashes on init**
+   - Check hardware initialization error handling
+   - Verify all try/catch blocks
+   - Check hardware config file
 
 **Debugging Tools**:
 - `telemetry.addData()` - Print values to Driver Station
-- `RobotLog.dd(TAG, message)` - Log to logcat (view with adb)
+- `RobotLog.dd(TAG, message)` - Log to logcat (view with adb logcat)
 - `PerformanceMonitor` - Track loop times, errors
 - `ShooterTuningOpMode` - Live shooter calibration
-- Pedro Tuning OpModes - Test path following
-
-**Best Practices**:
-- Add telemetry early and often
-- Test one change at a time
-- Use try/catch to prevent total failure
-- Log errors with descriptive messages
-- Comment out experimental code, don't delete
 
 ---
 
-## Autonomous Framework Decision Guide
+## Important Hardware Configuration
 
-### When to Use AURORA Lightning
-
-**Best For**:
-- Simple straight-line movements
-- Precise position control
-- Incremental improvements to existing Aurora code
-- Direct odometry access needed
-- Full control over PID tuning
-
-**Pros**:
-- Fine-grained control over every movement
-- Easier to debug (direct motor commands)
-- Lightweight (no external library)
-- Good for learning fundamentals
-
-**Cons**:
-- More code to write for complex paths
-- Manual PID tuning required
-- No built-in path planning
-
-### When to Use Pedro Pathing
-
-**Best For**:
-- Smooth curved paths
-- Complex multi-segment routes
-- Rapid autonomous development
-- Competition-ready reliability
-
-**Pros**:
-- Smooth, predictable motion
-- Less tuning required
-- Visual path planning
-- Mature, tested library
-- Active community support
-
-**Cons**:
-- External dependency
-- Less control over low-level details
-- Learning curve for path API
-- Larger code footprint
-
-**Recommendation**: Use Pedro Pathing for competition autonomous, Aurora Lightning for experimentation and learning.
-
----
-
-## Important Notes
-
-### Hardware Configuration
-
-**Motor Directions** (in `SmartMechanumDrive.java`):
+### Motor Directions (CRITICAL)
 ```java
+// In SmartMechanumDrive.java
 leftFront.setDirection(DcMotor.Direction.REVERSE);
 leftBack.setDirection(DcMotor.Direction.REVERSE);
-// Right motors are FORWARD (default)
+rightFront.setDirection(DcMotor.Direction.FORWARD);
+rightBack.setDirection(DcMotor.Direction.FORWARD);
 ```
-If robot moves incorrectly, swap REVERSE ↔ FORWARD for affected motors.
+**If robot moves incorrectly**, swap REVERSE ↔ FORWARD for affected motors.
 
-**Odometry Calibration** (in `pedroPathing/Constants.java` or Aurora code):
+### Odometry Calibration (CRITICAL)
 ```java
-X_OFFSET = -154mm  // Forward pod is 154mm BEHIND robot center
-Y_OFFSET = 0mm     // Strafe pod is at robot center
-```
-If localization is wrong, re-measure offsets from robot center to odometry pods.
+// Pedro Pathing Configuration (from pedroPathing/Constants.java)
+// forwardPodY: Y offset of forward encoder = -6.62 inches
+// strafePodX: X offset of strafe encoder = 4.71 inches
+// strafeEncoderDirection: REVERSED (so Y increases when moving left)
 
-### Machine Learning System
+public static PinpointConstants localizerConstants = new PinpointConstants()
+    .forwardPodY(-6.62)
+    .strafePodX(4.71)
+    .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);
+```
+**If localization is wrong**, verify these offsets in `pedroPathing/Constants.java` and run "Localization Test" to ensure Forward = X increases, Left = Y increases.
+
+### Hardware Names (Must Match Robot Config)
+- **Drive Motors**: `frontLeft`, `frontRight`, `backLeft`, `backRight`
+- **Shooter**: `shooter` (DC motor with encoder)
+- **Feed Servos**: `feedServo1`, `feedServo2` (continuous rotation)
+- **Odometry**: `odo` (GoBilda Pinpoint)
+- **Light**: `light` (optional RGB indicator servo)
+
+---
+
+## Known Limitations and Constraints
+
+### Build System
+1. **Internet Required**: First build MUST have internet access
+2. **No Offline Build**: `--offline` flag will fail due to missing dependencies
+3. **Build Time**: Initial build takes 2-5 minutes
+4. **Gradle Version**: Requires Gradle 8.9 (auto-downloaded)
+
+### Testing
+1. **No Automated Tests**: No JUnit, no instrumentation tests
+2. **Manual Testing Only**: Must test on actual robot hardware
+3. **No CI/CD**: No automated build/test pipelines
+
+### Development Environment
+1. **Android Studio Required**: Cannot build with VS Code or IntelliJ IDEA
+2. **Android SDK Required**: Must install Android SDK via Android Studio
+3. **JDK 17**: Project uses JDK 17 (auto-configured by Gradle)
+
+### Network Dependencies
+The build system requires access to:
+- `dl.google.com` - Android Gradle Plugin
+- `repo1.maven.org` - Maven Central (AndroidX, etc.)
+- `mymaven.bylazar.com` - Pedro Pathing libraries
+- `repo.dairy.foundation` - Sloth framework
+
+### FTC Competition Rules
+1. **SDK Version**: Must use FTC-approved SDK (currently 11.0.0)
+2. **Hardware**: Must use FTC-legal hardware (Control Hub, approved motors/sensors)
+3. **OpMode Requirements**: Must follow FTC OpMode structure
+4. **Inspection**: Robot must pass pre-match inspection
+
+---
+
+## Machine Learning System
 
 **Location**: `util/aurora/RpmLearningSystem.java` + `EnhancedDecodeHelper.java`
 
@@ -1024,15 +1014,17 @@ The ML system learns optimal shot compensation parameters:
 - Adjusts parameters based on performance
 - Stores learned values to file
 
-**Production Mode**: ML disabled by default in `AURORATeleOp`
+**Production Mode**: Disabled by default in `AURORATeleOp`
 - Uses pre-trained values from configuration
-- Can save/reset via gamepad controls (Gamepad2: LB=save, RB hold=reset)
+- Can save/reset via gamepad controls (GP2: LB=save, RB hold=reset)
 
-**Files**: Learning data stored in `/sdcard/FIRST/shooter_learning_data.txt`
+**Data Storage**: `/sdcard/FIRST/shooter_learning_data.txt`
 
-### Battery Management
+---
 
-**Voltage Compensation**: Enabled by default in `ShooterConfig` and `SmartMechanumDrive`
+## Battery Management
+
+**Voltage Compensation**: Enabled by default
 - Automatically increases motor power as battery drains
 - Prevents performance degradation during match
 
@@ -1049,30 +1041,53 @@ The ML system learns optimal shot compensation parameters:
 
 ## Summary
 
-This FTC DECODE robot codebase features the **AURORA framework**, a sophisticated architecture for coordinating drive, shooter, and autonomous systems. The team has implemented two autonomous approaches (Aurora Lightning and Pedro Pathing) and uses advanced features like machine learning shot optimization, paginated telemetry, and dual-driver mode support.
+This is a **competition-ready FTC DECODE robot codebase** with:
+- ✅ Well-organized package structure
+- ✅ Graceful error handling
+- ✅ Dual autonomous frameworks (AURORA + Pedro)
+- ✅ Advanced shooter control with ML
+- ✅ Flexible driver configurations
 
-**Key Strengths**:
-- Well-organized package structure
-- Graceful error handling
-- Multiple autonomous strategies
-- Advanced shooter control with ML
-- Flexible driver configurations
-
-**Areas for Enhancement** (future work):
-- Pattern scoring based on MOTIF
-- AprilTag-based auto-aim
-- Dynamic RPM calculation
-- Improved ARTIFACT tracking
-- Automated endgame BASE return
-
-When making changes:
+**When making changes**:
 1. Follow existing naming conventions and structure
-2. Test incrementally and thoroughly
+2. Test incrementally on actual robot hardware
 3. Maintain backward compatibility where possible
 4. Document new features in comments and telemetry
-5. Consider how changes affect both TeleOp and Autonomous
+5. Consider impact on both TeleOp and Autonomous
 6. Always handle errors gracefully (null checks, try/catch)
 
-**Remember**: This is a competition-ready codebase. Prioritize reliability and consistency over experimental features during competition season. Save experimental work for post-season or practice robots.
+**Remember**: Prioritize reliability and consistency over experimental features during competition season. Save experimental work for post-season or practice robots.
+
+---
+
+## Quick Reference Card
+
+### File Locations
+- **OpModes**: `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/*.java`
+- **AURORA Framework**: `util/aurora/`
+- **Pedro Pathing**: `pedroPathing/`
+- **Build Config**: `build.gradle`, `build.common.gradle`, `build.dependencies.gradle`
+
+### Build Commands
+```bash
+./gradlew --version              # Check Gradle version
+./gradlew assembleDebug          # Build Robot Controller APK
+./gradlew clean                  # Clean build artifacts
+```
+
+### Hardware Config Names
+- Drive: `frontLeft`, `frontRight`, `backLeft`, `backRight`
+- Shooter: `shooter`, `feedServo1`, `feedServo2`, `light`
+- Odometry: `odo`
+
+### PID Constants
+- Position: KP=0.08, KI=0.001, KD=0.02
+- Heading: KP=0.025, KI=0.0005, KD=0.008
+- RPM: KP=0.0003, KI=0.00001, KD=0.0001
+
+### Odometry Offsets (Pedro Pathing)
+- forwardPodY = -6.62 inches (Y offset of forward encoder)
+- strafePodX = 4.71 inches (X offset of strafe encoder)
+- strafeEncoderDirection = REVERSED
 
 Good luck in the DECODE season! 🤖🏆
