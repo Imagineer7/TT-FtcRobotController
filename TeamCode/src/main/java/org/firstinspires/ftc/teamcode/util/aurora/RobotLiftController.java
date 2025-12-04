@@ -1558,26 +1558,31 @@ public class RobotLiftController {
      * @param durationMs Duration in milliseconds
      */
     public void vibrateCustomPattern(double leftRumble, double rightRumble, int durationMs) {
-        if (!vibrationsEnabled) return;
-
-        if (gamepad1 != null) {
-            gamepad1.rumble(leftRumble, rightRumble, durationMs);
-        }
-        if (gamepad2 != null) {
-            gamepad2.rumble(leftRumble, rightRumble, durationMs);
-        }
+        if (!vibrationsEnabled || feedbackManager == null) return;
+        feedbackManager.rumbleCustom(leftRumble, rightRumble, durationMs);
     }
 
     /**
      * Stop all gamepad vibrations immediately
      */
     public void stopVibrations() {
-        if (gamepad1 != null) {
-            gamepad1.stopRumble();
+        if (feedbackManager != null) {
+            feedbackManager.stopAll();
         }
-        if (gamepad2 != null) {
-            gamepad2.stopRumble();
-        }
+    }
+
+    /**
+     * Check if feedback is currently playing
+     */
+    public boolean isFeedbackPlaying() {
+        return feedbackManager != null && feedbackManager.isPlaying();
+    }
+
+    /**
+     * Get name of currently playing feedback
+     */
+    public String getCurrentFeedbackName() {
+        return feedbackManager != null ? feedbackManager.getCurrentFeedbackName() : "None";
     }
 }
 
