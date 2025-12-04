@@ -366,6 +366,7 @@ public class RobotLiftController {
     private final Telemetry telemetry;
     private Gamepad gamepad1;  // Driver gamepad
     private Gamepad gamepad2;  // Operator gamepad (for dual-driver mode)
+    private GamepadFeedbackManager feedbackManager;  // Advanced feedback system
 
     // ========================================================================================
     // STATE TRACKING
@@ -478,6 +479,7 @@ public class RobotLiftController {
         this.telemetry = telemetry;
         this.gamepad1 = null;
         this.gamepad2 = null;
+        this.feedbackManager = new GamepadFeedbackManager(null, null);
     }
 
     /**
@@ -492,6 +494,7 @@ public class RobotLiftController {
         this.telemetry = telemetry;
         this.gamepad1 = gamepad1;
         this.gamepad2 = gamepad2;
+        this.feedbackManager = new GamepadFeedbackManager(gamepad1, gamepad2);
     }
 
     /**
@@ -1012,6 +1015,7 @@ public class RobotLiftController {
     /**
      * Apply power to both lift motors with automatic synchronization
      * If motors are out of sync, adjusts power to each motor individually to re-sync
+     * AGGRESSIVE SYNC: If desync > 50 ticks, stops leading motor until within 10 ticks
      */
     private void applyMotorPower(double power) {
         if (!initialized) {
@@ -1023,38 +1027,65 @@ public class RobotLiftController {
 
         // Check if motors are desynchronized and need correction
         if (motorsDesynchronized && Math.abs(power) > 0.05) {
-            // Calculate sync adjustment based on position difference
-            // Positive difference = left is ahead, slow down left and speed up right
-            // Negative difference = right is ahead, speed up left and slow down right
+            int absDifference = Math.abs(motorPositionDifference);
 
-            double syncAdjustment = SYNC_POWER_ADJUSTMENT;
+            // CRITICAL DESYNC (>50 ticks): Stop the leading motor completely
+            if (absDifference > MAX_MOTOR_DESYNC) {
+                // Determine direction of movement
+                boolean movingUp = power > 0;
 
-            // Check if difference is critical (near max desync limit)
-            if (Math.abs(motorPositionDifference) > MAX_MOTOR_DESYNC) {
-                syncAdjustment *= 1.5;  // More aggressive correction
+                if (motorPositionDifference > 0) {
+                    // Left is ahead of right
+                    if (movingUp) {
+                        // Going up: left is too far ahead, STOP left motor
+                        leftPower = 0.0;
+                        rightPower = power;  // Right continues to catch up
+                    } else {
+                        // Going down: left is ahead (higher position), right should catch up
+                        // Stop right motor to let left catch up
+                        leftPower = power;   // Left continues down
+                        rightPower = 0.0;    // Right stops
+                    }
+                } else {
+                    // Right is ahead of left
+                    if (movingUp) {
+                        // Going up: right is too far ahead, STOP right motor
+                        leftPower = power;   // Left continues to catch up
+                        rightPower = 0.0;
+                    } else {
+                        // Going down: right is ahead (higher position), left should catch up
+                        // Stop left motor to let right catch up
+                        leftPower = 0.0;     // Left stops
+                        rightPower = power;  // Right continues down
+                    }
+                }
             }
+            // MODERATE DESYNC (10-50 ticks): Adjust power to sync
+            else {
+                double syncAdjustment = SYNC_POWER_ADJUSTMENT;
 
-            if (motorPositionDifference > 0) {
-                // Left motor is ahead - slow it down, speed up right
-                leftPower = power * (1.0 - syncAdjustment);
-                rightPower = power * (1.0 + syncAdjustment);
-            } else {
-                // Right motor is ahead - speed up left, slow down right
-                leftPower = power * (1.0 + syncAdjustment);
-                rightPower = power * (1.0 - syncAdjustment);
-            }
+                if (motorPositionDifference > 0) {
+                    // Left motor is ahead - slow it down, speed up right
+                    leftPower = power * (1.0 - syncAdjustment);
+                    rightPower = power * (1.0 + syncAdjustment);
+                } else {
+                    // Right motor is ahead - speed up left, slow down right
+                    leftPower = power * (1.0 + syncAdjustment);
+                    rightPower = power * (1.0 - syncAdjustment);
+                }
 
-            // Ensure we don't reverse direction when synchronizing
-            if (Math.signum(leftPower) != Math.signum(power)) {
-                leftPower = 0;
-            }
-            if (Math.signum(rightPower) != Math.signum(power)) {
-                rightPower = 0;
-            }
+                // Ensure we don't reverse direction when synchronizing
+                if (Math.signum(leftPower) != Math.signum(power)) {
+                    leftPower = 0;
+                }
+                if (Math.signum(rightPower) != Math.signum(power)) {
+                    rightPower = 0;
+                }
 
-            // Clamp to valid power range
-            leftPower = Range.clip(leftPower, -MAX_MOTOR_POWER, MAX_MOTOR_POWER);
-            rightPower = Range.clip(rightPower, -MAX_MOTOR_POWER, MAX_MOTOR_POWER);
+                // Clamp to valid power range
+                leftPower = Range.clip(leftPower, -MAX_MOTOR_POWER, MAX_MOTOR_POWER);
+                rightPower = Range.clip(rightPower, -MAX_MOTOR_POWER, MAX_MOTOR_POWER);
+            }
         }
 
         // Apply power to motors
