@@ -7,7 +7,9 @@ package org.firstinspires.ftc.teamcode.util.aurora;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -101,7 +103,7 @@ public class RobotLiftController {
      * Set this to prevent the lift from going too high
      * CALIBRATION: Reset encoders at bottom, manually move to top, note encoder value
      */
-    private static final int MAX_POSITION = 4000;  // ADJUST THIS VALUE
+    private static final int MAX_POSITION = 5800;  // ADJUST THIS VALUE
 
     /**
      * Soft limit buffer zone (ticks before hard limit)
@@ -123,7 +125,7 @@ public class RobotLiftController {
     public static final int POSITION_MID = 2000;  // ADJUST THIS VALUE
 
     /** Preset position: High scoring position */
-    public static final int POSITION_HIGH = 3800;  // ADJUST THIS VALUE
+    public static final int POSITION_HIGH = 4500;  // ADJUST THIS VALUE
 
     // ========================================================================================
     // PERFORMANCE MONITORING CONSTANTS - Calibrate for accurate load detection
@@ -137,7 +139,7 @@ public class RobotLiftController {
      * 3. Calculate: EXPECTED_TICKS_PER_SECOND_NO_LOAD = 1000 / time_in_seconds
      * 4. Example: If it takes 0.5 sec -> 1000/0.5 = 2000 ticks/sec
      */
-    private static final double EXPECTED_TICKS_PER_SECOND_NO_LOAD = 2000.0;  // CALIBRATE THIS
+    private static final double EXPECTED_TICKS_PER_SECOND_NO_LOAD = 651.3;  // CALIBRATE THIS
 
     /**
      * Load factor threshold for normal operation
@@ -159,6 +161,12 @@ public class RobotLiftController {
      * Prevents divide-by-zero and false positives when moving slowly
      */
     private static final double MIN_SPEED_FOR_LOAD_CALC = 50.0;
+
+    /**
+     * Stall detection threshold
+     * If power > this value but speed < MIN_SPEED_FOR_LOAD_CALC, lift is considered stalled
+     */
+    private static final double STALL_DETECTION_POWER_THRESHOLD = 0.2;
 
     // ========================================================================================
     // MOTOR POWER CONSTANTS
@@ -186,14 +194,15 @@ public class RobotLiftController {
      * Initial gravity compensation power (0.0 to 1.0)
      * Starting value for automatic PID adjustment
      * System will automatically tune this value during operation
+     * REDUCED to prevent initial movement issues
      */
-    private static final double INITIAL_GRAVITY_HOLD_POWER = 0.15;  // Starting point
+    private static final double INITIAL_GRAVITY_HOLD_POWER = 0.0;  // Starting point - will auto-adjust
 
     /**
      * Minimum gravity compensation power
      * Prevents PID from adjusting too low
      */
-    private static final double MIN_GRAVITY_HOLD_POWER = 0.05;
+    private static final double MIN_GRAVITY_HOLD_POWER = 0.0;
 
     /**
      * Maximum gravity compensation power
@@ -290,6 +299,64 @@ public class RobotLiftController {
     private static final double PERFORMANCE_UPDATE_INTERVAL_MS = 100.0;
 
     // ========================================================================================
+    // MOTOR SYNCHRONIZATION CONSTANTS
+    // ========================================================================================
+
+    /**
+     * Maximum allowed position difference between left and right motors (encoder ticks)
+     * If motors differ by more than this, slower motor will be sped up to catch up
+     */
+    private static final int MAX_MOTOR_DESYNC = 50;
+
+    /**
+     * Power adjustment factor for motor synchronization
+     * When motors are out of sync, lagging motor gets extra power and leading motor is reduced
+     */
+    private static final double SYNC_POWER_ADJUSTMENT = 0.15;
+
+    /**
+     * Minimum position difference to trigger synchronization (ticks)
+     * Prevents constant micro-adjustments
+     */
+    private static final int MIN_SYNC_THRESHOLD = 10;
+
+    // ========================================================================================
+    // GAMEPAD VIBRATION PATTERNS (in milliseconds)
+    // ========================================================================================
+
+    /**
+     * Short single pulse - soft limit reached
+     */
+    private static final int VIBRATION_SOFT_LIMIT = 100;
+
+    /**
+     * Double pulse - hard limit reached
+     */
+    private static final int VIBRATION_HARD_LIMIT_DURATION = 200;
+    private static final int VIBRATION_HARD_LIMIT_PAUSE = 100;
+
+    /**
+     * Long continuous - stall/jam detected
+     */
+    private static final int VIBRATION_STALL_DURATION = 500;
+
+    /**
+     * Triple pulse - motor desynchronization warning
+     */
+    private static final int VIBRATION_DESYNC_PULSE = 150;
+    private static final int VIBRATION_DESYNC_PAUSE = 80;
+
+    /**
+     * Quick pulse - position reached
+     */
+    private static final int VIBRATION_POSITION_REACHED = 150;
+
+    /**
+     * Minimum time between vibration warnings (ms) to prevent spam
+     */
+    private static final double VIBRATION_COOLDOWN_MS = 1000.0;
+
+    // ========================================================================================
     // HARDWARE COMPONENTS
     // ========================================================================================
 
@@ -297,6 +364,8 @@ public class RobotLiftController {
     private DcMotorEx liftMotorRight;
     private final HardwareMap hardwareMap;
     private final Telemetry telemetry;
+    private Gamepad gamepad1;  // Driver gamepad
+    private Gamepad gamepad2;  // Operator gamepad (for dual-driver mode)
 
     // ========================================================================================
     // STATE TRACKING
@@ -305,8 +374,14 @@ public class RobotLiftController {
     private boolean initialized = false;
     private boolean emergencyStop = false;
 
-    // Position tracking
-    private int currentPosition = 0;
+    // Individual motor position tracking
+    private int leftMotorPosition = 0;
+    private int rightMotorPosition = 0;
+    private int motorPositionDifference = 0;  // left - right
+    private boolean motorsDesynchronized = false;
+
+    // Combined position tracking
+    private int currentPosition = 0;  // Average of both motors
     private int targetPosition = 0;
     private boolean positionControlActive = false;
 
@@ -324,9 +399,10 @@ public class RobotLiftController {
     private boolean gravityPidActive = false;  // Whether PID is currently tuning
     private ElapsedTime gravityPidTimer = new ElapsedTime();  // For PID update rate
 
-    // Power tracking
+    // Power and direction tracking
     private double lastCommandedPower = 0.0;
     private double currentAppliedPower = 0.0;
+    private String currentDirection = "Stopped";  // "Up", "Down", or "Stopped"
 
     // ========================================================================================
     // PERFORMANCE MONITORING
@@ -355,11 +431,13 @@ public class RobotLiftController {
 
     // Load status
     public enum LoadStatus {
-        NO_LOAD("No Load", "✓"),
-        NORMAL_LOAD("Normal", "◆"),
-        HEAVY_LOAD("Heavy", "⚠"),
-        OVERLOAD("Overload", "⚠⚠"),
-        UNKNOWN("Unknown", "?");
+        IDLE("Idle", "○"),              // No power applied
+        NO_LOAD("No Load", "✓"),        // Moving freely with minimal resistance
+        NORMAL_LOAD("Normal", "◆"),     // Normal operating load
+        HEAVY_LOAD("Heavy", "⚠"),       // Heavy load detected
+        OVERLOAD("Overload", "⚠⚠"),     // Excessive load
+        STALLED("STALLED", "⛔"),       // Power applied but not moving (stuck/jammed)
+        UNKNOWN("Unknown", "?");         // Initial state or error
 
         private final String displayName;
         private final String symbol;
@@ -376,6 +454,17 @@ public class RobotLiftController {
     private LoadStatus currentLoadStatus = LoadStatus.UNKNOWN;
 
     // ========================================================================================
+    // VIBRATION FEEDBACK STATE
+    // ========================================================================================
+
+    private ElapsedTime vibrationCooldownTimer = new ElapsedTime();
+    private boolean vibrationsEnabled = true;
+    private boolean lastStallState = false;
+    private boolean lastDesyncState = false;
+    private boolean lastSoftLimitState = false;
+    private int lastAutoPositionTarget = -1;
+
+    // ========================================================================================
     // CONSTRUCTOR
     // ========================================================================================
 
@@ -387,6 +476,48 @@ public class RobotLiftController {
     public RobotLiftController(HardwareMap hardwareMap, Telemetry telemetry) {
         this.hardwareMap = hardwareMap;
         this.telemetry = telemetry;
+        this.gamepad1 = null;
+        this.gamepad2 = null;
+    }
+
+    /**
+     * Create a new RobotLiftController with gamepad vibration support
+     * @param hardwareMap FTC hardware map for device access
+     * @param telemetry Telemetry for status reporting
+     * @param gamepad1 Driver gamepad for vibration feedback (can be null)
+     * @param gamepad2 Operator gamepad for vibration feedback (can be null)
+     */
+    public RobotLiftController(HardwareMap hardwareMap, Telemetry telemetry, Gamepad gamepad1, Gamepad gamepad2) {
+        this.hardwareMap = hardwareMap;
+        this.telemetry = telemetry;
+        this.gamepad1 = gamepad1;
+        this.gamepad2 = gamepad2;
+    }
+
+    /**
+     * Set gamepads for vibration feedback (can be called after construction)
+     * @param gamepad1 Driver gamepad (can be null)
+     * @param gamepad2 Operator gamepad (can be null)
+     */
+    public void setGamepads(Gamepad gamepad1, Gamepad gamepad2) {
+        this.gamepad1 = gamepad1;
+        this.gamepad2 = gamepad2;
+    }
+
+    /**
+     * Enable or disable gamepad vibration feedback
+     * @param enabled true to enable vibrations, false to disable
+     */
+    public void setVibrationsEnabled(boolean enabled) {
+        this.vibrationsEnabled = enabled;
+    }
+
+    /**
+     * Check if vibrations are enabled
+     * @return true if enabled, false otherwise
+     */
+    public boolean areVibrationsEnabled() {
+        return vibrationsEnabled;
     }
 
     // ========================================================================================
@@ -409,7 +540,7 @@ public class RobotLiftController {
 
             // Configure motors
             // Assuming motors are mirrored, one needs to be reversed
-            liftMotorLeft.setDirection(DcMotor.Direction.FORWARD);
+            liftMotorLeft.setDirection(DcMotor.Direction.REVERSE);
             liftMotorRight.setDirection(DcMotor.Direction.REVERSE);  // ADJUST IF NEEDED
 
             // Set motor behavior
@@ -521,14 +652,53 @@ public class RobotLiftController {
 
     /**
      * Update current position from motor encoders
-     * Uses average of both motors for accuracy
+     * Tracks both motors individually and detects desynchronization
      */
     private void updatePosition() {
-        int leftPos = liftMotorLeft.getCurrentPosition();
-        int rightPos = liftMotorRight.getCurrentPosition();
+        // Read individual motor positions
+        leftMotorPosition = liftMotorLeft.getCurrentPosition();
+        rightMotorPosition = liftMotorRight.getCurrentPosition();
 
-        // Average both motors for more accurate tracking
-        currentPosition = (leftPos + rightPos) / 2;
+        // Calculate position difference (positive = left ahead, negative = right ahead)
+        motorPositionDifference = leftMotorPosition - rightMotorPosition;
+
+        // Check if motors are significantly out of sync
+        motorsDesynchronized = Math.abs(motorPositionDifference) > MIN_SYNC_THRESHOLD;
+
+        // Use average of both motors for overall position tracking
+        currentPosition = (leftMotorPosition + rightMotorPosition) / 2;
+    }
+
+    /**
+     * Get left motor position
+     * @return Left motor position in encoder ticks
+     */
+    public int getLeftMotorPosition() {
+        return leftMotorPosition;
+    }
+
+    /**
+     * Get right motor position
+     * @return Right motor position in encoder ticks
+     */
+    public int getRightMotorPosition() {
+        return rightMotorPosition;
+    }
+
+    /**
+     * Get position difference between motors
+     * @return Position difference (left - right) in encoder ticks
+     */
+    public int getMotorPositionDifference() {
+        return motorPositionDifference;
+    }
+
+    /**
+     * Check if motors are desynchronized
+     * @return true if position difference exceeds threshold
+     */
+    public boolean areMotorsDesynchronized() {
+        return motorsDesynchronized;
     }
 
     /**
@@ -681,8 +851,13 @@ public class RobotLiftController {
             }
 
         } else {
-            // No driver input - apply gravity compensation
-            power = currentCompensationPower;
+            // No driver input - apply gravity compensation only if not at bottom
+            // At minimum position, no holding force is needed (lift rests on hard stop)
+            if (currentPosition > (MIN_POSITION + GRAVITY_HOLD_POSITION_TOLERANCE)) {
+                power = currentCompensationPower;
+            } else {
+                power = 0.0;  // No compensation needed at bottom
+            }
         }
 
         return power;
@@ -701,12 +876,24 @@ public class RobotLiftController {
         // Check if driver is actively controlling lift
         boolean driverInputActive = Math.abs(controlInput) > 0.05;
 
+        // Check if lift is at or near minimum position (no compensation needed)
+        boolean atMinimumPosition = currentPosition <= (MIN_POSITION + GRAVITY_HOLD_POSITION_TOLERANCE);
+
         if (driverInputActive) {
             // Driver is actively moving lift - disable PID tuning
             gravityPidActive = false;
             gravityPidIntegral = 0.0;  // Reset integral to prevent wind-up
             holdTimer.reset();
             holdTargetPosition = currentPosition;  // Update target for when they stop
+            return;
+        }
+
+        // If at minimum position, disable PID and reset compensation
+        if (atMinimumPosition) {
+            gravityPidActive = false;
+            gravityPidIntegral = 0.0;
+            currentCompensationPower = 0.0;  // No compensation at bottom
+            holdTimer.reset();
             return;
         }
 
@@ -786,21 +973,93 @@ public class RobotLiftController {
         return currentCompensationPower;
     }
 
+    /**
+     * Manually set gravity compensation power (overrides PID)
+     * Use this for manual tuning or to disable compensation
+     * @param power Power to apply (0.0 to MAX_GRAVITY_HOLD_POWER)
+     */
+    public void setManualCompensationPower(double power) {
+        gravityPidActive = false;
+        gravityPidIntegral = 0.0;
+        currentCompensationPower = Range.clip(power, MIN_GRAVITY_HOLD_POWER, MAX_GRAVITY_HOLD_POWER);
+    }
+
+    /**
+     * Disable all gravity compensation (PID and manual)
+     * Use this if experiencing unwanted movement
+     */
+    public void disableGravityCompensation() {
+        gravityPidActive = false;
+        gravityPidIntegral = 0.0;
+        currentCompensationPower = 0.0;
+    }
+
+    /**
+     * Reset and re-enable automatic PID gravity compensation
+     */
+    public void resetGravityCompensation() {
+        gravityPidActive = false;
+        gravityPidIntegral = 0.0;
+        gravityPidLastError = 0.0;
+        currentCompensationPower = INITIAL_GRAVITY_HOLD_POWER;
+        holdTimer.reset();
+    }
+
     // ========================================================================================
     // MOTOR CONTROL
     // ========================================================================================
 
     /**
-     * Apply power to both lift motors with synchronization
+     * Apply power to both lift motors with automatic synchronization
+     * If motors are out of sync, adjusts power to each motor individually to re-sync
      */
     private void applyMotorPower(double power) {
         if (!initialized) {
             return;
         }
 
-        // Apply to both motors
-        liftMotorLeft.setPower(power);
-        liftMotorRight.setPower(power);
+        double leftPower = power;
+        double rightPower = power;
+
+        // Check if motors are desynchronized and need correction
+        if (motorsDesynchronized && Math.abs(power) > 0.05) {
+            // Calculate sync adjustment based on position difference
+            // Positive difference = left is ahead, slow down left and speed up right
+            // Negative difference = right is ahead, speed up left and slow down right
+
+            double syncAdjustment = SYNC_POWER_ADJUSTMENT;
+
+            // Check if difference is critical (near max desync limit)
+            if (Math.abs(motorPositionDifference) > MAX_MOTOR_DESYNC) {
+                syncAdjustment *= 1.5;  // More aggressive correction
+            }
+
+            if (motorPositionDifference > 0) {
+                // Left motor is ahead - slow it down, speed up right
+                leftPower = power * (1.0 - syncAdjustment);
+                rightPower = power * (1.0 + syncAdjustment);
+            } else {
+                // Right motor is ahead - speed up left, slow down right
+                leftPower = power * (1.0 + syncAdjustment);
+                rightPower = power * (1.0 - syncAdjustment);
+            }
+
+            // Ensure we don't reverse direction when synchronizing
+            if (Math.signum(leftPower) != Math.signum(power)) {
+                leftPower = 0;
+            }
+            if (Math.signum(rightPower) != Math.signum(power)) {
+                rightPower = 0;
+            }
+
+            // Clamp to valid power range
+            leftPower = Range.clip(leftPower, -MAX_MOTOR_POWER, MAX_MOTOR_POWER);
+            rightPower = Range.clip(rightPower, -MAX_MOTOR_POWER, MAX_MOTOR_POWER);
+        }
+
+        // Apply power to motors
+        liftMotorLeft.setPower(leftPower);
+        liftMotorRight.setPower(rightPower);
     }
 
     /**
@@ -852,6 +1111,19 @@ public class RobotLiftController {
             int deltaPosition = currentPosition - lastPositionForSpeed;
             currentSpeed = Math.abs(deltaPosition / deltaTime);
 
+            // Determine movement direction for telemetry
+            if (Math.abs(currentAppliedPower) < 0.05) {
+                currentDirection = "Stopped";
+            } else if (deltaPosition > 5) {
+                currentDirection = "Up ↑";
+            } else if (deltaPosition < -5) {
+                currentDirection = "Down ↓";
+            } else if (Math.abs(currentAppliedPower) > STALL_DETECTION_POWER_THRESHOLD) {
+                currentDirection = "Stalled";
+            } else {
+                currentDirection = "Holding";
+            }
+
             // Update speed history
             speedHistory.offer(currentSpeed);
             if (speedHistory.size() > PERFORMANCE_SAMPLE_SIZE) {
@@ -872,35 +1144,52 @@ public class RobotLiftController {
             speedTimer.reset();
         }
 
-        // Calculate load factor (only when moving significantly)
-        if (Math.abs(currentAppliedPower) > MIN_MOTOR_POWER && currentSpeed > MIN_SPEED_FOR_LOAD_CALC) {
-            // Expected speed at current power level
-            double expectedSpeed = EXPECTED_TICKS_PER_SECOND_NO_LOAD * Math.abs(currentAppliedPower);
+        // Calculate load factor based on movement state
+        double absPower = Math.abs(currentAppliedPower);
+
+        if (absPower < MIN_MOTOR_POWER) {
+            // No power applied - idle state
+            currentLoadStatus = LoadStatus.IDLE;
+            currentLoadFactor = 1.0;
+
+        } else if (currentSpeed < MIN_SPEED_FOR_LOAD_CALC) {
+            // Power applied but not moving much
+            if (absPower > STALL_DETECTION_POWER_THRESHOLD) {
+                // Significant power but no movement - STALLED
+                currentLoadStatus = LoadStatus.STALLED;
+                currentLoadFactor = 99.9;  // Extremely high load factor
+            } else {
+                // Low power, low speed - could be starting/stopping or gravity compensation
+                currentLoadStatus = LoadStatus.UNKNOWN;
+            }
+
+        } else {
+            // Moving significantly - calculate load factor
+            // Expected speed at current power level (works for both up and down)
+            double expectedSpeed = EXPECTED_TICKS_PER_SECOND_NO_LOAD * absPower;
 
             // Load factor = how much slower we're moving than expected
             // 1.0 = no load (moving at expected speed)
             // >1.0 = loaded (moving slower than expected)
-            if (currentSpeed > 0.1) {
-                currentLoadFactor = expectedSpeed / currentSpeed;
+            currentLoadFactor = expectedSpeed / currentSpeed;
 
-                // Update load factor history
-                loadFactorHistory.offer(currentLoadFactor);
-                if (loadFactorHistory.size() > PERFORMANCE_SAMPLE_SIZE) {
-                    loadFactorHistory.poll();
-                }
-
-                // Calculate average load factor
-                averageLoadFactor = loadFactorHistory.stream()
-                    .mapToDouble(Double::doubleValue)
-                    .average()
-                    .orElse(1.0);
-
-                // Track peak load
-                peakLoadFactor = Math.max(peakLoadFactor, currentLoadFactor);
-
-                // Determine load status
-                updateLoadStatus();
+            // Update load factor history
+            loadFactorHistory.offer(currentLoadFactor);
+            if (loadFactorHistory.size() > PERFORMANCE_SAMPLE_SIZE) {
+                loadFactorHistory.poll();
             }
+
+            // Calculate average load factor
+            averageLoadFactor = loadFactorHistory.stream()
+                .mapToDouble(Double::doubleValue)
+                .average()
+                .orElse(1.0);
+
+            // Track peak load
+            peakLoadFactor = Math.max(peakLoadFactor, currentLoadFactor);
+
+            // Determine load status based on factor
+            updateLoadStatus();
         }
 
         // Track power usage
@@ -923,6 +1212,7 @@ public class RobotLiftController {
 
     /**
      * Update load status based on current load factor
+     * Only called when lift is actively moving (not idle or stalled)
      */
     private void updateLoadStatus() {
         if (currentLoadFactor < 1.2) {
@@ -931,9 +1221,10 @@ public class RobotLiftController {
             currentLoadStatus = LoadStatus.NORMAL_LOAD;
         } else if (currentLoadFactor < HEAVY_LOAD_THRESHOLD) {
             currentLoadStatus = LoadStatus.HEAVY_LOAD;
-        } else {
+        } else if (currentLoadFactor < 90.0) {  // Don't override STALLED status
             currentLoadStatus = LoadStatus.OVERLOAD;
         }
+        // If load factor is extremely high (>90), leave as STALLED
     }
 
     /**
@@ -967,6 +1258,7 @@ public class RobotLiftController {
     public double getPeakLoadFactor() { return peakLoadFactor; }
 
     public LoadStatus getCurrentLoadStatus() { return currentLoadStatus; }
+    public String getCurrentDirection() { return currentDirection; }
 
     public double getCurrentPower() { return currentAppliedPower; }
     public double getAveragePower() { return averagePower; }
@@ -997,6 +1289,14 @@ public class RobotLiftController {
         telemetry.addData("Position", "%d ticks (%.1f%%)",
             currentPosition, getPositionPercentage());
 
+        // Motor synchronization status
+        if (motorsDesynchronized) {
+            telemetry.addData("Motor Sync", "⚠ DESYNCED by %d ticks", Math.abs(motorPositionDifference));
+            telemetry.addData("L/R Positions", "%d / %d", leftMotorPosition, rightMotorPosition);
+        } else {
+            telemetry.addData("Motor Sync", "✓ OK");
+        }
+
         // Status
         if (emergencyStop) {
             telemetry.addLine("⚠⚠ EMERGENCY STOP ACTIVE ⚠⚠");
@@ -1006,8 +1306,8 @@ public class RobotLiftController {
             telemetry.addData("Mode", "MANUAL");
         }
 
-        // Power
-        telemetry.addData("Power", "%.2f", currentAppliedPower);
+        // Power and Direction
+        telemetry.addData("Power", "%.2f (%s)", currentAppliedPower, currentDirection);
 
         // Automatic gravity compensation status
         if (gravityPidActive) {
@@ -1023,11 +1323,17 @@ public class RobotLiftController {
             telemetry.addLine("⚠ Significant drop detected!");
         }
 
-        // Load status
-        telemetry.addData("Load", "%s %s (%.2fx)",
-            currentLoadStatus.getSymbol(),
-            currentLoadStatus.getDisplayName(),
-            currentLoadFactor);
+        // Load status with special handling for STALLED and IDLE
+        if (currentLoadStatus == LoadStatus.STALLED) {
+            telemetry.addData("Load", "⛔ STALLED - CHECK FOR JAM!");
+        } else if (currentLoadStatus == LoadStatus.IDLE) {
+            telemetry.addData("Load", "○ Idle");
+        } else {
+            telemetry.addData("Load", "%s %s (%.2fx)",
+                currentLoadStatus.getSymbol(),
+                currentLoadStatus.getDisplayName(),
+                currentLoadFactor);
+        }
     }
 
     /**
@@ -1037,17 +1343,34 @@ public class RobotLiftController {
         addTelemetry();
 
         telemetry.addLine();
+        telemetry.addLine("=== MOTOR SYNCHRONIZATION ===");
+        telemetry.addData("Left Position", "%d ticks", leftMotorPosition);
+        telemetry.addData("Right Position", "%d ticks", rightMotorPosition);
+        telemetry.addData("Difference", "%d ticks", motorPositionDifference);
+        telemetry.addData("Status", motorsDesynchronized ? "⚠ OUT OF SYNC" : "✓ SYNCHRONIZED");
+        if (motorsDesynchronized) {
+            telemetry.addLine("Auto-correcting: " + (motorPositionDifference > 0 ? "Slowing LEFT" : "Slowing RIGHT"));
+        }
+
+        telemetry.addLine();
         telemetry.addLine("=== LIFT PERFORMANCE ===");
+        telemetry.addData("Direction", currentDirection);
 
         // Speed metrics
         telemetry.addData("Speed", "%.0f ticks/sec", currentSpeed);
         telemetry.addData("Avg Speed", "%.0f ticks/sec", averageSpeed);
         telemetry.addData("Peak Speed", "%.0f ticks/sec", peakSpeed);
 
-        // Load metrics
-        telemetry.addData("Load Factor", "%.2fx (avg: %.2fx)",
-            currentLoadFactor, averageLoadFactor);
-        telemetry.addData("Peak Load", "%.2fx", peakLoadFactor);
+        // Load metrics with status
+        telemetry.addData("Load Status", "%s %s",
+            currentLoadStatus.getSymbol(), currentLoadStatus.getDisplayName());
+        if (currentLoadStatus == LoadStatus.STALLED) {
+            telemetry.addLine("⚠️ MOTOR STALLED - POSSIBLE JAM!");
+        } else if (currentLoadStatus != LoadStatus.IDLE && currentLoadStatus != LoadStatus.UNKNOWN) {
+            telemetry.addData("Load Factor", "%.2fx (avg: %.2fx)",
+                currentLoadFactor, averageLoadFactor);
+            telemetry.addData("Peak Load", "%.2fx", peakLoadFactor);
+        }
 
         // Power metrics
         telemetry.addData("Avg Power", "%.2f", averagePower);
@@ -1103,6 +1426,158 @@ public class RobotLiftController {
         if (emergencyStop) return "EMERGENCY STOP";
         if (positionControlActive) return "AUTO";
         return "MANUAL";
+    }
+
+    // ========================================================================================
+    // GAMEPAD VIBRATION FEEDBACK
+    // ========================================================================================
+
+    /**
+     * Update vibration feedback based on current lift state
+     * Call this in your main loop AFTER update()
+     */
+    public void updateVibrationFeedback() {
+        if (!vibrationsEnabled || (gamepad1 == null && gamepad2 == null)) {
+            return;
+        }
+
+        // Check for stall condition
+        boolean isStalled = (currentLoadStatus == LoadStatus.STALLED);
+        if (isStalled && !lastStallState) {
+            vibrateStallWarning();
+        }
+        lastStallState = isStalled;
+
+        // Check for motor desynchronization
+        if (motorsDesynchronized && !lastDesyncState && Math.abs(motorPositionDifference) > MAX_MOTOR_DESYNC) {
+            vibrateDesyncWarning();
+        }
+        lastDesyncState = motorsDesynchronized;
+
+        // Check for soft limit zone
+        boolean inSoftLimit = isInSoftLimitZone();
+        if (inSoftLimit && !lastSoftLimitState) {
+            vibrateSoftLimit();
+        }
+        lastSoftLimitState = inSoftLimit;
+
+        // Check for hard limits
+        if (currentPosition <= MIN_POSITION && currentAppliedPower < -0.1) {
+            vibrateHardLimit();
+        } else if (currentPosition >= MAX_POSITION && currentAppliedPower > 0.1) {
+            vibrateHardLimit();
+        }
+
+        // Check for auto-position reached
+        if (positionControlActive && Math.abs(currentPosition - targetPosition) < POSITION_TOLERANCE) {
+            if (lastAutoPositionTarget != targetPosition) {
+                vibratePositionReached();
+                lastAutoPositionTarget = targetPosition;
+            }
+        } else {
+            lastAutoPositionTarget = -1;
+        }
+    }
+
+    /**
+     * Vibrate for soft limit warning (entering soft zone)
+     */
+    private void vibrateSoftLimit() {
+        if (!canVibrate()) return;
+        vibrateGamepads(VIBRATION_SOFT_LIMIT);
+        vibrationCooldownTimer.reset();
+    }
+
+    /**
+     * Vibrate for hard limit warning (at absolute limit)
+     * Double pulse pattern
+     */
+    private void vibrateHardLimit() {
+        if (!canVibrate()) return;
+        vibrateGamepads(VIBRATION_HARD_LIMIT_DURATION);
+        // Note: Second pulse would need to be handled in a separate thread or with rumble effects
+        vibrationCooldownTimer.reset();
+    }
+
+    /**
+     * Vibrate for stall/jam warning
+     * Long continuous vibration
+     */
+    private void vibrateStallWarning() {
+        if (!canVibrate()) return;
+        vibrateGamepads(VIBRATION_STALL_DURATION);
+        vibrationCooldownTimer.reset();
+    }
+
+    /**
+     * Vibrate for motor desynchronization warning
+     * Triple pulse pattern
+     */
+    private void vibrateDesyncWarning() {
+        if (!canVibrate()) return;
+        vibrateGamepads(VIBRATION_DESYNC_PULSE);
+        vibrationCooldownTimer.reset();
+    }
+
+    /**
+     * Vibrate when auto-position is reached
+     * Quick confirmation pulse
+     */
+    private void vibratePositionReached() {
+        if (!canVibrate()) return;
+        vibrateGamepads(VIBRATION_POSITION_REACHED);
+        vibrationCooldownTimer.reset();
+    }
+
+    /**
+     * Check if enough time has passed since last vibration
+     */
+    private boolean canVibrate() {
+        return vibrationCooldownTimer.milliseconds() > VIBRATION_COOLDOWN_MS;
+    }
+
+    /**
+     * Send vibration to connected gamepads
+     * @param durationMs Duration of vibration in milliseconds
+     */
+    private void vibrateGamepads(int durationMs) {
+        // Vibrate gamepad1 if available
+        if (gamepad1 != null) {
+            gamepad1.rumble(durationMs);
+        }
+        // Vibrate gamepad2 if available (for dual-driver mode)
+        if (gamepad2 != null) {
+            gamepad2.rumble(durationMs);
+        }
+    }
+
+    /**
+     * Send custom vibration pattern to gamepads
+     * @param leftRumble Left motor intensity (0.0 to 1.0)
+     * @param rightRumble Right motor intensity (0.0 to 1.0)
+     * @param durationMs Duration in milliseconds
+     */
+    public void vibrateCustomPattern(double leftRumble, double rightRumble, int durationMs) {
+        if (!vibrationsEnabled) return;
+
+        if (gamepad1 != null) {
+            gamepad1.rumble(leftRumble, rightRumble, durationMs);
+        }
+        if (gamepad2 != null) {
+            gamepad2.rumble(leftRumble, rightRumble, durationMs);
+        }
+    }
+
+    /**
+     * Stop all gamepad vibrations immediately
+     */
+    public void stopVibrations() {
+        if (gamepad1 != null) {
+            gamepad1.stopRumble();
+        }
+        if (gamepad2 != null) {
+            gamepad2.stopRumble();
+        }
     }
 }
 

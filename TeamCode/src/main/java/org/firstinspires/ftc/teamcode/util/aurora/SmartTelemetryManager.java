@@ -395,17 +395,31 @@ public class SmartTelemetryManager {
             telemetry.addData("Position", "%d ticks (%.1f%%)",
                 liftController.getCurrentPosition(),
                 liftController.getPositionPercentage());
-            telemetry.addData("Current Power", "%.2f", liftController.getCurrentPower());
-            telemetry.addData("Load Status", liftController.getCurrentLoadStatus().getSymbol() + " " +
-                liftController.getCurrentLoadStatus().getDisplayName());
-            telemetry.addData("Load Factor", "%.2fx", liftController.getCurrentLoadFactor());
+            telemetry.addData("Power", "%.2f (%s)",
+                liftController.getCurrentPower(),
+                liftController.getCurrentDirection());
 
-            // Show PID status
+            // Load status with special handling
+            RobotLiftController.LoadStatus loadStatus = liftController.getCurrentLoadStatus();
+            if (loadStatus == RobotLiftController.LoadStatus.STALLED) {
+                telemetry.addData("Load Status", "⛔ STALLED - CHECK JAM!");
+            } else if (loadStatus == RobotLiftController.LoadStatus.IDLE) {
+                telemetry.addData("Load Status", "○ Idle");
+            } else {
+                telemetry.addData("Load Status", loadStatus.getSymbol() + " " + loadStatus.getDisplayName());
+                telemetry.addData("Load Factor", "%.2fx", liftController.getCurrentLoadFactor());
+            }
+
+            // Show PID status with detailed troubleshooting info
             if (liftController.isGravityPidActive()) {
                 telemetry.addData("Auto PID", "🤖 ACTIVE");
                 telemetry.addData("Comp Power", "%.4f", liftController.getGravityCompensationPower());
+                telemetry.addData("Hold Target", "%d ticks", liftController.getHoldTargetPosition());
+                telemetry.addData("Position Error", "%d ticks",
+                    liftController.getHoldTargetPosition() - liftController.getCurrentPosition());
             } else {
-                telemetry.addData("Auto PID", "Inactive");
+                telemetry.addData("Auto PID", "⏸ Inactive");
+                telemetry.addData("Comp Power", "%.4f (standby)", liftController.getGravityCompensationPower());
             }
         }
 

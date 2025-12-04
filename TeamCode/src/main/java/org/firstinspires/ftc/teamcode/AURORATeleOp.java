@@ -113,8 +113,8 @@ public class AURORATeleOp extends LinearOpMode {
         // Initialize the unified robot system manager
         robotManager = new AuroraManager(hardwareMap, telemetry);
 
-        // Initialize lift controller
-        liftController = new RobotLiftController(hardwareMap, telemetry);
+        // Initialize lift controller with gamepad vibration support
+        liftController = new RobotLiftController(hardwareMap, telemetry, gamepad1, gamepad2);
         liftController.initialize();
 
         // Initialize the smart telemetry manager (pass lift controller for telemetry display)
@@ -169,6 +169,9 @@ public class AURORATeleOp extends LinearOpMode {
             handleMlControls();
             handleLiftControls();
             handleEmergencyStop();
+
+            // Update lift vibration feedback (haptic warnings)
+            liftController.updateVibrationFeedback();
 
             cycleTelemetry = gamepad1.x || gamepad2.dpad_left;
 
@@ -451,6 +454,12 @@ public class AURORATeleOp extends LinearOpMode {
         prevLiftMidButton = currentMidButton;
         prevLiftLowButton = currentLowButton;
         prevLiftGroundButton = currentGroundButton;
+
+        // Emergency: Disable gravity compensation if lift is acting strange (Gamepad2 Back + Start)
+        if (gamepad2.back && gamepad2.start) {
+            liftController.disableGravityCompensation();
+            telemetry.addLine("⚠️ GRAVITY COMPENSATION DISABLED!");
+        }
 
         // Cancel auto-position if driver manually moves stick
         if (Math.abs(liftInput) > 0.1 && liftController.isPositionControlActive()) {
