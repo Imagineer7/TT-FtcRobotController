@@ -114,12 +114,20 @@ public class BLUEAutoAurora extends LinearOpMode {
         telemetry.addLine("Initializing AURORA Autonomous Systems...");
         telemetry.update();
 
-        // Initialize AuroraManager
-        robotManager = new AuroraManager(hardwareMap, telemetry);
+        // Initialize AuroraManager without odometry (we'll get it from hardware config)
+        robotManager = new AuroraManager(hardwareMap, telemetry, false);
         driveSystem = robotManager.getDriveSystem();
 
-        // Initialize Pinpoint Odometry
-        initializeOdometry();
+        // Get odometry from the hardware config (already initialized if available)
+        odometry = robotManager.getHardware().getOdometry();
+        
+        if (odometry == null) {
+            // Try to initialize odometry if it wasn't initialized by hardware config
+            initializeOdometry();
+        } else {
+            telemetry.addLine("✅ Using odometry from hardware config");
+            telemetry.update();
+        }
 
         // Set drive mode to precision for autonomous
         if (driveSystem != null) {
