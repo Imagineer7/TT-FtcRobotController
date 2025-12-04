@@ -72,8 +72,8 @@ public class ShooterMLTrainingOpMode extends LinearOpMode {
 
         while (opModeIsActive()) {
             // Handle shooting
-            boolean shootButton = gamepad1.right_trigger > 0.5;
-            shooter.handleShootButton(shootButton, ShooterConfig.ShooterPreset.LONG_RANGE);
+            boolean shootButton = gamepad1.right_bumper || gamepad1.right_trigger > 0.5;
+            shooter.handleShootButton(shootButton, ShooterConfig.ShooterPreset.SHORT_RANGE);
 
             // Update shooter control (RPM maintenance)
             // This is already handled inside handleShootButton
@@ -154,7 +154,7 @@ public class ShooterMLTrainingOpMode extends LinearOpMode {
         if (gamepad1.b && !previousGamepad1.b) {
             telemetry.addData("Action", "Starting 10-shot test...");
             telemetry.update();
-            shooter.startAutoShootSmart(10, ShooterConfig.ShooterPreset.LONG_RANGE);
+            shooter.startAutoShootSmart(10, ShooterConfig.ShooterPreset.SHORT_RANGE);
         }
     }
 
@@ -162,6 +162,28 @@ public class ShooterMLTrainingOpMode extends LinearOpMode {
      * Display comprehensive training telemetry
      */
     private void displayTrainingTelemetry() {
+        // EMERGENCY DEBUG - Show why shooter might be stopping
+        telemetry.addData("*** EMERGENCY DEBUG ***", "");
+        telemetry.addData("STOP REASON", shooter.getDebugStopReason());
+        telemetry.addData("Emergency Stop", shooter.isEmergencyStop() ? "YES!!!" : "no");
+        telemetry.addData("Perf Degraded", shooter.getMonitor().isPerformanceDegraded() ? "YES!!!" : "no");
+        telemetry.addData("Loop Time", "%.1fms", shooter.getMonitor().getAverageLoopTime());
+        telemetry.addData("Voltage Drop", "%.1f%%", shooter.getMonitor().getVoltageDropPercentage());
+        telemetry.addData("Shooter Running", shooter.isShooterRunning() ? "YES" : "NO");
+        telemetry.addData("Is Shooting", shooter.isShooting() ? "YES" : "NO");
+        telemetry.addData("Warmup Mode", shooter.isWarmupMode() ? "YES" : "NO");
+
+        // Button state debug
+        boolean shootButton = gamepad1.right_bumper || gamepad1.right_trigger > 0.5;
+        telemetry.addData("Right Trigger", "%.2f", gamepad1.right_trigger);
+        telemetry.addData("Right Bumper", gamepad1.right_bumper ? "PRESSED" : "not pressed");
+        telemetry.addData("Shoot Button", shootButton ? "ACTIVE" : "inactive");
+
+        // Motor debug
+        telemetry.addData("Motor Power", "%.3f", shooter.getShooterMotorPower());
+        telemetry.addData("Motor Position", shooter.getShooterMotorPosition());
+        telemetry.addLine();
+
         telemetry.addData("=== TRAINING MODE ===", "");
         telemetry.addLine();
 
@@ -183,6 +205,15 @@ public class ShooterMLTrainingOpMode extends LinearOpMode {
         telemetry.addData("=== Learned Params ===", "");
         telemetry.addData("Boost", shooter.getLearningTelemetry());
         telemetry.addData("Timing", shooter.getDetailedLearningTelemetry());
+
+        // RPM Drop and Recovery Metrics
+        telemetry.addData("Last RPM Drop", "%.0f RPM (%.1f%%)",
+            shooter.getLastShotRpmDrop(),
+            shooter.getLastShotRpmDropPercentage());
+        telemetry.addData("Recovery Time", "%.3fs", shooter.getLastShotRecoveryTime());
+
+        // Overcompensation Detection
+        telemetry.addData("Learning Status", shooter.getOvercompensationTelemetry());
         telemetry.addLine();
 
         // Shot trajectory (if tracking)

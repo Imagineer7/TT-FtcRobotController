@@ -70,6 +70,7 @@ public class EnhancedDecodeHelper {
     private boolean prevButtonState = false;
     private boolean prevWarmupButtonState = false;
     private boolean firstShotFired = false; // Track if first shot has been fired
+    private String debugStopReason = "NONE"; // Track why shooter was stopped (for debugging)
 
     // RPM tracking with momentum detection
     private int lastEncoderPosition = 0;
@@ -125,11 +126,12 @@ public class EnhancedDecodeHelper {
 
     // Adaptive boost parameters (learned from each shot)
     private double shotBoostDelay = 0.020; // Default: 20ms delay after feed servos fire
-    private double shotBoostDuration = 0.180; // Default: 180ms boost duration
-    private double shotBoostPower = 0.18; // Default: Extra 18% power during boost
+    private double shotBoostDuration = 0.150; // Default: 150ms boost duration (reduced to prevent overshoot)
+    private double shotBoostPower = 0.12; // Default: Extra 12% power during boost (reduced to prevent overshoot)
 
     // Learning system state
     private double lastShotRpmDrop = 0; // Track RPM drop from last shot
+    private double lastShotRpmBeforeFiring = 0; // Store RPM before last shot for percentage calc
     private double lastShotRecoveryTime = 0; // Track how long recovery took
     private int shotsAnalyzed = 0; // Count shots used for learning
     private boolean learningEnabled = false; // Default OFF - enable only in training mode
@@ -140,6 +142,14 @@ public class EnhancedDecodeHelper {
     private double shotRpmRecoveryStart = 0; // When recovery began
     private double shotRpmOvershoot = 0; // Peak overshoot above target
     private boolean trackingShot = false;
+
+    // Overcompensation detection
+    private double previousShotRpmDrop = 0; // Track previous shot's RPM drop
+    private double previousShotOvershoot = 0; // Track previous shot's overshoot
+    private double previousShotRecoveryTime = 0; // Track previous shot's recovery time
+    private int consecutiveOvershoots = 0; // Track consecutive overshoot occurrences
+    private int consecutiveSlowRecoveries = 0; // Track consecutive slow recoveries
+    private boolean isOvercompensating = false; // Flag when system is making too aggressive changes
 
     // Adaptive learning rates
     private double learningRate = 0.015; // 1.5% adjustment (reduced from 5%)
@@ -257,6 +267,7 @@ public class EnhancedDecodeHelper {
         }
 
         // Configure shooter motor
+        shooter.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER); // Use encoders for measurement only
         shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         // Initialize enhanced systems
@@ -283,13 +294,20 @@ public class EnhancedDecodeHelper {
             monitor.recordVoltage(voltageSensor.getVoltage());
         }
 
-        // Safety check
-        if (emergencyStop || monitor.isPerformanceDegraded()) {
+        // Safety check - only emergency stop should halt shooter
+        // Performance degradation is logged but doesn't stop shooter in TeleOp
+        if (emergencyStop) {
             if (shooterRunning) {
+                debugStopReason = "EMERGENCY_STOP"; // Store for telemetry
                 stopShooter();
             }
             updateLightIndicator();
             return false;
+        }
+
+        // Log performance degradation but don't stop shooter
+        if (monitor.isPerformanceDegraded() && shooterRunning) {
+            debugStopReason = "PERF_WARNING"; // Warning only, not stopping
         }
 
         // Apply preset configuration
@@ -304,11 +322,17 @@ public class EnhancedDecodeHelper {
             }
         } else if (!buttonPressed && prevButtonState) {
             // Button release edge
+            debugStopReason = "BUTTON_RELEASED"; // DEBUG
             stopShooter();
             if (isShooting) {
                 stopFeedServos();
                 isShooting = false;
             }
+        }
+
+        // Maintain shooter RPM control while running
+        if (shooterRunning && !warmupMode) {
+            updateRPM();
         }
 
         // Handle shooting logic
@@ -472,6 +496,7 @@ public class EnhancedDecodeHelper {
         shooterRunning = true;
         shooterStartTime = clock.seconds();
         firstShotFired = false; // Reset first shot flag when shooter starts
+        debugStopReason = "NONE"; // Clear stop reason when starting
 
         // Start ML data collection for this spinup cycle
         startMlDataCollection(targetRpm);
@@ -605,25 +630,37 @@ public class EnhancedDecodeHelper {
         double currentTime = clock.seconds();
         double errorMagnitude = Math.abs(rpmError);
 
-        // Handle shot compensation boost with smooth ramp (using adaptive parameters)
+        // Handle shot compensation boost with smooth ramp and overshoot protection
         double boostPowerContribution = 0.0;
         if (shotBoostActive) {
             double timeSinceBoostStart = currentTime - shotBoostStartTime;
             double boostStartTime = shotBoostDelay;
             double boostEndTime = shotBoostDelay + shotBoostDuration;
 
-            if (timeSinceBoostStart >= boostStartTime && timeSinceBoostStart < boostEndTime) {
+            // Check for overshoot - cancel boost if RPM exceeds target by 50 RPM (more aggressive)
+            boolean hasOvershot = currentRPM > (targetRpm + 50);
+
+            if (hasOvershot) {
+                // Cancel boost immediately to prevent overshoot
+                shotBoostActive = false;
+                if (learningEnabled) {
+                    analyzeAndLearnFromShot();
+                }
+            } else if (timeSinceBoostStart >= boostStartTime && timeSinceBoostStart < boostEndTime) {
                 // Calculate boost progress (0.0 to 1.0)
                 double boostProgress = (timeSinceBoostStart - boostStartTime) / shotBoostDuration;
 
+                // Reduce boost as we approach target RPM to prevent overshoot
+                double rpmErrorRatio = Math.max(0.0, Math.min(1.0, Math.abs(rpmError) / 200.0));
+
                 // Apply boost with smooth ramp-down in last 30% to prevent sudden drop
                 if (boostProgress < 0.7) {
-                    // Full boost for first 70% of duration
-                    boostPowerContribution = shotBoostPower;
+                    // Full boost for first 70% of duration, scaled by RPM error
+                    boostPowerContribution = shotBoostPower * rpmErrorRatio;
                 } else {
                     // Linear ramp-down for last 30%
                     double rampFactor = (1.0 - boostProgress) / 0.3;
-                    boostPowerContribution = shotBoostPower * rampFactor;
+                    boostPowerContribution = shotBoostPower * rampFactor * rpmErrorRatio;
                 }
             } else if (timeSinceBoostStart >= boostEndTime) {
                 // Boost complete - analyze shot performance for learning
@@ -690,8 +727,8 @@ public class EnhancedDecodeHelper {
 
         rpmErrorSum += rpmError * deltaTime;
 
-        // Dynamic windup limit - tighter in steady state, looser in recovery
-        double windupLimit = inRecoveryMode ? 1000 : Math.max(400, 1500 - errorMagnitude * 2);
+        // Dynamic windup limit - tighter in steady state, reduced in recovery to prevent overshoot
+        double windupLimit = inRecoveryMode ? 600 : Math.max(400, 1500 - errorMagnitude * 2);
         if (Math.abs(rpmErrorSum) > windupLimit) {
             rpmErrorSum = Math.signum(rpmErrorSum) * windupLimit;
         }
@@ -763,11 +800,11 @@ public class EnhancedDecodeHelper {
                 double targetRpm = config.getTargetRPM();
                 double rpmDifference = Math.abs(currentRPM - targetRpm);
 
-                // Use adaptive tolerance (learned or default)
-                double preferredTolerance = learningEnabled ?
-                    Math.min(firstShotRpmTolerance, learnedRapidFireTolerance) : 25.0;
-                double acceptableTolerance = learningEnabled ?
-                    learnedRapidFireTolerance : config.getShootingRpmTolerance();
+                // STRICT TOLERANCE: Only fire within 15 RPM of target (no learned tolerance override)
+                // This prevents second shot overshoot issues
+                double strictTolerance = 15.0;
+                double preferredTolerance = strictTolerance;
+                double acceptableTolerance = strictTolerance;
 
                 boolean inPreferredZone = rpmDifference <= preferredTolerance;
                 boolean inAcceptableZone = rpmDifference <= acceptableTolerance;
@@ -1103,7 +1140,12 @@ public class EnhancedDecodeHelper {
             return true;
         }
 
-        return rpmIsStable && (currentTime - lastStableRpmTime >= 0.25);
+        // Strict 15 RPM tolerance check for first shot
+        double targetRpm = config.getTargetRPM();
+        double rpmDifference = Math.abs(currentRPM - targetRpm);
+        boolean withinStrictTolerance = rpmDifference <= 15.0;
+
+        return rpmIsStable && withinStrictTolerance && (currentTime - lastStableRpmTime >= 0.25);
     }
 
     /**
@@ -1171,6 +1213,9 @@ public class EnhancedDecodeHelper {
     public boolean isShooting() { return isShooting; }
     public boolean isWarmupMode() { return warmupMode; }
     public double getTargetRPM() { return warmupMode ? config.getWarmupTargetRPM() : config.getTargetRPM(); }
+    public double getShooterMotorPower() { return shooter.getPower(); }
+    public int getShooterMotorPosition() { return shooter.getCurrentPosition(); }
+    public String getDebugStopReason() { return debugStopReason; }
 
     /**
      * Handle ML system controls (save, reset)
@@ -1483,9 +1528,9 @@ public class EnhancedDecodeHelper {
     // ========== ADAPTIVE LEARNING SYSTEM ==========
 
     /**
-     * Analyze shot performance and adapt boost parameters
+     * Analyze shot performance and adapt boost parameters + PID gains
      * Called automatically after each shot completes
-     * Enhanced with multi-factor trajectory analysis
+     * Enhanced to minimize RPM drop and recovery time with overcompensation detection
      */
     private void analyzeAndLearnFromShot() {
         if (!learningEnabled) return;
@@ -1497,54 +1542,191 @@ public class EnhancedDecodeHelper {
         double targetRpm = config.getTargetRPM();
         double finalError = Math.abs(currentRPM - targetRpm);
         double rpmDrop = shotRpmBeforeFiring - shotRpmMin; // How much RPM dropped
+        double rpmDropPercentage = (shotRpmBeforeFiring > 0) ? (rpmDrop / shotRpmBeforeFiring * 100.0) : 0.0;
 
-        // Use adaptive learning rate (fine-tune after 20 shots)
-        double lr = (shotsAnalyzed < 20) ? learningRate : learningRateFineTune;
-
-        // Track shot success for interval learning
-        lastShotSuccessful = (finalError < 50); // Success if within 50 RPM
-
-        if (shotsAnalyzed >= 2) { // Start learning after just 2 shots (reduced from 3)
-            // CASE 1: Significant RPM drop and slow recovery
-            if (rpmDrop > 150 && finalError > 100) {
-                shotBoostPower = Math.min(0.30, shotBoostPower * (1.0 + lr));
-                shotBoostDuration = Math.min(0.300, shotBoostDuration + 0.005); // 5ms (reduced from 10ms)
+        // DETECT OVERCOMPENSATION - Check if performance is oscillating
+        if (shotsAnalyzed >= 3) {
+            // Check for oscillating overshoot (overshoot getting worse after corrections)
+            if (shotRpmOvershoot > 25.0 && previousShotOvershoot > 25.0) {
+                consecutiveOvershoots++;
+            } else {
+                consecutiveOvershoots = Math.max(0, consecutiveOvershoots - 1);
             }
-            // CASE 2: Good recovery but with overshoot
-            else if (finalError < 50 && shotRpmOvershoot > 50) {
-                shotBoostPower = Math.max(0.10, shotBoostPower * (1.0 - lr * 0.5));
-                shotBoostDuration = Math.max(0.100, shotBoostDuration - 0.005);
+
+            // Check for oscillating recovery time (alternating between fast and slow)
+            if (lastShotRecoveryTime > 0 && previousShotRecoveryTime > 0) {
+                double recoveryTimeDelta = Math.abs(lastShotRecoveryTime - previousShotRecoveryTime);
+                if (recoveryTimeDelta > 0.08) { // Large swing in recovery time
+                    consecutiveSlowRecoveries++;
+                } else {
+                    consecutiveSlowRecoveries = Math.max(0, consecutiveSlowRecoveries - 1);
+                }
             }
-            // CASE 3: Perfect shot - reinforce and fine-tune
-            else if (finalError < 30 && shotRpmOvershoot < 30) {
-                // Shot was excellent - tighten learning rate for precision
+
+            // Check for alternating RPM drop (getting worse then better repeatedly)
+            boolean rpmDropIncreased = (rpmDropPercentage > previousShotRpmDrop + 5.0);
+            boolean rpmDropDecreased = (rpmDropPercentage < previousShotRpmDrop - 5.0);
+
+            // Detect overcompensation pattern
+            if (consecutiveOvershoots >= 2 || consecutiveSlowRecoveries >= 2) {
+                isOvercompensating = true;
+            } else if (consecutiveOvershoots == 0 && consecutiveSlowRecoveries == 0) {
+                isOvercompensating = false;
+            }
+        }
+
+        // Use adaptive learning rate (fine-tune after 20 shots, or if overcompensating)
+        double lr = learningRate;
+        if (shotsAnalyzed >= 20) {
+            lr = learningRateFineTune;
+        }
+
+        // CRITICAL: Reduce learning rate if overcompensating
+        if (isOvercompensating) {
+            lr *= 0.3; // Use only 30% of normal learning rate when overcompensating
+        }
+
+        // Track shot success - must be within 15 RPM for success
+        lastShotSuccessful = (finalError <= 15.0); // Strict tolerance
+
+        if (shotsAnalyzed >= 2) { // Start learning after just 2 shots
+
+            // NEW GOAL: Minimize RPM drop and recovery time
+            // Focus on adjusting boost and PID parameters, NOT shot interval
+
+            // Calculate recovery performance score (lower is better)
+            // Score = RPM drop percentage + recovery time (seconds) * 100
+            double recoveryScore = rpmDropPercentage + (lastShotRecoveryTime * 100.0);
+
+            // OVERCOMPENSATION CASE: If oscillating, make minimal conservative adjustments
+            if (isOvercompensating) {
+                // Back off aggressiveness - make small corrections toward middle ground
+                if (shotRpmOvershoot > 35.0) {
+                    // Still overshooting significantly - gently reduce boost
+                    shotBoostPower = Math.max(0.10, shotBoostPower * (1.0 - lr * 0.5));
+                } else if (rpmDropPercentage > 18.0) {
+                    // Still dropping too much - gently increase boost
+                    shotBoostPower = Math.min(0.22, shotBoostPower * (1.0 + lr * 0.5));
+                }
+                // Reset overshoot counters after adjustment
+                if (consecutiveOvershoots >= 3) {
+                    consecutiveOvershoots = 1;
+                }
+                if (consecutiveSlowRecoveries >= 3) {
+                    consecutiveSlowRecoveries = 1;
+                }
+            }
+            // CASE 1: Large RPM drop (>20%) - need stronger boost or better PID recovery gains
+            else if (rpmDropPercentage > 20.0) {
+                // Check if we're getting worse (overcompensating in wrong direction)
+                if (previousShotRpmDrop > 0 && rpmDropPercentage > previousShotRpmDrop + 3.0) {
+                    // Getting worse! Reduce adjustment magnitude
+                    lr *= 0.5;
+                }
+
+                // Increase boost power to reduce initial drop
+                shotBoostPower = Math.min(0.30, shotBoostPower * (1.0 + lr * 1.5));
+                shotBoostDelay = Math.max(0.010, shotBoostDelay - 0.002); // Start boost earlier
+
+                // Also increase PID recovery gains for faster recovery
+                double[] recoveryGains = rpmLearning.getLearnedGainsRecovery();
+                double newKpRecovery = Math.min(0.00080, recoveryGains[0] * (1.0 + lr));
+                double newKdRecovery = Math.min(0.00040, recoveryGains[2] * (1.0 + lr * 0.5));
+                rpmLearning.adjustRecoveryGains(newKpRecovery, recoveryGains[1], newKdRecovery);
+
+                consecutiveSuccessfulShots = 0; // Reset success counter
+            }
+            // CASE 2: Small RPM drop (<10%) but slow recovery (>0.15s)
+            else if (rpmDropPercentage < 10.0 && lastShotRecoveryTime > 0.15) {
+                // Good drop resistance, but need faster recovery
+                // Increase recovery PID gains, slightly reduce boost
+                double[] recoveryGains = rpmLearning.getLearnedGainsRecovery();
+                double newKpRecovery = Math.min(0.00080, recoveryGains[0] * (1.0 + lr * 1.2));
+                double newKiRecovery = Math.min(0.00020, recoveryGains[1] * (1.0 + lr * 0.8));
+                rpmLearning.adjustRecoveryGains(newKpRecovery, newKiRecovery, recoveryGains[2]);
+
+                // Slightly reduce boost to prevent potential overshoot
+                shotBoostPower = Math.max(0.08, shotBoostPower * (1.0 - lr * 0.3));
+
+                consecutiveSuccessfulShots = 0; // Reset success counter
+            }
+            // CASE 3: Overshoot detected (>30 RPM above target)
+            else if (shotRpmOvershoot > 30.0) {
+                // Check if overshoot is getting worse despite corrections
+                if (previousShotOvershoot > 0 && shotRpmOvershoot > previousShotOvershoot + 10.0) {
+                    // Overshoot increasing! More aggressive reduction needed
+                    lr *= 1.5;
+                }
+
+                // Reduce boost power and duration to prevent overshoot
+                shotBoostPower = Math.max(0.08, shotBoostPower * (1.0 - lr * 0.8));
+                shotBoostDuration = Math.max(0.100, shotBoostDuration - 0.010);
+
+                // Increase damping (Kd) to reduce overshoot
+                double[] recoveryGains = rpmLearning.getLearnedGainsRecovery();
+                double newKdRecovery = Math.min(0.00040, recoveryGains[2] * (1.0 + lr * 1.0));
+                rpmLearning.adjustRecoveryGains(recoveryGains[0], recoveryGains[1], newKdRecovery);
+
+                consecutiveSuccessfulShots = 0; // Reset success counter
+            }
+            // CASE 4: Good RPM drop (<12%) AND fast recovery (<0.12s) AND no overshoot (<20 RPM)
+            else if (rpmDropPercentage < 12.0 && lastShotRecoveryTime > 0 && lastShotRecoveryTime < 0.12 && shotRpmOvershoot < 20.0) {
+                // Excellent performance! Fine-tune for consistency
                 learningRateFineTune = Math.max(0.002, learningRateFineTune * 0.95);
                 consecutiveSuccessfulShots++;
-            }
-            // CASE 4: Slow recovery without overshoot
-            else if (lastShotRecoveryTime > 0.2 && shotRpmOvershoot < 30) {
-                shotBoostPower = Math.min(0.30, shotBoostPower * (1.0 + lr * 0.5));
-                shotBoostDelay = Math.max(0.010, shotBoostDelay - 0.002); // Start 2ms earlier
-            }
-            // CASE 5: Fast drop but good recovery
-            else if (rpmDrop > 200 && finalError < 40) {
-                // Current settings are working - maintain them
                 lastShotSuccessful = true;
+
+                // Optionally, slightly increase boost to push performance even further
+                // Only if we've had consistent success (5+ shots)
+                if (consecutiveSuccessfulShots >= 5) {
+                    shotBoostPower = Math.min(0.25, shotBoostPower * (1.0 + lr * 0.1));
+                }
+            }
+            // CASE 5: Moderate RPM drop (12-20%) with acceptable recovery
+            else if (rpmDropPercentage >= 12.0 && rpmDropPercentage <= 20.0 && lastShotRecoveryTime < 0.15) {
+                // Decent performance, small adjustments
+                shotBoostPower = Math.min(0.25, shotBoostPower * (1.0 + lr * 0.5));
+                shotBoostDelay = Math.max(0.010, shotBoostDelay - 0.001);
+
+                consecutiveSuccessfulShots = 0; // Reset success counter
+            }
+            // CASE 6: Final error still high after recovery (>20 RPM)
+            else if (finalError > 20.0) {
+                // Recovery didn't complete properly - increase boost duration
+                shotBoostDuration = Math.min(0.300, shotBoostDuration + 0.010);
+
+                // Increase recovery Ki to eliminate steady-state error
+                double[] recoveryGains = rpmLearning.getLearnedGainsRecovery();
+                double newKiRecovery = Math.min(0.00020, recoveryGains[1] * (1.0 + lr * 0.6));
+                rpmLearning.adjustRecoveryGains(recoveryGains[0], newKiRecovery, recoveryGains[2]);
+
+                consecutiveSuccessfulShots = 0; // Reset success counter
             }
 
-            // Learn shot interval timing
-            learnShotInterval();
+            // DO NOT learn shot interval - keep it fixed for consistent timing
+            // learnShotInterval(); // REMOVED
 
-            // Learn RPM tolerance
-            learnRpmTolerance();
+            // DO NOT learn RPM tolerance - keep strict 15 RPM for accuracy
+            // learnRpmTolerance(); // REMOVED
         }
 
         // Clamp all values to safe ranges
-        shotBoostPower = Math.max(0.10, Math.min(0.30, shotBoostPower));
+        shotBoostPower = Math.max(0.08, Math.min(0.30, shotBoostPower));
         shotBoostDuration = Math.max(0.100, Math.min(0.300, shotBoostDuration));
         shotBoostDelay = Math.max(0.010, Math.min(0.050, shotBoostDelay));
 
+        // Store current metrics for next shot comparison (overcompensation detection)
+        previousShotRpmDrop = rpmDropPercentage;
+        previousShotOvershoot = shotRpmOvershoot;
+        previousShotRecoveryTime = lastShotRecoveryTime;
+
         lastShotRpmDrop = rpmDrop;
+        lastShotRpmBeforeFiring = shotRpmBeforeFiring; // Store for percentage calculation
+
+        // Store recovery time for next analysis
+        if (lastShotRecoveryTime == 0 && shotRpmRecoveryStart > 0) {
+            lastShotRecoveryTime = clock.seconds() - shotRpmRecoveryStart;
+        }
 
         // Reset tracking variables
         shotRpmMin = 0;
@@ -1600,8 +1782,28 @@ public class EnhancedDecodeHelper {
      * @return Formatted string with learning parameters
      */
     public String getLearningTelemetry() {
-        return String.format("Boost Learning | Shots: %d | Delay: %.0fms | Duration: %.0fms | Power: %.1f%%",
-                shotsAnalyzed, shotBoostDelay * 1000, shotBoostDuration * 1000, shotBoostPower * 100);
+        String overcompStatus = isOvercompensating ? " ⚠BACKING OFF" : "";
+        return String.format("Boost Learning | Shots: %d | Delay: %.0fms | Duration: %.0fms | Power: %.1f%%%s",
+                shotsAnalyzed, shotBoostDelay * 1000, shotBoostDuration * 1000, shotBoostPower * 100, overcompStatus);
+    }
+
+    /**
+     * Check if system is currently overcompensating
+     * @return true if oscillating behavior detected
+     */
+    public boolean isOvercompensating() {
+        return isOvercompensating;
+    }
+
+    /**
+     * Get overcompensation detection telemetry
+     * @return Formatted string with overcompensation status
+     */
+    public String getOvercompensationTelemetry() {
+        return String.format("Overcomp: %s | Overshoots: %d | SlowRecov: %d",
+                isOvercompensating ? "YES" : "NO",
+                consecutiveOvershoots,
+                consecutiveSlowRecoveries);
     }
 
     /**
@@ -1736,6 +1938,30 @@ public class EnhancedDecodeHelper {
     }
 
     /**
+     * Get last shot RPM drop (absolute value)
+     */
+    public double getLastShotRpmDrop() {
+        return lastShotRpmDrop;
+    }
+
+    /**
+     * Get last shot RPM drop as percentage of pre-shot RPM
+     */
+    public double getLastShotRpmDropPercentage() {
+        if (lastShotRpmBeforeFiring > 0) {
+            return (lastShotRpmDrop / lastShotRpmBeforeFiring) * 100.0;
+        }
+        return 0.0;
+    }
+
+    /**
+     * Get last shot recovery time in seconds
+     */
+    public double getLastShotRecoveryTime() {
+        return lastShotRecoveryTime;
+    }
+
+    /**
      * Load all learned parameters from persistent storage
      * Called automatically during initialization
      * @return true if parameters loaded successfully, false if using defaults
@@ -1745,8 +1971,10 @@ public class EnhancedDecodeHelper {
         if (params != null && params.length >= 6) {
             shotBoostDelay = params[0];
             shotBoostDuration = params[1];
-            shotBoostPower = params[2];
+            // Cap boost power to max 15% to prevent overshoot on second shot
+            shotBoostPower = Math.min(0.15, params[2]);
             learnedShotInterval = params[3];
+            // Ignore learned RPM tolerance - we enforce strict 15 RPM in isShooterReady()
             learnedRapidFireTolerance = params[4];
             shotsAnalyzed = (int) params[5];
             return true;
