@@ -17,6 +17,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraManager; //AURORA - Advanced Unified Robot Operating & Response Architecture
+import org.firstinspires.ftc.teamcode.util.aurora.RobotLiftController;
 import org.firstinspires.ftc.teamcode.util.aurora.SmartMechanumDrive;
 import org.firstinspires.ftc.teamcode.util.aurora.SmartTelemetryManager;
 
@@ -42,7 +43,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.SmartTelemetryManager;
  * - Semi-auto: Y (basket+shoot), B (precision), A (retreat), triggers (rotate/align)
  * - System: Back + D-pad Left (toggle driver mode), Back (cancel semi-auto), D-pad Right (cycle telemetry)
  * <p>
- * Gamepad 2 (Operator - Shooting + ML Controls):
+ * Gamepad 2 (Operator - Shooting + ML Controls + Lift):
  * - Left trigger: Warmup mode (spins shooter at 65% RPM to save power)
  * - A: Single shot (uses selected range)
  * - Y: Continuous shooting (rapid fire)
@@ -51,6 +52,11 @@ import org.firstinspires.ftc.teamcode.util.aurora.SmartTelemetryManager;
  * - X: Emergency stop shooting
  * - Left Bumper: Save ML learning data
  * - Right Bumper (hold 2s): Reset ML to defaults
+ * - Right Stick Y: Manual lift control (up/down)
+ * - D-pad Up: Move lift to HIGH position
+ * - D-pad Right: Move lift to MID position
+ * - D-pad Down: Move lift to LOW position
+ * - D-pad Left: Move lift to GROUND position
  * <p>
  * Smart Telemetry Pages:
  * - Overview: System status & critical info
@@ -67,6 +73,7 @@ public class AURORATeleOp extends LinearOpMode {
 
     private AuroraManager robotManager;
     private SmartTelemetryManager smartTelemetry;
+    private RobotLiftController liftController;
     private final ElapsedTime runtime = new ElapsedTime();
 
     // Panels field visualization
@@ -81,6 +88,12 @@ public class AURORATeleOp extends LinearOpMode {
     private boolean prevMlSave = false;
     private double mlResetButtonHoldStart = 0;
     private boolean mlResetButtonHeld = false;
+
+    // Lift control state tracking
+    private boolean prevLiftHighButton = false;
+    private boolean prevLiftMidButton = false;
+    private boolean prevLiftLowButton = false;
+    private boolean prevLiftGroundButton = false;
 
     // Emergency stop tracking
     private boolean emergencyStop = false;
@@ -100,8 +113,12 @@ public class AURORATeleOp extends LinearOpMode {
         // Initialize the unified robot system manager
         robotManager = new AuroraManager(hardwareMap, telemetry);
 
-        // Initialize the smart telemetry manager
-        smartTelemetry = new SmartTelemetryManager(telemetry, robotManager);
+        // Initialize lift controller
+        liftController = new RobotLiftController(hardwareMap, telemetry);
+        liftController.initialize();
+
+        // Initialize the smart telemetry manager (pass lift controller for telemetry display)
+        smartTelemetry = new SmartTelemetryManager(telemetry, robotManager, liftController);
 
         telemetry.clear();
         telemetry.addLine("✅ AURORA Enhanced TeleOp Ready!");
@@ -125,8 +142,16 @@ public class AURORATeleOp extends LinearOpMode {
         telemetry.addLine("• RB (GP2, hold 2s): Reset ML data");
         telemetry.addLine("• Start + Start: Emergency stop");
         telemetry.addLine("");
+        telemetry.addLine("=== LIFT CONTROLS (GP2) ===");
+        telemetry.addLine("• Right Stick Y: Manual lift control");
+        telemetry.addLine("• D-pad Up: Move to HIGH position");
+        telemetry.addLine("• D-pad Right: Move to MID position");
+        telemetry.addLine("• D-pad Down: Move to LOW position");
+        telemetry.addLine("• D-pad Left: Move to GROUND position");
+        telemetry.addLine("");
         telemetry.addLine("⚡ Optimized for minimal lag!");
         telemetry.addLine("🤖 ML System: Auto-learning PID gains");
+        telemetry.addLine("🎯 Lift: Auto PID gravity compensation");
         telemetry.update();
 
         // Wait for the game to start (driver presses PLAY)
@@ -142,6 +167,7 @@ public class AURORATeleOp extends LinearOpMode {
             handleStatReset();
             handlePrecisionToggle();
             handleMlControls();
+            handleLiftControls();
             handleEmergencyStop();
 
             cycleTelemetry = gamepad1.x || gamepad2.dpad_left;
@@ -169,10 +195,16 @@ public class AURORATeleOp extends LinearOpMode {
             robotManager.getShooterSystem().reset();
         }
 
+        // Stop lift safely
+        if (liftController != null) {
+            liftController.stop();
+        }
+
         telemetry.clear();
         telemetry.addLine("AURORA Enhanced TeleOp stopped safely");
         telemetry.addLine("Smart telemetry system optimized performance!");
         telemetry.addLine("🤖 ML learning data saved automatically");
+        telemetry.addLine("🎯 Lift system stopped safely");
         telemetry.update();
     }
 
@@ -235,12 +267,20 @@ public class AURORATeleOp extends LinearOpMode {
             // Use the AuroraManager's emergency stop which handles all systems
             robotManager.emergencyStopAll();
 
+            // Emergency stop lift
+            if (liftController != null) {
+                liftController.emergencyStop();
+            }
+
             // Smart telemetry will automatically show emergency status
         }
 
         // Cancel emergency stop if Back is pressed
         if (gamepad1.back || gamepad2.back) {
             emergencyStop = false;
+            if (liftController != null) {
+                liftController.clearEmergencyStop();
+            }
         }
     }
 
@@ -364,5 +404,60 @@ public class AURORATeleOp extends LinearOpMode {
             currentMlReset,                // Reset button state
             holdTime                       // How long reset button has been held
         );
+    }
+
+    /**
+     * Handle lift controls (gamepad2 in dual driver mode, gamepad1 in single driver mode)
+     * Manual control: Right stick Y
+     * Preset positions: D-pad buttons
+     */
+    private void handleLiftControls() {
+        if (liftController == null) return;
+
+        // In dual driver mode, gamepad2 controls lift
+        // In single driver mode, gamepad1 controls everything (but we'll still use gamepad2 for lift to avoid conflicts)
+
+        // Manual lift control from right stick Y (inverted so up = positive)
+        double liftInput = -gamepad2.right_stick_y;
+
+        // Handle preset position buttons with edge detection to prevent repeated commands
+        boolean currentHighButton = gamepad2.dpad_up;
+        boolean currentMidButton = gamepad2.dpad_right;
+        boolean currentLowButton = gamepad2.dpad_down;
+        boolean currentGroundButton = gamepad2.dpad_left;
+
+        // Move to high position (D-pad Up)
+        if (currentHighButton && !prevLiftHighButton) {
+            liftController.moveToHigh();
+        }
+
+        // Move to mid position (D-pad Right)
+        if (currentMidButton && !prevLiftMidButton) {
+            liftController.moveToMid();
+        }
+
+        // Move to low position (D-pad Down)
+        if (currentLowButton && !prevLiftLowButton) {
+            liftController.moveToLow();
+        }
+
+        // Move to ground position (D-pad Left)
+        if (currentGroundButton && !prevLiftGroundButton) {
+            liftController.moveToGround();
+        }
+
+        // Update previous button states
+        prevLiftHighButton = currentHighButton;
+        prevLiftMidButton = currentMidButton;
+        prevLiftLowButton = currentLowButton;
+        prevLiftGroundButton = currentGroundButton;
+
+        // Cancel auto-position if driver manually moves stick
+        if (Math.abs(liftInput) > 0.1 && liftController.isPositionControlActive()) {
+            liftController.cancelPositionControl();
+        }
+
+        // Update lift controller with current input
+        liftController.update(liftInput);
     }
 }

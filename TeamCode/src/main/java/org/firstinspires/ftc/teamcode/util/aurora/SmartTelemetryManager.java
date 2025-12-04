@@ -40,6 +40,7 @@ public class SmartTelemetryManager {
 
     private final Telemetry telemetry;
     private final AuroraManager robotManager;
+    private final RobotLiftController liftController;
 
     private TelemetryPage currentPage = TelemetryPage.OVERVIEW;
     private boolean prevPageToggle = false;
@@ -53,9 +54,10 @@ public class SmartTelemetryManager {
     private String systemHealth = "";
     private String emergencyStatus = "";
 
-    public SmartTelemetryManager(Telemetry telemetry, AuroraManager robotManager) {
+    public SmartTelemetryManager(Telemetry telemetry, AuroraManager robotManager, RobotLiftController liftController) {
         this.telemetry = telemetry;
         this.robotManager = robotManager;
+        this.liftController = liftController;
     }
 
     /**
@@ -197,6 +199,18 @@ public class SmartTelemetryManager {
 
             if (robotManager.getShooterSystem().isShooterRunning()) {
                 telemetry.addData("RPM", "%.0f", robotManager.getShooterSystem().getCurrentRPM());
+            }
+        }
+
+        // Lift system summary
+        if (liftController != null) {
+            String liftStatus = liftController.getStatusString();
+            telemetry.addData("Lift", "🎯 " + liftStatus);
+            telemetry.addData("Position", "%d (%.0f%%)",
+                liftController.getCurrentPosition(),
+                liftController.getPositionPercentage());
+            if (liftController.isGravityPidActive()) {
+                telemetry.addData("Auto Hold", "🤖 ACTIVE");
             }
         }
 
@@ -374,6 +388,27 @@ public class SmartTelemetryManager {
             telemetry.addLine("❌ Performance monitor not available");
         }
 
+        // Lift system performance
+        if (liftController != null) {
+            telemetry.addLine("");
+            telemetry.addLine("🎯 LIFT PERFORMANCE");
+            telemetry.addData("Position", "%d ticks (%.1f%%)",
+                liftController.getCurrentPosition(),
+                liftController.getPositionPercentage());
+            telemetry.addData("Current Power", "%.2f", liftController.getCurrentPower());
+            telemetry.addData("Load Status", liftController.getCurrentLoadStatus().getSymbol() + " " +
+                liftController.getCurrentLoadStatus().getDisplayName());
+            telemetry.addData("Load Factor", "%.2fx", liftController.getCurrentLoadFactor());
+
+            // Show PID status
+            if (liftController.isGravityPidActive()) {
+                telemetry.addData("Auto PID", "🤖 ACTIVE");
+                telemetry.addData("Comp Power", "%.4f", liftController.getGravityCompensationPower());
+            } else {
+                telemetry.addData("Auto PID", "Inactive");
+            }
+        }
+
         telemetry.addLine("");
         telemetry.addLine("Detailed performance metrics");
         telemetry.addLine("Press B (GP2) to reset stats");
@@ -403,6 +438,13 @@ public class SmartTelemetryManager {
             telemetry.addLine("• B: Feed control");
             telemetry.addLine("• X: Emergency stop");
             telemetry.addLine("• Bumpers: Range select");
+            telemetry.addLine("");
+            telemetry.addLine("🎯 LIFT CONTROLS (GP2):");
+            telemetry.addLine("• Right stick Y: Manual");
+            telemetry.addLine("• D-pad Up: HIGH position");
+            telemetry.addLine("• D-pad Right: MID position");
+            telemetry.addLine("• D-pad Down: LOW position");
+            telemetry.addLine("• D-pad Left: GROUND position");
         } else {
             telemetry.addLine("");
             telemetry.addLine("👤 SINGLE DRIVER MODE");

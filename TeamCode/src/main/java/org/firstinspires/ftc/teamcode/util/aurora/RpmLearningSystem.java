@@ -402,6 +402,25 @@ public class RpmLearningSystem {
         }
     }
 
+    /**
+     * Manually adjust recovery PID gains (for shot-based learning)
+     * This allows the shot analysis system to tune recovery gains based on RPM drop performance
+     */
+    public void adjustRecoveryGains(double kp, double ki, double kd) {
+        learnedKpRecovery = Math.max(0.00020, Math.min(0.00100, kp));
+        learnedKiRecovery = Math.max(0.00001, Math.min(0.00030, ki));
+        learnedKdRecovery = Math.max(0.00005, Math.min(0.00050, kd));
+    }
+
+    /**
+     * Manually adjust steady-state PID gains (for general tuning)
+     */
+    public void adjustSteadyStateGains(double kp, double ki, double kd) {
+        learnedKp = Math.max(0.00010, Math.min(0.00060, kp));
+        learnedKi = Math.max(0.00001, Math.min(0.00025, ki));
+        learnedKd = Math.max(0.00001, Math.min(0.00035, kd));
+    }
+
     // Getters and setters
     public void setLearningEnabled(boolean enabled) { this.learningEnabled = enabled; }
     public boolean isLearningEnabled() { return learningEnabled; }

@@ -152,7 +152,8 @@ public class PerformanceMonitor {
         double avgLoopTime = getAverageLoopTime();
         double voltageDropPct = getVoltageDropPercentage();
 
-        return avgLoopTime > 30 || voltageDropPct > 15 || overheated;
+        // Increased threshold to 50ms to accommodate telemetry in training modes
+        return avgLoopTime > 50 || voltageDropPct > 15 || overheated;
     }
 
     /**
