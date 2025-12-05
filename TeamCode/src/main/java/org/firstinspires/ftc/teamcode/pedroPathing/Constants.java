@@ -62,11 +62,12 @@ public class Constants {
      * - strafePodX = X offset of strafe encoder (your Y_OFFSET converted)
      */
     public static PinpointConstants localizerConstants = new PinpointConstants()
-            .forwardPodY(-6.62)
+            .forwardPodY(-2.83)
             .strafePodX(4.71)
             .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("odo")  // Matches your hardware config
-            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);  // Strafe pod reversed so Y increases when moving left
+            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)  // Strafe pod reversed so Y increases when moving left
+            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD); // Forward pod forward so X increases when moving forward
     // Forward encoder direction is FORWARD by default
     // Strafe encoder is REVERSED to correct localization direction
     // Run "Localization Test" to verify: Forward = X increases, Left = Y increases

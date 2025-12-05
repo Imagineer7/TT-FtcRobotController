@@ -123,11 +123,21 @@ public class EnhancedDecodeHelper {
      // Shot compensation boost - adaptive learning system
     private boolean shotBoostActive = false;
     private double shotBoostStartTime = 0;
+    private double rpmBeforeShot = 0; // Track RPM before shot to detect drop
+    private boolean rpmDropDetected = false;
+
+    // Boost mode: false = timed boost (legacy), true = RPM drop detection boost (default)
+    private boolean useRpmDropBoost = true;
 
     // Adaptive boost parameters (learned from each shot)
     private double shotBoostDelay = 0.020; // Default: 20ms delay after feed servos fire
     private double shotBoostDuration = 0.150; // Default: 150ms boost duration (reduced to prevent overshoot)
     private double shotBoostPower = 0.12; // Default: Extra 12% power during boost (reduced to prevent overshoot)
+
+    // RPM drop detection settings
+    private double rpmDropThreshold = 30.0; // Trigger boost when RPM drops by this amount
+    private double rpmDropBoostMinDuration = 0.05; // Minimum boost duration (50ms)
+    private double rpmDropBoostMaxDuration = 0.250; // Maximum boost duration (250ms)
 
     // Learning system state
     private double lastShotRpmDrop = 0; // Track RPM drop from last shot
@@ -630,12 +640,24 @@ public class EnhancedDecodeHelper {
         double currentTime = clock.seconds();
         double errorMagnitude = Math.abs(rpmError);
 
-        // Handle shot compensation boost with smooth ramp and overshoot protection
+        // Handle shot compensation boost with RPM drop detection or timed mode
         double boostPowerContribution = 0.0;
+
+        // RPM drop detection mode - activate boost when RPM drops
+        if (useRpmDropBoost && isShooting && !rpmDropDetected && rpmBeforeShot > 0) {
+            double rpmDrop = rpmBeforeShot - currentRPM;
+            if (rpmDrop >= rpmDropThreshold) {
+                // RPM drop detected - activate boost immediately!
+                rpmDropDetected = true;
+                shotBoostActive = true;
+                shotBoostStartTime = currentTime; // Start boost NOW
+            }
+        }
+
         if (shotBoostActive) {
             double timeSinceBoostStart = currentTime - shotBoostStartTime;
-            double boostStartTime = shotBoostDelay;
-            double boostEndTime = shotBoostDelay + shotBoostDuration;
+            double boostStartTime = useRpmDropBoost ? 0.0 : shotBoostDelay; // Immediate for drop detection
+            double boostEndTime = boostStartTime + (useRpmDropBoost ? rpmDropBoostMaxDuration : shotBoostDuration);
 
             // Check for overshoot - cancel boost if RPM exceeds target by 50 RPM (more aggressive)
             boolean hasOvershot = currentRPM > (targetRpm + 50);
@@ -648,7 +670,8 @@ public class EnhancedDecodeHelper {
                 }
             } else if (timeSinceBoostStart >= boostStartTime && timeSinceBoostStart < boostEndTime) {
                 // Calculate boost progress (0.0 to 1.0)
-                double boostProgress = (timeSinceBoostStart - boostStartTime) / shotBoostDuration;
+                double activeDuration = boostEndTime - boostStartTime;
+                double boostProgress = (timeSinceBoostStart - boostStartTime) / activeDuration;
 
                 // Reduce boost as we approach target RPM to prevent overshoot
                 double rpmErrorRatio = Math.max(0.0, Math.min(1.0, Math.abs(rpmError) / 200.0));
@@ -661,6 +684,17 @@ public class EnhancedDecodeHelper {
                     // Linear ramp-down for last 30%
                     double rampFactor = (1.0 - boostProgress) / 0.3;
                     boostPowerContribution = shotBoostPower * rampFactor * rpmErrorRatio;
+                }
+
+                // For RPM drop mode, end boost early if RPM recovers
+                if (useRpmDropBoost && timeSinceBoostStart >= rpmDropBoostMinDuration) {
+                    if (currentRPM >= (targetRpm - 20)) {
+                        // RPM recovered - end boost early
+                        shotBoostActive = false;
+                        if (learningEnabled) {
+                            analyzeAndLearnFromShot();
+                        }
+                    }
                 }
             } else if (timeSinceBoostStart >= boostEndTime) {
                 // Boost complete - analyze shot performance for learning
@@ -930,8 +964,18 @@ public class EnhancedDecodeHelper {
             lastShotTime = currentTime;
             firstShotFired = true; // Mark that first shot has been fired
 
-            // Activate shot compensation boost
-            shotBoostActive = true;
+            // Capture RPM before shot for drop detection
+            rpmBeforeShot = currentRPM;
+            rpmDropDetected = false;
+
+            // Activate shot compensation boost based on mode
+            if (useRpmDropBoost) {
+                // RPM drop detection mode - boost activates when drop is detected
+                shotBoostActive = false; // Will be activated by RPM drop detection
+            } else {
+                // Timed boost mode (legacy)
+                shotBoostActive = true;
+            }
             shotBoostStartTime = currentTime;
 
             // Prepare for fast recovery after shot
@@ -1216,6 +1260,38 @@ public class EnhancedDecodeHelper {
     public double getShooterMotorPower() { return shooter.getPower(); }
     public int getShooterMotorPosition() { return shooter.getCurrentPosition(); }
     public String getDebugStopReason() { return debugStopReason; }
+
+    /**
+     * Set power boost mode
+     * @param useDropDetection true = RPM drop detection (default), false = timed boost (legacy)
+     */
+    public void setBoostMode(boolean useDropDetection) {
+        this.useRpmDropBoost = useDropDetection;
+    }
+
+    /**
+     * Get current boost mode
+     * @return true if using RPM drop detection, false if using timed boost
+     */
+    public boolean isUsingRpmDropBoost() {
+        return useRpmDropBoost;
+    }
+
+    /**
+     * Check if RPM is currently at target and stable (for autonomous verification)
+     * More strict than isShooterReady() - only checks RPM status
+     * @return true if RPM is within tolerance and stable
+     */
+    public boolean isRpmAtTargetStrict() {
+        if (!shooterRunning) return false;
+
+        updateRPM();
+        double targetRpm = config.getTargetRPM();
+        double rpmDifference = Math.abs(currentRPM - targetRpm);
+
+        // Strict tolerance for autonomous: 15 RPM max
+        return rpmDifference <= 15.0;
+    }
 
     /**
      * Handle ML system controls (save, reset)

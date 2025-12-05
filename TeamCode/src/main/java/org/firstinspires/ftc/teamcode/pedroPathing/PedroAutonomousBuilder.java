@@ -540,7 +540,13 @@ public class PedroAutonomousBuilder {
         public void onStart(Follower follower, double startTime) {
             lastResult = null;
             shootingStarted = false;
-            shooter.startAutoShootSmart(numShots, preset);
+
+            // CRITICAL: Do NOT start shooting immediately - wait for RPM verification
+            // Start the shooter motor spinning, but don't start firing yet
+            if (!shooter.isShooterRunning()) {
+                shooter.getConfig().setPreset(preset);
+                shooter.startShooter();
+            }
         }
 
         @Override
@@ -548,7 +554,25 @@ public class PedroAutonomousBuilder {
             // CRITICAL: Update follower continuously during shooting to maintain position tracking
             follower.update();
 
-            shootingStarted = true;
+            // Safety timeout - if taking more than 10 seconds, abort
+            if (elapsedTime > 10.0) {
+                shooter.stopShooter();
+                shooter.stopFeedServos();
+                return true; // Complete with timeout
+            }
+
+            // WAIT for RPM to be at target before starting to shoot
+            if (!shootingStarted) {
+                // Strict RPM check - must be within 15 RPM of target
+                if (shooter.isRpmAtTargetStrict()) {
+                    // RPM is good - start the shooting sequence
+                    shooter.startAutoShootSmart(numShots, preset);
+                    shootingStarted = true;
+                } else {
+                    // Still waiting for RPM - stay in this state
+                    return false;
+                }
+            }
 
             // Update and store result once per update cycle
             lastResult = shooter.updateAutoShootSmart();
@@ -566,7 +590,10 @@ public class PedroAutonomousBuilder {
 
         @Override
         public String getName() {
-            if (lastResult == null || !shootingStarted) {
+            if (!shootingStarted) {
+                return "Waiting for RPM (" + String.format("%.0f", shooter.getCurrentRPM()) + " RPM)";
+            }
+            if (lastResult == null) {
                 return "Shooting (0/" + numShots + ")";
             }
             return "Shooting (" + lastResult.shotsFired + "/" + lastResult.targetShots + ")";
