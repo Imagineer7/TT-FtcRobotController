@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver;
 
 /**
  * AURORA - Advanced Unified Robot Operating & Response Architecture
@@ -107,14 +108,37 @@ public class AuroraManager {
         // Initialize drive system using unified hardware config
         if (hardware.isDriveSystemInitialized()) {
             try {
-                driveSystem = new SmartMechanumDrive(
-                    hardware.getFrontLeftMotor(),
-                    hardware.getFrontRightMotor(),
-                    hardware.getBackLeftMotor(),
-                    hardware.getBackRightMotor(),
-                    null,
-                    voltageSensor
-                );
+                // Get Pinpoint odometry from AuroraHardwareConfig (already initialized)
+                // This reuses the existing odometry instance to prevent "multiple drivers" warning
+                GoBildaPinpointDriver odometry = hardware.getOdometry();
+
+                if (odometry != null && hardware.isOdometryInitialized()) {
+                    telemetry.addLine("✅ Using Pinpoint odometry for heading stabilization");
+                } else {
+                    telemetry.addLine("⚠️ Pinpoint odometry not available - heading stabilization disabled");
+                }
+
+                // Initialize drive system with Pinpoint odometry if available
+                if (odometry != null) {
+                    driveSystem = new SmartMechanumDrive(
+                        hardware.getFrontLeftMotor(),
+                        hardware.getFrontRightMotor(),
+                        hardware.getBackLeftMotor(),
+                        hardware.getBackRightMotor(),
+                        null,
+                        voltageSensor,
+                        odometry
+                    );
+                } else {
+                    driveSystem = new SmartMechanumDrive(
+                        hardware.getFrontLeftMotor(),
+                        hardware.getFrontRightMotor(),
+                        hardware.getBackLeftMotor(),
+                        hardware.getBackRightMotor(),
+                        null,
+                        voltageSensor
+                    );
+                }
                 driveInitialized = true;
                 driveInitError = "";
                 telemetry.addLine("✅ Drive system manager initialized");
@@ -240,7 +264,7 @@ public class AuroraManager {
         // Set main joystick inputs for basic movement
         double axial = -gamepad.right_stick_y;   // Forward/backward (inverted)
         double lateral = gamepad.right_stick_x;  // Strafe left/right
-        double yaw = gamepad.left_stick_x;     // Rotation
+        double yaw = gamepad.left_stick_x;       // Rotation
 
         // Pass the main joystick inputs to the drive system
         driveSystem.setDriveInputs(axial, lateral, yaw);

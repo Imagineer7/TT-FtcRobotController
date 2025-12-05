@@ -210,6 +210,19 @@ public class RobotLiftController {
      */
     private static final double MAX_GRAVITY_HOLD_POWER = 0.5;
 
+    /**
+     * Low position holding power (when position < 5 ticks)
+     * Small upward force to prevent lift from falling/sagging at bottom position
+     * This prevents the lift from dropping during the match when near the ground
+     */
+    private static final double LOW_POSITION_HOLD_POWER = 0.05;  // Small upward force
+
+    /**
+     * Threshold for applying low position hold power
+     * When position is below this value, LOW_POSITION_HOLD_POWER is applied
+     */
+    private static final int LOW_POSITION_THRESHOLD = 5;  // Apply holding power below 5 ticks
+
     // ========================================================================================
     // AUTOMATIC GRAVITY COMPENSATION PID CONSTANTS
     // ========================================================================================
@@ -879,7 +892,10 @@ public class RobotLiftController {
         // Check if driver is actively controlling lift
         boolean driverInputActive = Math.abs(controlInput) > 0.05;
 
-        // Check if lift is at or near minimum position (no compensation needed)
+        // Check if lift is at low position (< 5 ticks) where fixed holding power is applied
+        boolean atLowPosition = currentPosition < LOW_POSITION_THRESHOLD;
+
+        // Check if lift is at or near minimum position (no PID compensation needed)
         boolean atMinimumPosition = currentPosition <= (MIN_POSITION + GRAVITY_HOLD_POSITION_TOLERANCE);
 
         if (driverInputActive) {
@@ -891,7 +907,16 @@ public class RobotLiftController {
             return;
         }
 
-        // If at minimum position, disable PID and reset compensation
+        // If at low position (< 5 ticks), use fixed holding power instead of PID
+        if (atLowPosition) {
+            gravityPidActive = false;
+            gravityPidIntegral = 0.0;
+            currentCompensationPower = LOW_POSITION_HOLD_POWER;  // Use fixed holding power
+            holdTimer.reset();
+            return;
+        }
+
+        // If at minimum position but above low threshold, disable PID
         if (atMinimumPosition) {
             gravityPidActive = false;
             gravityPidIntegral = 0.0;
