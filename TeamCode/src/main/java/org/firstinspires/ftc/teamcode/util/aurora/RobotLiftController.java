@@ -212,14 +212,15 @@ public class RobotLiftController {
 
     /**
      * Low position holding power (when position < 5 ticks)
-     * Small upward force to prevent lift from falling/sagging at bottom position
-     * This prevents the lift from dropping during the match when near the ground
+     * Applied as DOWNWARD force (negative power) to keep lift pressed against hard stop
+     * This prevents lift from bouncing or moving away from bottom position
+     * The constant is positive, but applied as -LOW_POSITION_HOLD_POWER (downward)
      */
-    private static final double LOW_POSITION_HOLD_POWER = 0.05;  // Small upward force
+    private static final double LOW_POSITION_HOLD_POWER = 0.05;  // Magnitude of downward holding force
 
     /**
      * Threshold for applying low position hold power
-     * When position is below this value, LOW_POSITION_HOLD_POWER is applied
+     * When position is below this value, small downward force keeps lift at hard stop
      */
     private static final int LOW_POSITION_THRESHOLD = 5;  // Apply holding power below 5 ticks
 
@@ -867,12 +868,21 @@ public class RobotLiftController {
             }
 
         } else {
-            // No driver input - apply gravity compensation only if not at bottom
-            // At minimum position, no holding force is needed (lift rests on hard stop)
-            if (currentPosition > (MIN_POSITION + GRAVITY_HOLD_POSITION_TOLERANCE)) {
+            // No driver input - apply appropriate holding power
+
+            // Special case: Low position holding (< 5 ticks)
+            // Apply small DOWNWARD force to keep lift pressed against hard stop
+            // This prevents bouncing or lift moving away from bottom position
+            if (currentPosition < LOW_POSITION_THRESHOLD) {
+                power = -LOW_POSITION_HOLD_POWER;  // Negative = downward force
+            }
+            // Normal gravity compensation for positions above low threshold
+            else if (currentPosition > (MIN_POSITION + GRAVITY_HOLD_POSITION_TOLERANCE)) {
                 power = currentCompensationPower;
-            } else {
-                power = 0.0;  // No compensation needed at bottom
+            }
+            // At minimum position but above low threshold - no compensation
+            else {
+                power = 0.0;
             }
         }
 
@@ -892,7 +902,7 @@ public class RobotLiftController {
         // Check if driver is actively controlling lift
         boolean driverInputActive = Math.abs(controlInput) > 0.05;
 
-        // Check if lift is at low position (< 5 ticks) where fixed holding power is applied
+        // Check if lift is at low position (< 5 ticks) where fixed downward holding is applied
         boolean atLowPosition = currentPosition < LOW_POSITION_THRESHOLD;
 
         // Check if lift is at or near minimum position (no PID compensation needed)
@@ -907,11 +917,12 @@ public class RobotLiftController {
             return;
         }
 
-        // If at low position (< 5 ticks), use fixed holding power instead of PID
+        // If at low position (< 5 ticks), use fixed DOWNWARD holding force
+        // This keeps lift pressed against hard stop, preventing bounce/movement
         if (atLowPosition) {
             gravityPidActive = false;
             gravityPidIntegral = 0.0;
-            currentCompensationPower = LOW_POSITION_HOLD_POWER;  // Use fixed holding power
+            currentCompensationPower = -LOW_POSITION_HOLD_POWER;  // Negative = downward
             holdTimer.reset();
             return;
         }
