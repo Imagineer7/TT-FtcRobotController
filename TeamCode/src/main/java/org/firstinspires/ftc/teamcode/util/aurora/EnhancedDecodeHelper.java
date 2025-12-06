@@ -695,9 +695,29 @@ public class EnhancedDecodeHelper {
         // Continue ML data collection
         updateMlDataCollection();
 
-        // Let feedforward work first - reduced delay for faster initial response
+        // OPTIMIZED SPINUP for rapid fire:
+        // Boost initial power for faster spinup, but let PID handle final approach
         double timeSinceStart = clock.seconds() - shooterStartTime;
-        if (timeSinceStart < 0.4) { // Reduced from 0.6s to 0.4s
+
+        if (timeSinceStart < 0.35 && currentRPM < (targetRpm * 0.90)) {
+            // Initial boost phase - add 5% extra power for faster spinup without overshoot
+            double boostMultiplier = 1.05;
+            currentPower *= boostMultiplier;
+            currentPower = Math.min(1.0, currentPower);
+            shooter.setPower(currentPower);
+            return; // Let it spin up with boosted power
+        }
+
+        // Anti-overshoot: when getting very close to target, preemptively reduce power
+        if (timeSinceStart < 0.5 && currentRPM > (targetRpm - 30) && currentRPM < targetRpm) {
+            // Within 30 RPM of target during spinup - reduce power by 3% to prevent momentum overshoot
+            double antiOvershootFactor = 0.97;
+            currentPower *= antiOvershootFactor;
+            shooter.setPower(currentPower);
+        }
+
+        // After initial boost, let PID take over (reduced delay from 0.4 to 0.35)
+        if (timeSinceStart < 0.35) {
             return;
         }
 
@@ -823,6 +843,16 @@ public class EnhancedDecodeHelper {
             integralGain *= 0.5;
         }
 
+        // ANTI-OSCILLATION: If we've significantly overshot, reduce integral to prevent fighting
+        // Only clear if overshoot is more than 20 RPM to avoid undershooting
+        if (currentRPM > (targetRpm + 20) && rpmErrorSum > 0) {
+            // Significantly overshot and integral is still pushing up - reduce it
+            rpmErrorSum *= 0.5;
+        } else if (currentRPM < (targetRpm - 20) && rpmErrorSum < 0) {
+            // Significantly undershot and integral is still pushing down - reduce it
+            rpmErrorSum *= 0.5;
+        }
+
         rpmErrorSum += rpmError * deltaTime;
 
         // Dynamic windup limit - tighter in steady state, reduced in recovery to prevent overshoot
@@ -837,6 +867,14 @@ public class EnhancedDecodeHelper {
 
         // Calculate power adjustment
         double powerAdjustment = proportional + integral + derivative;
+
+        // ANTI-OSCILLATION DEADBAND: When very close to target, reduce corrections to prevent hunting
+        // But keep it minimal to avoid undershooting
+        if (Math.abs(rpmError) < 5) {
+            powerAdjustment *= 0.5; // Apply 50% of correction within 5 RPM
+        } else if (Math.abs(rpmError) < 15) {
+            powerAdjustment *= 0.75; // Apply 75% correction within 15 RPM
+        }
 
         // Limit the adjustment magnitude
         powerAdjustment = Math.max(-maxAdjustment, Math.min(maxAdjustment, powerAdjustment));
@@ -1330,6 +1368,7 @@ public class EnhancedDecodeHelper {
         // Calculate required power
         double voltage = Math.max(batteryVoltage, 10.5);
         double estimatedPower = targetRpm / (voltage * rpmPerVoltPerPower);
+
 
         // Clamp to valid range
         return Math.min(1.0, Math.max(0.3, estimatedPower));
