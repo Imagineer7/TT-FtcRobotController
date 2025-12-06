@@ -293,11 +293,26 @@ public class SmartTelemetryManager {
             // Current state
             String state = "⏸ IDLE";
             if (shooter.isShooting()) {
-                state = "💥 FIRING";
+                if (shooter.isTimedShotMode()) {
+                    state = "⚡ FAST FIRING";
+                } else {
+                    state = "💥 FIRING";
+                }
+            } else if (shooter.isWarmupMode()) {
+                state = "🟡 WARMUP";
             } else if (shooter.isShooterRunning()) {
                 state = "🔥 SPINNING";
             }
             telemetry.addData("Status", state);
+
+            // Show mode indicator
+            if (shooter.isTimedShotMode()) {
+                telemetry.addData("Mode", "⚡ TIMED (Fast/Less Accurate)");
+            } else if (shooter.isWarmupMode()) {
+                telemetry.addData("Mode", "🟡 WARMUP (Low Power)");
+            } else if (shooter.isShooterRunning()) {
+                telemetry.addData("Mode", "🎯 RPM (Accurate)");
+            }
 
             // RPM information
             if (shooter.isShooterRunning()) {

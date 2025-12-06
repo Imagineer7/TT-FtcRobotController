@@ -45,12 +45,12 @@ import org.firstinspires.ftc.teamcode.util.aurora.SmartTelemetryManager;
  * <p>
  * Gamepad 2 (Operator - Shooting + ML Controls + Lift):
  * - Left trigger: Warmup mode (spins shooter at 65% RPM to save power)
- * - A: Single shot (uses selected range)
- * - Y: Continuous shooting (rapid fire)
- * - Right trigger: Manual shooter power control
- * - B: Manual feed servo control / Reset stats
+ * - A: Single shot (uses selected range, accurate, RPM controlled)
+ * - B: Hybrid timed shot (1st shot waits RPM, then rapid fire)
  * - X: Emergency stop shooting
- * - Left Bumper: Save ML learning data
+ * - Y: Continuous shooting (rapid fire, accurate, RPM controlled)
+ * - Right trigger: Manual shooter power control
+ * - Left Bumper: Save ML learning data / Reset stats (double tap)
  * - Right Bumper (hold 2s): Reset ML to defaults
  * - Right Stick Y: Manual lift control (up/down)
  * - D-pad Up: Move lift to HIGH position
@@ -84,10 +84,11 @@ public class AURORATeleOp extends LinearOpMode {
 
     // Control state tracking
     private boolean prevPrecisionToggle = false;
-    private boolean prevStatsReset = false;
     private boolean prevMlSave = false;
     private double mlResetButtonHoldStart = 0;
     private boolean mlResetButtonHeld = false;
+    private double lastLbPressTime = 0;
+    private static final double DOUBLE_TAP_WINDOW = 0.5; // 500ms window for double tap
 
     // Lift control state tracking
     private boolean prevLiftHighButton = false;
@@ -137,8 +138,8 @@ public class AURORATeleOp extends LinearOpMode {
         telemetry.addLine("• X (GP1): Cycle telemetry pages");
         telemetry.addLine("• Back + D-pad Left: Toggle driver mode");
         telemetry.addLine("• Y (GP1): Quick precision toggle");
-        telemetry.addLine("• B (GP2): Reset performance stats");
-        telemetry.addLine("• LB (GP2): Save ML learning data");
+        telemetry.addLine("• B (GP2): HYBRID SHOT (1st accurate, then fast)");
+        telemetry.addLine("• LB (GP2): Save ML data / Reset stats");
         telemetry.addLine("• RB (GP2, hold 2s): Reset ML data");
         telemetry.addLine("• Start + Start: Emergency stop");
         telemetry.addLine("");
@@ -212,21 +213,13 @@ public class AURORATeleOp extends LinearOpMode {
     }
 
     /**
-     * Handle performance stats reset
+     * Handle performance stats reset (now using Left Bumper double tap)
+     * Single tap = Save ML data
+     * Double tap = Reset stats
      */
     private void handleStatReset() {
-        boolean currentB = gamepad2.b;
-        if (currentB && !prevStatsReset) {
-            if (robotManager.getDriveSystem() != null) {
-                robotManager.getDriveSystem().resetAnalytics();
-            }
-            if (robotManager.getGlobalMonitor() != null) {
-                robotManager.getGlobalMonitor().reset();
-            }
-            // Briefly show performance page to confirm reset
-            smartTelemetry.showPerformance();
-        }
-        prevStatsReset = currentB;
+        // This is now handled in handleMlControls() with double tap detection
+        // Kept as empty method for potential future use
     }
 
     /**
@@ -360,25 +353,45 @@ public class AURORATeleOp extends LinearOpMode {
 
     /**
      * Handle ML system controls (save and reset)
+     * Left Bumper single tap = Save ML data
+     * Left Bumper double tap (within 500ms) = Reset performance stats
      */
     private void handleMlControls() {
         if (robotManager.getShooterSystem() == null) return;
 
-        // Handle ML save button (Left Bumper)
+        // Handle ML save/stats reset button (Left Bumper with double tap detection)
         boolean currentMlSave = gamepad2.left_bumper;
+        double currentTime = runtime.seconds();
+
         if (currentMlSave && !prevMlSave) {
-            // Save ML data
-            boolean saved = robotManager.getShooterSystem().getRpmLearning().saveLearningData();
-            if (saved) {
-                // Briefly show performance page to confirm save
+            // Button press detected
+            double timeSinceLastPress = currentTime - lastLbPressTime;
+
+            if (timeSinceLastPress < DOUBLE_TAP_WINDOW) {
+                // Double tap detected - reset performance stats
+                if (robotManager.getDriveSystem() != null) {
+                    robotManager.getDriveSystem().resetAnalytics();
+                }
+                if (robotManager.getGlobalMonitor() != null) {
+                    robotManager.getGlobalMonitor().reset();
+                }
+                // Briefly show performance page to confirm reset
                 smartTelemetry.showPerformance();
+                lastLbPressTime = 0; // Reset timer to prevent triple-tap
+            } else {
+                // Single tap - save ML data
+                boolean saved = robotManager.getShooterSystem().getRpmLearning().saveLearningData();
+                if (saved) {
+                    // Briefly show performance page to confirm save
+                    smartTelemetry.showPerformance();
+                }
+                lastLbPressTime = currentTime; // Store time for double tap detection
             }
         }
         prevMlSave = currentMlSave;
 
         // Handle ML reset button (Right Bumper - must hold for 2 seconds)
         boolean currentMlReset = gamepad2.right_bumper;
-        double currentTime = runtime.seconds();
 
         if (currentMlReset) {
             if (!mlResetButtonHeld) {

@@ -17,7 +17,6 @@ import org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver;
 
 /**
  * EnhancedDecodeHelper - Next-generation shooter control system
- *
  * New Features:
  * - Configurable shooting presets
  * - Performance monitoring and analytics
@@ -187,6 +186,14 @@ public class EnhancedDecodeHelper {
     private int consecutiveFailures = 0;
     private static final int MAX_FAILURES = 3;
 
+    // Timed shot mode (no RPM control) - for faster shooting with less accuracy
+    private boolean timedShotMode = false;
+    private double timedShotStartTime = 0;
+    private boolean prevTimedShotButton = false;
+    private static final double TIMED_SHOT_DURATION = 0.200; // 200ms per timed shot
+    private static final double TIMED_SHOT_INTERVAL = 0.150; // 150ms between timed shots
+    private double lastTimedShotTime = 0;
+
     /**
      * Constructor using unified hardware configuration (PREFERRED)
      * @param hardware The unified hardware configuration
@@ -343,6 +350,7 @@ public class EnhancedDecodeHelper {
         // Maintain shooter RPM control while running
         if (shooterRunning && !warmupMode) {
             updateRPM();
+
         }
 
         // Handle shooting logic
@@ -356,6 +364,62 @@ public class EnhancedDecodeHelper {
         updateLightIndicator();
 
         prevButtonState = buttonPressed;
+        return shotFired;
+    }
+
+    /**
+     * Handle timed shot button - fires shots without waiting for RPM control
+     * Pro: Faster shooting, Con: Less accuracy
+     * Call this method in your teleop loop with a dedicated timed shot button
+     *
+     * @param buttonPressed - true if timed shot button is pressed
+     * @param preset - the shooter preset to use (determines power level)
+     * @return true if a shot was fired
+     */
+    public boolean handleTimedShotButton(boolean buttonPressed, ShooterConfig.ShooterPreset preset) {
+        // Update performance monitoring
+        monitor.updateLoopTiming();
+
+        // Apply preset configuration
+        config.setPreset(preset);
+
+        boolean shotFired = false;
+
+        if (buttonPressed && !prevTimedShotButton) {
+            // Button press edge - start shooter if not running
+            if (!shooterRunning) {
+                // Start shooter at configured power without waiting for RPM
+                double batteryVoltage = voltageSensor != null ? voltageSensor.getVoltage() : 12.0;
+                double power = config.getPower(batteryVoltage);
+                shooter.setPower(power);
+                shooterRunning = true;
+                shooterStartTime = clock.seconds();
+                firstShotFired = false;
+
+                // Set light to yellow to indicate timed shot mode
+                if (light != null) {
+                    light.setPosition(LIGHT_YELLOW);
+                }
+            }
+        } else if (!buttonPressed && prevTimedShotButton) {
+            // Button release edge - stop shooter
+            stopShooter();
+            if (isShooting) {
+                stopFeedServos();
+                isShooting = false;
+                timedShotMode = false;
+            }
+        }
+
+        // Handle shooting while button is held
+        if (buttonPressed && shooterRunning) {
+            shotFired = fireTimedShot();
+        }
+
+        // Update light indicator
+        updateLightIndicator();
+
+        prevTimedShotButton = buttonPressed;
         return shotFired;
     }
 
@@ -936,6 +1000,65 @@ public class EnhancedDecodeHelper {
     }
 
     /**
+     * Fire a timed shot with hybrid mode
+     * First shot: Waits for RPM (accurate)
+     * Subsequent shots: Timed mode (fast)
+     *
+     * @return true if shot was fired, false if waiting
+     */
+    public boolean fireTimedShot() {
+        double currentTime = clock.seconds();
+
+        // For first shot, wait for RPM to stabilize (accuracy)
+        if (!firstShotFired) {
+            // Check if shooter is ready (RPM stable)
+            if (!isShooterReady()) {
+                return false; // Wait for RPM
+            }
+        } else {
+            // For subsequent shots, use minimum interval (speed)
+            if (currentTime - lastTimedShotTime < TIMED_SHOT_INTERVAL) {
+                return false;
+            }
+        }
+
+        // Check if we can start a new shot
+        if (!isShooting) {
+            // Start feed servos
+            startFeedServos();
+            isShooting = true;
+            timedShotMode = true;
+            feedStartTime = currentTime;
+            lastTimedShotTime = currentTime;
+            lastShotTime = currentTime;
+
+            // Mark first shot as fired after this shot
+            if (!firstShotFired) {
+                firstShotFired = true;
+                // Record accurate first shot with spinup time
+                double spinupTime = currentTime - shooterStartTime;
+                monitor.recordShotAttempt(true, spinupTime);
+            } else {
+                // Record subsequent timed shots (no spinup)
+                monitor.recordShotAttempt(true, 0.0);
+            }
+
+            consecutiveFailures = 0;
+
+            return true;
+        }
+
+        // Handle ongoing timed shot - stop feed servos when duration expires
+        if (isShooting && timedShotMode && (currentTime - feedStartTime >= TIMED_SHOT_DURATION)) {
+            stopFeedServos();
+            isShooting = false;
+            timedShotMode = false;
+        }
+
+        return false;
+    }
+
+    /**
      * Enhanced single shot with success tracking and fast recovery preparation
      * Now uses learned feed time and tracks shot trajectory
      */
@@ -1237,9 +1360,12 @@ public class EnhancedDecodeHelper {
         stopFeedServos();
         isShooting = false;
         warmupMode = false;
+        timedShotMode = false;
         lastShotTime = 0;
+        lastTimedShotTime = 0;
         prevButtonState = false;
         prevWarmupButtonState = false;
+        prevTimedShotButton = false;
         firstShotFired = false;
         emergencyStop = false;
         consecutiveFailures = 0;
@@ -1256,6 +1382,7 @@ public class EnhancedDecodeHelper {
     public boolean isShooterRunning() { return shooterRunning; }
     public boolean isShooting() { return isShooting; }
     public boolean isWarmupMode() { return warmupMode; }
+    public boolean isTimedShotMode() { return timedShotMode; }
     public double getTargetRPM() { return warmupMode ? config.getWarmupTargetRPM() : config.getTargetRPM(); }
     public double getShooterMotorPower() { return shooter.getPower(); }
     public int getShooterMotorPosition() { return shooter.getCurrentPosition(); }

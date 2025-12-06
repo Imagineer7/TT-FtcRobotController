@@ -337,13 +337,28 @@ public class AuroraManager {
      * Handle shooter controls
      */
     private void handleShooterControls(Gamepad gamepad) {
-        // Determine shooting preset based on bumper inputs
-        ShooterConfig.ShooterPreset currentPreset = ShooterConfig.ShooterPreset.LONG_RANGE; // default
+        // Determine shooting preset based on button pressed
+        // Default to SHORT_RANGE for most scenarios
+        ShooterConfig.ShooterPreset currentPreset = ShooterConfig.ShooterPreset.SHORT_RANGE; // default
 
         if (gamepad.y) {
             currentPreset = ShooterConfig.ShooterPreset.LONG_RANGE;
         } else if (gamepad.a) {
             currentPreset = ShooterConfig.ShooterPreset.SHORT_RANGE;
+        } else if (gamepad.b) {
+            currentPreset = ShooterConfig.ShooterPreset.SHORT_RANGE;
+        }
+
+        // Timed shot mode with B button (fast shooting, no RPM wait)
+        // Priority: timed shot mode takes precedence over normal shooting
+        boolean timedShotActive = gamepad.b;
+        if (timedShotActive) {
+            shooterSystem.handleTimedShotButton(true, currentPreset);
+            shootingMode = true;
+            // Don't process other shooter controls while in timed shot mode
+            return;
+        } else {
+            shooterSystem.handleTimedShotButton(false, currentPreset);
         }
 
         // Warmup mode with left trigger (65% RPM to save power, quick spinup)
@@ -358,7 +373,7 @@ public class AuroraManager {
         }
 
         // Smart shooting with gamepad.a (single shot) and gamepad.y (continuous)
-        // Only process these if NOT in warmup mode
+        // Only process these if NOT in warmup or timed shot mode
         boolean shortshot = gamepad.a;
         boolean longshot = gamepad.y;
 
@@ -383,10 +398,6 @@ public class AuroraManager {
             shootingMode = false;
         }
 
-        // Manual feed servo control with gamepad.b - use fireSingleShot for feed control
-        if (gamepad.b) {
-            shooterSystem.fireSingleShot();
-        }
 
         // Emergency stop all shooting with gamepad.x
         if (gamepad.x) {
