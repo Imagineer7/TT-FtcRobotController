@@ -77,6 +77,12 @@ public class SmartMechanumDrive {
     private static final double ACTIVE_BRAKE_POWER = -0.15; // Active braking for heavily loaded motors
     private static final boolean ENABLE_ACTIVE_BRAKING = true; // Enable active braking during direction changes
 
+    // Re-acceleration tracking (for direction changes)
+    private boolean[] inReaccelerationPhase = new boolean[4]; // Track which motors are re-accelerating after direction change
+    private int reaccelerationCyclesRemaining = 0; // How many cycles to apply synchronized re-acceleration
+    private static final int REACCELERATION_SYNC_CYCLES = 6; // Number of cycles to synchronize re-acceleration (6 cycles @ 50Hz = 120ms)
+    private static final double REACCELERATION_POWER_BOOST = 0.15; // Extra power for heavily loaded motors during re-acceleration
+
     // Battery optimization
     private double nominalVoltage = 12.0;
     private double currentVoltage = 12.0;
@@ -494,6 +500,10 @@ public class SmartMechanumDrive {
                         lastMotorPowers[i] = 0.0;
                         // Apply immediate initial power in new direction (synchronized)
                         lastMotorPowers[i] = targetMotorPowers[i] * 0.20; // Reduced from 0.25 for gentler start
+
+                        // Enter re-acceleration phase for synchronized acceleration
+                        inReaccelerationPhase[i] = true;
+                        reaccelerationCyclesRemaining = REACCELERATION_SYNC_CYCLES;
                     }
                 } else if (wasMoving[i]) {
                     // Other motors that were moving should also decelerate to maintain balance
@@ -514,14 +524,79 @@ public class SmartMechanumDrive {
             }
         } else {
             // Normal acceleration limiting (no direction change)
-            for (int i = 0; i < 4; i++) {
-                double powerDiff = targetMotorPowers[i] - lastMotorPowers[i];
 
-                // Apply smooth acceleration with the configured limit
-                if (Math.abs(powerDiff) > maxDelta) {
-                    lastMotorPowers[i] += Math.signum(powerDiff) * maxDelta;
-                } else {
-                    lastMotorPowers[i] = targetMotorPowers[i];
+            // Check if we're in the re-acceleration phase after a direction change
+            boolean isReaccelerating = reaccelerationCyclesRemaining > 0;
+
+            if (isReaccelerating) {
+                // SYNCHRONIZED RE-ACCELERATION PHASE
+                // After a direction change, motors accelerate at different rates due to load
+                // Heavy motors (under lift) accelerate slower than light motors
+                // Apply extra power to heavy motors to force synchronized acceleration
+
+                reaccelerationCyclesRemaining--;
+
+                // Find which motors are accelerating slowest (by comparing against target)
+                double[] accelerationRates = new double[4];
+                double slowestAcceleration = 999999.0;
+                int slowestAcceleratingMotor = -1;
+
+                for (int i = 0; i < 4; i++) {
+                    if (Math.abs(targetMotorPowers[i]) > 0.1) { // Motor should be moving
+                        double accelerationGap = Math.abs(targetMotorPowers[i] - lastMotorPowers[i]);
+                        accelerationRates[i] = accelerationGap;
+
+                        // Track which motor has the largest gap (accelerating slowest)
+                        if (accelerationGap > slowestAcceleration) {
+                            slowestAcceleration = accelerationGap;
+                            slowestAcceleratingMotor = i;
+                        }
+                    }
+                }
+
+                // Apply synchronized acceleration with load compensation
+                for (int i = 0; i < 4; i++) {
+                    double powerDiff = targetMotorPowers[i] - lastMotorPowers[i];
+
+                    // Base acceleration
+                    double acceleration = Math.signum(powerDiff) * Math.min(Math.abs(powerDiff), maxDelta);
+
+                    // LOAD COMPENSATION: If this motor has a large gap (slow acceleration = heavy load),
+                    // give it EXTRA power to catch up with lighter motors
+                    if (slowestAcceleratingMotor >= 0 && i == slowestAcceleratingMotor && Math.abs(targetMotorPowers[i]) > 0.1) {
+                        // This is the slowest accelerating motor (most loaded)
+                        // Give it a power boost to match lighter motors
+                        double boost = REACCELERATION_POWER_BOOST * Math.signum(powerDiff);
+                        acceleration += boost;
+
+                        // Clamp to not exceed target
+                        double newPower = lastMotorPowers[i] + acceleration;
+                        if (Math.abs(newPower) > Math.abs(targetMotorPowers[i])) {
+                            acceleration = targetMotorPowers[i] - lastMotorPowers[i];
+                        }
+                    }
+
+                    lastMotorPowers[i] += acceleration;
+
+                    // Clamp to prevent overshooting
+                    if (Math.signum(lastMotorPowers[i]) == Math.signum(targetMotorPowers[i])) {
+                        if (Math.abs(lastMotorPowers[i]) > Math.abs(targetMotorPowers[i])) {
+                            lastMotorPowers[i] = targetMotorPowers[i];
+                        }
+                    }
+                }
+
+            } else {
+                // NORMAL ACCELERATION (not re-accelerating from direction change)
+                for (int i = 0; i < 4; i++) {
+                    double powerDiff = targetMotorPowers[i] - lastMotorPowers[i];
+
+                    // Apply smooth acceleration with the configured limit
+                    if (Math.abs(powerDiff) > maxDelta) {
+                        lastMotorPowers[i] += Math.signum(powerDiff) * maxDelta;
+                    } else {
+                        lastMotorPowers[i] = targetMotorPowers[i];
+                    }
                 }
             }
         }
