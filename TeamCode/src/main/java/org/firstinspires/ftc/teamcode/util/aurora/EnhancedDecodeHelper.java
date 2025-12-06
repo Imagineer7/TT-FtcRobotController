@@ -62,6 +62,7 @@ public class EnhancedDecodeHelper {
     private boolean shooterRunning = false;
     private boolean isShooting = false;
     private boolean warmupMode = false; // Track if shooter is in warmup mode
+    private boolean transitioningFromWarmup = false; // Track if transitioning from warmup to full power
     private double warmupStartTime = Double.NEGATIVE_INFINITY;
     private double lastShotTime = 0;
     private double shooterStartTime = Double.NEGATIVE_INFINITY;
@@ -333,9 +334,19 @@ public class EnhancedDecodeHelper {
         boolean shotFired = false;
 
         if (buttonPressed && !prevButtonState) {
-            // Button press edge
+            // Button press edge - PRIORITY: Exit warmup mode immediately if active
+            if (warmupMode) {
+                // Force exit warmup mode - shooting has complete priority
+                warmupMode = false;
+                transitioningFromWarmup = true; // Set flag to wait for full RPM
+            }
+
+            // Start shooter (or transition from warmup to full power)
             if (!shooterRunning) {
                 startShooter();
+            } else if (!transitioningFromWarmup) {
+                // Already at full power, just make sure we're not in warmup
+                warmupMode = false;
             }
         } else if (!buttonPressed && prevButtonState) {
             // Button release edge
@@ -386,7 +397,14 @@ public class EnhancedDecodeHelper {
         boolean shotFired = false;
 
         if (buttonPressed && !prevTimedShotButton) {
-            // Button press edge - start shooter if not running
+            // Button press edge - PRIORITY: Exit warmup mode immediately if active
+            if (warmupMode) {
+                // Force exit warmup mode - timed shooting has complete priority
+                warmupMode = false;
+                transitioningFromWarmup = true; // Set flag to wait for full RPM
+            }
+
+            // Start shooter if not running
             if (!shooterRunning) {
                 // Start shooter at configured power without waiting for RPM
                 double batteryVoltage = voltageSensor != null ? voltageSensor.getVoltage() : 12.0;
@@ -400,6 +418,9 @@ public class EnhancedDecodeHelper {
                 if (light != null) {
                     light.setPosition(LIGHT_YELLOW);
                 }
+            } else if (!transitioningFromWarmup) {
+                // Already at full power, just make sure we're not in warmup
+                warmupMode = false;
             }
         } else if (!buttonPressed && prevTimedShotButton) {
             // Button release edge - stop shooter
@@ -436,6 +457,13 @@ public class EnhancedDecodeHelper {
 
         // Apply preset configuration
         config.setPreset(preset);
+
+        // CRITICAL: If shooter is running in full power mode (not warmup), completely ignore warmup button
+        // This prevents fighting between warmup and shooting controls
+        if (shooterRunning && !warmupMode) {
+            // Shooter is running at full power for shooting - warmup has no control
+            return;
+        }
 
         if (warmupButtonPressed) {
             // Button is being held - start warmup if not already running
@@ -508,12 +536,26 @@ public class EnhancedDecodeHelper {
         if (timeSinceWarmupStart > config.getWarmupSpinupTime()) {
             double error = warmupTargetRpm - currentRPM;
 
-            // Simple proportional control for warmup (no integral/derivative needed)
-            double powerAdjustment = error * RPM_KP * 0.5; // Half gain for gentle control
-            powerAdjustment = Math.max(-0.05, Math.min(0.05, powerAdjustment));
+            // DEADBAND: If within 25 RPM of target, only make very small adjustments
+            if (Math.abs(error) < 25) {
+                // Very close to target - minimal correction to prevent oscillation
+                double tinyAdjustment = error * 0.00008; // Very gentle
+                tinyAdjustment = Math.max(-0.01, Math.min(0.01, tinyAdjustment));
+                currentPower += tinyAdjustment;
+            } else if (Math.abs(error) < 100) {
+                // Reasonably close - gentle correction
+                double gentleAdjustment = error * 0.00020; // Gentle proportional
+                gentleAdjustment = Math.max(-0.03, Math.min(0.03, gentleAdjustment));
+                currentPower += gentleAdjustment;
+            } else {
+                // Far from target - more aggressive correction
+                double powerAdjustment = error * 0.00035; // Stronger proportional
+                powerAdjustment = Math.max(-0.05, Math.min(0.05, powerAdjustment));
+                currentPower += powerAdjustment;
+            }
 
-            currentPower += powerAdjustment;
-            currentPower = Math.max(0.0, Math.min(0.7, currentPower));
+            // Keep power in valid warmup range
+            currentPower = Math.max(0.3, Math.min(0.7, currentPower));
 
             shooter.setPower(currentPower);
         }
@@ -536,12 +578,13 @@ public class EnhancedDecodeHelper {
         double targetRpm = config.getTargetRPM();
 
         // Check if we're transitioning from warmup mode
-        boolean transitioningFromWarmup = warmupMode;
+        boolean wasInWarmupMode = warmupMode;
         double currentRpmAtStart = currentRPM;
 
-        if (transitioningFromWarmup) {
-            // We're already spinning - calculate how much more power we need
+        if (wasInWarmupMode || transitioningFromWarmup) {
+            // We're transitioning from warmup - calculate how much more power we need
             warmupMode = false; // Exit warmup mode
+            transitioningFromWarmup = true; // Set transition flag to prevent premature shooting
 
             // Calculate feedforward for full target RPM
             double feedforwardPower = calculateFeedforwardPower(targetRpm, batteryVoltage);
@@ -549,13 +592,19 @@ public class EnhancedDecodeHelper {
             // Blend current power with target power based on RPM difference
             double rpmRatio = currentRpmAtStart / targetRpm;
             if (rpmRatio > 0.5) {
-                // Already spinning significantly - smooth transition
-                currentPower = currentPower * 0.3 + feedforwardPower * 0.7;
+                // Already spinning significantly (from warmup at ~65%) - smooth transition to full power
+                // Add a boost to quickly reach full RPM from warmup
+                currentPower = currentPower * 0.2 + feedforwardPower * 0.8;
+                currentPower *= 1.20; // 20% boost to quickly ramp from warmup to full RPM
+                currentPower = Math.min(1.0, currentPower);
             } else {
-                // Low RPM - use mostly feedforward
-                currentPower = feedforwardPower;
+                // Low RPM - use feedforward with boost
+                currentPower = feedforwardPower * 1.10; // 10% boost for faster spinup
+                currentPower = Math.min(1.0, currentPower);
             }
         } else {
+            // Not transitioning from warmup
+            transitioningFromWarmup = false;
             // Starting from zero - use feedforward
             double basePower = config.getPower(batteryVoltage);
             double feedforwardPower = calculateFeedforwardPower(targetRpm, batteryVoltage);
@@ -903,6 +952,21 @@ public class EnhancedDecodeHelper {
      */
     public boolean isShooterReady() {
         double currentTime = clock.seconds();
+
+        // CRITICAL FIX: If transitioning from warmup, ensure we've reached full target RPM
+        if (transitioningFromWarmup) {
+            double targetRpm = config.getTargetRPM();
+            updateRPM();
+
+            // Only clear transition flag once we're at or above 95% of target RPM
+            if (currentRPM >= (targetRpm * 0.95)) {
+                transitioningFromWarmup = false; // Transition complete
+                // Continue to normal readiness check below
+            } else {
+                // Still transitioning - not ready to shoot yet
+                return false;
+            }
+        }
 
         // Use learned shot interval (or config default if not learning)
         double shotInterval = learningEnabled ? learnedShotInterval : config.getShotInterval();
@@ -1391,6 +1455,7 @@ public class EnhancedDecodeHelper {
         shooter.setPower(0.0);
         shooterRunning = false;
         warmupMode = false; // Exit warmup mode
+        transitioningFromWarmup = false; // Reset warmup transition flag
         firstShotFired = false; // Reset first shot flag when shooter stops
     }
 
@@ -1399,6 +1464,7 @@ public class EnhancedDecodeHelper {
         stopFeedServos();
         isShooting = false;
         warmupMode = false;
+        transitioningFromWarmup = false;
         timedShotMode = false;
         lastShotTime = 0;
         lastTimedShotTime = 0;
