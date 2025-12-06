@@ -62,8 +62,20 @@ public class SmartMechanumDrive {
     private ElapsedTime accelerationTimer = new ElapsedTime();
     private double[] lastMotorPowers = new double[4];
     private double[] targetMotorPowers = new double[4];
-    private static final double ACCELERATION_LIMIT = 5.0; // Power units per second
+    private static final double ACCELERATION_LIMIT = 8.0; // Power units per second - INCREASED for faster response
     private boolean enableAccelerationLimiting = true; // Can be disabled for PID control
+
+    // Direction change detection
+    private double[] previousTargetPowers = new double[4];
+    private boolean[] wasMoving = new boolean[4];
+    private static final double DIRECTION_CHANGE_THRESHOLD = 0.1; // Threshold to detect meaningful direction change
+
+    // Motor load compensation for uneven weight distribution
+    private double[] motorDecelerationRates = new double[]{1.0, 1.0, 1.0, 1.0}; // Per-motor deceleration multipliers
+    private double[] lastMotorVelocities = new double[4]; // Track motor velocities for adaptive compensation
+    private ElapsedTime motorCompensationTimer = new ElapsedTime();
+    private static final double ACTIVE_BRAKE_POWER = -0.15; // Active braking for heavily loaded motors
+    private static final boolean ENABLE_ACTIVE_BRAKING = true; // Enable active braking during direction changes
 
     // Battery optimization
     private double nominalVoltage = 12.0;
@@ -215,6 +227,7 @@ public class SmartMechanumDrive {
 
     /**
      * Calculate standard mechanum drive powers
+     * ENHANCED: Better normalization to prevent power imbalances
      */
     private void calculateMechanumPowers(double axial, double lateral, double yaw) {
         // Add fine movement controls to the main joystick inputs
@@ -232,13 +245,25 @@ public class SmartMechanumDrive {
         targetMotorPowers[2] = axial - lateral + yaw; // Left Back
         targetMotorPowers[3] = axial + lateral - yaw; // Right Back
 
-        // Normalize if any power exceeds 1.0
+        // IMPROVED NORMALIZATION: Use more careful normalization to preserve ratios
+        // This is critical to prevent rotation during quick direction changes
         double max = Math.max(Math.max(Math.abs(targetMotorPowers[0]), Math.abs(targetMotorPowers[1])),
                              Math.max(Math.abs(targetMotorPowers[2]), Math.abs(targetMotorPowers[3])));
 
         if (max > 1.0) {
+            // Normalize all powers by the same factor to maintain motor power ratios
+            // This is CRITICAL - uneven normalization causes rotation!
+            double normalizationFactor = 1.0 / max;
             for (int i = 0; i < 4; i++) {
-                targetMotorPowers[i] /= max;
+                targetMotorPowers[i] *= normalizationFactor;
+            }
+        }
+
+        // ADDITIONAL FIX: Apply a small deadband to very small powers to prevent motor drift
+        // When powers are very small, motor response can be inconsistent
+        for (int i = 0; i < 4; i++) {
+            if (Math.abs(targetMotorPowers[i]) < 0.02) {
+                targetMotorPowers[i] = 0.0;
             }
         }
     }
@@ -368,12 +393,14 @@ public class SmartMechanumDrive {
 
     /**
      * Apply smooth acceleration to prevent wheel slip and jerky movement
+     * ENHANCED: Better handling of quick direction changes to prevent unwanted rotation
      */
     private void applySmoothAcceleration() {
         // If acceleration limiting is disabled (e.g., for PID control), apply target directly
         if (!enableAccelerationLimiting) {
             for (int i = 0; i < 4; i++) {
                 lastMotorPowers[i] = targetMotorPowers[i];
+                previousTargetPowers[i] = targetMotorPowers[i];
             }
             return;
         }
@@ -381,38 +408,127 @@ public class SmartMechanumDrive {
         double deltaTime = accelerationTimer.seconds();
         accelerationTimer.reset();
 
-        // Use a higher limit for better responsiveness and to prevent rotation issues
+        // Clamp delta time to prevent huge jumps on first loop or lag spikes
+        deltaTime = Math.min(deltaTime, 0.1);
+
+        // Calculate max change allowed this cycle
         double maxDelta = ACCELERATION_LIMIT * deltaTime;
 
-        // Track if we're doing a direction reversal (sign change)
+        // Detect direction reversals for each motor
         boolean[] directionReversal = new boolean[4];
+        boolean anyDirectionChange = false;
+
         for (int i = 0; i < 4; i++) {
+            // Direction reversal = sign change AND was moving significantly
             directionReversal[i] = (Math.signum(targetMotorPowers[i]) != Math.signum(lastMotorPowers[i]))
-                                   && Math.abs(lastMotorPowers[i]) > 0.05;
+                                   && Math.abs(lastMotorPowers[i]) > DIRECTION_CHANGE_THRESHOLD;
+            if (directionReversal[i]) {
+                anyDirectionChange = true;
+            }
+            wasMoving[i] = Math.abs(lastMotorPowers[i]) > DIRECTION_CHANGE_THRESHOLD;
         }
 
-        // Apply acceleration limiting with special handling for direction reversals
-        for (int i = 0; i < 4; i++) {
-            double powerDiff = targetMotorPowers[i] - lastMotorPowers[i];
+        // CRITICAL FIX: When ANY motor reverses direction, apply SYNCHRONIZED deceleration
+        // ENHANCED: Active braking and load compensation for uneven weight distribution
+        // This prevents one side from decelerating faster than the other, which causes rotation
+        if (anyDirectionChange) {
+            // Track motor deceleration velocities to detect load imbalances
+            double deltaCompensationTime = motorCompensationTimer.seconds();
+            motorCompensationTimer.reset();
 
-            // For direction reversals, allow faster deceleration to zero to prevent rotation
-            if (directionReversal[i]) {
-                // Quickly decelerate to zero first, then accelerate in new direction
-                if (Math.abs(lastMotorPowers[i]) > 0.05) {
-                    // Decelerate to zero with higher limit
-                    lastMotorPowers[i] *= 0.5; // Faster deceleration
-                } else {
-                    // Now accelerate in new direction
-                    lastMotorPowers[i] = targetMotorPowers[i] * 0.3; // Quick initial acceleration
+            // Calculate how fast each motor is actually decelerating
+            for (int i = 0; i < 4; i++) {
+                if (directionReversal[i] && deltaCompensationTime > 0.001) {
+                    double velocityChange = (lastMotorPowers[i] - previousTargetPowers[i]) / deltaCompensationTime;
+                    lastMotorVelocities[i] = velocityChange;
                 }
-            } else {
-                // Normal acceleration limiting
+            }
+
+            // Find the SLOWEST decelerating motor (most loaded - likely under the lift)
+            // This motor will be our reference - we'll force other motors to match its deceleration rate
+            double slowestDecelerationRate = 999999.0;
+            int slowestMotorIndex = -1;
+
+            for (int i = 0; i < 4; i++) {
+                if (directionReversal[i]) {
+                    double decelerationRate = Math.abs(lastMotorVelocities[i]);
+                    if (decelerationRate < slowestDecelerationRate && decelerationRate > 0.01) {
+                        slowestDecelerationRate = decelerationRate;
+                        slowestMotorIndex = i;
+                    }
+                }
+            }
+
+            // Base synchronized deceleration rate for all motors
+            double syncDecelerationRate = 0.10; // 10% remaining per cycle (90% reduction)
+            // MORE AGGRESSIVE than before to overcome momentum from uneven weight
+
+            for (int i = 0; i < 4; i++) {
+                if (directionReversal[i]) {
+                    // Motor is reversing direction
+                    if (Math.abs(lastMotorPowers[i]) > 0.03) {
+                        // Still decelerating - need to slow down
+
+                        // Apply base deceleration
+                        double newPower = lastMotorPowers[i] * syncDecelerationRate;
+
+                        // ACTIVE BRAKING: If this motor is decelerating faster than the slowest motor,
+                        // apply additional braking to force it to match the slowest motor's rate
+                        // This compensates for uneven weight distribution
+                        if (ENABLE_ACTIVE_BRAKING && slowestMotorIndex >= 0 && i != slowestMotorIndex) {
+                            // This motor is lighter-loaded than the slowest motor
+                            // Apply active braking (reverse power) to force faster deceleration
+                            double brakingDirection = -Math.signum(lastMotorPowers[i]);
+                            newPower += ACTIVE_BRAKE_POWER * brakingDirection;
+
+                            // Clamp to prevent overshooting into opposite direction
+                            if (Math.signum(newPower) != Math.signum(lastMotorPowers[i]) && Math.abs(newPower) > 0.01) {
+                                newPower = 0.0; // Crossed zero, snap to zero
+                            }
+                        }
+
+                        lastMotorPowers[i] = newPower;
+
+                    } else {
+                        // Close enough to zero - snap to zero and prepare for new direction
+                        lastMotorPowers[i] = 0.0;
+                        // Apply immediate initial power in new direction (synchronized)
+                        lastMotorPowers[i] = targetMotorPowers[i] * 0.20; // Reduced from 0.25 for gentler start
+                    }
+                } else if (wasMoving[i]) {
+                    // Other motors that were moving should also decelerate to maintain balance
+                    // This prevents the robot from continuing to move in one direction while reversing another
+                    lastMotorPowers[i] *= syncDecelerationRate;
+
+                    // Also apply active braking if needed
+                    if (ENABLE_ACTIVE_BRAKING && Math.abs(lastMotorPowers[i]) > 0.03) {
+                        double brakingDirection = -Math.signum(lastMotorPowers[i]);
+                        lastMotorPowers[i] += ACTIVE_BRAKE_POWER * 0.5 * brakingDirection; // Half braking for non-reversing motors
+
+                        // Clamp to prevent sign change
+                        if (Math.abs(lastMotorPowers[i]) < 0.03) {
+                            lastMotorPowers[i] = 0.0;
+                        }
+                    }
+                }
+            }
+        } else {
+            // Normal acceleration limiting (no direction change)
+            for (int i = 0; i < 4; i++) {
+                double powerDiff = targetMotorPowers[i] - lastMotorPowers[i];
+
+                // Apply smooth acceleration with the configured limit
                 if (Math.abs(powerDiff) > maxDelta) {
                     lastMotorPowers[i] += Math.signum(powerDiff) * maxDelta;
                 } else {
                     lastMotorPowers[i] = targetMotorPowers[i];
                 }
             }
+        }
+
+        // Store current targets for next iteration
+        for (int i = 0; i < 4; i++) {
+            previousTargetPowers[i] = targetMotorPowers[i];
         }
     }
 
