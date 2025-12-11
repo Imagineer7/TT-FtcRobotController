@@ -318,6 +318,7 @@ public class AuroraManager {
 
         // Update odometry tracking
         shooterSystem.updateOdometry();
+        shooterSystem.runSecondShooter();
 
         // Determine which gamepad controls utilities based on current mode
         if (currentDriverMode == DriverMode.DUAL_DRIVER) {

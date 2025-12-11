@@ -8,6 +8,7 @@ package org.firstinspires.ftc.teamcode.util.aurora;
 
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
@@ -52,8 +53,9 @@ public class AuroraHardwareConfig {
     public static final String BACK_RIGHT_MOTOR = "backRight";
     
     // Shooter System
-    public static final String SHOOTER_MOTOR = "shooter";
-    public static final String FEED_SERVO_1 = "servo1";
+    public static final String SHOOTER_MOTOR = "shooter1";
+    public static final String SHOOTER_MOTOR_2 = "shooter2";
+    //public static final String FEED_SERVO_1 = "servo1";
     public static final String FEED_SERVO_2 = "servo2";
     public static final String LIGHT_SERVO = "light";
     
@@ -72,7 +74,8 @@ public class AuroraHardwareConfig {
     
     // Shooter system components
     private DcMotor shooterMotor;
-    private CRServo feedServo1;
+    private DcMotor shooterMotor2;
+    //private CRServo feedServo1;
     private CRServo feedServo2;
     private Servo lightServo;
     
@@ -202,12 +205,18 @@ public class AuroraHardwareConfig {
             telemetry.update();
             
             shooterMotor = hardwareMap.get(DcMotor.class, SHOOTER_MOTOR);
-            feedServo1 = hardwareMap.get(CRServo.class, FEED_SERVO_1);
-            feedServo2 = hardwareMap.get(CRServo.class, FEED_SERVO_2);
+            shooterMotor2 = hardwareMap.get(DcMotor.class, SHOOTER_MOTOR_2);
+            //feedServo1 = hardwareMap.get(CRServo.class, FEED_SERVO_1);
+            //feedServo2 = hardwareMap.get(CRServo.class, FEED_SERVO_2);
             
             // Configure shooter motor
             shooterMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            
+            shooterMotor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+            shooterMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+            shooterMotor2.setDirection(DcMotorSimple.Direction.REVERSE);
+
+
             // Light servo is optional
             try {
                 lightServo = hardwareMap.get(Servo.class, LIGHT_SERVO);
@@ -221,14 +230,14 @@ public class AuroraHardwareConfig {
             shooterInitError = "";
             telemetry.addLine("✅ Shooter system initialized successfully");
             telemetry.addLine("   Motor: " + SHOOTER_MOTOR);
-            telemetry.addLine("   Servos: " + FEED_SERVO_1 + ", " + FEED_SERVO_2);
+            //telemetry.addLine("   Servos: " + FEED_SERVO_1 + ", " + FEED_SERVO_2);
             
         } catch (IllegalArgumentException e) {
             shooterSystemInitialized = false;
             shooterInitError = "Device not found: " + e.getMessage();
             telemetry.addLine("⚠️ Shooter system failed: " + shooterInitError);
             telemetry.addLine("   Check device names in hardware configuration:");
-            telemetry.addLine("   Expected: " + SHOOTER_MOTOR + ", " + FEED_SERVO_1 + ", " + FEED_SERVO_2);
+            //telemetry.addLine("   Expected: " + SHOOTER_MOTOR + ", " + FEED_SERVO_1 + ", " + FEED_SERVO_2);
         } catch (Exception e) {
             shooterSystemInitialized = false;
             shooterInitError = e.getClass().getSimpleName() + ": " + e.getMessage();
@@ -310,8 +319,10 @@ public class AuroraHardwareConfig {
     
     // Shooter components
     public DcMotor getShooterMotor() { return shooterMotor; }
-    public CRServo getFeedServo1() { return feedServo1; }
-    public CRServo getFeedServo2() { return feedServo2; }
+
+    public DcMotor getShooterMotor2() { return  shooterMotor2; }
+    //public CRServo getFeedServo1() { return feedServo1; }
+    //public CRServo getFeedServo2() { return feedServo2; }
     public Servo getLightServo() { return lightServo; }
     
     // Sensors

@@ -29,6 +29,7 @@ public class EnhancedDecodeHelper {
 
     // Hardware components
     private DcMotor shooter;
+    private DcMotor shooter2;
     private CRServo feedServo1;
     private CRServo feedServo2;
     private Servo light;
@@ -202,15 +203,18 @@ public class EnhancedDecodeHelper {
     public EnhancedDecodeHelper(AuroraHardwareConfig hardware) {
         // Get hardware from unified config
         shooter = hardware.getShooterMotor();
-        feedServo1 = hardware.getFeedServo1();
-        feedServo2 = hardware.getFeedServo2();
-        light = hardware.getLightServo();
+        shooter2 = hardware.getShooterMotor2();
+        //feedServo1 = hardware.getFeedServo1();
+        //feedServo2 = hardware.getFeedServo2();
+        //light = hardware.getLightServo();
         voltageSensor = hardware.getVoltageSensor();
-        odometry = hardware.getOdometry();
+        //odometry = hardware.getOdometry();
 
         // Configure shooter motor
-        if (shooter != null) {
+        if (shooter != null && shooter2 != null) {
             shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            shooter2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
         }
 
         // Initialize enhanced systems
@@ -244,8 +248,8 @@ public class EnhancedDecodeHelper {
     public EnhancedDecodeHelper(HardwareMap hardwareMap, boolean enableOdometry) {
         // Initialize hardware
         shooter = hardwareMap.get(DcMotor.class, "shooter");
-        feedServo1 = hardwareMap.get(CRServo.class, "servo1");
-        feedServo2 = hardwareMap.get(CRServo.class, "servo2");
+        //feedServo1 = hardwareMap.get(CRServo.class, "servo1");
+        //feedServo2 = hardwareMap.get(CRServo.class, "servo2");
 
         // Try to get light indicator (may not exist on all robots)
         try {
@@ -573,6 +577,9 @@ public class EnhancedDecodeHelper {
      * Start shooter with voltage compensation and dynamic RPM control
      * Now intelligently handles transition from warmup mode
      */
+    public void runSecondShooter() {
+        shooter2.setPower(shooter.getPower());
+    }
     public void startShooter() {
         double batteryVoltage = voltageSensor != null ? voltageSensor.getVoltage() : 12.0;
         double targetRpm = config.getTargetRPM();
@@ -1439,13 +1446,13 @@ public class EnhancedDecodeHelper {
     }
 
     private void startFeedServos() {
-        feedServo1.setPower(-config.getFeedPower());
-        feedServo2.setPower(config.getFeedPower());
+        //feedServo1.setPower(-config.getFeedPower());
+        //feedServo2.setPower(config.getFeedPower());
     }
 
     public void stopFeedServos() {
-        feedServo1.setPower(0.0);
-        feedServo2.setPower(0.0);
+        //feedServo1.setPower(0.0);
+        //feedServo2.setPower(0.0);
     }
 
     public void stopShooter() {
