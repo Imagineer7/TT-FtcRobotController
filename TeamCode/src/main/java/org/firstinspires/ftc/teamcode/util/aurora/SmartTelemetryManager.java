@@ -21,6 +21,7 @@ public class SmartTelemetryManager {
     public enum TelemetryPage {
         OVERVIEW("📊 Overview", "System status & critical info"),
         DRIVE("🚗 Drive", "Movement & navigation systems"),
+        POSITIONING("📍 Positioning", "Localization & vision data"),
         SHOOTER("🎯 Shooter", "Shooting system & performance"),
         RECORDING("🎬 Recording", "Movement recording & playback"),
         PERFORMANCE("⚡ Performance", "System metrics & diagnostics"),
@@ -117,6 +118,9 @@ public class SmartTelemetryManager {
                 break;
             case DRIVE:
                 showDrivePage();
+                break;
+            case POSITIONING:
+                showPositioningPage();
                 break;
             case SHOOTER:
                 showShooterPage();
@@ -279,6 +283,187 @@ public class SmartTelemetryManager {
 
         telemetry.addLine("");
         telemetry.addLine("Movement & navigation data");
+    }
+
+    /**
+     * Positioning page - Localization and vision data
+     */
+    private void showPositioningPage() {
+        telemetry.addLine("📍 POSITIONING SYSTEM");
+
+        // Get hardware config for vision system access
+        AuroraHardwareConfig hardware = robotManager.getHardware();
+
+        // ================================================
+        // ODOMETRY SECTION
+        // ================================================
+        telemetry.addLine("");
+        telemetry.addLine("🧭 ODOMETRY (Pinpoint)");
+
+        if (hardware != null && hardware.isOdometryInitialized() && hardware.getOdometry() != null) {
+            try {
+                org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver odo = hardware.getOdometry();
+
+                // Update odometry
+                odo.update();
+
+                // Position data
+                org.firstinspires.ftc.robotcore.external.navigation.Pose2D pos = odo.getPosition();
+                telemetry.addData("Position", "X: %.2f\", Y: %.2f\"", pos.getX(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH),
+                        pos.getY(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH));
+                telemetry.addData("Heading", "%.1f°", Math.toDegrees(pos.getHeading(org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS)));
+
+                // Velocity data
+                org.firstinspires.ftc.robotcore.external.navigation.Pose2D vel = odo.getVelocity();
+                double speed = Math.sqrt(vel.getX(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH) *
+                        vel.getX(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH) +
+                        vel.getY(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH) *
+                        vel.getY(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH));
+                telemetry.addData("Speed", "%.1f \"/s", speed);
+
+                // Device status
+                telemetry.addData("Status", odo.getDeviceStatus());
+                telemetry.addData("Frequency", "%.0f Hz", odo.getFrequency());
+
+            } catch (Exception e) {
+                telemetry.addLine("⚠️ Odometry read error: " + e.getMessage());
+            }
+        } else {
+            telemetry.addLine("❌ Odometry not available");
+            if (hardware != null && !hardware.getOdometryInitError().isEmpty()) {
+                telemetry.addLine("   Error: " + hardware.getOdometryInitError());
+            }
+        }
+
+        // ================================================
+        // LIMELIGHT VISION SECTION
+        // ================================================
+        telemetry.addLine("");
+        telemetry.addLine("👁️ LIMELIGHT VISION");
+
+        if (hardware != null && hardware.isLimelightInitialized() && hardware.getLimelightHelper() != null) {
+            org.firstinspires.ftc.teamcode.util.aurora.vision.AuroraLimelightHelper limelight = hardware.getLimelightHelper();
+
+            try {
+                // Update limelight data
+                limelight.update();
+
+                // Connection status
+                telemetry.addData("Status", limelight.isRunning() ? "🟢 ACTIVE" : "🔴 STOPPED");
+                telemetry.addData("Pipeline", limelight.getCurrentPipeline());
+
+                // Position data freshness
+                long dataAge = limelight.getLastPositionAgeMs();
+                String freshnessIcon = dataAge < 500 ? "🟢" : dataAge < 1000 ? "🟡" : "🔴";
+                telemetry.addData("Data Age", "%s %dms", freshnessIcon, dataAge);
+
+                // Position data if available
+                if (limelight.hasValidPosition()) {
+                    org.firstinspires.ftc.robotcore.external.navigation.Pose3D pose = limelight.getLastBotPose();
+                    if (pose != null && pose.getPosition() != null) {
+                        // Get position in meters
+                        double xMeters = limelight.getX();
+                        double yMeters = limelight.getY();
+
+                        // Convert to mm and inches
+                        double xMm = xMeters * 1000.0;
+                        double yMm = yMeters * 1000.0;
+                        double xInches = xMeters * 39.3701;
+                        double yInches = yMeters * 39.3701;
+
+                        telemetry.addData("LL Position (m)", "X: %.2fm, Y: %.2fm", xMeters, yMeters);
+                        telemetry.addData("LL Position (mm)", "X: %.0fmm, Y: %.0fmm", xMm, yMm);
+                        telemetry.addData("LL Position (in)", "X: %.2f\", Y: %.2f\"", xInches, yInches);
+                        telemetry.addData("LL Heading", "%.1f°", limelight.getHeadingDegrees());
+                        telemetry.addData("LL Height", "%.2fm", limelight.getZ());
+
+                        // Show if data is fresh enough for correction
+                        if (dataAge < 1000) {
+                            telemetry.addData("Correction", "✅ Data fresh for localization");
+                            telemetry.addLine("   Press Left Bumper (GP1) to reset odo");
+                        } else {
+                            telemetry.addData("Correction", "⏳ Data too old for correction");
+                        }
+                    }
+                } else {
+                    telemetry.addData("LL Position", "❌ No valid target");
+                    telemetry.addLine("   • Check AprilTag visibility");
+                    telemetry.addLine("   • Verify field lighting");
+                }
+
+                // Targeting data
+                double tx = limelight.getTx();
+                double ty = limelight.getTy();
+                if (Math.abs(tx) > 0.1 || Math.abs(ty) > 0.1) {
+                    telemetry.addData("Target Offset", "TX: %.1f°, TY: %.1f°", tx, ty);
+                }
+
+                // Statistics
+                telemetry.addLine("");
+                telemetry.addLine("📊 VISION STATS");
+                telemetry.addLine(limelight.getStatistics());
+
+            } catch (Exception e) {
+                telemetry.addLine("⚠️ Limelight read error: " + e.getMessage());
+            }
+        } else {
+            telemetry.addLine("❌ Limelight not available");
+            if (hardware != null && !hardware.getLimelightInitError().isEmpty()) {
+                telemetry.addLine("   Error: " + hardware.getLimelightInitError());
+            }
+            telemetry.addLine("   Vision correction unavailable");
+        }
+
+        // ================================================
+        // LOCALIZATION FUSION (if both available)
+        // ================================================
+        if (hardware != null && hardware.isOdometryInitialized() &&
+            hardware.isLimelightInitialized() && hardware.getLimelightHelper() != null) {
+
+            org.firstinspires.ftc.teamcode.util.aurora.vision.AuroraLimelightHelper limelight = hardware.getLimelightHelper();
+
+            if (limelight.hasValidPosition(500)) {  // Data less than 500ms old
+                telemetry.addLine("");
+                telemetry.addLine("🔀 SENSOR FUSION");
+
+                try {
+                    org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver odo = hardware.getOdometry();
+                    org.firstinspires.ftc.robotcore.external.navigation.Pose2D odoPos = odo.getPosition();
+
+                    // Convert Limelight meters to inches for comparison
+                    double llX_inches = limelight.getX() * 39.3701;
+                    double llY_inches = limelight.getY() * 39.3701;
+                    double odoX = odoPos.getX(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH);
+                    double odoY = odoPos.getY(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH);
+
+                    // Calculate position discrepancy
+                    double deltaX = llX_inches - odoX;
+                    double deltaY = llY_inches - odoY;
+                    double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+                    String accuracyIcon = distance < 6 ? "✅" : distance < 12 ? "⚠️" : "❌";
+                    telemetry.addData("Discrepancy", "%s %.1f\"", accuracyIcon, distance);
+                    telemetry.addData("Delta", "dX: %.1f\", dY: %.1f\"", deltaX, deltaY);
+
+                    if (distance < 12) {
+                        telemetry.addLine("💡 Sensors agree - good tracking");
+                    } else {
+                        telemetry.addLine("⚠️ Large discrepancy detected!");
+                        telemetry.addLine("   Consider recalibrating");
+                    }
+
+                } catch (Exception e) {
+                    telemetry.addLine("⚠️ Fusion calc error");
+                }
+            } else {
+                telemetry.addLine("");
+                telemetry.addLine("🔀 SENSOR FUSION");
+                telemetry.addLine("⏳ Waiting for fresh Limelight data");
+            }
+        }
+
+        telemetry.addLine("");
+        telemetry.addLine("Localization & vision tracking");
     }
 
     /**
@@ -571,6 +756,7 @@ public class SmartTelemetryManager {
      */
     public void showOverview() { currentPage = TelemetryPage.OVERVIEW; }
     public void showDrive() { currentPage = TelemetryPage.DRIVE; }
+    public void showPositioning() { currentPage = TelemetryPage.POSITIONING; }
     public void showShooter() { currentPage = TelemetryPage.SHOOTER; }
     public void showPerformance() { currentPage = TelemetryPage.PERFORMANCE; }
     public void showControls() { currentPage = TelemetryPage.CONTROLS; }

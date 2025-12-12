@@ -342,7 +342,7 @@ public class AuroraManager {
         ShooterConfig.ShooterPreset currentPreset = ShooterConfig.ShooterPreset.SHORT_RANGE; // default
 
         if (gamepad.y) {
-            currentPreset = ShooterConfig.ShooterPreset.LONG_RANGE;
+            currentPreset = ShooterConfig.ShooterPreset.SHORT_RANGE;
         } else if (gamepad.a) {
             currentPreset = ShooterConfig.ShooterPreset.SHORT_RANGE;
         } else if (gamepad.b) {
@@ -657,6 +657,59 @@ public class AuroraManager {
     public boolean isShooterSystemInitialized() { return shooterInitialized; }
     public String getDriveInitError() { return driveInitError; }
     public String getShooterInitError() { return shooterInitError; }
+
+    /**
+     * Reset odometry position to Limelight position
+     * @param maxDataAgeMs Maximum age of Limelight data to accept (in milliseconds)
+     * @return true if reset was successful, false if Limelight data is not fresh or unavailable
+     */
+    public boolean resetOdometryToLimelightPosition(long maxDataAgeMs) {
+        if (hardware == null) return false;
+
+        // Check if both odometry and limelight are initialized
+        if (!hardware.isOdometryInitialized() || !hardware.isLimelightInitialized()) {
+            return false;
+        }
+
+        GoBildaPinpointDriver odo = hardware.getOdometry();
+        org.firstinspires.ftc.teamcode.util.aurora.vision.AuroraLimelightHelper limelight = hardware.getLimelightHelper();
+
+        if (odo == null || limelight == null) {
+            return false;
+        }
+
+        // Check if Limelight data is fresh enough
+        if (!limelight.hasValidPosition(maxDataAgeMs)) {
+            return false;
+        }
+
+        try {
+            // Get Limelight position in meters
+            double xMeters = limelight.getX();
+            double yMeters = limelight.getY();
+            double headingRadians = Math.toRadians(limelight.getHeadingDegrees());
+
+            // Convert meters to mm for Pinpoint
+            double xMm = xMeters * 1000.0;
+            double yMm = yMeters * 1000.0;
+
+            // Create new position
+            org.firstinspires.ftc.robotcore.external.navigation.Pose2D newPosition =
+                new org.firstinspires.ftc.robotcore.external.navigation.Pose2D(
+                    org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.MM,
+                    xMm, yMm,
+                    org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS,
+                    headingRadians
+                );
+
+            // Set the new position
+            odo.setPosition(newPosition);
+
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     /**
      * Enable/disable recording mode

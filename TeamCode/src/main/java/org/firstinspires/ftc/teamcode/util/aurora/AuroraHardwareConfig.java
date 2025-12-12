@@ -13,6 +13,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.util.aurora.vision.AuroraLimelightHelper;
 import org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver;
 
 /**
@@ -60,6 +61,9 @@ public class AuroraHardwareConfig {
     // Odometry
     public static final String ODOMETRY_COMPUTER = "odo";
     
+    // Vision Systems
+    public static final String LIMELIGHT_CAMERA = "limelight";
+
     // ========================================================================================
     // HARDWARE COMPONENTS - Public accessors
     // ========================================================================================
@@ -80,6 +84,9 @@ public class AuroraHardwareConfig {
     private VoltageSensor voltageSensor;
     private GoBildaPinpointDriver odometry;
     
+    // Vision Systems
+    private AuroraLimelightHelper limelightHelper;
+
     // ========================================================================================
     // INITIALIZATION STATE TRACKING
     // ========================================================================================
@@ -91,12 +98,14 @@ public class AuroraHardwareConfig {
     private boolean driveSystemInitialized = false;
     private boolean shooterSystemInitialized = false;
     private boolean odometryInitialized = false;
-    
+    private boolean limelightInitialized = false;
+
     // Error messages for debugging
     private String driveInitError = "";
     private String shooterInitError = "";
     private String odometryInitError = "";
-    
+    private String limelightInitError = "";
+
     // ========================================================================================
     // ODOMETRY CONFIGURATION - Adjust these for your robot
     // ========================================================================================
@@ -134,7 +143,8 @@ public class AuroraHardwareConfig {
         initializeDriveSystem();
         initializeShooterSystem();
         initializeVoltageSensor();
-        
+        initializeLimelight();
+
         telemetry.addLine("✅ Hardware initialization complete (without odometry)");
         telemetry.update();
     }
@@ -148,7 +158,8 @@ public class AuroraHardwareConfig {
         initializeShooterSystem();
         initializeVoltageSensor();
         initializeOdometry();
-        
+        initializeLimelight();
+
         telemetry.addLine("✅ Hardware initialization complete (with odometry)");
         telemetry.update();
     }
@@ -297,7 +308,59 @@ public class AuroraHardwareConfig {
         }
         telemetry.update();
     }
-    
+
+    /**
+     * Initialize Limelight vision system with error handling
+     */
+    private void initializeLimelight() {
+        try {
+            telemetry.addLine("Initializing Limelight vision system...");
+            telemetry.update();
+
+            // Get singleton instance
+            limelightHelper = AuroraLimelightHelper.getInstance();
+
+            // Configure for AprilTag 3D localization (MegaTag)
+            AuroraLimelightHelper.Config config = new AuroraLimelightHelper.Config()
+                    .setLimelightName(LIMELIGHT_CAMERA)
+                    .setPipeline(AuroraLimelightHelper.Pipeline.APRILTAG_3D)
+                    .setMaxDataAgeMs(1000)  // 1 second staleness threshold
+                    .setEnableTelemetry(true)
+                    .setAutoStart(true);
+
+            // Initialize with configuration
+            boolean initSuccess = limelightHelper.initialize(hardwareMap, telemetry, config);
+
+            if (initSuccess) {
+                limelightInitialized = true;
+                limelightInitError = "";
+                telemetry.addLine("✅ Limelight vision system initialized");
+                telemetry.addLine("   Device: " + LIMELIGHT_CAMERA);
+                telemetry.addLine("   Pipeline: AprilTag 3D (MegaTag)");
+                telemetry.addLine("   Max data age: 1000ms");
+            } else {
+                limelightInitialized = false;
+                limelightInitError = "Initialization returned false (check logs)";
+                telemetry.addLine("⚠️ Limelight initialization failed");
+                telemetry.addLine("   Check if multiple OpModes are running");
+            }
+
+        } catch (IllegalArgumentException e) {
+            limelightHelper = null;
+            limelightInitialized = false;
+            limelightInitError = "Device not found: " + e.getMessage();
+            telemetry.addLine("⚠️ Limelight device '" + LIMELIGHT_CAMERA + "' not found (optional)");
+            telemetry.addLine("   Vision-based localization correction will be unavailable");
+        } catch (Exception e) {
+            limelightHelper = null;
+            limelightInitialized = false;
+            limelightInitError = e.getClass().getSimpleName() + ": " + e.getMessage();
+            telemetry.addLine("⚠️ Limelight initialization failed (optional)");
+            telemetry.addLine("   Error: " + limelightInitError);
+        }
+        telemetry.update();
+    }
+
     // ========================================================================================
     // PUBLIC ACCESSORS - Use these to get hardware components
     // ========================================================================================
@@ -318,6 +381,9 @@ public class AuroraHardwareConfig {
     public VoltageSensor getVoltageSensor() { return voltageSensor; }
     public GoBildaPinpointDriver getOdometry() { return odometry; }
     
+    // Vision Systems
+    public AuroraLimelightHelper getLimelightHelper() { return limelightHelper; }
+
     // Original hardware map (for cases where direct access is still needed)
     public HardwareMap getHardwareMap() { return hardwareMap; }
     
@@ -328,11 +394,13 @@ public class AuroraHardwareConfig {
     public boolean isDriveSystemInitialized() { return driveSystemInitialized; }
     public boolean isShooterSystemInitialized() { return shooterSystemInitialized; }
     public boolean isOdometryInitialized() { return odometryInitialized; }
-    
+    public boolean isLimelightInitialized() { return limelightInitialized; }
+
     public String getDriveInitError() { return driveInitError; }
     public String getShooterInitError() { return shooterInitError; }
     public String getOdometryInitError() { return odometryInitError; }
-    
+    public String getLimelightInitError() { return limelightInitError; }
+
     /**
      * Check if all critical systems are initialized
      * @return true if drive and shooter are both initialized
@@ -346,7 +414,8 @@ public class AuroraHardwareConfig {
      * @return true if any initialization error occurred
      */
     public boolean hasInitializationErrors() {
-        return !driveInitError.isEmpty() || !shooterInitError.isEmpty() || !odometryInitError.isEmpty();
+        return !driveInitError.isEmpty() || !shooterInitError.isEmpty() ||
+               !odometryInitError.isEmpty() || !limelightInitError.isEmpty();
     }
     
     /**
@@ -367,6 +436,10 @@ public class AuroraHardwareConfig {
         summary.append("Odometry: ").append(odometryInitialized ? "✅ OK" : "⚠️ Not Initialized").append("\n");
         if (!odometryInitError.isEmpty()) {
             summary.append("  Error: ").append(odometryInitError).append("\n");
+        }
+        summary.append("Limelight: ").append(limelightInitialized ? "✅ OK" : "⚠️ Not Initialized").append("\n");
+        if (!limelightInitError.isEmpty()) {
+            summary.append("  Error: ").append(limelightInitError).append("\n");
         }
         return summary.toString();
     }

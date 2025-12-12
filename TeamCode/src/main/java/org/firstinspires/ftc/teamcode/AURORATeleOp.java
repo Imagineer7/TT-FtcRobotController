@@ -38,7 +38,8 @@ import org.firstinspires.ftc.teamcode.util.aurora.SmartTelemetryManager;
  * Dual Driver Mode:
  * Gamepad 1 (Driver - Movement & Semi-auto):
  * - Movement: Left stick (forward/strafe), Right stick (rotate)
- * - Fine Movement: D-pad (fine XY at 20% power), Bumpers (fine rotation at 20% power)
+ * - Fine Movement: D-pad (fine XY at 20% power), Right Bumper (fine rotation at 20% power)
+ * - Left Bumper: Reset odometry to Limelight position (vibrates on success/error)
  * - Drive modes: Left stick button (precision), X (field relative)
  * - Semi-auto: Y (basket+shoot), B (precision), A (retreat), triggers (rotate/align)
  * - System: Back + D-pad Left (toggle driver mode), Back (cancel semi-auto), D-pad Right (cycle telemetry)
@@ -90,6 +91,9 @@ public class AURORATeleOp extends LinearOpMode {
     private double lastLbPressTime = 0;
     private static final double DOUBLE_TAP_WINDOW = 0.5; // 500ms window for double tap
 
+    // Odometry reset control state tracking
+    private boolean prevOdoResetButton = false;
+
     // Lift control state tracking
     private boolean prevLiftHighButton = false;
     private boolean prevLiftMidButton = false;
@@ -136,6 +140,7 @@ public class AURORATeleOp extends LinearOpMode {
         telemetry.addLine("");
         telemetry.addLine("=== KEY CONTROLS ===");
         telemetry.addLine("• X (GP1): Cycle telemetry pages");
+        telemetry.addLine("• LB (GP1): Reset odometry to Limelight");
         telemetry.addLine("• Back + D-pad Left: Toggle driver mode");
         telemetry.addLine("• Y (GP1): Quick precision toggle");
         telemetry.addLine("• B (GP2): HYBRID SHOT (1st accurate, then fast)");
@@ -168,6 +173,7 @@ public class AURORATeleOp extends LinearOpMode {
             handleStatReset();
             handlePrecisionToggle();
             handleMlControls();
+            handleOdometryReset();
             handleLiftControls();
             handleEmergencyStop();
 
@@ -241,6 +247,35 @@ public class AURORATeleOp extends LinearOpMode {
             }
         }
         prevPrecisionToggle = currentY;
+    }
+
+    /**
+     * Handle odometry reset to Limelight position
+     * Left Bumper (GP1) - Reset odometry to Limelight position if data is fresh
+     * If data is not fresh, vibrate controller to warn user
+     */
+    private void handleOdometryReset() {
+        boolean currentOdoReset = gamepad1.left_bumper;
+
+        if (currentOdoReset && !prevOdoResetButton) {
+            // Attempt to reset odometry to Limelight position
+            // Use 1000ms as max data age (1 second)
+            boolean resetSuccess = robotManager.resetOdometryToLimelightPosition(1000);
+
+            if (resetSuccess) {
+                // Success - give short confirmation rumble
+                gamepad1.rumble(200); // 200ms short rumble
+
+                // Switch to positioning page to show the reset
+                smartTelemetry.showPositioning();
+            } else {
+                // Failed - vibrate with warning pattern
+                // Long vibration to indicate error
+                gamepad1.rumble(1000); // 1 second long rumble to warn
+            }
+        }
+
+        prevOdoResetButton = currentOdoReset;
     }
 
     /**
