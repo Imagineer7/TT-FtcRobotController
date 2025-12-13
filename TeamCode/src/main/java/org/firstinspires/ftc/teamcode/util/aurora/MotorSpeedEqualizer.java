@@ -18,13 +18,14 @@ import com.qualcomm.robotcore.util.ElapsedTime;
  *
  * Features:
  * - Real-time encoder-based speed measurement
- * - Two correction modes: Aggressive and Conservative
+ * - Three correction modes: Aggressive, Conservative, and Acceleration Sync
  * - Optional enable/disable toggle
- * - Acceleration monitoring and correction
+ * - Acceleration monitoring and synchronization
  *
  * Correction Modes:
  * - AGGRESSIVE: Increases power to slower motors (limited by max power)
  * - CONSERVATIVE: Decreases power to faster motors to match slowest
+ * - ACCELERATION_SYNC: Synchronizes acceleration/deceleration rates (recommended for direction changes)
  * - DISABLED: No speed equalization applied
  */
 public class MotorSpeedEqualizer {
@@ -311,6 +312,25 @@ public class MotorSpeedEqualizer {
      * This is especially important during direction changes and deceleration
      */
     private void applyAccelerationSyncCorrection(double[] powers) {
+        // Check if motors are moving fast enough to apply corrections
+        // During very slow speeds, acceleration measurements are unreliable
+        double maxAbsSpeed = 0;
+        for (int i = 0; i < motors.length; i++) {
+            double absSpeed = Math.abs(currentSpeeds[i]);
+            if (absSpeed > maxAbsSpeed) {
+                maxAbsSpeed = absSpeed;
+            }
+        }
+        
+        // Use a lower threshold for acceleration sync since we care about deceleration too
+        if (maxAbsSpeed < minSpeedThreshold * 0.5) {
+            // Motors moving too slowly, acceleration data unreliable
+            for (int i = 0; i < motors.length; i++) {
+                appliedCorrections[i] = 0;
+            }
+            return;
+        }
+
         // Calculate absolute accelerations
         double[] absAccelerations = new double[motors.length];
         for (int i = 0; i < motors.length; i++) {
