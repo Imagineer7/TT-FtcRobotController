@@ -71,6 +71,10 @@ public class MotorSpeedEqualizer {
     private double minSpeedThreshold = 50.0; // Minimum speed (ticks/sec) to apply correction
     private double accelerationTolerancePercent = 10.0; // 10% acceleration difference tolerance
 
+    // Constants for power thresholds
+    private static final double MIN_POWER_THRESHOLD = 0.01; // Minimum power to consider motor as moving
+    private static final double MIN_ACCELERATION_THRESHOLD = 10.0; // Minimum acceleration for balance check
+
     // Update rate limiting
     private double updateIntervalSeconds = 0.05; // Update every 50ms (20Hz)
     private ElapsedTime updateTimer = new ElapsedTime();
@@ -257,7 +261,7 @@ public class MotorSpeedEqualizer {
     private void applyAggressiveCorrection(double[] powers, double[] absSpeeds, int slowestIndex, double maxSpeed) {
         // For each motor, calculate how much slower it is compared to the fastest
         for (int i = 0; i < motors.length; i++) {
-            if (i == slowestIndex && Math.abs(powers[i]) > 0.01) {
+            if (i == slowestIndex && Math.abs(powers[i]) > MIN_POWER_THRESHOLD) {
                 // This is the slowest motor - apply boost
                 double speedRatio = absSpeeds[i] / maxSpeed;
                 double boostNeeded = (1.0 - speedRatio) * aggressiveBoostFactor;
@@ -279,7 +283,7 @@ public class MotorSpeedEqualizer {
     private void applyConservativeCorrection(double[] powers, double[] absSpeeds, double minSpeed) {
         // For each motor, calculate how much faster it is compared to the slowest
         for (int i = 0; i < motors.length; i++) {
-            if (absSpeeds[i] > minSpeed && Math.abs(powers[i]) > 0.01) {
+            if (absSpeeds[i] > minSpeed && Math.abs(powers[i]) > MIN_POWER_THRESHOLD) {
                 // This motor is faster - reduce its power
                 double speedRatio = minSpeed / absSpeeds[i];
                 double reductionNeeded = (1.0 - speedRatio) * conservativeReductionFactor;
@@ -317,7 +321,7 @@ public class MotorSpeedEqualizer {
             if (accel > maxAccel) maxAccel = accel;
         }
 
-        if (maxAccel < 10.0) {
+        if (maxAccel < MIN_ACCELERATION_THRESHOLD) {
             // Accelerations too small to measure reliably
             return true;
         }

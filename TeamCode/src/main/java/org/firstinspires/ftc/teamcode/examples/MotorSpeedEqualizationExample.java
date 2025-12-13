@@ -112,8 +112,8 @@ public class MotorSpeedEqualizationExample extends LinearOpMode {
             // Display telemetry
             updateTelemetry();
 
-            // Give some breathing room
-            sleep(10);
+            // Small sleep for better responsiveness
+            sleep(1);
         }
     }
 
