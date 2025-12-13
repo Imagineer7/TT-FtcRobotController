@@ -30,6 +30,9 @@ public class SmartMechanumDrive {
     private Gamepad gamepad;
     private GoBildaPinpointDriver odometry;  // Using Pinpoint odometry instead of IMU (more accurate, no drift)
 
+    // Motor speed equalization system
+    private MotorSpeedEqualizer speedEqualizer;
+
     // Drive modes
     public enum DriveMode {
         PRECISION(0.3, "Precision", "Slow, accurate movements"),
@@ -139,6 +142,7 @@ public class SmartMechanumDrive {
         this.odometry = null; // No odometry by default
 
         configureMotors();
+        initializeSpeedEqualizer();
     }
 
     /**
@@ -156,6 +160,7 @@ public class SmartMechanumDrive {
         this.odometry = odometry;
 
         configureMotors();
+        initializeSpeedEqualizer();
 
         // Initialize target heading if odometry is available
         if (odometry != null) {
@@ -192,6 +197,17 @@ public class SmartMechanumDrive {
         // Set directions (adjust as needed for your robot)
         leftFront.setDirection(DcMotor.Direction.REVERSE);
         leftBack.setDirection(DcMotor.Direction.REVERSE);
+    }
+
+    /**
+     * Initialize motor speed equalizer system
+     */
+    private void initializeSpeedEqualizer() {
+        DcMotor[] motors = new DcMotor[]{leftFront, rightFront, leftBack, rightBack};
+        String[] motorNames = new String[]{"LF", "RF", "LB", "RB"};
+        speedEqualizer = new MotorSpeedEqualizer(motors, motorNames);
+        // Speed equalization is disabled by default - can be enabled via setSpeedEqualizationEnabled()
+        speedEqualizer.setEnabled(false);
     }
 
     /**
@@ -608,13 +624,16 @@ public class SmartMechanumDrive {
     }
 
     /**
-     * Set motor powers with safety checks
+     * Set motor powers with safety checks and optional speed equalization
      */
     private void setMotorPowers() {
-        leftFront.setPower(lastMotorPowers[0]);
-        rightFront.setPower(lastMotorPowers[1]);
-        leftBack.setPower(lastMotorPowers[2]);
-        rightBack.setPower(lastMotorPowers[3]);
+        // Apply speed equalization if enabled
+        double[] finalPowers = speedEqualizer.update(lastMotorPowers);
+
+        leftFront.setPower(finalPowers[0]);
+        rightFront.setPower(finalPowers[1]);
+        leftBack.setPower(finalPowers[2]);
+        rightBack.setPower(finalPowers[3]);
     }
 
     /**
@@ -724,7 +743,8 @@ public class SmartMechanumDrive {
             sharpTurns,
             averageSpeed,
             lastMotorPowers.clone(),
-            currentVoltage < LOW_VOLTAGE_THRESHOLD
+            currentVoltage < LOW_VOLTAGE_THRESHOLD,
+            speedEqualizer.getTelemetryData()
         );
     }
 
@@ -741,10 +761,12 @@ public class SmartMechanumDrive {
         public final double averageSpeed;
         public final double[] motorPowers;
         public final boolean lowBattery;
+        public final MotorSpeedEqualizer.EqualizerTelemetryData speedEqualization;
 
         public DriveSystemData(String driveMode, boolean fieldRelative, double voltage,
                               double totalDistance, double efficiency, int sharpTurns,
-                              double averageSpeed, double[] motorPowers, boolean lowBattery) {
+                              double averageSpeed, double[] motorPowers, boolean lowBattery,
+                              MotorSpeedEqualizer.EqualizerTelemetryData speedEqualization) {
             this.driveMode = driveMode;
             this.fieldRelative = fieldRelative;
             this.voltage = voltage;
@@ -754,6 +776,7 @@ public class SmartMechanumDrive {
             this.averageSpeed = averageSpeed;
             this.motorPowers = motorPowers;
             this.lowBattery = lowBattery;
+            this.speedEqualization = speedEqualization;
         }
     }
 
@@ -898,5 +921,64 @@ public class SmartMechanumDrive {
             return normalizeAngle(targetHeading - currentHeading);
         }
         return 0;
+    }
+
+    // ========================================================================================
+    // MOTOR SPEED EQUALIZATION CONTROL
+    // ========================================================================================
+
+    /**
+     * Enable or disable motor speed equalization
+     * @param enabled True to enable, false to disable
+     */
+    public void setSpeedEqualizationEnabled(boolean enabled) {
+        speedEqualizer.setEnabled(enabled);
+    }
+
+    /**
+     * Check if speed equalization is enabled
+     * @return True if enabled, false otherwise
+     */
+    public boolean isSpeedEqualizationEnabled() {
+        return speedEqualizer.isEnabled();
+    }
+
+    /**
+     * Set the correction mode for speed equalization
+     * @param mode The correction mode to use (DISABLED, AGGRESSIVE, CONSERVATIVE)
+     */
+    public void setSpeedEqualizationMode(MotorSpeedEqualizer.CorrectionMode mode) {
+        speedEqualizer.setCorrectionMode(mode);
+    }
+
+    /**
+     * Get the current correction mode
+     * @return The current correction mode
+     */
+    public MotorSpeedEqualizer.CorrectionMode getSpeedEqualizationMode() {
+        return speedEqualizer.getCorrectionMode();
+    }
+
+    /**
+     * Cycle to the next speed equalization mode
+     */
+    public void cycleSpeedEqualizationMode() {
+        speedEqualizer.cycleCorrectionMode();
+    }
+
+    /**
+     * Get the motor speed equalizer instance for advanced configuration
+     * @return The MotorSpeedEqualizer instance
+     */
+    public MotorSpeedEqualizer getSpeedEqualizer() {
+        return speedEqualizer;
+    }
+
+    /**
+     * Get speed equalization telemetry data
+     * @return Telemetry data from the speed equalizer
+     */
+    public MotorSpeedEqualizer.EqualizerTelemetryData getSpeedEqualizationTelemetry() {
+        return speedEqualizer.getTelemetryData();
     }
 }
