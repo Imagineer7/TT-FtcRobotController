@@ -12,6 +12,7 @@ This system uses encoder feedback to measure actual motor speeds in real-time an
 - **Multiple Correction Modes**:
   - **AGGRESSIVE**: Increases power to slower motors (limited by max power)
   - **CONSERVATIVE**: Decreases power to faster motors to match the slowest
+  - **ACCELERATION_SYNC**: Synchronizes acceleration/deceleration rates (NEW - best for direction changes)
   - **DISABLED**: No speed equalization (default)
 - **Optional Enable/Disable Toggle**: Can be turned on/off during runtime
 - **Acceleration Monitoring**: Tracks acceleration rates to detect balance issues
@@ -37,6 +38,18 @@ When motors are running at different speeds:
 4. Best for: Precise movements and maintaining straight lines
 
 **Example**: If three motors run at 100% speed but one at 80%, the three faster motors are slowed down to 80%.
+
+### Acceleration Sync Mode (NEW - Recommended)
+**Specifically designed to fix deceleration issues during direction changes:**
+1. Continuously monitors acceleration/deceleration rates of all motors
+2. Detects when motors are decelerating at different rates
+3. Applies corrections to ensure all motors slow down together
+4. Prevents rotation caused by uneven deceleration
+5. Best for: Quick direction changes, stopping accurately, preventing drift during deceleration
+
+**Example**: During a quick direction change, if the left motors decelerate faster than the right motors (causing unwanted rotation), this mode adds power to the faster-decelerating motors to slow their deceleration, keeping all motors synchronized.
+
+**Why this mode is important**: The most common issue with uneven weight distribution is that during deceleration or direction changes, lighter motors stop faster than heavier motors, causing the robot to rotate. This mode directly addresses that problem.
 
 ## Installation
 
@@ -113,6 +126,7 @@ rightBack.setPower(correctedPowers[3]);
 |-----------|---------|-------------|
 | `aggressiveBoostFactor` | 0.15 | Maximum power boost for slow motors (0.0-1.0) |
 | `conservativeReductionFactor` | 0.15 | Maximum power reduction for fast motors (0.0-1.0) |
+| `accelerationCorrectionFactor` | 0.20 | Maximum power adjustment for acceleration sync (0.0-1.0) |
 | `speedTolerancePercent` | 5.0 | Speed difference threshold to trigger correction |
 | `minSpeedThreshold` | 50.0 | Minimum speed (ticks/sec) to apply corrections |
 | `accelerationTolerancePercent` | 10.0 | Acceleration variance threshold for balance check |
@@ -146,10 +160,31 @@ See `MotorSpeedEqualizationExample.java` in the `examples` package for a complet
 
 ## When to Use Each Mode
 
+### ACCELERATION_SYNC Mode (RECOMMENDED - Start Here)
+**Use when:**
+- ⚠️ **You experience rotation during direction changes** (most common issue)
+- Motors decelerate at different rates
+- Robot behaves unpredictably when stopping
+- Quick direction changes cause unwanted turning
+- You want synchronized acceleration and deceleration
+
+**Advantages:**
+- **Directly fixes the deceleration problem** that causes rotation
+- Works during both acceleration and deceleration
+- Especially effective for quick direction changes
+- Maintains control during stops
+- Does not require motors to be at specific speeds
+
+**Disadvantages:**
+- Slightly more complex than speed-based modes
+- May take a few cycles to synchronize
+
+**Recommended for**: Most robots with uneven weight distribution, especially if you notice rotation during stops or direction changes.
+
 ### AGGRESSIVE Mode
 **Use when:**
 - You want maximum speed
-- Weight distribution causes one side to be slower
+- Weight distribution causes one side to be slower during steady movement
 - You have enough motor headroom (not already at max power)
 - Battery life is not a primary concern
 
@@ -161,6 +196,7 @@ See `MotorSpeedEqualizationExample.java` in the `examples` package for a complet
 **Disadvantages:**
 - Increases power consumption
 - May not work if slower motors are already at max power
+- Does NOT fix deceleration issues
 
 ### CONSERVATIVE Mode
 **Use when:**
@@ -178,6 +214,7 @@ See `MotorSpeedEqualizationExample.java` in the `examples` package for a complet
 **Disadvantages:**
 - Robot moves slower overall
 - May not meet speed requirements
+- Does NOT fix deceleration issues
 
 ### DISABLED Mode
 **Use when:**

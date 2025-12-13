@@ -6,9 +6,11 @@ This document summarizes the implementation of the motor speed equalization syst
 ## Problem Statement
 The robot was experiencing uneven motor speeds despite sending equal power to all motors. This was caused by physical factors such as uneven weight distribution. The solution required:
 - Software-based compensation using encoder feedback
-- Two correction modes: aggressive (speed up slower motors) and conservative (slow down faster motors)
+- Multiple correction modes: aggressive (speed up slower motors), conservative (slow down faster motors), and acceleration sync
 - Optional enable/disable functionality
-- Acceleration monitoring
+- Acceleration monitoring and synchronization
+
+**UPDATE**: After initial testing, the primary issue was identified as uneven deceleration rates during direction changes. A new ACCELERATION_SYNC mode was added to specifically address this problem by synchronizing acceleration and deceleration rates across all motors.
 
 ## Implementation Details
 
@@ -44,7 +46,7 @@ The robot was experiencing uneven motor speeds despite sending equal power to al
 ```java
 public class MotorSpeedEqualizer {
     // Correction modes
-    enum CorrectionMode { DISABLED, AGGRESSIVE, CONSERVATIVE }
+    enum CorrectionMode { DISABLED, AGGRESSIVE, CONSERVATIVE, ACCELERATION_SYNC }
     
     // Main update method
     public double[] update(double[] targetPowers)
@@ -75,15 +77,22 @@ MotorSpeedEqualizer.EqualizerTelemetryData data = drive.getSpeedEqualizationTele
 
 ## Correction Modes
 
+### Acceleration Sync Mode (NEW - RECOMMENDED)
+- Synchronizes acceleration and deceleration rates across all motors
+- **Specifically fixes deceleration issues during direction changes**
+- Best for: Quick direction changes, preventing rotation during stops
+- Works by: Detecting when motors decelerate at different rates and applying corrections to keep them synchronized
+- Limitation: None - this is the most versatile mode
+
 ### Aggressive Mode
 - Boosts power to slower motors (up to configured maximum)
 - Best for: Maximum speed, compensating for heavy loads
-- Limitation: Won't work if slower motors already at max power
+- Limitation: Won't work if slower motors already at max power, does not fix deceleration issues
 
 ### Conservative Mode
 - Reduces power to faster motors to match slowest
 - Best for: Precision, battery life, guaranteed synchronization
-- Limitation: Overall speed is reduced
+- Limitation: Overall speed is reduced, does not fix deceleration issues
 
 ## Configuration Parameters
 
@@ -91,6 +100,7 @@ MotorSpeedEqualizer.EqualizerTelemetryData data = drive.getSpeedEqualizationTele
 |-----------|---------|-------|-------------|
 | aggressiveBoostFactor | 0.15 | 0.0-1.0 | Max power boost for slow motors |
 | conservativeReductionFactor | 0.15 | 0.0-1.0 | Max power reduction for fast motors |
+| accelerationCorrectionFactor | 0.20 | 0.0-1.0 | Max power adjustment for acceleration sync |
 | speedTolerancePercent | 5.0 | 0.0+ | Speed difference to trigger correction |
 | minSpeedThreshold | 50.0 | 0.0+ | Minimum speed (ticks/sec) to apply |
 | accelerationTolerancePercent | 10.0 | 0.0+ | Acceleration variance threshold |
@@ -99,10 +109,10 @@ MotorSpeedEqualizer.EqualizerTelemetryData data = drive.getSpeedEqualizationTele
 ## Usage Example
 
 ```java
-// Basic usage
+// Basic usage - RECOMMENDED: Start with ACCELERATION_SYNC mode
 SmartMechanumDrive drive = new SmartMechanumDrive(...);
 drive.setSpeedEqualizationEnabled(true);
-drive.setSpeedEqualizationMode(MotorSpeedEqualizer.CorrectionMode.AGGRESSIVE);
+drive.setSpeedEqualizationMode(MotorSpeedEqualizer.CorrectionMode.ACCELERATION_SYNC);
 
 // Advanced configuration
 MotorSpeedEqualizer equalizer = drive.getSpeedEqualizer();

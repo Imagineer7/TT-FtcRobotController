@@ -35,7 +35,8 @@ public class MotorSpeedEqualizer {
     public enum CorrectionMode {
         DISABLED("Disabled", "No speed equalization"),
         AGGRESSIVE("Aggressive", "Boost slower motors"),
-        CONSERVATIVE("Conservative", "Match slowest motor");
+        CONSERVATIVE("Conservative", "Match slowest motor"),
+        ACCELERATION_SYNC("Acceleration Sync", "Synchronize acceleration/deceleration rates");
 
         private final String name;
         private final String description;
@@ -70,10 +71,12 @@ public class MotorSpeedEqualizer {
     private double speedTolerancePercent = 5.0; // 5% speed difference tolerance
     private double minSpeedThreshold = 50.0; // Minimum speed (ticks/sec) to apply correction
     private double accelerationTolerancePercent = 10.0; // 10% acceleration difference tolerance
+    private double accelerationCorrectionFactor = 0.20; // Max 20% power adjustment for acceleration sync
 
     // Constants for power thresholds
     private static final double MIN_POWER_THRESHOLD = 0.01; // Minimum power to consider motor as moving
     private static final double MIN_ACCELERATION_THRESHOLD = 10.0; // Minimum acceleration for balance check
+    private static final double DECELERATION_DETECTION_THRESHOLD = -10.0; // Threshold to detect deceleration
 
     // Update rate limiting
     private double updateIntervalSeconds = 0.05; // Update every 50ms (20Hz)
@@ -242,6 +245,10 @@ public class MotorSpeedEqualizer {
                 applyConservativeCorrection(correctedPowers, absSpeeds, minSpeed);
                 break;
 
+            case ACCELERATION_SYNC:
+                applyAccelerationSyncCorrection(correctedPowers);
+                break;
+
             case DISABLED:
             default:
                 // No correction
@@ -295,6 +302,94 @@ public class MotorSpeedEqualizer {
                 appliedCorrections[i] = -reduction;
             } else {
                 appliedCorrections[i] = 0;
+            }
+        }
+    }
+
+    /**
+     * Acceleration synchronization correction: Ensure all motors accelerate/decelerate at same rate
+     * This is especially important during direction changes and deceleration
+     */
+    private void applyAccelerationSyncCorrection(double[] powers) {
+        // Calculate absolute accelerations
+        double[] absAccelerations = new double[motors.length];
+        for (int i = 0; i < motors.length; i++) {
+            absAccelerations[i] = lastAccelerations[i]; // Keep sign for deceleration detection
+        }
+
+        // Find min and max accelerations
+        double minAccel = Double.MAX_VALUE;
+        double maxAccel = -Double.MAX_VALUE;
+        int slowestAcceleratingMotorIndex = 0;
+        int fastestAcceleratingMotorIndex = 0;
+
+        for (int i = 0; i < absAccelerations.length; i++) {
+            if (absAccelerations[i] < minAccel) {
+                minAccel = absAccelerations[i];
+                slowestAcceleratingMotorIndex = i;
+            }
+            if (absAccelerations[i] > maxAccel) {
+                maxAccel = absAccelerations[i];
+                fastestAcceleratingMotorIndex = i;
+            }
+        }
+
+        // Detect if we're in acceleration or deceleration phase
+        boolean isDecelerating = false;
+        int deceleratingCount = 0;
+        for (int i = 0; i < motors.length; i++) {
+            if (lastAccelerations[i] < DECELERATION_DETECTION_THRESHOLD) {
+                deceleratingCount++;
+            }
+        }
+        isDecelerating = deceleratingCount >= motors.length / 2; // At least half motors decelerating
+
+        // Check if accelerations are significantly different
+        double accelDifference = Math.abs(maxAccel - minAccel);
+        if (accelDifference < MIN_ACCELERATION_THRESHOLD) {
+            // Accelerations are too small or already balanced
+            for (int i = 0; i < motors.length; i++) {
+                appliedCorrections[i] = 0;
+            }
+            return;
+        }
+
+        // Apply corrections to synchronize acceleration/deceleration
+        if (isDecelerating) {
+            // DECELERATION: Make faster-decelerating motors slow down less aggressively
+            // This prevents some wheels from stopping before others during direction changes
+            for (int i = 0; i < motors.length; i++) {
+                if (lastAccelerations[i] < minAccel && Math.abs(powers[i]) > MIN_POWER_THRESHOLD) {
+                    // This motor is decelerating faster than the slowest - need to reduce braking
+                    double accelRatio = lastAccelerations[i] / minAccel;
+                    double correction = (1.0 - accelRatio) * accelerationCorrectionFactor;
+                    
+                    // Apply correction to slow down the deceleration (add power in current direction)
+                    double sign = Math.signum(currentSpeeds[i]); // Use speed sign, not power
+                    powers[i] = Math.max(-1.0, Math.min(1.0, powers[i] + (sign * correction)));
+                    
+                    appliedCorrections[i] = sign * correction;
+                } else {
+                    appliedCorrections[i] = 0;
+                }
+            }
+        } else {
+            // ACCELERATION: Make slower-accelerating motors speed up faster
+            // This ensures all motors reach target speed together
+            for (int i = 0; i < motors.length; i++) {
+                if (lastAccelerations[i] < maxAccel && Math.abs(powers[i]) > MIN_POWER_THRESHOLD) {
+                    // This motor is accelerating slower - boost it
+                    double accelRatio = lastAccelerations[i] / maxAccel;
+                    double boostNeeded = (1.0 - accelRatio) * accelerationCorrectionFactor;
+                    
+                    // Apply boost in the same direction as current power
+                    double boost = Math.signum(powers[i]) * boostNeeded;
+                    powers[i] = Math.max(-1.0, Math.min(1.0, powers[i] + boost));
+                    
+                    appliedCorrections[i] = boost;
+                } else {
+                    appliedCorrections[i] = 0;
+                }
             }
         }
     }
@@ -410,6 +505,21 @@ public class MotorSpeedEqualizer {
      */
     public void setAccelerationTolerancePercent(double percent) {
         this.accelerationTolerancePercent = Math.max(0.0, percent);
+    }
+
+    /**
+     * Set acceleration correction factor (0.0 to 1.0)
+     * Controls how aggressively to correct acceleration/deceleration imbalances
+     */
+    public void setAccelerationCorrectionFactor(double factor) {
+        this.accelerationCorrectionFactor = Math.max(0.0, Math.min(1.0, factor));
+    }
+
+    /**
+     * Get acceleration correction factor
+     */
+    public double getAccelerationCorrectionFactor() {
+        return accelerationCorrectionFactor;
     }
 
     // ========================================================================================

@@ -72,14 +72,15 @@ public class MotorSpeedEqualizationExample extends LinearOpMode {
         );
 
         // Configure speed equalization
-        // Start with it disabled - driver can enable it with A button
-        drive.setSpeedEqualizationEnabled(false);
-        drive.setSpeedEqualizationMode(MotorSpeedEqualizer.CorrectionMode.AGGRESSIVE);
+        // Start with ACCELERATION_SYNC mode (best for fixing deceleration issues)
+        drive.setSpeedEqualizationEnabled(true);  // Enable by default to test
+        drive.setSpeedEqualizationMode(MotorSpeedEqualizer.CorrectionMode.ACCELERATION_SYNC);
 
         // Optional: Fine-tune equalization parameters
         MotorSpeedEqualizer equalizer = drive.getSpeedEqualizer();
         equalizer.setAggressiveBoostFactor(0.15);  // 15% max boost for slow motors
         equalizer.setConservativeReductionFactor(0.15);  // 15% max reduction for fast motors
+        equalizer.setAccelerationCorrectionFactor(0.20);  // 20% max correction for acceleration sync
         equalizer.setSpeedTolerancePercent(5.0);  // Only correct if >5% speed difference
         equalizer.setMinSpeedThreshold(50.0);  // Only correct when moving faster than 50 ticks/sec
 
@@ -173,15 +174,15 @@ public class MotorSpeedEqualizationExample extends LinearOpMode {
         // Get detailed telemetry data
         MotorSpeedEqualizer.EqualizerTelemetryData eqData = drive.getSpeedEqualizationTelemetry();
 
-        // Motor speeds
-        telemetry.addLine("Motor Speeds (ticks/sec):");
+        // Motor speeds and accelerations
+        telemetry.addLine("Motor Data:");
         for (int i = 0; i < eqData.speeds.length; i++) {
             String correction = "";
             if (Math.abs(eqData.corrections[i]) > 0.001) {
                 correction = String.format(" [%+.3f]", eqData.corrections[i]);
             }
             telemetry.addData("  " + eqData.motorNames[i], 
-                "%.1f%s", eqData.speeds[i], correction);
+                "%.0f t/s, %.0f t/s²%s", eqData.speeds[i], eqData.accelerations[i], correction);
         }
         telemetry.addLine("");
 
