@@ -112,8 +112,8 @@ public class MotorSpeedEqualizationExample extends LinearOpMode {
             // Display telemetry
             updateTelemetry();
 
-            // Small sleep for better responsiveness
-            sleep(1);
+            // No sleep needed - let the loop run as fast as possible for best control responsiveness
+            // The speed equalizer has its own rate limiting (20Hz default)
         }
     }
 
