@@ -70,7 +70,7 @@ public class RedLongRange extends OpMode {
 
                 // Example sequence - customize this for your autonomous!
                 .addPath(paths.Path1)
-                .addTurnToHeading(Math.toRadians(65))  // Convert degrees to radians
+                .addTurnToHeading(Math.toRadians(70))  // Convert degrees to radians
                 .addShootAction(3, ShooterConfig.ShooterPreset.LONG_RANGE)  // Fire 3 shots
                 .addWait(0.5)
                 .addPath(paths.Path2);

@@ -33,7 +33,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.SmartMechanumDrive;
  * - Total corrections applied since start
  */
 @TeleOp(name="Motor Speed Equalization Example", group="Examples")
-@Disabled  // Remove this line to enable the OpMode
+//@Disabled
 public class MotorSpeedEqualizationExample extends LinearOpMode {
 
     private AuroraHardwareConfig hardware;

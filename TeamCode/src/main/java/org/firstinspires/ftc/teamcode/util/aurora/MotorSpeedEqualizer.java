@@ -56,7 +56,7 @@ public class MotorSpeedEqualizer {
     private String[] motorNames;
 
     // Correction settings
-    private CorrectionMode correctionMode = CorrectionMode.DISABLED;
+    private CorrectionMode correctionMode = CorrectionMode.ACCELERATION_SYNC;
     private boolean enabled = false;
 
     // Speed tracking
