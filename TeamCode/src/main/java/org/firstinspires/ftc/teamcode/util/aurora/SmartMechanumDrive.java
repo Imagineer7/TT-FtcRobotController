@@ -207,7 +207,7 @@ public class SmartMechanumDrive {
         String[] motorNames = new String[]{"LF", "RF", "LB", "RB"};
         speedEqualizer = new MotorSpeedEqualizer(motors, motorNames);
         // Speed equalization is disabled by default - can be enabled via setSpeedEqualizationEnabled()
-        speedEqualizer.setEnabled(true);
+        speedEqualizer.setEnabled(false);
     }
 
     /**
