@@ -44,7 +44,7 @@ public class IndexingSystemTest {
             IndexingSystem system = createMockSystem();
 
             // Simulate first artifact detection
-            Artifact artifact = new Artifact(Artifact.Color.RED, Artifact.Location.UNKNOWN, 0);
+            Artifact artifact = new Artifact(Artifact.Color.PURPLE, Artifact.Location.UNKNOWN, 0);
             boolean collected = system.onArtifactDetected(artifact, IndexingSystem.IntakeSource.FRONT);
 
             if (!collected) {
@@ -90,7 +90,7 @@ public class IndexingSystemTest {
             IndexingSystem system = createMockSystem();
 
             // Collect first artifact from front
-            Artifact first = new Artifact(Artifact.Color.RED, Artifact.Location.UNKNOWN, 0);
+            Artifact first = new Artifact(Artifact.Color.PURPLE, Artifact.Location.UNKNOWN, 0);
             system.onArtifactDetected(first, IndexingSystem.IntakeSource.FRONT);
             simulateTime(system, 1000);
 
@@ -102,7 +102,7 @@ public class IndexingSystemTest {
             }
 
             // Collect second artifact from back
-            Artifact second = new Artifact(Artifact.Color.BLUE, Artifact.Location.UNKNOWN, 0);
+            Artifact second = new Artifact(Artifact.Color.GREEN, Artifact.Location.UNKNOWN, 0);
             system.onArtifactDetected(second, IndexingSystem.IntakeSource.BACK);
             simulateTime(system, 2000); // Allow time for push operation
 
@@ -146,21 +146,21 @@ public class IndexingSystemTest {
 
             // Collect first from front
             system.onArtifactDetected(
-                new Artifact(Artifact.Color.RED, Artifact.Location.UNKNOWN, 0),
+                new Artifact(Artifact.Color.PURPLE, Artifact.Location.UNKNOWN, 0),
                 IndexingSystem.IntakeSource.FRONT
             );
             simulateTime(system, 1000);
 
             // Collect second from back (pushes first to front)
             system.onArtifactDetected(
-                new Artifact(Artifact.Color.BLUE, Artifact.Location.UNKNOWN, 0),
+                new Artifact(Artifact.Color.GREEN, Artifact.Location.UNKNOWN, 0),
                 IndexingSystem.IntakeSource.BACK
             );
             simulateTime(system, 2000);
 
             // Collect third from back
             system.onArtifactDetected(
-                new Artifact(Artifact.Color.YELLOW, Artifact.Location.UNKNOWN, 0),
+                new Artifact(Artifact.Color.PURPLE, Artifact.Location.UNKNOWN, 0),
                 IndexingSystem.IntakeSource.BACK
             );
             simulateTime(system, 1000);
@@ -205,26 +205,26 @@ public class IndexingSystemTest {
 
             // Fill system with 3 artifacts
             system.onArtifactDetected(
-                new Artifact(Artifact.Color.RED, Artifact.Location.UNKNOWN, 0),
+                new Artifact(Artifact.Color.PURPLE, Artifact.Location.UNKNOWN, 0),
                 IndexingSystem.IntakeSource.FRONT
             );
             simulateTime(system, 1000);
 
             system.onArtifactDetected(
-                new Artifact(Artifact.Color.BLUE, Artifact.Location.UNKNOWN, 0),
+                new Artifact(Artifact.Color.GREEN, Artifact.Location.UNKNOWN, 0),
                 IndexingSystem.IntakeSource.BACK
             );
             simulateTime(system, 2000);
 
             system.onArtifactDetected(
-                new Artifact(Artifact.Color.YELLOW, Artifact.Location.UNKNOWN, 0),
+                new Artifact(Artifact.Color.PURPLE, Artifact.Location.UNKNOWN, 0),
                 IndexingSystem.IntakeSource.BACK
             );
             simulateTime(system, 1000);
 
             // Try to collect fourth artifact (should fail)
             boolean collected = system.onArtifactDetected(
-                new Artifact(Artifact.Color.RED, Artifact.Location.UNKNOWN, 0),
+                new Artifact(Artifact.Color.GREEN, Artifact.Location.UNKNOWN, 0),
                 IndexingSystem.IntakeSource.FRONT
             );
 
@@ -257,7 +257,7 @@ public class IndexingSystemTest {
 
             // Collect one artifact
             system.onArtifactDetected(
-                new Artifact(Artifact.Color.RED, Artifact.Location.UNKNOWN, 0),
+                new Artifact(Artifact.Color.PURPLE, Artifact.Location.UNKNOWN, 0),
                 IndexingSystem.IntakeSource.FRONT
             );
             simulateTime(system, 1000);
@@ -288,13 +288,13 @@ public class IndexingSystemTest {
 
             // Collect two artifacts
             system.onArtifactDetected(
-                new Artifact(Artifact.Color.RED, Artifact.Location.UNKNOWN, 0),
+                new Artifact(Artifact.Color.PURPLE, Artifact.Location.UNKNOWN, 0),
                 IndexingSystem.IntakeSource.FRONT
             );
             simulateTime(system, 1000);
 
             system.onArtifactDetected(
-                new Artifact(Artifact.Color.BLUE, Artifact.Location.UNKNOWN, 0),
+                new Artifact(Artifact.Color.GREEN, Artifact.Location.UNKNOWN, 0),
                 IndexingSystem.IntakeSource.BACK
             );
             simulateTime(system, 2000);

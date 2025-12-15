@@ -61,14 +61,14 @@ The system supports firing before reaching full capacity:
 ### 1. Artifact Class
 
 Represents an individual game artifact with:
-- **Color**: RED, BLUE, YELLOW, or UNKNOWN
+- **Color**: PURPLE, GREEN, or UNKNOWN
 - **Location**: FRONT_INTAKE, BACK_INTAKE, CENTER_STORAGE, FIRED
 - **Collection Order**: 1, 2, or 3
 - **Timestamp**: When it was collected
 
 ```java
 Artifact artifact = new Artifact(
-    Artifact.Color.RED,
+    Artifact.Color.PURPLE,
     Artifact.Location.UNKNOWN,
     1  // Collection order
 );
@@ -238,7 +238,7 @@ public void runOpMode() {
 ```java
 // When artifact detected at front intake
 Artifact artifact = new Artifact(
-    Artifact.Color.RED,  // Detected color
+    Artifact.Color.PURPLE,  // Detected color
     Artifact.Location.UNKNOWN,
     0  // Will be assigned by system
 );
@@ -327,10 +327,10 @@ private void planShots() {
         }
     }
     
-    // Custom strategy: prioritize red artifacts
+    // Custom strategy: prioritize purple artifacts
     available.sort((a1, a2) -> {
-        if (a1.getColor() == Artifact.Color.RED) return -1;
-        if (a2.getColor() == Artifact.Color.RED) return 1;
+        if (a1.getColor() == Artifact.Color.PURPLE) return -1;
+        if (a2.getColor() == Artifact.Color.PURPLE) return 1;
         return a1.getCollectionOrder() - a2.getCollectionOrder();
     });
     

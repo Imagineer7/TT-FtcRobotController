@@ -888,14 +888,19 @@ public class IndexingSystem {
             int green = sensor.green();
             int blue = sensor.blue();
 
-            // Simple color detection logic
-            // Can be enhanced with more sophisticated algorithms
-            if (red > blue && red > green) {
-                return Artifact.Color.RED;
-            } else if (blue > red && blue > green) {
-                return Artifact.Color.BLUE;
-            } else if (green > red && green > blue) {
-                return Artifact.Color.YELLOW;
+            // Simple color detection logic for purple and green
+            // Purple = high red + high blue, low green
+            // Green = high green, lower red and blue
+            
+            // Calculate color scores
+            int purpleScore = red + blue - green;  // Purple has high R+B, low G
+            int greenScore = green - (red + blue) / 2;  // Green has high G, lower R and B
+            
+            // Determine color based on scores
+            if (greenScore > purpleScore && greenScore > 50) {
+                return Artifact.Color.GREEN;
+            } else if (purpleScore > greenScore && purpleScore > 50) {
+                return Artifact.Color.PURPLE;
             }
         } catch (Exception e) {
             // Sensor not available or error

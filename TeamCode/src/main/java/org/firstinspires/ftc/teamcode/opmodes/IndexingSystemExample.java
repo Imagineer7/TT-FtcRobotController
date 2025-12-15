@@ -20,8 +20,8 @@ import org.firstinspires.ftc.teamcode.util.aurora.Artifact;
  *
  * CONTROLS:
  * Gamepad1:
- *   A - Simulate front intake artifact detection (RED)
- *   B - Simulate back intake artifact detection (BLUE)
+ *   A - Simulate front intake artifact detection (PURPLE)
+ *   B - Simulate back intake artifact detection (GREEN)
  *   X - Fire signal
  *   Y - Reset indexing system
  *   
@@ -81,8 +81,8 @@ public class IndexingSystemExample extends LinearOpMode {
             telemetry.addLine("✅ Indexing System Ready!");
             telemetry.addLine("");
             telemetry.addLine("Controls:");
-            telemetry.addLine("  A - Front intake (RED)");
-            telemetry.addLine("  B - Back intake (BLUE)");
+            telemetry.addLine("  A - Front intake (PURPLE)");
+            telemetry.addLine("  B - Back intake (GREEN)");
             telemetry.addLine("  X - Fire");
             telemetry.addLine("  Y - Reset");
             telemetry.addLine("  R Bumper - Enable shooter");
@@ -132,10 +132,10 @@ public class IndexingSystemExample extends LinearOpMode {
      * Handle gamepad controls
      */
     private void handleControls() {
-        // A Button - Simulate front intake detection (RED artifact)
+        // A Button - Simulate front intake detection (PURPLE artifact)
         if (gamepad1.a && !lastAButton) {
             Artifact artifact = new Artifact(
-                Artifact.Color.RED,
+                Artifact.Color.PURPLE,
                 Artifact.Location.UNKNOWN,
                 0  // Will be set by indexing system
             );
@@ -149,10 +149,10 @@ public class IndexingSystemExample extends LinearOpMode {
         }
         lastAButton = gamepad1.a;
 
-        // B Button - Simulate back intake detection (BLUE artifact)
+        // B Button - Simulate back intake detection (GREEN artifact)
         if (gamepad1.b && !lastBButton) {
             Artifact artifact = new Artifact(
-                Artifact.Color.BLUE,
+                Artifact.Color.GREEN,
                 Artifact.Location.UNKNOWN,
                 0  // Will be set by indexing system
             );
@@ -279,7 +279,7 @@ public class IndexingSystemExample extends LinearOpMode {
 
         // Controls reminder
         telemetry.addLine("🎮 CONTROLS");
-        telemetry.addLine("A=Front(RED) | B=Back(BLUE) | X=Fire | Y=Reset");
+        telemetry.addLine("A=Front(PURPLE) | B=Back(GREEN) | X=Fire | Y=Reset");
         telemetry.addLine("RB=Enable Shooter | LB=Disable | DPad=Presets");
     }
 

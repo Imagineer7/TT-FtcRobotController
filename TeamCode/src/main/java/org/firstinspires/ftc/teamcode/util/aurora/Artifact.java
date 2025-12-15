@@ -20,9 +20,8 @@ public class Artifact {
      * Color/Type of the artifact
      */
     public enum Color {
-        RED,
-        BLUE,
-        YELLOW,
+        PURPLE,
+        GREEN,
         UNKNOWN
     }
 
