@@ -1,8 +1,10 @@
 package org.firstinspires.ftc.teamcode.util.aurora;
 
 import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -49,6 +51,20 @@ public class AuroraHardwareConfig {
     public static final String FEED_SERVO_2 = "servo2";
     public static final String LIGHT_SERVO = "light";  // Optional
 
+    // Intake and Indexing System
+    public static final String FRONT_INTAKE_MOTOR = "frontIntake";
+    public static final String BACK_INTAKE_MOTOR = "backIntake";
+    public static final String CENTER_ROLLER_MOTOR = "centerRoller";
+    public static final String TRANSFER_SERVO = "transferServo";
+    
+    // Artifact Detection Sensors
+    public static final String FRONT_DISTANCE_SENSOR = "frontDistance";
+    public static final String BACK_DISTANCE_SENSOR = "backDistance";
+    public static final String CENTER_DISTANCE_SENSOR = "centerDistance";
+    public static final String FRONT_COLOR_SENSOR = "frontColor";
+    public static final String BACK_COLOR_SENSOR = "backColor";
+    public static final String CENTER_COLOR_SENSOR = "centerColor";
+
     // Sensors
     public static final String IMU_SENSOR = "imu";
     public static final String ODOMETRY_COMPUTER = "odo";
@@ -93,6 +109,20 @@ public class AuroraHardwareConfig {
     private CRServo feedServo2;
     private Servo lightServo;  // Optional
 
+    // Intake and Indexing System
+    private DcMotor frontIntakeMotor;
+    private DcMotor backIntakeMotor;
+    private DcMotor centerRollerMotor;
+    private Servo transferServo;
+    
+    // Artifact Detection Sensors
+    private DistanceSensor frontDistanceSensor;
+    private DistanceSensor backDistanceSensor;
+    private DistanceSensor centerDistanceSensor;
+    private ColorSensor frontColorSensor;
+    private ColorSensor backColorSensor;
+    private ColorSensor centerColorSensor;
+
     // Sensors
     private IMU imu;
     private GoBildaPinpointDriver odometry;
@@ -101,12 +131,14 @@ public class AuroraHardwareConfig {
     // Initialization Status
     private boolean driveSystemInitialized = false;
     private boolean shooterSystemInitialized = false;
+    private boolean indexingSystemInitialized = false;
     private boolean imuInitialized = false;
     private boolean odometryInitialized = false;
 
     // Error Messages
     private String driveInitError = "";
     private String shooterInitError = "";
+    private String indexingInitError = "";
     private String imuInitError = "";
     private String odometryInitError = "";
 
@@ -138,6 +170,7 @@ public class AuroraHardwareConfig {
 
         initializeDriveSystem();
         initializeShooterSystem();
+        initializeIndexingSystem();
         initializeIMU();
         initializeVoltageSensor();
 
@@ -156,6 +189,7 @@ public class AuroraHardwareConfig {
 
         initializeDriveSystem();
         initializeShooterSystem();
+        initializeIndexingSystem();
         initializeIMU();
         initializeOdometry();
         initializeVoltageSensor();
@@ -234,6 +268,88 @@ public class AuroraHardwareConfig {
             shooterSystemInitialized = false;
             shooterInitError = e.getMessage();
             telemetry.addLine("  ❌ Shooter System: " + shooterInitError);
+        }
+    }
+
+    /**
+     * Initialize the intake and indexing system
+     */
+    private void initializeIndexingSystem() {
+        try {
+            // Initialize intake motors
+            frontIntakeMotor = hardwareMap.get(DcMotor.class, FRONT_INTAKE_MOTOR);
+            backIntakeMotor = hardwareMap.get(DcMotor.class, BACK_INTAKE_MOTOR);
+            centerRollerMotor = hardwareMap.get(DcMotor.class, CENTER_ROLLER_MOTOR);
+
+            // Set motor directions
+            frontIntakeMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+            backIntakeMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+            centerRollerMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+
+            // Set zero power behavior
+            frontIntakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backIntakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            centerRollerMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+            // Set run mode
+            frontIntakeMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            backIntakeMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            centerRollerMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+            // Initialize transfer servo
+            transferServo = hardwareMap.get(Servo.class, TRANSFER_SERVO);
+
+            // Initialize distance sensors (optional, may not all be present)
+            try {
+                frontDistanceSensor = hardwareMap.get(DistanceSensor.class, FRONT_DISTANCE_SENSOR);
+            } catch (Exception e) {
+                frontDistanceSensor = null;
+                telemetry.addLine("  ⚠️ Front distance sensor not found (optional)");
+            }
+
+            try {
+                backDistanceSensor = hardwareMap.get(DistanceSensor.class, BACK_DISTANCE_SENSOR);
+            } catch (Exception e) {
+                backDistanceSensor = null;
+                telemetry.addLine("  ⚠️ Back distance sensor not found (optional)");
+            }
+
+            try {
+                centerDistanceSensor = hardwareMap.get(DistanceSensor.class, CENTER_DISTANCE_SENSOR);
+            } catch (Exception e) {
+                centerDistanceSensor = null;
+                telemetry.addLine("  ⚠️ Center distance sensor not found (optional)");
+            }
+
+            // Initialize color sensors (optional, may not all be present)
+            try {
+                frontColorSensor = hardwareMap.get(ColorSensor.class, FRONT_COLOR_SENSOR);
+            } catch (Exception e) {
+                frontColorSensor = null;
+                telemetry.addLine("  ⚠️ Front color sensor not found (optional)");
+            }
+
+            try {
+                backColorSensor = hardwareMap.get(ColorSensor.class, BACK_COLOR_SENSOR);
+            } catch (Exception e) {
+                backColorSensor = null;
+                telemetry.addLine("  ⚠️ Back color sensor not found (optional)");
+            }
+
+            try {
+                centerColorSensor = hardwareMap.get(ColorSensor.class, CENTER_COLOR_SENSOR);
+            } catch (Exception e) {
+                centerColorSensor = null;
+                telemetry.addLine("  ⚠️ Center color sensor not found (optional)");
+            }
+
+            indexingSystemInitialized = true;
+            telemetry.addLine("  ✅ Indexing System");
+
+        } catch (Exception e) {
+            indexingSystemInitialized = false;
+            indexingInitError = e.getMessage();
+            telemetry.addLine("  ❌ Indexing System: " + indexingInitError);
         }
     }
 
@@ -321,6 +437,20 @@ public class AuroraHardwareConfig {
     public CRServo getFeedServo2() { return feedServo2; }
     public Servo getLightServo() { return lightServo; }  // May be null
 
+    // Intake and Indexing System
+    public DcMotor getFrontIntakeMotor() { return frontIntakeMotor; }
+    public DcMotor getBackIntakeMotor() { return backIntakeMotor; }
+    public DcMotor getCenterRollerMotor() { return centerRollerMotor; }
+    public Servo getTransferServo() { return transferServo; }
+    
+    // Artifact Detection Sensors
+    public DistanceSensor getFrontDistanceSensor() { return frontDistanceSensor; }
+    public DistanceSensor getBackDistanceSensor() { return backDistanceSensor; }
+    public DistanceSensor getCenterDistanceSensor() { return centerDistanceSensor; }
+    public ColorSensor getFrontColorSensor() { return frontColorSensor; }
+    public ColorSensor getBackColorSensor() { return backColorSensor; }
+    public ColorSensor getCenterColorSensor() { return centerColorSensor; }
+
     // Sensors
     public IMU getIMU() { return imu; }
     public GoBildaPinpointDriver getOdometry() { return odometry; }
@@ -335,11 +465,13 @@ public class AuroraHardwareConfig {
 
     public boolean isDriveSystemInitialized() { return driveSystemInitialized; }
     public boolean isShooterSystemInitialized() { return shooterSystemInitialized; }
+    public boolean isIndexingSystemInitialized() { return indexingSystemInitialized; }
     public boolean isIMUInitialized() { return imuInitialized; }
     public boolean isOdometryInitialized() { return odometryInitialized; }
 
     public String getDriveInitError() { return driveInitError; }
     public String getShooterInitError() { return shooterInitError; }
+    public String getIndexingInitError() { return indexingInitError; }
     public String getIMUInitError() { return imuInitError; }
     public String getOdometryInitError() { return odometryInitError; }
 
@@ -347,7 +479,7 @@ public class AuroraHardwareConfig {
      * Check if all critical systems are operational
      */
     public boolean isSystemHealthy() {
-        return driveSystemInitialized && shooterSystemInitialized && imuInitialized;
+        return driveSystemInitialized && shooterSystemInitialized && indexingSystemInitialized && imuInitialized;
     }
 
     /**
@@ -358,6 +490,7 @@ public class AuroraHardwareConfig {
         summary.append("\n📊 Hardware Status:\n");
         summary.append("  Drive: ").append(driveSystemInitialized ? "✅" : "❌").append("\n");
         summary.append("  Shooter: ").append(shooterSystemInitialized ? "✅" : "❌").append("\n");
+        summary.append("  Indexing: ").append(indexingSystemInitialized ? "✅" : "❌").append("\n");
         summary.append("  IMU: ").append(imuInitialized ? "✅" : "❌").append("\n");
         summary.append("  Odometry: ").append(odometryInitialized ? "✅" : "⚠️").append("\n");
         return summary.toString();
@@ -406,5 +539,8 @@ public class AuroraHardwareConfig {
         if (shooterMotor != null) shooterMotor.setPower(0);
         if (feedServo1 != null) feedServo1.setPower(0);
         if (feedServo2 != null) feedServo2.setPower(0);
+        if (frontIntakeMotor != null) frontIntakeMotor.setPower(0);
+        if (backIntakeMotor != null) backIntakeMotor.setPower(0);
+        if (centerRollerMotor != null) centerRollerMotor.setPower(0);
     }
 }
