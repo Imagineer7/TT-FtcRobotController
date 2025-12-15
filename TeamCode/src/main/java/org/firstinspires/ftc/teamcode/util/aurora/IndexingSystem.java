@@ -68,6 +68,7 @@ public class IndexingSystem {
     private final AuroraHardwareConfig hardware;
     private final IndexingConfig config;
     private final Telemetry telemetry;
+    private final Shooter shooter;
 
     // System state
     private SystemState currentState;
@@ -103,11 +104,13 @@ public class IndexingSystem {
      * Create a new IndexingSystem
      * @param hardware The Aurora hardware configuration
      * @param config The indexing configuration parameters
+     * @param shooter The shooter subsystem
      * @param telemetry The telemetry system for logging
      */
-    public IndexingSystem(AuroraHardwareConfig hardware, IndexingConfig config, Telemetry telemetry) {
+    public IndexingSystem(AuroraHardwareConfig hardware, IndexingConfig config, Shooter shooter, Telemetry telemetry) {
         this.hardware = hardware;
         this.config = config;
+        this.shooter = shooter;
         this.telemetry = telemetry;
 
         this.currentState = SystemState.IDLE;
@@ -280,6 +283,9 @@ public class IndexingSystem {
         // Add artifact to tracking
         artifacts.add(artifact);
 
+        // Start hardware for collection
+        executeCollectionHardware();
+
         if (config.isDebugTelemetry()) {
             telemetry.addLine(String.format("Collecting artifact #%d from %s", 
                 artifact.getCollectionOrder(), lastIntakeSource));
@@ -292,6 +298,8 @@ public class IndexingSystem {
     private void updateCollecting(long elapsedTime) {
         // Collection completes after intake roller time
         if (elapsedTime >= config.getIntakeRollerTimeMs()) {
+            // Stop intake motors
+            setIntakePower(lastIntakeSource, 0);
             completeCollection();
         }
     }
@@ -331,6 +339,9 @@ public class IndexingSystem {
         changeState(SystemState.TRANSFERRING);
         operationStartTime = System.currentTimeMillis();
 
+        // Start hardware for transfer
+        executeTransferHardware();
+
         if (config.isDebugTelemetry()) {
             telemetry.addLine("Transferring artifact to center storage");
         }
@@ -341,6 +352,10 @@ public class IndexingSystem {
      */
     private void updateTransferring(long elapsedTime) {
         if (elapsedTime >= config.getTransferServoTimeMs() + config.getCenterAcceptTimeMs()) {
+            // Stop center roller
+            setCenterRollerPower(0);
+            // Return transfer servo to idle
+            setTransferServoPosition(config.getTransferServoIdlePosition());
             completeTransferToCenter();
         }
     }
@@ -381,6 +396,9 @@ public class IndexingSystem {
         changeState(SystemState.PUSHING);
         operationStartTime = System.currentTimeMillis();
 
+        // Start hardware for push operation
+        executePushHardware();
+
         if (config.isDebugTelemetry()) {
             telemetry.addLine("Second artifact pushing first to opposite intake");
         }
@@ -395,6 +413,8 @@ public class IndexingSystem {
                             config.getStorageIntakeAcceptTimeMs();
 
         if (elapsedTime >= totalPushTime) {
+            // Stop all motors
+            stopAllIndexingMotors();
             completePushOperation();
         }
     }
@@ -534,6 +554,9 @@ public class IndexingSystem {
         operationInProgress = true;
         operationStartTime = System.currentTimeMillis();
 
+        // Start hardware for firing
+        executeFiringHardware();
+
         if (config.isDebugTelemetry()) {
             telemetry.addLine(String.format("Firing artifact: %s", artifactInCenter));
         }
@@ -546,6 +569,8 @@ public class IndexingSystem {
      */
     private void updateFiring(long elapsedTime) {
         if (elapsedTime >= config.getFireFeedTimeMs()) {
+            // Stop center roller
+            setCenterRollerPower(0);
             completeFiring();
         }
     }
@@ -629,9 +654,14 @@ public class IndexingSystem {
         // Clear storage reference
         if (artifact.getLocation() == Artifact.Location.FRONT_INTAKE) {
             artifactInFrontIntake = null;
+            lastIntakeSource = IntakeSource.FRONT;
         } else if (artifact.getLocation() == Artifact.Location.BACK_INTAKE) {
             artifactInBackIntake = null;
+            lastIntakeSource = IntakeSource.BACK;
         }
+
+        // Start hardware for transfer
+        executeTransferHardware();
 
         if (config.isDebugTelemetry()) {
             telemetry.addLine(String.format("Transferring artifact from %s to center", 
@@ -745,6 +775,194 @@ public class IndexingSystem {
 
     public Artifact getPlannedSecondShot() { return plannedSecondShot; }
     public Artifact getPlannedThirdShot() { return plannedThirdShot; }
+
+    public Shooter getShooter() { return shooter; }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // HARDWARE CONTROL METHODS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Run intake motor at specified power
+     * @param source Which intake to run
+     * @param power Motor power (-1.0 to 1.0)
+     */
+    private void setIntakePower(IntakeSource source, double power) {
+        if (hardware == null) return;
+
+        try {
+            if (source == IntakeSource.FRONT && hardware.getFrontIntakeMotor() != null) {
+                hardware.getFrontIntakeMotor().setPower(power);
+            } else if (source == IntakeSource.BACK && hardware.getBackIntakeMotor() != null) {
+                hardware.getBackIntakeMotor().setPower(power);
+            }
+        } catch (Exception e) {
+            setError("Failed to set intake power: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Run center roller at specified power
+     * @param power Motor power (-1.0 to 1.0)
+     */
+    private void setCenterRollerPower(double power) {
+        if (hardware == null || hardware.getCenterRollerMotor() == null) return;
+
+        try {
+            hardware.getCenterRollerMotor().setPower(power);
+        } catch (Exception e) {
+            setError("Failed to set center roller power: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Set transfer servo position
+     * @param position Servo position (0.0 to 1.0)
+     */
+    private void setTransferServoPosition(double position) {
+        if (hardware == null || hardware.getTransferServo() == null) return;
+
+        try {
+            hardware.getTransferServo().setPosition(position);
+        } catch (Exception e) {
+            setError("Failed to set transfer servo: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Stop all indexing motors
+     */
+    private void stopAllIndexingMotors() {
+        setIntakePower(IntakeSource.FRONT, 0);
+        setIntakePower(IntakeSource.BACK, 0);
+        setCenterRollerPower(0);
+        setTransferServoPosition(config.getTransferServoIdlePosition());
+    }
+
+    /**
+     * Check if artifact is detected by distance sensor
+     * @param source Which intake sensor to check
+     * @return true if artifact detected
+     */
+    private boolean isArtifactDetected(IntakeSource source) {
+        if (hardware == null) return false;
+
+        try {
+            if (source == IntakeSource.FRONT && hardware.getFrontDistanceSensor() != null) {
+                double distance = hardware.getFrontDistanceSensor().getDistance(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH);
+                return distance < config.getArtifactDetectionDistance();
+            } else if (source == IntakeSource.BACK && hardware.getBackDistanceSensor() != null) {
+                double distance = hardware.getBackDistanceSensor().getDistance(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH);
+                return distance < config.getArtifactDetectionDistance();
+            }
+        } catch (Exception e) {
+            // Sensor not available or error
+        }
+
+        return false;
+    }
+
+    /**
+     * Detect artifact color from color sensor
+     * @param source Which intake sensor to check
+     * @return Detected artifact color
+     */
+    private Artifact.Color detectArtifactColor(IntakeSource source) {
+        if (hardware == null) return Artifact.Color.UNKNOWN;
+
+        try {
+            com.qualcomm.robotcore.hardware.ColorSensor sensor = null;
+            
+            if (source == IntakeSource.FRONT) {
+                sensor = hardware.getFrontColorSensor();
+            } else if (source == IntakeSource.BACK) {
+                sensor = hardware.getBackColorSensor();
+            }
+
+            if (sensor == null) {
+                return Artifact.Color.UNKNOWN;
+            }
+
+            // Get color values
+            int red = sensor.red();
+            int green = sensor.green();
+            int blue = sensor.blue();
+
+            // Simple color detection logic
+            // Can be enhanced with more sophisticated algorithms
+            if (red > blue && red > green) {
+                return Artifact.Color.RED;
+            } else if (blue > red && blue > green) {
+                return Artifact.Color.BLUE;
+            } else if (green > red && green > blue) {
+                return Artifact.Color.YELLOW;
+            }
+        } catch (Exception e) {
+            // Sensor not available or error
+        }
+
+        return Artifact.Color.UNKNOWN;
+    }
+
+    /**
+     * Execute hardware actions for collection state
+     */
+    private void executeCollectionHardware() {
+        // Run intake motor to collect artifact
+        setIntakePower(lastIntakeSource, config.getIntakeRollerPower());
+        
+        // Run center roller to accept artifact
+        setCenterRollerPower(config.getCenterRollerPower());
+        
+        // Set transfer servo to transfer position
+        setTransferServoPosition(config.getTransferServoTransferPosition());
+    }
+
+    /**
+     * Execute hardware actions for transferring state
+     */
+    private void executeTransferHardware() {
+        // Keep center roller running to pull artifact in
+        setCenterRollerPower(config.getCenterRollerPower());
+        
+        // Transfer servo already positioned during collection
+    }
+
+    /**
+     * Execute hardware actions for pushing state
+     */
+    private void executePushHardware() {
+        // Run opposite intake in reverse to accept pushed artifact
+        IntakeSource oppositeIntake = (lastIntakeSource == IntakeSource.FRONT) 
+            ? IntakeSource.BACK 
+            : IntakeSource.FRONT;
+        
+        setIntakePower(oppositeIntake, -config.getIntakeRollerPower());
+        
+        // Run center roller to push
+        setCenterRollerPower(config.getCenterRollerPower());
+    }
+
+    /**
+     * Execute hardware actions for firing state
+     */
+    private void executeFiringHardware() {
+        // Check if shooter is ready
+        if (shooter != null && !shooter.isReadyToFire()) {
+            if (config.isDebugTelemetry()) {
+                telemetry.addLine("Waiting for shooter to be ready...");
+            }
+            return;
+        }
+
+        // Trigger shooter fire
+        if (shooter != null) {
+            shooter.fire();
+        }
+
+        // Run center roller to feed artifact to shooter
+        setCenterRollerPower(config.getFireFeedPower());
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // TELEMETRY
