@@ -1,384 +1,410 @@
-/* Copyright (c) 2025 FTC Team. All rights reserved.
- *
- * Unified Hardware Configuration for AURORA System
- * Centralizes all hardware mapping in one place for easy maintenance
- */
-
 package org.firstinspires.ftc.teamcode.util.aurora;
 
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver;
 
 /**
- * AuroraHardwareConfig - Unified Hardware Configuration
- * 
- * This class centralizes all hardware device mapping for the AURORA robot system.
- * Instead of calling hardwareMap.get() throughout different classes, all hardware
- * initialization happens here in one place.
- * 
- * Benefits:
- * - Single source of truth for all hardware device names
- * - Easy to update hardware configuration in one place
- * - Graceful error handling with detailed logging
- * - Consistent initialization across all OpModes
- * - Clear documentation of all robot hardware
- * 
+ * AURORA V2 Unified Hardware Configuration
+ *
+ * This class serves as the single source of truth for all hardware device mappings
+ * in the AURORA system. It provides:
+ * - Centralized hardware device name constants
+ * - Automatic hardware initialization with error handling
+ * - Consistent hardware configuration across all OpModes
+ * - Easy maintenance - change device names in one place
+ *
  * Usage:
- * <pre>
- * AuroraHardwareConfig hardware = new AuroraHardwareConfig(hardwareMap, telemetry);
- * hardware.initialize();  // Or initializeWithOdometry() for TeleOp
- * 
- * // Then pass hardware to subsystems:
- * SmartMechanumDrive drive = new SmartMechanumDrive(hardware);
- * EnhancedDecodeHelper shooter = new EnhancedDecodeHelper(hardware);
- * </pre>
+ *   AuroraHardwareConfig hardware = new AuroraHardwareConfig(hardwareMap, telemetry);
+ *   hardware.initializeWithOdometry();  // For TeleOp
+ *   // OR
+ *   hardware.initialize();  // For Autonomous without odometry
+ *
+ *   DcMotor shooter = hardware.getShooterMotor();
+ *   DcMotor frontLeft = hardware.getFrontLeftMotor();
  */
 public class AuroraHardwareConfig {
-    
-    // ========================================================================================
-    // HARDWARE DEVICE NAMES - Change these to match your robot configuration
-    // ========================================================================================
-    
-    // Drive Motors
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // HARDWARE DEVICE NAMES - Update these to match your Driver Station config
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // Drive System Motors
     public static final String FRONT_LEFT_MOTOR = "frontLeft";
     public static final String FRONT_RIGHT_MOTOR = "frontRight";
     public static final String BACK_LEFT_MOTOR = "backLeft";
     public static final String BACK_RIGHT_MOTOR = "backRight";
-    
+
     // Shooter System
-    public static final String SHOOTER_MOTOR = "shooter1";
-    public static final String SHOOTER_MOTOR_2 = "shooter2";
-    //public static final String FEED_SERVO_1 = "servo1";
+    public static final String SHOOTER_MOTOR = "shooter";
+    public static final String FEED_SERVO_1 = "servo1";
     public static final String FEED_SERVO_2 = "servo2";
-    public static final String LIGHT_SERVO = "light";
-    
-    // Odometry
+    public static final String LIGHT_SERVO = "light";  // Optional
+
+    // Sensors
+    public static final String IMU_SENSOR = "imu";
     public static final String ODOMETRY_COMPUTER = "odo";
-    
-    // ========================================================================================
-    // HARDWARE COMPONENTS - Public accessors
-    // ========================================================================================
-    
-    // Drive system motors
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // HARDWARE CONFIGURATION PARAMETERS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // IMU Orientation Configuration
+    public static final RevHubOrientationOnRobot.LogoFacingDirection IMU_LOGO_DIRECTION =
+        RevHubOrientationOnRobot.LogoFacingDirection.LEFT;
+    public static final RevHubOrientationOnRobot.UsbFacingDirection IMU_USB_DIRECTION =
+        RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
+
+    // Odometry Pod Offsets (in inches from robot center)
+    private static final double ODOMETRY_X_OFFSET = 4.71;   // Right from center
+    private static final double ODOMETRY_Y_OFFSET = -6.62;  // Forward from center
+
+    // Odometry Pod Directions
+    private static final GoBildaPinpointDriver.EncoderDirection FORWARD_POD_DIRECTION =
+        GoBildaPinpointDriver.EncoderDirection.FORWARD;
+    private static final GoBildaPinpointDriver.EncoderDirection STRAFE_POD_DIRECTION =
+        GoBildaPinpointDriver.EncoderDirection.REVERSED;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // HARDWARE DEVICE INSTANCES
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // Core Hardware
+    private final HardwareMap hardwareMap;
+    private final Telemetry telemetry;
+
+    // Drive Motors
     private DcMotor frontLeftMotor;
     private DcMotor frontRightMotor;
     private DcMotor backLeftMotor;
     private DcMotor backRightMotor;
-    
-    // Shooter system components
+
+    // Shooter System
     private DcMotor shooterMotor;
-    private DcMotor shooterMotor2;
-    //private CRServo feedServo1;
+    private CRServo feedServo1;
     private CRServo feedServo2;
-    private Servo lightServo;
-    
+    private Servo lightServo;  // Optional
+
     // Sensors
-    private VoltageSensor voltageSensor;
+    private IMU imu;
     private GoBildaPinpointDriver odometry;
-    
-    // ========================================================================================
-    // INITIALIZATION STATE TRACKING
-    // ========================================================================================
-    
-    private final HardwareMap hardwareMap;
-    private final Telemetry telemetry;
-    
-    // Initialization status flags
+    private VoltageSensor voltageSensor;
+
+    // Initialization Status
     private boolean driveSystemInitialized = false;
     private boolean shooterSystemInitialized = false;
+    private boolean imuInitialized = false;
     private boolean odometryInitialized = false;
-    
-    // Error messages for debugging
+
+    // Error Messages
     private String driveInitError = "";
     private String shooterInitError = "";
+    private String imuInitError = "";
     private String odometryInitError = "";
-    
-    // ========================================================================================
-    // ODOMETRY CONFIGURATION - Adjust these for your robot
-    // ========================================================================================
-    
-    // Odometry pod offsets (in inches)
-    // X offset: how far sideways from center is the forward pod (right is positive)
-    // Y offset: how far forward from center is the strafe pod (forward is positive)
-    private static final double ODOMETRY_X_OFFSET = 4.71;  // inches
-    private static final double ODOMETRY_Y_OFFSET = -6.62; // inches
-    
-    // Pod directions
-    private static final GoBildaPinpointDriver.EncoderDirection FORWARD_POD_DIRECTION = 
-        GoBildaPinpointDriver.EncoderDirection.FORWARD;
-    private static final GoBildaPinpointDriver.EncoderDirection STRAFE_POD_DIRECTION = 
-        GoBildaPinpointDriver.EncoderDirection.REVERSED;
-    
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CONSTRUCTOR
+    // ═══════════════════════════════════════════════════════════════════════
+
     /**
-     * Constructor - Creates hardware config object
-     * Call initialize() or initializeWithOdometry() after construction
-     * 
-     * @param hardwareMap The FTC hardware map
-     * @param telemetry Telemetry for logging initialization status
+     * Create a new AuroraHardwareConfig instance
+     * @param hardwareMap The OpMode's hardwareMap
+     * @param telemetry The OpMode's telemetry
      */
     public AuroraHardwareConfig(HardwareMap hardwareMap, Telemetry telemetry) {
         this.hardwareMap = hardwareMap;
         this.telemetry = telemetry;
     }
-    
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // INITIALIZATION METHODS
+    // ═══════════════════════════════════════════════════════════════════════
+
     /**
-     * Initialize all hardware WITHOUT odometry (for Autonomous OpModes)
-     * Odometry is optional and may not be needed in autonomous if using time-based or
-     * encoder-based movement instead of continuous position tracking
+     * Initialize all hardware systems WITHOUT odometry
+     * Use this for Autonomous OpModes that don't need continuous position tracking
      */
     public void initialize() {
+        telemetry.addLine("🤖 Initializing AURORA Hardware...");
+        telemetry.update();
+
         initializeDriveSystem();
         initializeShooterSystem();
+        initializeIMU();
         initializeVoltageSensor();
-        
-        telemetry.addLine("✅ Hardware initialization complete (without odometry)");
+
+        telemetry.addLine("✅ AURORA Hardware Initialization Complete");
+        telemetry.addLine(getInitializationSummary());
         telemetry.update();
     }
-    
+
     /**
-     * Initialize all hardware WITH odometry (for TeleOp OpModes)
-     * Use this when you need continuous position tracking during the match
+     * Initialize all hardware systems WITH odometry
+     * Use this for TeleOp OpModes that need position tracking
      */
     public void initializeWithOdometry() {
+        telemetry.addLine("🤖 Initializing AURORA Hardware with Odometry...");
+        telemetry.update();
+
         initializeDriveSystem();
         initializeShooterSystem();
-        initializeVoltageSensor();
+        initializeIMU();
         initializeOdometry();
-        
-        telemetry.addLine("✅ Hardware initialization complete (with odometry)");
+        initializeVoltageSensor();
+
+        telemetry.addLine("✅ AURORA Hardware Initialization Complete");
+        telemetry.addLine(getInitializationSummary());
         telemetry.update();
     }
-    
+
     /**
-     * Initialize drive system motors with error handling
+     * Initialize the drive system (4 mecanum motors)
      */
     private void initializeDriveSystem() {
         try {
-            telemetry.addLine("Initializing drive system...");
-            telemetry.update();
-            
+            // Initialize motors
             frontLeftMotor = hardwareMap.get(DcMotor.class, FRONT_LEFT_MOTOR);
             frontRightMotor = hardwareMap.get(DcMotor.class, FRONT_RIGHT_MOTOR);
             backLeftMotor = hardwareMap.get(DcMotor.class, BACK_LEFT_MOTOR);
             backRightMotor = hardwareMap.get(DcMotor.class, BACK_RIGHT_MOTOR);
-            
-            // Configure motor behavior
+
+            // Set motor directions (typical mecanum configuration)
+            frontLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+            backLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+            frontRightMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+            backRightMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+
+            // Set zero power behavior
             frontLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             frontRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             backLeftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             backRightMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            
+
+            // Set run mode
+            frontLeftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            frontRightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            backLeftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            backRightMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
             driveSystemInitialized = true;
-            driveInitError = "";
-            telemetry.addLine("✅ Drive system initialized successfully");
-            telemetry.addLine("   Motors: " + FRONT_LEFT_MOTOR + ", " + FRONT_RIGHT_MOTOR + ", " + 
-                             BACK_LEFT_MOTOR + ", " + BACK_RIGHT_MOTOR);
-            
-        } catch (IllegalArgumentException e) {
-            driveSystemInitialized = false;
-            driveInitError = "Motor not found: " + e.getMessage();
-            telemetry.addLine("⚠️ Drive system failed: " + driveInitError);
-            telemetry.addLine("   Check motor names in hardware configuration:");
-            telemetry.addLine("   Expected: " + FRONT_LEFT_MOTOR + ", " + FRONT_RIGHT_MOTOR + ", " + 
-                             BACK_LEFT_MOTOR + ", " + BACK_RIGHT_MOTOR);
+            telemetry.addLine("  ✅ Drive System");
+
         } catch (Exception e) {
             driveSystemInitialized = false;
-            driveInitError = e.getClass().getSimpleName() + ": " + e.getMessage();
-            telemetry.addLine("⚠️ Drive system failed: " + driveInitError);
+            driveInitError = e.getMessage();
+            telemetry.addLine("  ❌ Drive System: " + driveInitError);
         }
-        telemetry.update();
     }
-    
+
     /**
-     * Initialize shooter system components with error handling
+     * Initialize the shooter system (motor and servos)
      */
     private void initializeShooterSystem() {
         try {
-            telemetry.addLine("Initializing shooter system...");
-            telemetry.update();
-            
+            // Initialize shooter motor
             shooterMotor = hardwareMap.get(DcMotor.class, SHOOTER_MOTOR);
-            shooterMotor2 = hardwareMap.get(DcMotor.class, SHOOTER_MOTOR_2);
-            //feedServo1 = hardwareMap.get(CRServo.class, FEED_SERVO_1);
-            //feedServo2 = hardwareMap.get(CRServo.class, FEED_SERVO_2);
-            
-            // Configure shooter motor
-            shooterMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            shooterMotor2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            shooterMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+            shooterMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            shooterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-            shooterMotor.setDirection(DcMotorSimple.Direction.REVERSE);
-            shooterMotor2.setDirection(DcMotorSimple.Direction.REVERSE);
+            // Initialize feed servos
+            feedServo1 = hardwareMap.get(CRServo.class, FEED_SERVO_1);
+            feedServo2 = hardwareMap.get(CRServo.class, FEED_SERVO_2);
 
-
-            // Light servo is optional
+            // Initialize optional light servo
             try {
                 lightServo = hardwareMap.get(Servo.class, LIGHT_SERVO);
-                telemetry.addLine("   Light indicator found");
             } catch (Exception e) {
                 lightServo = null;
-                telemetry.addLine("   Light indicator not found (optional)");
+                telemetry.addLine("  ⚠️ Light servo not found (optional)");
             }
-            
+
             shooterSystemInitialized = true;
-            shooterInitError = "";
-            telemetry.addLine("✅ Shooter system initialized successfully");
-            telemetry.addLine("   Motor: " + SHOOTER_MOTOR);
-            //telemetry.addLine("   Servos: " + FEED_SERVO_1 + ", " + FEED_SERVO_2);
-            
-        } catch (IllegalArgumentException e) {
-            shooterSystemInitialized = false;
-            shooterInitError = "Device not found: " + e.getMessage();
-            telemetry.addLine("⚠️ Shooter system failed: " + shooterInitError);
-            telemetry.addLine("   Check device names in hardware configuration:");
-            //telemetry.addLine("   Expected: " + SHOOTER_MOTOR + ", " + FEED_SERVO_1 + ", " + FEED_SERVO_2);
+            telemetry.addLine("  ✅ Shooter System");
+
         } catch (Exception e) {
             shooterSystemInitialized = false;
-            shooterInitError = e.getClass().getSimpleName() + ": " + e.getMessage();
-            telemetry.addLine("⚠️ Shooter system failed: " + shooterInitError);
+            shooterInitError = e.getMessage();
+            telemetry.addLine("  ❌ Shooter System: " + shooterInitError);
         }
-        telemetry.update();
     }
-    
+
     /**
-     * Initialize voltage sensor with error handling
+     * Initialize the IMU sensor
      */
-    private void initializeVoltageSensor() {
+    private void initializeIMU() {
         try {
-            voltageSensor = hardwareMap.voltageSensor.iterator().next();
-            telemetry.addLine("✅ Voltage sensor initialized");
+            imu = hardwareMap.get(IMU.class, IMU_SENSOR);
+
+            // Configure IMU orientation
+            RevHubOrientationOnRobot orientation = new RevHubOrientationOnRobot(
+                IMU_LOGO_DIRECTION,
+                IMU_USB_DIRECTION
+            );
+
+            IMU.Parameters imuParameters = new IMU.Parameters(orientation);
+            imu.initialize(imuParameters);
+
+            imuInitialized = true;
+            telemetry.addLine("  ✅ IMU (Logo: " + IMU_LOGO_DIRECTION + ", USB: " + IMU_USB_DIRECTION + ")");
+
         } catch (Exception e) {
-            voltageSensor = null;
-            telemetry.addLine("⚠️ Voltage sensor not found (optional)");
+            imuInitialized = false;
+            imuInitError = e.getMessage();
+            telemetry.addLine("  ❌ IMU: " + imuInitError);
         }
-        telemetry.update();
     }
-    
+
     /**
-     * Initialize odometry computer with error handling
+     * Initialize the odometry system (goBILDA Pinpoint)
      */
     private void initializeOdometry() {
         try {
-            telemetry.addLine("Initializing odometry computer...");
-            telemetry.update();
-            
             odometry = hardwareMap.get(GoBildaPinpointDriver.class, ODOMETRY_COMPUTER);
-            
-            // Configure odometry
+
+            // Configure odometry offsets (in inches)
             odometry.setOffsets(ODOMETRY_X_OFFSET, ODOMETRY_Y_OFFSET, DistanceUnit.INCH);
-            odometry.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
+
+            // Configure encoder directions
             odometry.setEncoderDirections(FORWARD_POD_DIRECTION, STRAFE_POD_DIRECTION);
-            
-            // Reset position and calibrate IMU
+
+            // Reset position
             odometry.resetPosAndIMU();
-            
+
             odometryInitialized = true;
-            odometryInitError = "";
-            telemetry.addLine("✅ Odometry initialized successfully");
-            telemetry.addData("   Device", ODOMETRY_COMPUTER);
-            telemetry.addData("   Version", odometry.getDeviceVersion());
-            telemetry.addData("   Status", odometry.getDeviceStatus());
-            telemetry.addData("   X Offset", "%.2f in", ODOMETRY_X_OFFSET);
-            telemetry.addData("   Y Offset", "%.2f in", ODOMETRY_Y_OFFSET);
-            
-        } catch (IllegalArgumentException e) {
-            odometry = null;
-            odometryInitialized = false;
-            odometryInitError = "Device not found: " + e.getMessage();
-            telemetry.addLine("⚠️ Odometry device '" + ODOMETRY_COMPUTER + "' not found in hardware configuration!");
-            telemetry.addLine("");
-            telemetry.addLine("To fix this:");
-            telemetry.addLine("1. Go to Robot Configuration on Driver Station");
-            telemetry.addLine("2. Add an I2C device named '" + ODOMETRY_COMPUTER + "'");
-            telemetry.addLine("3. Set device type to 'goBILDA Pinpoint'");
+            telemetry.addLine("  ✅ Odometry (Pinpoint)");
+
         } catch (Exception e) {
-            odometry = null;
             odometryInitialized = false;
-            odometryInitError = e.getClass().getSimpleName() + ": " + e.getMessage();
-            telemetry.addLine("⚠️ Odometry initialization failed!");
-            telemetry.addLine("   Error: " + odometryInitError);
+            odometryInitError = e.getMessage();
+            telemetry.addLine("  ⚠️ Odometry: " + odometryInitError);
         }
-        telemetry.update();
     }
-    
-    // ========================================================================================
-    // PUBLIC ACCESSORS - Use these to get hardware components
-    // ========================================================================================
-    
-    // Drive motors
+
+    /**
+     * Initialize voltage sensor (always available on control hub)
+     */
+    private void initializeVoltageSensor() {
+        try {
+            // Get voltage sensor from the hardware map
+            // The control hub always has a voltage sensor
+            for (VoltageSensor sensor : hardwareMap.voltageSensor) {
+                voltageSensor = sensor;
+                break;
+            }
+        } catch (Exception e) {
+            voltageSensor = null;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // HARDWARE ACCESSORS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // Drive Motors
     public DcMotor getFrontLeftMotor() { return frontLeftMotor; }
     public DcMotor getFrontRightMotor() { return frontRightMotor; }
     public DcMotor getBackLeftMotor() { return backLeftMotor; }
     public DcMotor getBackRightMotor() { return backRightMotor; }
-    
-    // Shooter components
-    public DcMotor getShooterMotor() { return shooterMotor; }
 
-    public DcMotor getShooterMotor2() { return  shooterMotor2; }
-    //public CRServo getFeedServo1() { return feedServo1; }
-    //public CRServo getFeedServo2() { return feedServo2; }
-    public Servo getLightServo() { return lightServo; }
-    
+    // Shooter System
+    public DcMotor getShooterMotor() { return shooterMotor; }
+    public CRServo getFeedServo1() { return feedServo1; }
+    public CRServo getFeedServo2() { return feedServo2; }
+    public Servo getLightServo() { return lightServo; }  // May be null
+
     // Sensors
-    public VoltageSensor getVoltageSensor() { return voltageSensor; }
+    public IMU getIMU() { return imu; }
     public GoBildaPinpointDriver getOdometry() { return odometry; }
-    
-    // Original hardware map (for cases where direct access is still needed)
+    public VoltageSensor getVoltageSensor() { return voltageSensor; }
+
+    // Core
     public HardwareMap getHardwareMap() { return hardwareMap; }
-    
-    // ========================================================================================
-    // STATUS CHECKING - Use these to check if hardware initialized successfully
-    // ========================================================================================
-    
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // STATUS CHECKERS
+    // ═══════════════════════════════════════════════════════════════════════
+
     public boolean isDriveSystemInitialized() { return driveSystemInitialized; }
     public boolean isShooterSystemInitialized() { return shooterSystemInitialized; }
+    public boolean isIMUInitialized() { return imuInitialized; }
     public boolean isOdometryInitialized() { return odometryInitialized; }
-    
+
     public String getDriveInitError() { return driveInitError; }
     public String getShooterInitError() { return shooterInitError; }
+    public String getIMUInitError() { return imuInitError; }
     public String getOdometryInitError() { return odometryInitError; }
-    
+
     /**
-     * Check if all critical systems are initialized
-     * @return true if drive and shooter are both initialized
+     * Check if all critical systems are operational
      */
-    public boolean isFullyInitialized() {
-        return driveSystemInitialized && shooterSystemInitialized;
+    public boolean isSystemHealthy() {
+        return driveSystemInitialized && shooterSystemInitialized && imuInitialized;
     }
-    
-    /**
-     * Check if any system failed to initialize
-     * @return true if any initialization error occurred
-     */
-    public boolean hasInitializationErrors() {
-        return !driveInitError.isEmpty() || !shooterInitError.isEmpty() || !odometryInitError.isEmpty();
-    }
-    
+
     /**
      * Get a summary of initialization status
-     * @return Multi-line string describing initialization status
      */
     public String getInitializationSummary() {
         StringBuilder summary = new StringBuilder();
-        summary.append("=== Hardware Initialization Summary ===\n");
-        summary.append("Drive System: ").append(driveSystemInitialized ? "✅ OK" : "❌ FAILED").append("\n");
-        if (!driveInitError.isEmpty()) {
-            summary.append("  Error: ").append(driveInitError).append("\n");
-        }
-        summary.append("Shooter System: ").append(shooterSystemInitialized ? "✅ OK" : "❌ FAILED").append("\n");
-        if (!shooterInitError.isEmpty()) {
-            summary.append("  Error: ").append(shooterInitError).append("\n");
-        }
-        summary.append("Odometry: ").append(odometryInitialized ? "✅ OK" : "⚠️ Not Initialized").append("\n");
-        if (!odometryInitError.isEmpty()) {
-            summary.append("  Error: ").append(odometryInitError).append("\n");
-        }
+        summary.append("\n📊 Hardware Status:\n");
+        summary.append("  Drive: ").append(driveSystemInitialized ? "✅" : "❌").append("\n");
+        summary.append("  Shooter: ").append(shooterSystemInitialized ? "✅" : "❌").append("\n");
+        summary.append("  IMU: ").append(imuInitialized ? "✅" : "❌").append("\n");
+        summary.append("  Odometry: ").append(odometryInitialized ? "✅" : "⚠️").append("\n");
         return summary.toString();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // UTILITY METHODS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Reset the IMU heading to zero
+     */
+    public void resetIMUHeading() {
+        if (imu != null) {
+            imu.resetYaw();
+        }
+    }
+
+    /**
+     * Reset odometry position to (0, 0) with heading 0
+     */
+    public void resetOdometryPosition() {
+        if (odometry != null) {
+            odometry.resetPosAndIMU();
+        }
+    }
+
+    /**
+     * Get current battery voltage
+     */
+    public double getBatteryVoltage() {
+        if (voltageSensor != null) {
+            return voltageSensor.getVoltage();
+        }
+        return 12.0;  // Default fallback
+    }
+
+    /**
+     * Stop all motors (emergency stop)
+     */
+    public void stopAllMotors() {
+        if (frontLeftMotor != null) frontLeftMotor.setPower(0);
+        if (frontRightMotor != null) frontRightMotor.setPower(0);
+        if (backLeftMotor != null) backLeftMotor.setPower(0);
+        if (backRightMotor != null) backRightMotor.setPower(0);
+        if (shooterMotor != null) shooterMotor.setPower(0);
+        if (feedServo1 != null) feedServo1.setPower(0);
+        if (feedServo2 != null) feedServo2.setPower(0);
     }
 }

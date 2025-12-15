@@ -100,7 +100,7 @@ public class MechanumDrive {
 
     public void dpadMove() {
         if (gamepad.dpad_up) {
-            axial = -0.2;
+            axial = -0.2;//replace all of these with a variable
         } else if (gamepad.dpad_down) {
             axial = 0.2;
         } else {

@@ -77,14 +77,10 @@ public class FieldMap {
             this(x, y, 0, name, type, null);
         }
 
-        public PathPlanningSystem.Point toPoint() {
-            return new PathPlanningSystem.Point(x, y);
-        }
     }
 
     // Predefined field elements
     private Map<String, FieldPosition> namedLocations = new HashMap<>();
-    private List<PathPlanningSystem.Obstacle> staticObstacles = new ArrayList<>();
     private Alliance currentAlliance;
 
     /**
@@ -101,7 +97,6 @@ public class FieldMap {
     private void initializeFieldElements() {
         // Clear existing data
         namedLocations.clear();
-        staticObstacles.clear();
          /* - Goal AprilTags: Both on back wall (opposite audience, -X side), 45° angles toward center
                 *   • Red Goal (ID 24): (-58.3727, 55.6425, 29.5) heading 315° (back-right corner)
                 *   • Blue Goal (ID 20): (-58.3727, -55.6425, 29.5) heading 45° (back-left corner)
@@ -151,14 +146,6 @@ public class FieldMap {
     /**
      * Add a rectangular obstacle to the field map
      */
-    public void addObstacle(String name, double centerX, double centerY, double width, double height, boolean isMoving) {
-        // Convert rectangle to circle for simplified collision detection
-        double radius = Math.sqrt(width * width + height * height) / 2.0;
-        PathPlanningSystem.Obstacle obs = new PathPlanningSystem.Obstacle(
-            new PathPlanningSystem.Point(centerX, centerY), radius, isMoving);
-        staticObstacles.add(obs);
-    }
-
     /**
      * Get a named location
      */
@@ -240,9 +227,6 @@ public class FieldMap {
     /**
      * Get all static obstacles for path planning
      */
-    public List<PathPlanningSystem.Obstacle> getStaticObstacles() {
-        return new ArrayList<>(staticObstacles);
-    }
 
     /**
      * Check if a position is in bounds
@@ -254,19 +238,6 @@ public class FieldMap {
     /**
      * Convert field coordinates to robot coordinates (if needed)
      */
-    public PathPlanningSystem.Point fieldToRobot(double fieldX, double fieldY, double robotX, double robotY, double robotHeading) {
-        // Transform field coordinates to robot-relative coordinates
-        double deltaX = fieldX - robotX;
-        double deltaY = fieldY - robotY;
-
-        double cos = Math.cos(-Math.toRadians(robotHeading));
-        double sin = Math.sin(-Math.toRadians(robotHeading));
-
-        double robotRelativeX = deltaX * cos - deltaY * sin;
-        double robotRelativeY = deltaX * sin + deltaY * cos;
-
-        return new PathPlanningSystem.Point(robotRelativeX, robotRelativeY);
-    }
 
     /**
      * Get strategic waypoints for navigating to a target
