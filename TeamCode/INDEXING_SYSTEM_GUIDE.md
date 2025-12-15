@@ -146,22 +146,26 @@ shooter.disable();
 New hardware components added:
 
 **Motors:**
-- `frontIntakeMotor` - Front intake roller
-- `backIntakeMotor` - Back intake roller
-- `centerRollerMotor` - Center storage roller
+- `frontRollerMotor` - Front intake roller
+- `backRollerMotor` - Back intake roller
 
 **Servos:**
-- `transferServo` - Artifact transfer mechanism
+- `frontTransferServo` - Front intake transfer mechanism
+- `backTransferServo` - Back intake transfer mechanism
+- `transferServoCL` - Center left transfer servo
+- `transferServoCR` - Center right transfer servo
 
 **Distance Sensors:**
-- `frontDistanceSensor` - Detect artifacts at front
-- `backDistanceSensor` - Detect artifacts at back
-- `centerDistanceSensor` - Detect artifacts in center
+- `frontDistanceSensor` (frontDist) - Detect artifacts at front
+- `backDistanceSensor` (backDist) - Detect artifacts at back
 
 **Color Sensors:**
-- `frontColorSensor` - Identify artifact color at front
-- `backColorSensor` - Identify artifact color at back
-- `centerColorSensor` - Identify artifact color in center
+- `frontLeftColorSensor` - Front left color detection
+- `frontRightColorSensor` - Front right color detection
+- `backRightColorSensor` - Back right color detection
+- `leftRightColorSensor` - Left right color detection
+- `frontCenterColorSensor` - Front center color detection
+- `backCenterColorSensor` - Back center color detection
 
 ## Hardware Setup
 
@@ -171,18 +175,24 @@ Update these in `AuroraHardwareConfig.java` to match your configuration:
 
 ```java
 // Intake and Indexing System
-public static final String FRONT_INTAKE_MOTOR = "frontIntake";
-public static final String BACK_INTAKE_MOTOR = "backIntake";
-public static final String CENTER_ROLLER_MOTOR = "centerRoller";
-public static final String TRANSFER_SERVO = "transferServo";
+public static final String FRONT_ROLLER_MOTOR = "frontRollerMotor";
+public static final String BACK_ROLLER_MOTOR = "backRollerMotor";
+public static final String FRONT_TRANSFER_SERVO = "frontTransferServo";
+public static final String BACK_TRANSFER_SERVO = "backTransferServo";
+public static final String TRANSFER_SERVO_CL = "transferServoCL";
+public static final String TRANSFER_SERVO_CR = "transferServoCR";
 
-// Sensors
-public static final String FRONT_DISTANCE_SENSOR = "frontDistance";
-public static final String BACK_DISTANCE_SENSOR = "backDistance";
-public static final String CENTER_DISTANCE_SENSOR = "centerDistance";
-public static final String FRONT_COLOR_SENSOR = "frontColor";
-public static final String BACK_COLOR_SENSOR = "backColor";
-public static final String CENTER_COLOR_SENSOR = "centerColor";
+// Distance Sensors
+public static final String FRONT_DISTANCE_SENSOR = "frontDist";
+public static final String BACK_DISTANCE_SENSOR = "backDist";
+
+// Color Sensors
+public static final String FRONT_LEFT_COLOR_SENSOR = "frontLeftColor";
+public static final String FRONT_RIGHT_COLOR_SENSOR = "frontRightColor";
+public static final String BACK_RIGHT_COLOR_SENSOR = "backRightColor";
+public static final String LEFT_RIGHT_COLOR_SENSOR = "leftRightColor";
+public static final String FRONT_CENTER_COLOR_SENSOR = "frontCenterColor";
+public static final String BACK_CENTER_COLOR_SENSOR = "backCenterColor";
 ```
 
 ### Motor Directions

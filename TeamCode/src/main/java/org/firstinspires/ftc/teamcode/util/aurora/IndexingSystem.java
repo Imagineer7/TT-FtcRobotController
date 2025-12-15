@@ -352,10 +352,11 @@ public class IndexingSystem {
      */
     private void updateTransferring(long elapsedTime) {
         if (elapsedTime >= config.getTransferServoTimeMs() + config.getCenterAcceptTimeMs()) {
-            // Stop center roller
-            setCenterRollerPower(0);
-            // Return transfer servo to idle
-            setTransferServoPosition(config.getTransferServoIdlePosition());
+            // Stop intake roller
+            setIntakePower(lastIntakeSource, 0);
+            // Return transfer servos to idle
+            setTransferServos(false);
+            setIntakeTransferServo(lastIntakeSource, config.getTransferServoIdlePosition());
             completeTransferToCenter();
         }
     }
@@ -569,8 +570,8 @@ public class IndexingSystem {
      */
     private void updateFiring(long elapsedTime) {
         if (elapsedTime >= config.getFireFeedTimeMs()) {
-            // Stop center roller
-            setCenterRollerPower(0);
+            // Return transfer servos to idle
+            setTransferServos(false);
             completeFiring();
         }
     }
@@ -783,7 +784,7 @@ public class IndexingSystem {
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
-     * Run intake motor at specified power
+     * Run intake roller motor at specified power
      * @param source Which intake to run
      * @param power Motor power (-1.0 to 1.0)
      */
@@ -791,10 +792,10 @@ public class IndexingSystem {
         if (hardware == null) return;
 
         try {
-            if (source == IntakeSource.FRONT && hardware.getFrontIntakeMotor() != null) {
-                hardware.getFrontIntakeMotor().setPower(power);
-            } else if (source == IntakeSource.BACK && hardware.getBackIntakeMotor() != null) {
-                hardware.getBackIntakeMotor().setPower(power);
+            if (source == IntakeSource.FRONT && hardware.getFrontRollerMotor() != null) {
+                hardware.getFrontRollerMotor().setPower(power);
+            } else if (source == IntakeSource.BACK && hardware.getBackRollerMotor() != null) {
+                hardware.getBackRollerMotor().setPower(power);
             }
         } catch (Exception e) {
             setError("Failed to set intake power: " + e.getMessage());
@@ -802,41 +803,54 @@ public class IndexingSystem {
     }
 
     /**
-     * Run center roller at specified power
-     * @param power Motor power (-1.0 to 1.0)
+     * Set transfer servo positions for center transfer
+     * @param transferring true to set transfer position, false for idle
      */
-    private void setCenterRollerPower(double power) {
-        if (hardware == null || hardware.getCenterRollerMotor() == null) return;
+    private void setTransferServos(boolean transferring) {
+        if (hardware == null) return;
 
         try {
-            hardware.getCenterRollerMotor().setPower(power);
+            double position = transferring ? config.getTransferServoTransferPosition() : config.getTransferServoIdlePosition();
+            
+            if (hardware.getTransferServoCL() != null) {
+                hardware.getTransferServoCL().setPosition(position);
+            }
+            if (hardware.getTransferServoCR() != null) {
+                hardware.getTransferServoCR().setPosition(position);
+            }
         } catch (Exception e) {
-            setError("Failed to set center roller power: " + e.getMessage());
+            setError("Failed to set center transfer servos: " + e.getMessage());
         }
     }
 
     /**
-     * Set transfer servo position
+     * Set intake-specific transfer servo position
+     * @param source Which intake transfer servo to control
      * @param position Servo position (0.0 to 1.0)
      */
-    private void setTransferServoPosition(double position) {
-        if (hardware == null || hardware.getTransferServo() == null) return;
+    private void setIntakeTransferServo(IntakeSource source, double position) {
+        if (hardware == null) return;
 
         try {
-            hardware.getTransferServo().setPosition(position);
+            if (source == IntakeSource.FRONT && hardware.getFrontTransferServo() != null) {
+                hardware.getFrontTransferServo().setPosition(position);
+            } else if (source == IntakeSource.BACK && hardware.getBackTransferServo() != null) {
+                hardware.getBackTransferServo().setPosition(position);
+            }
         } catch (Exception e) {
-            setError("Failed to set transfer servo: " + e.getMessage());
+            setError("Failed to set intake transfer servo: " + e.getMessage());
         }
     }
 
     /**
-     * Stop all indexing motors
+     * Stop all indexing motors and reset servos
      */
     private void stopAllIndexingMotors() {
         setIntakePower(IntakeSource.FRONT, 0);
         setIntakePower(IntakeSource.BACK, 0);
-        setCenterRollerPower(0);
-        setTransferServoPosition(config.getTransferServoIdlePosition());
+        setTransferServos(false); // Set to idle position
+        setIntakeTransferServo(IntakeSource.FRONT, config.getTransferServoIdlePosition());
+        setIntakeTransferServo(IntakeSource.BACK, config.getTransferServoIdlePosition());
     }
 
     /**
@@ -863,7 +877,8 @@ public class IndexingSystem {
     }
 
     /**
-     * Detect artifact color from color sensor
+     * Detect artifact color from color sensors
+     * Uses multiple color sensors to determine artifact color at intake
      * @param source Which intake sensor to check
      * @return Detected artifact color
      */
@@ -871,30 +886,52 @@ public class IndexingSystem {
         if (hardware == null) return Artifact.Color.UNKNOWN;
 
         try {
-            com.qualcomm.robotcore.hardware.ColorSensor sensor = null;
+            // Use appropriate color sensors based on intake source
+            com.qualcomm.robotcore.hardware.ColorSensor leftSensor = null;
+            com.qualcomm.robotcore.hardware.ColorSensor rightSensor = null;
             
             if (source == IntakeSource.FRONT) {
-                sensor = hardware.getFrontColorSensor();
+                leftSensor = hardware.getFrontLeftColorSensor();
+                rightSensor = hardware.getFrontRightColorSensor();
             } else if (source == IntakeSource.BACK) {
-                sensor = hardware.getBackColorSensor();
+                // For back intake, we can use back right and potentially front center
+                rightSensor = hardware.getBackRightColorSensor();
+                // Could also check hardware.getBackCenterColorSensor() if needed
             }
 
-            if (sensor == null) {
+            // Collect color readings from available sensors
+            int totalRed = 0, totalGreen = 0, totalBlue = 0, sensorCount = 0;
+            
+            if (leftSensor != null) {
+                totalRed += leftSensor.red();
+                totalGreen += leftSensor.green();
+                totalBlue += leftSensor.blue();
+                sensorCount++;
+            }
+            
+            if (rightSensor != null) {
+                totalRed += rightSensor.red();
+                totalGreen += rightSensor.green();
+                totalBlue += rightSensor.blue();
+                sensorCount++;
+            }
+            
+            if (sensorCount == 0) {
                 return Artifact.Color.UNKNOWN;
             }
 
-            // Get color values
-            int red = sensor.red();
-            int green = sensor.green();
-            int blue = sensor.blue();
+            // Average the readings
+            int avgRed = totalRed / sensorCount;
+            int avgGreen = totalGreen / sensorCount;
+            int avgBlue = totalBlue / sensorCount;
 
             // Simple color detection logic for purple and green
             // Purple = high red + high blue, low green
             // Green = high green, lower red and blue
             
             // Calculate color scores
-            int purpleScore = red + blue - green;  // Purple has high R+B, low G
-            int greenScore = green - (red + blue) / 2;  // Green has high G, lower R and B
+            int purpleScore = avgRed + avgBlue - avgGreen;  // Purple has high R+B, low G
+            int greenScore = avgGreen - (avgRed + avgBlue) / 2;  // Green has high G, lower R and B
             
             // Determine color based on scores
             if (greenScore > purpleScore && greenScore > 50) {
@@ -913,24 +950,25 @@ public class IndexingSystem {
      * Execute hardware actions for collection state
      */
     private void executeCollectionHardware() {
-        // Run intake motor to collect artifact
+        // Run intake roller motor to collect artifact
         setIntakePower(lastIntakeSource, config.getIntakeRollerPower());
         
-        // Run center roller to accept artifact
-        setCenterRollerPower(config.getCenterRollerPower());
+        // Set intake transfer servo to transfer position
+        setIntakeTransferServo(lastIntakeSource, config.getTransferServoTransferPosition());
         
-        // Set transfer servo to transfer position
-        setTransferServoPosition(config.getTransferServoTransferPosition());
+        // Set center transfer servos to accept artifact
+        setTransferServos(true);
     }
 
     /**
      * Execute hardware actions for transferring state
      */
     private void executeTransferHardware() {
-        // Keep center roller running to pull artifact in
-        setCenterRollerPower(config.getCenterRollerPower());
+        // Keep intake roller running to push artifact
+        setIntakePower(lastIntakeSource, config.getIntakeRollerPower());
         
-        // Transfer servo already positioned during collection
+        // Transfer servos already positioned during collection
+        setTransferServos(true);
     }
 
     /**
@@ -944,8 +982,11 @@ public class IndexingSystem {
         
         setIntakePower(oppositeIntake, -config.getIntakeRollerPower());
         
-        // Run center roller to push
-        setCenterRollerPower(config.getCenterRollerPower());
+        // Set opposite intake transfer servo to receive
+        setIntakeTransferServo(oppositeIntake, config.getTransferServoTransferPosition());
+        
+        // Use center servos to facilitate push
+        setTransferServos(true);
     }
 
     /**
@@ -965,8 +1006,8 @@ public class IndexingSystem {
             shooter.fire();
         }
 
-        // Run center roller to feed artifact to shooter
-        setCenterRollerPower(config.getFireFeedPower());
+        // Use center transfer servos to feed artifact to shooter
+        setTransferServos(true);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

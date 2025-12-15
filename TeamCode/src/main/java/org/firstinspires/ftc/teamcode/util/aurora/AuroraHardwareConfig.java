@@ -52,18 +52,22 @@ public class AuroraHardwareConfig {
     public static final String LIGHT_SERVO = "light";  // Optional
 
     // Intake and Indexing System
-    public static final String FRONT_INTAKE_MOTOR = "frontIntake";
-    public static final String BACK_INTAKE_MOTOR = "backIntake";
-    public static final String CENTER_ROLLER_MOTOR = "centerRoller";
-    public static final String TRANSFER_SERVO = "transferServo";
+    public static final String FRONT_ROLLER_MOTOR = "frontRollerMotor";
+    public static final String BACK_ROLLER_MOTOR = "backRollerMotor";
+    public static final String FRONT_TRANSFER_SERVO = "frontTransferServo";
+    public static final String BACK_TRANSFER_SERVO = "backTransferServo";
+    public static final String TRANSFER_SERVO_CL = "transferServoCL";
+    public static final String TRANSFER_SERVO_CR = "transferServoCR";
     
     // Artifact Detection Sensors
-    public static final String FRONT_DISTANCE_SENSOR = "frontDistance";
-    public static final String BACK_DISTANCE_SENSOR = "backDistance";
-    public static final String CENTER_DISTANCE_SENSOR = "centerDistance";
-    public static final String FRONT_COLOR_SENSOR = "frontColor";
-    public static final String BACK_COLOR_SENSOR = "backColor";
-    public static final String CENTER_COLOR_SENSOR = "centerColor";
+    public static final String FRONT_DISTANCE_SENSOR = "frontDist";
+    public static final String BACK_DISTANCE_SENSOR = "backDist";
+    public static final String FRONT_LEFT_COLOR_SENSOR = "frontLeftColor";
+    public static final String FRONT_RIGHT_COLOR_SENSOR = "frontRightColor";
+    public static final String BACK_RIGHT_COLOR_SENSOR = "backRightColor";
+    public static final String LEFT_RIGHT_COLOR_SENSOR = "leftRightColor";
+    public static final String FRONT_CENTER_COLOR_SENSOR = "frontCenterColor";
+    public static final String BACK_CENTER_COLOR_SENSOR = "backCenterColor";
 
     // Sensors
     public static final String IMU_SENSOR = "imu";
@@ -110,18 +114,22 @@ public class AuroraHardwareConfig {
     private Servo lightServo;  // Optional
 
     // Intake and Indexing System
-    private DcMotor frontIntakeMotor;
-    private DcMotor backIntakeMotor;
-    private DcMotor centerRollerMotor;
-    private Servo transferServo;
+    private DcMotor frontRollerMotor;
+    private DcMotor backRollerMotor;
+    private Servo frontTransferServo;
+    private Servo backTransferServo;
+    private Servo transferServoCL;
+    private Servo transferServoCR;
     
     // Artifact Detection Sensors
     private DistanceSensor frontDistanceSensor;
     private DistanceSensor backDistanceSensor;
-    private DistanceSensor centerDistanceSensor;
-    private ColorSensor frontColorSensor;
-    private ColorSensor backColorSensor;
-    private ColorSensor centerColorSensor;
+    private ColorSensor frontLeftColorSensor;
+    private ColorSensor frontRightColorSensor;
+    private ColorSensor backRightColorSensor;
+    private ColorSensor leftRightColorSensor;
+    private ColorSensor frontCenterColorSensor;
+    private ColorSensor backCenterColorSensor;
 
     // Sensors
     private IMU imu;
@@ -276,28 +284,27 @@ public class AuroraHardwareConfig {
      */
     private void initializeIndexingSystem() {
         try {
-            // Initialize intake motors
-            frontIntakeMotor = hardwareMap.get(DcMotor.class, FRONT_INTAKE_MOTOR);
-            backIntakeMotor = hardwareMap.get(DcMotor.class, BACK_INTAKE_MOTOR);
-            centerRollerMotor = hardwareMap.get(DcMotor.class, CENTER_ROLLER_MOTOR);
+            // Initialize roller motors
+            frontRollerMotor = hardwareMap.get(DcMotor.class, FRONT_ROLLER_MOTOR);
+            backRollerMotor = hardwareMap.get(DcMotor.class, BACK_ROLLER_MOTOR);
 
             // Set motor directions
-            frontIntakeMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-            backIntakeMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-            centerRollerMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+            frontRollerMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+            backRollerMotor.setDirection(DcMotorSimple.Direction.FORWARD);
 
             // Set zero power behavior
-            frontIntakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            backIntakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            centerRollerMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            frontRollerMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backRollerMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
             // Set run mode
-            frontIntakeMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            backIntakeMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            centerRollerMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            frontRollerMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            backRollerMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-            // Initialize transfer servo
-            transferServo = hardwareMap.get(Servo.class, TRANSFER_SERVO);
+            // Initialize transfer servos
+            frontTransferServo = hardwareMap.get(Servo.class, FRONT_TRANSFER_SERVO);
+            backTransferServo = hardwareMap.get(Servo.class, BACK_TRANSFER_SERVO);
+            transferServoCL = hardwareMap.get(Servo.class, TRANSFER_SERVO_CL);
+            transferServoCR = hardwareMap.get(Servo.class, TRANSFER_SERVO_CR);
 
             // Initialize distance sensors (optional, may not all be present)
             try {
@@ -314,33 +321,47 @@ public class AuroraHardwareConfig {
                 telemetry.addLine("  ⚠️ Back distance sensor not found (optional)");
             }
 
-            try {
-                centerDistanceSensor = hardwareMap.get(DistanceSensor.class, CENTER_DISTANCE_SENSOR);
-            } catch (Exception e) {
-                centerDistanceSensor = null;
-                telemetry.addLine("  ⚠️ Center distance sensor not found (optional)");
-            }
-
             // Initialize color sensors (optional, may not all be present)
             try {
-                frontColorSensor = hardwareMap.get(ColorSensor.class, FRONT_COLOR_SENSOR);
+                frontLeftColorSensor = hardwareMap.get(ColorSensor.class, FRONT_LEFT_COLOR_SENSOR);
             } catch (Exception e) {
-                frontColorSensor = null;
-                telemetry.addLine("  ⚠️ Front color sensor not found (optional)");
+                frontLeftColorSensor = null;
+                telemetry.addLine("  ⚠️ Front left color sensor not found (optional)");
             }
 
             try {
-                backColorSensor = hardwareMap.get(ColorSensor.class, BACK_COLOR_SENSOR);
+                frontRightColorSensor = hardwareMap.get(ColorSensor.class, FRONT_RIGHT_COLOR_SENSOR);
             } catch (Exception e) {
-                backColorSensor = null;
-                telemetry.addLine("  ⚠️ Back color sensor not found (optional)");
+                frontRightColorSensor = null;
+                telemetry.addLine("  ⚠️ Front right color sensor not found (optional)");
             }
 
             try {
-                centerColorSensor = hardwareMap.get(ColorSensor.class, CENTER_COLOR_SENSOR);
+                backRightColorSensor = hardwareMap.get(ColorSensor.class, BACK_RIGHT_COLOR_SENSOR);
             } catch (Exception e) {
-                centerColorSensor = null;
-                telemetry.addLine("  ⚠️ Center color sensor not found (optional)");
+                backRightColorSensor = null;
+                telemetry.addLine("  ⚠️ Back right color sensor not found (optional)");
+            }
+
+            try {
+                leftRightColorSensor = hardwareMap.get(ColorSensor.class, LEFT_RIGHT_COLOR_SENSOR);
+            } catch (Exception e) {
+                leftRightColorSensor = null;
+                telemetry.addLine("  ⚠️ Left right color sensor not found (optional)");
+            }
+
+            try {
+                frontCenterColorSensor = hardwareMap.get(ColorSensor.class, FRONT_CENTER_COLOR_SENSOR);
+            } catch (Exception e) {
+                frontCenterColorSensor = null;
+                telemetry.addLine("  ⚠️ Front center color sensor not found (optional)");
+            }
+
+            try {
+                backCenterColorSensor = hardwareMap.get(ColorSensor.class, BACK_CENTER_COLOR_SENSOR);
+            } catch (Exception e) {
+                backCenterColorSensor = null;
+                telemetry.addLine("  ⚠️ Back center color sensor not found (optional)");
             }
 
             indexingSystemInitialized = true;
@@ -438,18 +459,22 @@ public class AuroraHardwareConfig {
     public Servo getLightServo() { return lightServo; }  // May be null
 
     // Intake and Indexing System
-    public DcMotor getFrontIntakeMotor() { return frontIntakeMotor; }
-    public DcMotor getBackIntakeMotor() { return backIntakeMotor; }
-    public DcMotor getCenterRollerMotor() { return centerRollerMotor; }
-    public Servo getTransferServo() { return transferServo; }
+    public DcMotor getFrontRollerMotor() { return frontRollerMotor; }
+    public DcMotor getBackRollerMotor() { return backRollerMotor; }
+    public Servo getFrontTransferServo() { return frontTransferServo; }
+    public Servo getBackTransferServo() { return backTransferServo; }
+    public Servo getTransferServoCL() { return transferServoCL; }
+    public Servo getTransferServoCR() { return transferServoCR; }
     
     // Artifact Detection Sensors
     public DistanceSensor getFrontDistanceSensor() { return frontDistanceSensor; }
     public DistanceSensor getBackDistanceSensor() { return backDistanceSensor; }
-    public DistanceSensor getCenterDistanceSensor() { return centerDistanceSensor; }
-    public ColorSensor getFrontColorSensor() { return frontColorSensor; }
-    public ColorSensor getBackColorSensor() { return backColorSensor; }
-    public ColorSensor getCenterColorSensor() { return centerColorSensor; }
+    public ColorSensor getFrontLeftColorSensor() { return frontLeftColorSensor; }
+    public ColorSensor getFrontRightColorSensor() { return frontRightColorSensor; }
+    public ColorSensor getBackRightColorSensor() { return backRightColorSensor; }
+    public ColorSensor getLeftRightColorSensor() { return leftRightColorSensor; }
+    public ColorSensor getFrontCenterColorSensor() { return frontCenterColorSensor; }
+    public ColorSensor getBackCenterColorSensor() { return backCenterColorSensor; }
 
     // Sensors
     public IMU getIMU() { return imu; }
@@ -539,8 +564,7 @@ public class AuroraHardwareConfig {
         if (shooterMotor != null) shooterMotor.setPower(0);
         if (feedServo1 != null) feedServo1.setPower(0);
         if (feedServo2 != null) feedServo2.setPower(0);
-        if (frontIntakeMotor != null) frontIntakeMotor.setPower(0);
-        if (backIntakeMotor != null) backIntakeMotor.setPower(0);
-        if (centerRollerMotor != null) centerRollerMotor.setPower(0);
+        if (frontRollerMotor != null) frontRollerMotor.setPower(0);
+        if (backRollerMotor != null) backRollerMotor.setPower(0);
     }
 }

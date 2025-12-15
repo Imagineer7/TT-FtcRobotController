@@ -72,22 +72,26 @@ The Aurora Push-Based Artifact Indexing System has been fully implemented and is
 ## Hardware Requirements
 
 ### Motors
-- `frontIntakeMotor` - Front intake roller
-- `backIntakeMotor` - Back intake roller  
-- `centerRollerMotor` - Center storage roller
+- `frontRollerMotor` - Front intake roller
+- `backRollerMotor` - Back intake roller
 
 ### Servos
-- `transferServo` - Artifact transfer mechanism
+- `frontTransferServo` - Front intake transfer mechanism
+- `backTransferServo` - Back intake transfer mechanism
+- `transferServoCL` - Center left transfer servo
+- `transferServoCR` - Center right transfer servo
 
 ### Distance Sensors (Optional)
-- `frontDistanceSensor` - Front intake detection
-- `backDistanceSensor` - Back intake detection
-- `centerDistanceSensor` - Center storage detection
+- `frontDistanceSensor` (frontDist) - Front intake detection
+- `backDistanceSensor` (backDist) - Back intake detection
 
 ### Color Sensors (Optional)
-- `frontColorSensor` - Front intake color detection (purple/green)
-- `backColorSensor` - Back intake color detection (purple/green)
-- `centerColorSensor` - Center storage color detection (purple/green)
+- `frontLeftColorSensor` (frontLeftColor) - Front left color detection
+- `frontRightColorSensor` (frontRightColor) - Front right color detection
+- `backRightColorSensor` (backRightColor) - Back right color detection
+- `leftRightColorSensor` (leftRightColor) - Left right color detection
+- `frontCenterColorSensor` (frontCenterColor) - Front center color detection
+- `backCenterColorSensor` (backCenterColor) - Back center color detection
 
 ## Getting Started
 
@@ -97,10 +101,12 @@ Edit `AuroraHardwareConfig.java` to match your Driver Station configuration:
 
 ```java
 // In AuroraHardwareConfig.java
-public static final String FRONT_INTAKE_MOTOR = "frontIntake";
-public static final String BACK_INTAKE_MOTOR = "backIntake";
-public static final String CENTER_ROLLER_MOTOR = "centerRoller";
-public static final String TRANSFER_SERVO = "transferServo";
+public static final String FRONT_ROLLER_MOTOR = "frontRollerMotor";
+public static final String BACK_ROLLER_MOTOR = "backRollerMotor";
+public static final String FRONT_TRANSFER_SERVO = "frontTransferServo";
+public static final String BACK_TRANSFER_SERVO = "backTransferServo";
+public static final String TRANSFER_SERVO_CL = "transferServoCL";
+public static final String TRANSFER_SERVO_CR = "transferServoCR";
 // ... sensor names
 ```
 
