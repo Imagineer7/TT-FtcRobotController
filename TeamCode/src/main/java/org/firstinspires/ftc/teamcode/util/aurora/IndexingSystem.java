@@ -27,11 +27,16 @@ import java.util.List;
  *
  * EARLY FIRE HANDLING:
  * - One artifact: Transfer to center and fire
- * - Two artifacts: Fire second artifact from center, first remains in storage
+ * - Two artifacts: Can rearrange based on motif pattern using empty intake
+ *   Example: Green in center, Purple in back, pattern wants Purple first
+ *   Solution: Push green to front intake, pull purple to center
+ * - Three artifacts: Fire in center (no rearrangement possible)
  *
  * SHOT PLANNING:
- * - First shot is mechanically forced (second artifact collected)
- * - Software plans shots 2 and 3 based on artifact colors and strategy
+ * - Motif pattern (PPG, PGP, or GPP) set by limelight camera determines shot order
+ * - With 2 artifacts: Can rearrange to match desired first shot
+ * - With 3 artifacts: First shot is mechanically forced (in center)
+ * - Software plans shots 2 and 3 based on motif pattern and artifact colors
  */
 public class IndexingSystem {
 
@@ -91,6 +96,10 @@ public class IndexingSystem {
     // Shot planning
     private Artifact plannedSecondShot;
     private Artifact plannedThirdShot;
+    
+    // Motif pattern for shot order (determined by limelight camera)
+    private String motifPattern = "PPG"; // Default pattern: Purple, Purple, Green
+    private boolean motifPatternSet = false;
 
     // Safety and error tracking
     private String lastError;
@@ -207,6 +216,56 @@ public class IndexingSystem {
         }
 
         return handleEarlyFire();
+    }
+    
+    /**
+     * Set the motif pattern for shot ordering
+     * This should be called by the limelight camera system to determine shot order.
+     * @param pattern One of "PPG", "PGP", or "GPP" where P=Purple, G=Green
+     * @return true if pattern is valid and set
+     */
+    public boolean setMotifPattern(String pattern) {
+        if (pattern == null) {
+            return false;
+        }
+        
+        String normalized = pattern.trim().toUpperCase();
+        if (normalized.equals("PPG") || normalized.equals("PGP") || normalized.equals("GPP")) {
+            this.motifPattern = normalized;
+            this.motifPatternSet = true;
+            
+            if (config.isDebugTelemetry()) {
+                telemetry.addLine("Motif pattern set: " + normalized);
+            }
+            
+            // Replan shots with new pattern
+            if (getArtifactCount() >= 2) {
+                planShotsWithMotif();
+            }
+            
+            return true;
+        }
+        
+        if (config.isDebugTelemetry()) {
+            telemetry.addLine("Invalid motif pattern: " + pattern);
+        }
+        return false;
+    }
+    
+    /**
+     * Get the current motif pattern
+     * @return The motif pattern string (PPG, PGP, or GPP)
+     */
+    public String getMotifPattern() {
+        return motifPattern;
+    }
+    
+    /**
+     * Check if motif pattern has been set by limelight
+     * @return true if pattern has been explicitly set
+     */
+    public boolean isMotifPatternSet() {
+        return motifPatternSet;
     }
 
     /**
@@ -437,8 +496,27 @@ public class IndexingSystem {
 
     /**
      * Complete push operation
+     * Handles both: (1) second artifact indexing, (2) two-artifact rearrangement
      */
     private void completePushOperation() {
+        int artifactCount = getArtifactCount();
+        
+        if (artifactCount == 2) {
+            // Two-artifact rearrangement for optimal shot order
+            completeTwoArtifactRearrangement();
+        } else if (artifactCount == 3) {
+            // This shouldn't happen during push, but handle gracefully
+            completeSecondArtifactIndexing();
+        } else {
+            // Normal second artifact indexing (count goes from 1 to 2)
+            completeSecondArtifactIndexing();
+        }
+    }
+    
+    /**
+     * Complete normal second artifact indexing
+     */
+    private void completeSecondArtifactIndexing() {
         Artifact firstArtifact = artifactInCenter;
         Artifact secondArtifact = artifacts.get(artifacts.size() - 1);
 
@@ -473,14 +551,84 @@ public class IndexingSystem {
         // Update intake modes (intake with artifact now in storage mode)
         updateIntakeModes();
 
-        // Plan shots
-        planShots();
+        // Plan shots with motif
+        planShotsWithMotif();
 
         changeState(SystemState.READY_TO_FIRE);
         operationInProgress = false;
 
         if (config.isDebugTelemetry()) {
             telemetry.addLine("Push complete: first->storage, second->center");
+        }
+    }
+    
+    /**
+     * Complete two-artifact rearrangement
+     * Center artifact pushed to empty intake, storage artifact pulled to center
+     */
+    private void completeTwoArtifactRearrangement() {
+        // Find the artifact that was in storage (now being pulled to center)
+        Artifact storageArtifact = null;
+        Artifact centerArtifact = artifactInCenter;
+        
+        if (lastIntakeSource == IntakeSource.FRONT) {
+            storageArtifact = artifactInFrontIntake;
+        } else if (lastIntakeSource == IntakeSource.BACK) {
+            storageArtifact = artifactInBackIntake;
+        }
+        
+        if (storageArtifact == null || centerArtifact == null) {
+            setError("Rearrangement failed: missing artifacts");
+            return;
+        }
+        
+        // Determine empty intake (opposite of storage source)
+        Artifact.Location emptyIntake = (lastIntakeSource == IntakeSource.FRONT) 
+            ? Artifact.Location.BACK_INTAKE 
+            : Artifact.Location.FRONT_INTAKE;
+        
+        // Move center artifact to empty intake
+        Artifact movedToEmpty = centerArtifact.withLocation(emptyIntake);
+        for (int i = 0; i < artifacts.size(); i++) {
+            if (artifacts.get(i).equals(centerArtifact)) {
+                artifacts.set(i, movedToEmpty);
+                break;
+            }
+        }
+        
+        // Update storage references for moved artifact
+        if (emptyIntake == Artifact.Location.FRONT_INTAKE) {
+            artifactInFrontIntake = movedToEmpty;
+        } else {
+            artifactInBackIntake = movedToEmpty;
+        }
+        
+        // Clear the old storage location
+        if (lastIntakeSource == IntakeSource.FRONT) {
+            artifactInFrontIntake = null;
+        } else {
+            artifactInBackIntake = null;
+        }
+        
+        // Move storage artifact to center
+        Artifact movedToCenter = storageArtifact.withLocation(Artifact.Location.CENTER_STORAGE);
+        for (int i = 0; i < artifacts.size(); i++) {
+            if (artifacts.get(i).equals(storageArtifact)) {
+                artifacts.set(i, movedToCenter);
+                break;
+            }
+        }
+        artifactInCenter = movedToCenter;
+        
+        // Update intake modes
+        updateIntakeModes();
+        
+        // Now ready to fire the desired artifact
+        changeState(SystemState.READY_TO_FIRE);
+        operationInProgress = false;
+        
+        if (config.isDebugTelemetry()) {
+            telemetry.addLine("Rearrangement complete: storage->center, center->empty");
         }
     }
 
@@ -530,6 +678,7 @@ public class IndexingSystem {
 
     /**
      * Handle early fire scenarios
+     * With 2 artifacts, can rearrange using empty intake if motif requires different order
      */
     private boolean handleEarlyFire() {
         int count = getArtifactCount();
@@ -544,15 +693,10 @@ public class IndexingSystem {
                 return false;
             }
         } else if (count == 2) {
-            // Two artifacts: fire the one in center (second collected)
-            if (artifactInCenter != null) {
-                return startFiring();
-            } else {
-                setError("Early fire with 2 artifacts but none in center");
-                return false;
-            }
+            // Two artifacts: can rearrange if needed based on motif pattern
+            return handleTwoArtifactFire();
         } else if (count == 3) {
-            // Full robot: fire the one in center
+            // Full robot: fire the one in center (no rearrangement possible)
             if (artifactInCenter != null) {
                 return startFiring();
             } else {
@@ -562,6 +706,120 @@ public class IndexingSystem {
         }
 
         return false;
+    }
+    
+    /**
+     * Handle firing with 2 artifacts - can rearrange using empty intake if needed
+     * Example: Green in center, Purple in back, pattern wants Purple first
+     * Solution: Push green out to front intake, pull purple to center
+     */
+    private boolean handleTwoArtifactFire() {
+        if (artifactInCenter == null) {
+            setError("Two artifacts but none in center");
+            return false;
+        }
+        
+        // Find the artifact in storage
+        Artifact storageArtifact = null;
+        IntakeSource storageSource = IntakeSource.UNKNOWN;
+        
+        if (artifactInFrontIntake != null) {
+            storageArtifact = artifactInFrontIntake;
+            storageSource = IntakeSource.FRONT;
+        } else if (artifactInBackIntake != null) {
+            storageArtifact = artifactInBackIntake;
+            storageSource = IntakeSource.BACK;
+        }
+        
+        if (storageArtifact == null) {
+            setError("Two artifacts but can't find storage artifact");
+            return false;
+        }
+        
+        // Determine which artifact should fire first based on motif pattern
+        Artifact.Color desiredFirstColor = getDesiredFirstShotColor();
+        
+        // If center artifact matches desired color, fire it
+        if (artifactInCenter.getColor() == desiredFirstColor) {
+            return startFiring();
+        }
+        
+        // If storage artifact matches desired color, need to rearrange
+        if (storageArtifact.getColor() == desiredFirstColor) {
+            // Check if we have an empty intake for rearrangement
+            IntakeSource emptyIntake = getEmptyIntakeSource();
+            if (emptyIntake == IntakeSource.UNKNOWN) {
+                // No empty intake - can't rearrange, fire what's in center
+                if (config.isDebugTelemetry()) {
+                    telemetry.addLine("Cannot rearrange - no empty intake, firing center artifact");
+                }
+                return startFiring();
+            }
+            
+            // Trigger rearrangement: push center out to empty, pull storage to center
+            return startTwoArtifactRearrangement(storageSource, emptyIntake);
+        }
+        
+        // Neither matches desired color or colors are UNKNOWN - fire center
+        return startFiring();
+    }
+    
+    /**
+     * Get the desired color for the first shot based on motif pattern
+     * @return The color that should fire first
+     */
+    private Artifact.Color getDesiredFirstShotColor() {
+        if (!motifPatternSet || motifPattern == null || motifPattern.length() < 1) {
+            return Artifact.Color.UNKNOWN; // No preference
+        }
+        
+        char firstChar = motifPattern.charAt(0);
+        if (firstChar == 'P') {
+            return Artifact.Color.PURPLE;
+        } else if (firstChar == 'G') {
+            return Artifact.Color.GREEN;
+        }
+        
+        return Artifact.Color.UNKNOWN;
+    }
+    
+    /**
+     * Find which intake is empty (only works with 2 artifacts)
+     * @return The empty intake source, or UNKNOWN if none
+     */
+    private IntakeSource getEmptyIntakeSource() {
+        if (artifactInFrontIntake == null) {
+            return IntakeSource.FRONT;
+        } else if (artifactInBackIntake == null) {
+            return IntakeSource.BACK;
+        }
+        return IntakeSource.UNKNOWN;
+    }
+    
+    /**
+     * Start rearrangement of 2 artifacts: push center to empty intake, pull storage to center
+     * @param storageSource The intake holding the artifact we want in center
+     * @param emptyIntake The empty intake to push center artifact to
+     * @return true if rearrangement started
+     */
+    private boolean startTwoArtifactRearrangement(IntakeSource storageSource, IntakeSource emptyIntake) {
+        if (config.isDebugTelemetry()) {
+            telemetry.addLine(String.format("Rearranging: %s->center, center->%s", 
+                storageSource, emptyIntake));
+        }
+        
+        // Change to pushing state to handle rearrangement
+        changeState(SystemState.PUSHING);
+        operationInProgress = true;
+        operationStartTime = System.currentTimeMillis();
+        
+        // Set lastIntakeSource to the storage source (collecting from there)
+        lastIntakeSource = storageSource;
+        
+        // Execute hardware for rearrangement push
+        executePushHardware();
+        
+        return true;
     }
 
     /**
@@ -698,8 +956,17 @@ public class IndexingSystem {
     /**
      * Plan the second and third shots based on artifact colors and strategy
      * First shot is forced by the push-based system (second artifact collected)
+     * This is the legacy method - now uses planShotsWithMotif
      */
     private void planShots() {
+        planShotsWithMotif();
+    }
+    
+    /**
+     * Plan shots based on motif pattern
+     * Motif pattern determines the order: PPG, PGP, or GPP
+     */
+    private void planShotsWithMotif() {
         // Get all artifacts that haven't been fired yet
         List<Artifact> available = new ArrayList<>();
         for (Artifact a : artifacts) {
@@ -713,23 +980,79 @@ public class IndexingSystem {
             return;
         }
 
-        // Simple strategy: plan shots based on collection order
-        // Can be enhanced with color-based strategy later
-        for (Artifact a : available) {
-            if (a.getLocation() == Artifact.Location.CENTER_STORAGE) {
-                // This is the forced first shot (already in center)
-                continue;
+        // Clear previous plans
+        plannedSecondShot = null;
+        plannedThirdShot = null;
+
+        if (!motifPatternSet || motifPattern == null || motifPattern.length() != 3) {
+            // No motif set, use collection order
+            for (Artifact a : available) {
+                if (a.getLocation() == Artifact.Location.CENTER_STORAGE) {
+                    continue; // Skip center (first shot)
+                }
+                
+                if (plannedSecondShot == null) {
+                    plannedSecondShot = a;
+                } else if (plannedThirdShot == null) {
+                    plannedThirdShot = a;
+                }
             }
-            
+            return;
+        }
+
+        // Parse motif pattern
+        List<Artifact.Color> desiredOrder = new ArrayList<>();
+        for (char c : motifPattern.toCharArray()) {
+            if (c == 'P') {
+                desiredOrder.add(Artifact.Color.PURPLE);
+            } else if (c == 'G') {
+                desiredOrder.add(Artifact.Color.GREEN);
+            }
+        }
+
+        // First shot is in center (index 0 in desired order)
+        // Plan shots 2 and 3 (indices 1 and 2)
+        
+        // Get artifacts not in center
+        List<Artifact> storage = new ArrayList<>();
+        for (Artifact a : available) {
+            if (a.getLocation() != Artifact.Location.CENTER_STORAGE) {
+                storage.add(a);
+            }
+        }
+
+        // Match storage artifacts to desired shot 2 and 3 colors
+        if (desiredOrder.size() >= 2) {
+            Artifact.Color desired2nd = desiredOrder.get(1);
+            for (Artifact a : storage) {
+                if (a.getColor() == desired2nd && plannedSecondShot == null) {
+                    plannedSecondShot = a;
+                    break;
+                }
+            }
+        }
+
+        if (desiredOrder.size() >= 3) {
+            Artifact.Color desired3rd = desiredOrder.get(2);
+            for (Artifact a : storage) {
+                if (a.getColor() == desired3rd && plannedThirdShot == null && !a.equals(plannedSecondShot)) {
+                    plannedThirdShot = a;
+                    break;
+                }
+            }
+        }
+
+        // Fill in remaining shots if not all matched
+        for (Artifact a : storage) {
             if (plannedSecondShot == null) {
                 plannedSecondShot = a;
-            } else if (plannedThirdShot == null) {
+            } else if (plannedThirdShot == null && !a.equals(plannedSecondShot)) {
                 plannedThirdShot = a;
             }
         }
 
         if (config.isDebugTelemetry()) {
-            telemetry.addLine("Shot plan updated");
+            telemetry.addLine("Shot plan updated with motif: " + motifPattern);
             if (plannedSecondShot != null) {
                 telemetry.addLine(String.format("  2nd shot: %s", plannedSecondShot));
             }

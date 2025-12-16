@@ -72,6 +72,17 @@ The system uses both distance and color sensors to accurately detect artifacts:
 - Detect purple and green artifacts
 - Reject yellow objects that aren't artifacts
 
+### Motif Pattern and Shot Planning
+
+The system uses a **motif pattern** (determined by limelight camera) to optimize shot order:
+
+**Motif Patterns:**
+- `PPG` - Purple, Purple, Green
+- `PGP` - Purple, Green, Purple  
+- `GPP` - Green, Purple, Purple
+
+The limelight camera system sets the motif pattern, which determines the optimal shooting order.
+
 ### Early Fire Handling
 
 The system supports firing before reaching full capacity:
@@ -80,14 +91,19 @@ The system supports firing before reaching full capacity:
 - Artifact should already be in center
 - Can fire immediately
 
-**Two Artifacts:**
-- Only the artifact in center (second collected) can be fired
-- First artifact remains in storage intake
-- After firing, first artifact can be moved to center for next shot
+**Two Artifacts (Smart Rearrangement):**
+- System checks motif pattern for desired first shot color
+- If center artifact matches desired color → fire it
+- If storage artifact matches desired color → rearrange using empty intake
+- **Example**: Green in center, Purple in back, pattern wants Purple first
+  - Push green to front intake (empty)
+  - Pull purple from back to center
+  - Now purple is ready to fire first
 
-**Three Artifacts (Full):**
-- Fire the artifact in center (second collected - forced shot)
-- Then fire remaining two in planned order
+**Three Artifacts (No Rearrangement):**
+- Fire the artifact in center (mechanically forced)
+- No empty intake available for rearrangement
+- Follow motif pattern for remaining shots
 
 ## System Components
 
@@ -270,6 +286,25 @@ public void runOpMode() {
         
         // Your code here
     }
+}
+```
+
+### Setting Motif Pattern
+
+```java
+// Called by limelight/camera system when pattern is detected
+// Pattern can be "PPG", "PGP", or "GPP"
+boolean success = indexingSystem.setMotifPattern("PPG");
+
+if (success) {
+    // Pattern set successfully
+    // System will use this for shot planning and rearrangement
+}
+
+// Check if pattern has been set
+if (indexingSystem.isMotifPatternSet()) {
+    String pattern = indexingSystem.getMotifPattern();
+    // Use pattern info...
 }
 ```
 
