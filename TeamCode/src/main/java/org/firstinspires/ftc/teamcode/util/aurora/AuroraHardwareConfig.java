@@ -8,6 +8,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
@@ -126,12 +127,13 @@ public class AuroraHardwareConfig {
     // goBILDA Laser Distance Sensors (Analog Mode: 0-3.3V = 0-1000mm)
     private AnalogInput frontDistanceSensor;
     private AnalogInput backDistanceSensor;
-    private ColorSensor frontLeftColorSensor;
-    private ColorSensor frontRightColorSensor;
-    private ColorSensor backRightColorSensor;
-    private ColorSensor leftRightColorSensor;
-    private ColorSensor frontCenterColorSensor;
-    private ColorSensor backCenterColorSensor;
+    // REV Color Sensor V3 (Normalized RGB values 0-1)
+    private NormalizedColorSensor frontLeftColorSensor;
+    private NormalizedColorSensor frontRightColorSensor;
+    private NormalizedColorSensor backRightColorSensor;
+    private NormalizedColorSensor leftRightColorSensor;
+    private NormalizedColorSensor frontCenterColorSensor;
+    private NormalizedColorSensor backCenterColorSensor;
     
     // Distance sensor calibration constants (for goBILDA laser sensors in analog mode)
     private static final double MAX_VOLTS = 3.3;
@@ -328,44 +330,44 @@ public class AuroraHardwareConfig {
                 telemetry.addLine("  ⚠️ Back distance sensor not found (optional)");
             }
 
-            // Initialize color sensors (optional, may not all be present)
+            // Initialize color sensors (REV Color Sensor V3 - optional, may not all be present)
             try {
-                frontLeftColorSensor = hardwareMap.get(ColorSensor.class, FRONT_LEFT_COLOR_SENSOR);
+                frontLeftColorSensor = hardwareMap.get(NormalizedColorSensor.class, FRONT_LEFT_COLOR_SENSOR);
             } catch (Exception e) {
                 frontLeftColorSensor = null;
                 telemetry.addLine("  ⚠️ Front left color sensor not found (optional)");
             }
 
             try {
-                frontRightColorSensor = hardwareMap.get(ColorSensor.class, FRONT_RIGHT_COLOR_SENSOR);
+                frontRightColorSensor = hardwareMap.get(NormalizedColorSensor.class, FRONT_RIGHT_COLOR_SENSOR);
             } catch (Exception e) {
                 frontRightColorSensor = null;
                 telemetry.addLine("  ⚠️ Front right color sensor not found (optional)");
             }
 
             try {
-                backRightColorSensor = hardwareMap.get(ColorSensor.class, BACK_RIGHT_COLOR_SENSOR);
+                backRightColorSensor = hardwareMap.get(NormalizedColorSensor.class, BACK_RIGHT_COLOR_SENSOR);
             } catch (Exception e) {
                 backRightColorSensor = null;
                 telemetry.addLine("  ⚠️ Back right color sensor not found (optional)");
             }
 
             try {
-                leftRightColorSensor = hardwareMap.get(ColorSensor.class, LEFT_RIGHT_COLOR_SENSOR);
+                leftRightColorSensor = hardwareMap.get(NormalizedColorSensor.class, LEFT_RIGHT_COLOR_SENSOR);
             } catch (Exception e) {
                 leftRightColorSensor = null;
                 telemetry.addLine("  ⚠️ Left right color sensor not found (optional)");
             }
 
             try {
-                frontCenterColorSensor = hardwareMap.get(ColorSensor.class, FRONT_CENTER_COLOR_SENSOR);
+                frontCenterColorSensor = hardwareMap.get(NormalizedColorSensor.class, FRONT_CENTER_COLOR_SENSOR);
             } catch (Exception e) {
                 frontCenterColorSensor = null;
                 telemetry.addLine("  ⚠️ Front center color sensor not found (optional)");
             }
 
             try {
-                backCenterColorSensor = hardwareMap.get(ColorSensor.class, BACK_CENTER_COLOR_SENSOR);
+                backCenterColorSensor = hardwareMap.get(NormalizedColorSensor.class, BACK_CENTER_COLOR_SENSOR);
             } catch (Exception e) {
                 backCenterColorSensor = null;
                 telemetry.addLine("  ⚠️ Back center color sensor not found (optional)");
@@ -499,12 +501,12 @@ public class AuroraHardwareConfig {
         return (volts / MAX_VOLTS) * MAX_DISTANCE_MM;
     }
     
-    public ColorSensor getFrontLeftColorSensor() { return frontLeftColorSensor; }
-    public ColorSensor getFrontRightColorSensor() { return frontRightColorSensor; }
-    public ColorSensor getBackRightColorSensor() { return backRightColorSensor; }
-    public ColorSensor getLeftRightColorSensor() { return leftRightColorSensor; }
-    public ColorSensor getFrontCenterColorSensor() { return frontCenterColorSensor; }
-    public ColorSensor getBackCenterColorSensor() { return backCenterColorSensor; }
+    public NormalizedColorSensor getFrontLeftColorSensor() { return frontLeftColorSensor; }
+    public NormalizedColorSensor getFrontRightColorSensor() { return frontRightColorSensor; }
+    public NormalizedColorSensor getBackRightColorSensor() { return backRightColorSensor; }
+    public NormalizedColorSensor getLeftRightColorSensor() { return leftRightColorSensor; }
+    public NormalizedColorSensor getFrontCenterColorSensor() { return frontCenterColorSensor; }
+    public NormalizedColorSensor getBackCenterColorSensor() { return backCenterColorSensor; }
 
     // Sensors
     public IMU getIMU() { return imu; }

@@ -1293,8 +1293,8 @@ public class IndexingSystem {
         if (hardware == null) return false;
         
         try {
-            // Collect readings from all 3 color sensors for the intake
-            List<com.qualcomm.robotcore.hardware.ColorSensor> sensors = new ArrayList<>();
+            // Collect readings from all 3 color sensors for the intake (REV Color Sensor V3)
+            List<com.qualcomm.robotcore.hardware.NormalizedColorSensor> sensors = new ArrayList<>();
             
             if (source == IntakeSource.FRONT) {
                 if (hardware.getFrontLeftColorSensor() != null) sensors.add(hardware.getFrontLeftColorSensor());
@@ -1310,21 +1310,22 @@ public class IndexingSystem {
                 return false; // Can't determine, assume not yellow
             }
             
-            // Average color readings
-            int totalRed = 0, totalGreen = 0, totalBlue = 0;
-            for (com.qualcomm.robotcore.hardware.ColorSensor sensor : sensors) {
-                totalRed += sensor.red();
-                totalGreen += sensor.green();
-                totalBlue += sensor.blue();
+            // Average normalized color readings (0-1 range from REV Color Sensor V3)
+            float totalRed = 0, totalGreen = 0, totalBlue = 0;
+            for (com.qualcomm.robotcore.hardware.NormalizedColorSensor sensor : sensors) {
+                org.firstinspires.ftc.robotcore.external.navigation.NormalizedRGBA colors = sensor.getNormalizedColors();
+                totalRed += colors.red;
+                totalGreen += colors.green;
+                totalBlue += colors.blue;
             }
             
-            int avgRed = totalRed / sensors.size();
-            int avgGreen = totalGreen / sensors.size();
-            int avgBlue = totalBlue / sensors.size();
+            float avgRed = totalRed / sensors.size();
+            float avgGreen = totalGreen / sensors.size();
+            float avgBlue = totalBlue / sensors.size();
             
-            // Yellow has high red and green, low blue
+            // Yellow has high red and green, low blue (normalized values 0-1)
             // Check if it's predominantly yellow
-            return (avgRed > 100 && avgGreen > 100 && avgBlue < 80 && 
+            return (avgRed > 0.4f && avgGreen > 0.4f && avgBlue < 0.3f && 
                     avgRed > avgBlue && avgGreen > avgBlue);
         } catch (Exception e) {
             return false;
@@ -1333,7 +1334,7 @@ public class IndexingSystem {
 
     /**
      * Detect artifact color from color sensors
-     * Uses all 3 color sensors per intake for accurate color data
+     * Uses all 3 REV Color Sensor V3 per intake for accurate color data
      * @param source Which intake sensor to check
      * @return Detected artifact color (PURPLE, GREEN, or UNKNOWN)
      */
@@ -1341,8 +1342,8 @@ public class IndexingSystem {
         if (hardware == null) return Artifact.Color.UNKNOWN;
 
         try {
-            // Collect readings from all 3 color sensors for the intake
-            List<com.qualcomm.robotcore.hardware.ColorSensor> sensors = new ArrayList<>();
+            // Collect readings from all 3 color sensors for the intake (REV Color Sensor V3)
+            List<com.qualcomm.robotcore.hardware.NormalizedColorSensor> sensors = new ArrayList<>();
             
             if (source == IntakeSource.FRONT) {
                 if (hardware.getFrontLeftColorSensor() != null) sensors.add(hardware.getFrontLeftColorSensor());
@@ -1358,31 +1359,32 @@ public class IndexingSystem {
                 return Artifact.Color.UNKNOWN;
             }
 
-            // Collect color readings from all available sensors
-            int totalRed = 0, totalGreen = 0, totalBlue = 0;
-            for (com.qualcomm.robotcore.hardware.ColorSensor sensor : sensors) {
-                totalRed += sensor.red();
-                totalGreen += sensor.green();
-                totalBlue += sensor.blue();
+            // Collect normalized color readings from all available sensors (0-1 range)
+            float totalRed = 0, totalGreen = 0, totalBlue = 0;
+            for (com.qualcomm.robotcore.hardware.NormalizedColorSensor sensor : sensors) {
+                org.firstinspires.ftc.robotcore.external.navigation.NormalizedRGBA colors = sensor.getNormalizedColors();
+                totalRed += colors.red;
+                totalGreen += colors.green;
+                totalBlue += colors.blue;
             }
 
             // Average the readings
-            int avgRed = totalRed / sensors.size();
-            int avgGreen = totalGreen / sensors.size();
-            int avgBlue = totalBlue / sensors.size();
+            float avgRed = totalRed / sensors.size();
+            float avgGreen = totalGreen / sensors.size();
+            float avgBlue = totalBlue / sensors.size();
 
             // Color detection logic for purple and green artifacts
             // Purple = high red + high blue, low green
             // Green = high green, lower red and blue
             
-            // Calculate color scores
-            int purpleScore = avgRed + avgBlue - avgGreen;  // Purple has high R+B, low G
-            int greenScore = avgGreen - (avgRed + avgBlue) / 2;  // Green has high G, lower R and B
+            // Calculate color scores (normalized 0-1 range)
+            float purpleScore = avgRed + avgBlue - avgGreen;  // Purple has high R+B, low G
+            float greenScore = avgGreen - (avgRed + avgBlue) / 2;  // Green has high G, lower R and B
             
-            // Determine color based on scores
-            if (greenScore > purpleScore && greenScore > 50) {
+            // Determine color based on scores (adjusted thresholds for normalized values)
+            if (greenScore > purpleScore && greenScore > 0.2f) {
                 return Artifact.Color.GREEN;
-            } else if (purpleScore > greenScore && purpleScore > 50) {
+            } else if (purpleScore > greenScore && purpleScore > 0.2f) {
                 return Artifact.Color.PURPLE;
             }
         } catch (Exception e) {

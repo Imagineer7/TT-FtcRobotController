@@ -210,10 +210,12 @@ New hardware components added:
 - Configured as `AnalogInput` devices (0-3.3V = 0-1000mm)
 - Artifact detected when distance < 100mm (10cm, adjustable)
 
-**Color Sensors (3 per intake, 6 total):**
+**Color Sensors (REV Color Sensor V3 - 3 per intake, 6 total):**
 - Front intake: `frontLeftColorSensor`, `frontRightColorSensor`, `frontCenterColorSensor`
 - Back intake: `backRightColorSensor`, `leftRightColorSensor`, `backCenterColorSensor`
+- Configured as `NormalizedColorSensor` devices (provides normalized RGB values 0-1)
 - Used for accurate color detection (purple/green) and to reject yellow non-artifacts
+- Readings from all 3 sensors per intake are averaged for better accuracy
 
 ## Hardware Setup
 
@@ -262,6 +264,39 @@ The system uses **goBILDA Laser Distance Sensors in Analog Mode**:
    - If using digital mode, sensors must be reconfigured as `DigitalChannel`
    - Adjust potentiometer on sensor for detection distance (25-264mm)
    - Code modifications required in `AuroraHardwareConfig`
+
+### Color Sensor Configuration
+
+The system uses **REV Color Sensor V3** for artifact color detection:
+
+1. **Driver Station Configuration:**
+   - Configure sensors as `NormalizedColorSensor` devices (or `REV Color Sensor V3`)
+   - Name them according to their position:
+     - Front intake: `frontLeftColor`, `frontRightColor`, `frontCenterColor`
+     - Back intake: `backRightColor`, `leftRightColor`, `backCenterColor`
+   - Connect to I2C ports on the Control Hub
+
+2. **Important I2C Considerations:**
+   - Color Sensor V3 and 2m Distance Sensor share the same I2C address
+   - **Do not** configure both on the same I2C bus
+   - Distribute sensors across available I2C buses
+
+3. **Color Detection:**
+   - Sensors provide normalized RGB values (0-1 range)
+   - System averages readings from all 3 sensors per intake for accuracy
+   - Detects purple (high red+blue, low green) and green (high green, low red+blue)
+   - Rejects yellow objects (high red+green, low blue) as non-artifacts
+
+4. **Example Code:**
+   ```java
+   // Reading color from REV Color Sensor V3
+   NormalizedColorSensor sensor = hardwareMap.get(NormalizedColorSensor.class, "frontLeftColor");
+   NormalizedRGBA colors = sensor.getNormalizedColors();
+   
+   telemetry.addData("Red", "%.3f", colors.red);    // 0-1 range
+   telemetry.addData("Green", "%.3f", colors.green);
+   telemetry.addData("Blue", "%.3f", colors.blue);
+   ```
 
 ### Motor Directions
 
