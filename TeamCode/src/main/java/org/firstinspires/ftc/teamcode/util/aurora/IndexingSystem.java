@@ -1168,22 +1168,22 @@ public class IndexingSystem {
     }
 
     /**
-     * Set center transfer servo positions
+     * Set center transfer servo power (CRServos)
      * These servos complete the move from intake transfer into center,
      * and also push artifacts out of center into an empty intake.
-     * @param active true to activate transfer, false for idle
+     * @param active true to activate transfer (run at power), false for idle (stop)
      */
     private void setCenterTransferServos(boolean active) {
         if (hardware == null) return;
 
         try {
-            double position = active ? config.getTransferServoTransferPosition() : config.getTransferServoIdlePosition();
-            
+            double power = active ? config.getTransferServoPower() : config.getTransferServoIdlePower();
+
             if (hardware.getTransferServoCL() != null) {
-                hardware.getTransferServoCL().setPosition(position);
+                hardware.getTransferServoCL().setPower(power);
             }
             if (hardware.getTransferServoCR() != null) {
-                hardware.getTransferServoCR().setPosition(position);
+                hardware.getTransferServoCR().setPower(power);
             }
         } catch (Exception e) {
             setError("Failed to set center transfer servos: " + e.getMessage());
@@ -1191,21 +1191,21 @@ public class IndexingSystem {
     }
 
     /**
-     * Set intake transfer servo position
+     * Set intake transfer servo power (CRServo)
      * These servos transfer artifacts from the intake into the center.
      * @param source Which intake transfer servo to control
-     * @param active true to activate transfer, false for idle
+     * @param active true to activate transfer (run at power), false for idle (stop)
      */
     private void setIntakeTransferServo(IntakeSource source, boolean active) {
         if (hardware == null) return;
 
         try {
-            double position = active ? config.getTransferServoTransferPosition() : config.getTransferServoIdlePosition();
-            
+            double power = active ? config.getTransferServoPower() : config.getTransferServoIdlePower();
+
             if (source == IntakeSource.FRONT && hardware.getFrontTransferServo() != null) {
-                hardware.getFrontTransferServo().setPosition(position);
+                hardware.getFrontTransferServo().setPower(power);
             } else if (source == IntakeSource.BACK && hardware.getBackTransferServo() != null) {
-                hardware.getBackTransferServo().setPosition(position);
+                hardware.getBackTransferServo().setPower(power);
             }
         } catch (Exception e) {
             setError("Failed to set intake transfer servo: " + e.getMessage());
@@ -1213,11 +1213,12 @@ public class IndexingSystem {
     }
 
     /**
-     * Reset all servos to idle positions
+     * Stop all transfer servos (CRServos)
+     * Sets all transfer servo power to 0 (stopped)
      * Note: Rollers continue running in appropriate mode (don't stop completely)
      */
     private void resetAllServos() {
-        setCenterTransferServos(false); // Set to idle position
+        setCenterTransferServos(false); // Stop (power = 0)
         setIntakeTransferServo(IntakeSource.FRONT, false);
         setIntakeTransferServo(IntakeSource.BACK, false);
     }
@@ -1246,7 +1247,7 @@ public class IndexingSystem {
      * Check if artifact is detected by distance and color sensors
      * An artifact is detected if:
      * - Distance < 10cm (configurable) using goBILDA laser sensor in analog mode
-     * - Color is NOT yellow (yellow indicates non-artifact object)
+     * - Color is GREEN or PURPLE (valid artifact colors only)
      * @param source Which intake sensor to check
      * @return true if artifact detected
      */
@@ -1271,12 +1272,13 @@ public class IndexingSystem {
                 return false; // Sensor not available or too far, no artifact
             }
             
-            // Check color to ensure it's not a yellow (non-artifact) object
-            if (isColorYellow(source)) {
-                return false; // Yellow object detected, not an artifact
+            // Check color to ensure it's a valid artifact (GREEN or PURPLE only)
+            Artifact.Color detectedColor = detectArtifactColor(source);
+            if (detectedColor != Artifact.Color.GREEN && detectedColor != Artifact.Color.PURPLE) {
+                return false; // Invalid color - not a valid artifact
             }
             
-            // Distance is close and color is not yellow - artifact detected
+            // Distance is close and color is GREEN or PURPLE - valid artifact detected
             return true;
         } catch (Exception e) {
             // Sensor not available or error

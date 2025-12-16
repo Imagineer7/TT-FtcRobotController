@@ -37,11 +37,11 @@ public class IndexingConfig {
     /** Time for transfer servo operation to move artifact to center (seconds) */
     private double transferServoTime = 0.4;
 
-    /** Position for transfer servo in transfer state (0.0 to 1.0) */
-    private double transferServoTransferPosition = 0.7;
+    /** Power for transfer servo when active - CRServo runs at this power (-1.0 to 1.0) */
+    private double transferServoPower = 0.7;
 
-    /** Position for transfer servo in idle state (0.0 to 1.0) */
-    private double transferServoIdlePosition = 0.2;
+    /** Idle power for transfer servo (0.0 = stopped) */
+    private double transferServoIdlePower = 0.0;
 
     /** Time for center rollers to accept artifact during push (seconds) */
     private double centerAcceptTime = 0.3;
@@ -151,14 +151,14 @@ public class IndexingConfig {
         this.transferServoTime = transferServoTime; 
     }
 
-    public double getTransferServoTransferPosition() { return transferServoTransferPosition; }
-    public void setTransferServoTransferPosition(double pos) { 
-        this.transferServoTransferPosition = pos; 
+    public double getTransferServoPower() { return transferServoPower; }
+    public void setTransferServoPower(double power) {
+        this.transferServoPower = power;
     }
 
-    public double getTransferServoIdlePosition() { return transferServoIdlePosition; }
-    public void setTransferServoIdlePosition(double pos) { 
-        this.transferServoIdlePosition = pos; 
+    public double getTransferServoIdlePower() { return transferServoIdlePower; }
+    public void setTransferServoIdlePower(double power) {
+        this.transferServoIdlePower = power;
     }
 
     public double getCenterAcceptTime() { return centerAcceptTime; }
@@ -286,8 +286,8 @@ public class IndexingConfig {
         intakeEjectTime = 0.3;
         intakeEjectPower = -0.6;
         transferServoTime = 0.4;
-        transferServoTransferPosition = 0.7;
-        transferServoIdlePosition = 0.2;
+        transferServoPower = 0.7;
+        transferServoIdlePower = 0.0;
         centerAcceptTime = 0.3;
         centerRollerPower = 0.7;
         firstArtifactSettleTime = 0.2;

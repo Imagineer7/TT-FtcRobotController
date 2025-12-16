@@ -118,11 +118,11 @@ public class AuroraHardwareConfig {
     // Intake and Indexing System
     private DcMotor frontRollerMotor;
     private DcMotor backRollerMotor;
-    private Servo frontTransferServo;
-    private Servo backTransferServo;
-    private Servo transferServoCL;
-    private Servo transferServoCR;
-    
+    private CRServo frontTransferServo;
+    private CRServo backTransferServo;
+    private CRServo transferServoCL;
+    private CRServo transferServoCR;
+
     // Artifact Detection Sensors
     // goBILDA Laser Distance Sensors (Analog Mode: 0-3.3V = 0-1000mm)
     private AnalogInput frontDistanceSensor;
@@ -308,11 +308,11 @@ public class AuroraHardwareConfig {
             frontRollerMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             backRollerMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-            // Initialize transfer servos
-            frontTransferServo = hardwareMap.get(Servo.class, FRONT_TRANSFER_SERVO);
-            backTransferServo = hardwareMap.get(Servo.class, BACK_TRANSFER_SERVO);
-            transferServoCL = hardwareMap.get(Servo.class, TRANSFER_SERVO_CL);
-            transferServoCR = hardwareMap.get(Servo.class, TRANSFER_SERVO_CR);
+            // Initialize transfer servos (CRServos - Continuous Rotation)
+            frontTransferServo = hardwareMap.get(CRServo.class, FRONT_TRANSFER_SERVO);
+            backTransferServo = hardwareMap.get(CRServo.class, BACK_TRANSFER_SERVO);
+            transferServoCL = hardwareMap.get(CRServo.class, TRANSFER_SERVO_CL);
+            transferServoCR = hardwareMap.get(CRServo.class, TRANSFER_SERVO_CR);
 
             // Initialize distance sensors (goBILDA Laser Distance Sensors in analog mode)
             // These sensors output 0-3.3V corresponding to 0-1000mm distance
@@ -470,11 +470,11 @@ public class AuroraHardwareConfig {
     // Intake and Indexing System
     public DcMotor getFrontRollerMotor() { return frontRollerMotor; }
     public DcMotor getBackRollerMotor() { return backRollerMotor; }
-    public Servo getFrontTransferServo() { return frontTransferServo; }
-    public Servo getBackTransferServo() { return backTransferServo; }
-    public Servo getTransferServoCL() { return transferServoCL; }
-    public Servo getTransferServoCR() { return transferServoCR; }
-    
+    public CRServo getFrontTransferServo() { return frontTransferServo; }
+    public CRServo getBackTransferServo() { return backTransferServo; }
+    public CRServo getTransferServoCL() { return transferServoCL; }
+    public CRServo getTransferServoCR() { return transferServoCR; }
+
     // Artifact Detection Sensors
     public AnalogInput getFrontDistanceSensor() { return frontDistanceSensor; }
     public AnalogInput getBackDistanceSensor() { return backDistanceSensor; }
