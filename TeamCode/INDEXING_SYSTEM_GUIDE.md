@@ -204,9 +204,11 @@ New hardware components added:
 - `transferServoCL` - Center left transfer servo (completes transfer into center, pushes artifacts out to intakes)
 - `transferServoCR` - Center right transfer servo (completes transfer into center, pushes artifacts out to intakes)
 
-**Distance Sensors:**
-- `frontDistanceSensor` (frontDist) - Detect artifacts at front (artifact present when distance < 10cm)
-- `backDistanceSensor` (backDist) - Detect artifacts at back (artifact present when distance < 10cm)
+**Distance Sensors (goBILDA Laser Distance Sensors in Analog Mode):**
+- `frontDistanceSensor` (frontDist) - Detect artifacts at front intake
+- `backDistanceSensor` (backDist) - Detect artifacts at back intake
+- Configured as `AnalogInput` devices (0-3.3V = 0-1000mm)
+- Artifact detected when distance < 100mm (10cm, adjustable)
 
 **Color Sensors (3 per intake, 6 total):**
 - Front intake: `frontLeftColorSensor`, `frontRightColorSensor`, `frontCenterColorSensor`
@@ -241,12 +243,31 @@ public static final String FRONT_CENTER_COLOR_SENSOR = "frontCenterColor";
 public static final String BACK_CENTER_COLOR_SENSOR = "backCenterColor";
 ```
 
+### Distance Sensor Configuration
+
+The system uses **goBILDA Laser Distance Sensors in Analog Mode**:
+
+1. **Driver Station Configuration:**
+   - Configure sensors as `AnalogInput` devices (not `DistanceSensor`)
+   - Name them `frontDist` and `backDist`
+   - Connect to analog input ports on the Control Hub
+
+2. **Sensor Calibration:**
+   - Sensors output 0-3.3V corresponding to 0-1000mm distance
+   - System automatically converts voltage to distance
+   - Detection threshold: 100mm (10cm) by default
+   - Adjustable via `IndexingConfig.setArtifactDetectionDistanceCm()`
+
+3. **Alternative: Digital Mode:**
+   - If using digital mode, sensors must be reconfigured as `DigitalChannel`
+   - Adjust potentiometer on sensor for detection distance (25-264mm)
+   - Code modifications required in `AuroraHardwareConfig`
+
 ### Motor Directions
 
 Configure motor directions in hardware initialization if needed:
-- Front intake: FORWARD
-- Back intake: FORWARD
-- Center roller: FORWARD
+- Front roller: Inward (continuous)
+- Back roller: Inward (continuous)
 
 Adjust in `AuroraHardwareConfig.initializeIndexingSystem()` if your robot differs.
 

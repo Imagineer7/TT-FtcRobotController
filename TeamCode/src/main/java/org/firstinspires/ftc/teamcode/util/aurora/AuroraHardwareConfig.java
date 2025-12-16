@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.util.aurora;
 
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -122,14 +123,19 @@ public class AuroraHardwareConfig {
     private Servo transferServoCR;
     
     // Artifact Detection Sensors
-    private DistanceSensor frontDistanceSensor;
-    private DistanceSensor backDistanceSensor;
+    // goBILDA Laser Distance Sensors (Analog Mode: 0-3.3V = 0-1000mm)
+    private AnalogInput frontDistanceSensor;
+    private AnalogInput backDistanceSensor;
     private ColorSensor frontLeftColorSensor;
     private ColorSensor frontRightColorSensor;
     private ColorSensor backRightColorSensor;
     private ColorSensor leftRightColorSensor;
     private ColorSensor frontCenterColorSensor;
     private ColorSensor backCenterColorSensor;
+    
+    // Distance sensor calibration constants (for goBILDA laser sensors in analog mode)
+    private static final double MAX_VOLTS = 3.3;
+    private static final double MAX_DISTANCE_MM = 1000.0;
 
     // Sensors
     private IMU imu;
@@ -306,16 +312,17 @@ public class AuroraHardwareConfig {
             transferServoCL = hardwareMap.get(Servo.class, TRANSFER_SERVO_CL);
             transferServoCR = hardwareMap.get(Servo.class, TRANSFER_SERVO_CR);
 
-            // Initialize distance sensors (optional, may not all be present)
+            // Initialize distance sensors (goBILDA Laser Distance Sensors in analog mode)
+            // These sensors output 0-3.3V corresponding to 0-1000mm distance
             try {
-                frontDistanceSensor = hardwareMap.get(DistanceSensor.class, FRONT_DISTANCE_SENSOR);
+                frontDistanceSensor = hardwareMap.get(AnalogInput.class, FRONT_DISTANCE_SENSOR);
             } catch (Exception e) {
                 frontDistanceSensor = null;
                 telemetry.addLine("  ⚠️ Front distance sensor not found (optional)");
             }
 
             try {
-                backDistanceSensor = hardwareMap.get(DistanceSensor.class, BACK_DISTANCE_SENSOR);
+                backDistanceSensor = hardwareMap.get(AnalogInput.class, BACK_DISTANCE_SENSOR);
             } catch (Exception e) {
                 backDistanceSensor = null;
                 telemetry.addLine("  ⚠️ Back distance sensor not found (optional)");
@@ -467,8 +474,31 @@ public class AuroraHardwareConfig {
     public Servo getTransferServoCR() { return transferServoCR; }
     
     // Artifact Detection Sensors
-    public DistanceSensor getFrontDistanceSensor() { return frontDistanceSensor; }
-    public DistanceSensor getBackDistanceSensor() { return backDistanceSensor; }
+    public AnalogInput getFrontDistanceSensor() { return frontDistanceSensor; }
+    public AnalogInput getBackDistanceSensor() { return backDistanceSensor; }
+    
+    /**
+     * Get distance reading from front sensor in millimeters
+     * Converts analog voltage (0-3.3V) to distance (0-1000mm)
+     * @return Distance in mm, or -1 if sensor not available
+     */
+    public double getFrontDistanceMM() {
+        if (frontDistanceSensor == null) return -1;
+        double volts = frontDistanceSensor.getVoltage();
+        return (volts / MAX_VOLTS) * MAX_DISTANCE_MM;
+    }
+    
+    /**
+     * Get distance reading from back sensor in millimeters
+     * Converts analog voltage (0-3.3V) to distance (0-1000mm)
+     * @return Distance in mm, or -1 if sensor not available
+     */
+    public double getBackDistanceMM() {
+        if (backDistanceSensor == null) return -1;
+        double volts = backDistanceSensor.getVoltage();
+        return (volts / MAX_VOLTS) * MAX_DISTANCE_MM;
+    }
+    
     public ColorSensor getFrontLeftColorSensor() { return frontLeftColorSensor; }
     public ColorSensor getFrontRightColorSensor() { return frontRightColorSensor; }
     public ColorSensor getBackRightColorSensor() { return backRightColorSensor; }

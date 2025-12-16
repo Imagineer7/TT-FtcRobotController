@@ -1244,7 +1244,7 @@ public class IndexingSystem {
     /**
      * Check if artifact is detected by distance and color sensors
      * An artifact is detected if:
-     * - Distance < 10cm (configurable)
+     * - Distance < 10cm (configurable) using goBILDA laser sensor in analog mode
      * - Color is NOT yellow (yellow indicates non-artifact object)
      * @param source Which intake sensor to check
      * @return true if artifact detected
@@ -1253,17 +1253,21 @@ public class IndexingSystem {
         if (hardware == null) return false;
 
         try {
-            // Check distance first
-            double distance = Double.MAX_VALUE;
-            if (source == IntakeSource.FRONT && hardware.getFrontDistanceSensor() != null) {
-                distance = hardware.getFrontDistanceSensor().getDistance(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.CM);
-            } else if (source == IntakeSource.BACK && hardware.getBackDistanceSensor() != null) {
-                distance = hardware.getBackDistanceSensor().getDistance(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.CM);
+            // Check distance first using goBILDA laser sensor (analog mode)
+            // Sensor outputs 0-3.3V corresponding to 0-1000mm
+            double distanceMM = Double.MAX_VALUE;
+            if (source == IntakeSource.FRONT) {
+                distanceMM = hardware.getFrontDistanceMM();
+            } else if (source == IntakeSource.BACK) {
+                distanceMM = hardware.getBackDistanceMM();
             }
             
-            // Check if distance is within threshold (10cm)
-            if (distance >= 10.0) {
-                return false; // Too far, no artifact
+            // Convert threshold from cm to mm for comparison
+            double thresholdMM = config.getArtifactDetectionDistanceCm() * 10.0;
+            
+            // Check if distance is within threshold (default 100mm = 10cm)
+            if (distanceMM < 0 || distanceMM >= thresholdMM) {
+                return false; // Sensor not available or too far, no artifact
             }
             
             // Check color to ensure it's not a yellow (non-artifact) object
