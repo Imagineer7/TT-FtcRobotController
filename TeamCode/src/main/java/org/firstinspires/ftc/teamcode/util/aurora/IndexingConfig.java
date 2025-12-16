@@ -85,8 +85,8 @@ public class IndexingConfig {
     // SENSOR DETECTION PARAMETERS
     // ═══════════════════════════════════════════════════════════════════════
 
-    /** Distance threshold for artifact detection (inches or mm depending on sensor) */
-    private double artifactDetectionDistance = 2.0;
+    /** Distance threshold for artifact detection (centimeters) - artifacts detected when distance < 10cm */
+    private double artifactDetectionDistance = 10.0;
 
     /** Minimum time sensor must detect artifact before confirming (seconds) */
     private double sensorDebounceTime = 0.05;
@@ -298,7 +298,7 @@ public class IndexingConfig {
         fireFeedPower = 1.0;
         postFireDelay = 0.3;
         minShooterSpinupTime = 1.0;
-        artifactDetectionDistance = 2.0;
+        artifactDetectionDistance = 10.0;
         sensorDebounceTime = 0.05;
         colorConfidenceThreshold = 0.6;
         sensorPollingInterval = 0.02;

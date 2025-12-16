@@ -10,9 +10,28 @@ The Aurora Push-Based Artifact Indexing System is a sophisticated mechanism for 
 
 Unlike software-controlled indexing where motors move artifacts independently, this system uses **physical pushing** to position artifacts:
 
-- **Center transfer wheels do NOT contact artifacts directly**
+- **Rollers run continuously inward** (main collection mechanism)
+- **Intake transfer servos** move artifacts from intakes into center
+- **Center transfer servos** complete the transfer AND push artifacts out to intakes
 - Artifacts are moved by being pushed by other artifacts
 - This creates a deterministic, mechanically-enforced shot order
+
+### Hardware Operation
+
+**Rollers (Motors):**
+- Run continuously inward at all times
+- Full power during collection mode
+- Reduced power (30%) when intake is in storage mode (holding an artifact)
+
+**Intake Transfer Servos:**
+- One for front intake, one for back intake
+- Transfer artifacts from their intake into the center
+
+**Center Transfer Servos:**
+- Two servos (left and right)
+- Accept artifacts from intake transfer servos
+- Complete the move into center storage
+- Push artifacts out of center into empty intakes during indexing
 
 ### Three-Artifact Capacity
 
@@ -38,6 +57,20 @@ The system can hold up to 3 artifacts at once:
 1. Stored in the **same intake** it was collected from
 2. Does NOT push any other artifact
 3. Waits in intake storage
+
+### Artifact Detection
+
+The system uses both distance and color sensors to accurately detect artifacts:
+
+**Detection Criteria:**
+- Distance sensor reads < 10cm (adjustable)
+- Color is NOT yellow (yellow indicates non-artifact object)
+
+**Color Sensors:**
+- 3 sensors per intake (6 total)
+- Readings are averaged for accuracy
+- Detect purple and green artifacts
+- Reject yellow objects that aren't artifacts
 
 ### Early Fire Handling
 
@@ -146,26 +179,23 @@ shooter.disable();
 New hardware components added:
 
 **Motors:**
-- `frontRollerMotor` - Front intake roller
-- `backRollerMotor` - Back intake roller
+- `frontRollerMotor` - Front intake roller (runs continuously inward, slower when in storage mode)
+- `backRollerMotor` - Back intake roller (runs continuously inward, slower when in storage mode)
 
 **Servos:**
-- `frontTransferServo` - Front intake transfer mechanism
-- `backTransferServo` - Back intake transfer mechanism
-- `transferServoCL` - Center left transfer servo
-- `transferServoCR` - Center right transfer servo
+- `frontTransferServo` - Front intake transfer servo (transfers artifacts from front intake into center)
+- `backTransferServo` - Back intake transfer servo (transfers artifacts from back intake into center)
+- `transferServoCL` - Center left transfer servo (completes transfer into center, pushes artifacts out to intakes)
+- `transferServoCR` - Center right transfer servo (completes transfer into center, pushes artifacts out to intakes)
 
 **Distance Sensors:**
-- `frontDistanceSensor` (frontDist) - Detect artifacts at front
-- `backDistanceSensor` (backDist) - Detect artifacts at back
+- `frontDistanceSensor` (frontDist) - Detect artifacts at front (artifact present when distance < 10cm)
+- `backDistanceSensor` (backDist) - Detect artifacts at back (artifact present when distance < 10cm)
 
-**Color Sensors:**
-- `frontLeftColorSensor` - Front left color detection
-- `frontRightColorSensor` - Front right color detection
-- `backRightColorSensor` - Back right color detection
-- `leftRightColorSensor` - Left right color detection
-- `frontCenterColorSensor` - Front center color detection
-- `backCenterColorSensor` - Back center color detection
+**Color Sensors (3 per intake, 6 total):**
+- Front intake: `frontLeftColorSensor`, `frontRightColorSensor`, `frontCenterColorSensor`
+- Back intake: `backRightColorSensor`, `leftRightColorSensor`, `backCenterColorSensor`
+- Used for accurate color detection (purple/green) and to reject yellow non-artifacts
 
 ## Hardware Setup
 

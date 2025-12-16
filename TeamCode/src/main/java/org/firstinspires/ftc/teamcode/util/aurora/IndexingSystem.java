@@ -132,6 +132,21 @@ public class IndexingSystem {
 
         this.lastError = "";
         this.errorCount = 0;
+        
+        // Initialize hardware: Start rollers running continuously in collection mode
+        initializeHardware();
+    }
+    
+    /**
+     * Initialize hardware - start rollers running continuously
+     */
+    private void initializeHardware() {
+        // Both intakes start in collection mode (full power, rolling inward)
+        setIntakeCollectionMode(IntakeSource.FRONT);
+        setIntakeCollectionMode(IntakeSource.BACK);
+        
+        // All servos start in idle position
+        resetAllServos();
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -266,6 +281,9 @@ public class IndexingSystem {
         lastError = "";
         errorCount = 0;
         resetToIdle();
+        
+        // Reinitialize hardware to restart rollers
+        initializeHardware();
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -298,8 +316,7 @@ public class IndexingSystem {
     private void updateCollecting(long elapsedTime) {
         // Collection completes after intake roller time
         if (elapsedTime >= config.getIntakeRollerTimeMs()) {
-            // Stop intake motors
-            setIntakePower(lastIntakeSource, 0);
+            // Rollers continue running (don't stop), just transition state
             completeCollection();
         }
     }
@@ -352,11 +369,9 @@ public class IndexingSystem {
      */
     private void updateTransferring(long elapsedTime) {
         if (elapsedTime >= config.getTransferServoTimeMs() + config.getCenterAcceptTimeMs()) {
-            // Stop intake roller
-            setIntakePower(lastIntakeSource, 0);
             // Return transfer servos to idle
-            setTransferServos(false);
-            setIntakeTransferServo(lastIntakeSource, config.getTransferServoIdlePosition());
+            setCenterTransferServos(false);
+            setIntakeTransferServo(lastIntakeSource, false);
             completeTransferToCenter();
         }
     }
@@ -414,8 +429,8 @@ public class IndexingSystem {
                             config.getStorageIntakeAcceptTimeMs();
 
         if (elapsedTime >= totalPushTime) {
-            // Stop all motors
-            stopAllIndexingMotors();
+            // Reset servos to idle
+            resetAllServos();
             completePushOperation();
         }
     }
@@ -455,6 +470,9 @@ public class IndexingSystem {
 
         nextCollectionOrder++;
 
+        // Update intake modes (intake with artifact now in storage mode)
+        updateIntakeModes();
+
         // Plan shots
         planShots();
 
@@ -491,6 +509,9 @@ public class IndexingSystem {
         }
 
         nextCollectionOrder++;
+        
+        // Update intake modes (this intake now in storage mode)
+        updateIntakeModes();
 
         // Plan shots now that we have all three artifacts
         planShots();
@@ -570,8 +591,8 @@ public class IndexingSystem {
      */
     private void updateFiring(long elapsedTime) {
         if (elapsedTime >= config.getFireFeedTimeMs()) {
-            // Return transfer servos to idle
-            setTransferServos(false);
+            // Return center transfer servos to idle
+            setCenterTransferServos(false);
             completeFiring();
         }
     }
@@ -785,8 +806,10 @@ public class IndexingSystem {
 
     /**
      * Run intake roller motor at specified power
+     * Rollers are the main collection mechanism - they roll inward continuously.
+     * They run at full power during collection and slower when intake is in storage mode.
      * @param source Which intake to run
-     * @param power Motor power (-1.0 to 1.0)
+     * @param power Motor power (0.0 to 1.0, always inward/positive)
      */
     private void setIntakePower(IntakeSource source, double power) {
         if (hardware == null) return;
@@ -801,16 +824,36 @@ public class IndexingSystem {
             setError("Failed to set intake power: " + e.getMessage());
         }
     }
+    
+    /**
+     * Set intake to storage mode - rollers run slower to hold artifact
+     * @param source Which intake to set to storage mode
+     */
+    private void setIntakeStorageMode(IntakeSource source) {
+        // Run rollers at reduced speed to maintain artifact in storage
+        setIntakePower(source, config.getIntakeRollerPower() * 0.3); // 30% power in storage mode
+    }
+    
+    /**
+     * Set intake to collection mode - rollers run at full speed
+     * @param source Which intake to set to collection mode
+     */
+    private void setIntakeCollectionMode(IntakeSource source) {
+        // Run rollers at full power for collection
+        setIntakePower(source, config.getIntakeRollerPower());
+    }
 
     /**
-     * Set transfer servo positions for center transfer
-     * @param transferring true to set transfer position, false for idle
+     * Set center transfer servo positions
+     * These servos complete the move from intake transfer into center,
+     * and also push artifacts out of center into an empty intake.
+     * @param active true to activate transfer, false for idle
      */
-    private void setTransferServos(boolean transferring) {
+    private void setCenterTransferServos(boolean active) {
         if (hardware == null) return;
 
         try {
-            double position = transferring ? config.getTransferServoTransferPosition() : config.getTransferServoIdlePosition();
+            double position = active ? config.getTransferServoTransferPosition() : config.getTransferServoIdlePosition();
             
             if (hardware.getTransferServoCL() != null) {
                 hardware.getTransferServoCL().setPosition(position);
@@ -824,14 +867,17 @@ public class IndexingSystem {
     }
 
     /**
-     * Set intake-specific transfer servo position
+     * Set intake transfer servo position
+     * These servos transfer artifacts from the intake into the center.
      * @param source Which intake transfer servo to control
-     * @param position Servo position (0.0 to 1.0)
+     * @param active true to activate transfer, false for idle
      */
-    private void setIntakeTransferServo(IntakeSource source, double position) {
+    private void setIntakeTransferServo(IntakeSource source, boolean active) {
         if (hardware == null) return;
 
         try {
+            double position = active ? config.getTransferServoTransferPosition() : config.getTransferServoIdlePosition();
+            
             if (source == IntakeSource.FRONT && hardware.getFrontTransferServo() != null) {
                 hardware.getFrontTransferServo().setPosition(position);
             } else if (source == IntakeSource.BACK && hardware.getBackTransferServo() != null) {
@@ -843,18 +889,40 @@ public class IndexingSystem {
     }
 
     /**
-     * Stop all indexing motors and reset servos
+     * Reset all servos to idle positions
+     * Note: Rollers continue running in appropriate mode (don't stop completely)
      */
-    private void stopAllIndexingMotors() {
-        setIntakePower(IntakeSource.FRONT, 0);
-        setIntakePower(IntakeSource.BACK, 0);
-        setTransferServos(false); // Set to idle position
-        setIntakeTransferServo(IntakeSource.FRONT, config.getTransferServoIdlePosition());
-        setIntakeTransferServo(IntakeSource.BACK, config.getTransferServoIdlePosition());
+    private void resetAllServos() {
+        setCenterTransferServos(false); // Set to idle position
+        setIntakeTransferServo(IntakeSource.FRONT, false);
+        setIntakeTransferServo(IntakeSource.BACK, false);
+    }
+    
+    /**
+     * Set intake modes based on current artifact storage
+     * Intakes with artifacts run in storage mode (slower), empty intakes run normally
+     */
+    private void updateIntakeModes() {
+        // Front intake mode
+        if (artifactInFrontIntake != null) {
+            setIntakeStorageMode(IntakeSource.FRONT);
+        } else {
+            setIntakeCollectionMode(IntakeSource.FRONT);
+        }
+        
+        // Back intake mode
+        if (artifactInBackIntake != null) {
+            setIntakeStorageMode(IntakeSource.BACK);
+        } else {
+            setIntakeCollectionMode(IntakeSource.BACK);
+        }
     }
 
     /**
-     * Check if artifact is detected by distance sensor
+     * Check if artifact is detected by distance and color sensors
+     * An artifact is detected if:
+     * - Distance < 10cm (configurable)
+     * - Color is NOT yellow (yellow indicates non-artifact object)
      * @param source Which intake sensor to check
      * @return true if artifact detected
      */
@@ -862,70 +930,121 @@ public class IndexingSystem {
         if (hardware == null) return false;
 
         try {
+            // Check distance first
+            double distance = Double.MAX_VALUE;
             if (source == IntakeSource.FRONT && hardware.getFrontDistanceSensor() != null) {
-                double distance = hardware.getFrontDistanceSensor().getDistance(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH);
-                return distance < config.getArtifactDetectionDistance();
+                distance = hardware.getFrontDistanceSensor().getDistance(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.CM);
             } else if (source == IntakeSource.BACK && hardware.getBackDistanceSensor() != null) {
-                double distance = hardware.getBackDistanceSensor().getDistance(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.INCH);
-                return distance < config.getArtifactDetectionDistance();
+                distance = hardware.getBackDistanceSensor().getDistance(org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.CM);
             }
+            
+            // Check if distance is within threshold (10cm)
+            if (distance >= 10.0) {
+                return false; // Too far, no artifact
+            }
+            
+            // Check color to ensure it's not a yellow (non-artifact) object
+            if (isColorYellow(source)) {
+                return false; // Yellow object detected, not an artifact
+            }
+            
+            // Distance is close and color is not yellow - artifact detected
+            return true;
         } catch (Exception e) {
             // Sensor not available or error
         }
 
         return false;
     }
+    
+    /**
+     * Check if the detected object is yellow (non-artifact)
+     * @param source Which intake to check
+     * @return true if overall color is yellow
+     */
+    private boolean isColorYellow(IntakeSource source) {
+        if (hardware == null) return false;
+        
+        try {
+            // Collect readings from all 3 color sensors for the intake
+            List<com.qualcomm.robotcore.hardware.ColorSensor> sensors = new ArrayList<>();
+            
+            if (source == IntakeSource.FRONT) {
+                if (hardware.getFrontLeftColorSensor() != null) sensors.add(hardware.getFrontLeftColorSensor());
+                if (hardware.getFrontRightColorSensor() != null) sensors.add(hardware.getFrontRightColorSensor());
+                if (hardware.getFrontCenterColorSensor() != null) sensors.add(hardware.getFrontCenterColorSensor());
+            } else if (source == IntakeSource.BACK) {
+                if (hardware.getBackRightColorSensor() != null) sensors.add(hardware.getBackRightColorSensor());
+                if (hardware.getLeftRightColorSensor() != null) sensors.add(hardware.getLeftRightColorSensor());
+                if (hardware.getBackCenterColorSensor() != null) sensors.add(hardware.getBackCenterColorSensor());
+            }
+            
+            if (sensors.isEmpty()) {
+                return false; // Can't determine, assume not yellow
+            }
+            
+            // Average color readings
+            int totalRed = 0, totalGreen = 0, totalBlue = 0;
+            for (com.qualcomm.robotcore.hardware.ColorSensor sensor : sensors) {
+                totalRed += sensor.red();
+                totalGreen += sensor.green();
+                totalBlue += sensor.blue();
+            }
+            
+            int avgRed = totalRed / sensors.size();
+            int avgGreen = totalGreen / sensors.size();
+            int avgBlue = totalBlue / sensors.size();
+            
+            // Yellow has high red and green, low blue
+            // Check if it's predominantly yellow
+            return (avgRed > 100 && avgGreen > 100 && avgBlue < 80 && 
+                    avgRed > avgBlue && avgGreen > avgBlue);
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
     /**
      * Detect artifact color from color sensors
-     * Uses multiple color sensors to determine artifact color at intake
+     * Uses all 3 color sensors per intake for accurate color data
      * @param source Which intake sensor to check
-     * @return Detected artifact color
+     * @return Detected artifact color (PURPLE, GREEN, or UNKNOWN)
      */
     private Artifact.Color detectArtifactColor(IntakeSource source) {
         if (hardware == null) return Artifact.Color.UNKNOWN;
 
         try {
-            // Use appropriate color sensors based on intake source
-            com.qualcomm.robotcore.hardware.ColorSensor leftSensor = null;
-            com.qualcomm.robotcore.hardware.ColorSensor rightSensor = null;
+            // Collect readings from all 3 color sensors for the intake
+            List<com.qualcomm.robotcore.hardware.ColorSensor> sensors = new ArrayList<>();
             
             if (source == IntakeSource.FRONT) {
-                leftSensor = hardware.getFrontLeftColorSensor();
-                rightSensor = hardware.getFrontRightColorSensor();
+                if (hardware.getFrontLeftColorSensor() != null) sensors.add(hardware.getFrontLeftColorSensor());
+                if (hardware.getFrontRightColorSensor() != null) sensors.add(hardware.getFrontRightColorSensor());
+                if (hardware.getFrontCenterColorSensor() != null) sensors.add(hardware.getFrontCenterColorSensor());
             } else if (source == IntakeSource.BACK) {
-                // For back intake, we can use back right and potentially front center
-                rightSensor = hardware.getBackRightColorSensor();
-                // Could also check hardware.getBackCenterColorSensor() if needed
+                if (hardware.getBackRightColorSensor() != null) sensors.add(hardware.getBackRightColorSensor());
+                if (hardware.getLeftRightColorSensor() != null) sensors.add(hardware.getLeftRightColorSensor());
+                if (hardware.getBackCenterColorSensor() != null) sensors.add(hardware.getBackCenterColorSensor());
             }
 
-            // Collect color readings from available sensors
-            int totalRed = 0, totalGreen = 0, totalBlue = 0, sensorCount = 0;
-            
-            if (leftSensor != null) {
-                totalRed += leftSensor.red();
-                totalGreen += leftSensor.green();
-                totalBlue += leftSensor.blue();
-                sensorCount++;
-            }
-            
-            if (rightSensor != null) {
-                totalRed += rightSensor.red();
-                totalGreen += rightSensor.green();
-                totalBlue += rightSensor.blue();
-                sensorCount++;
-            }
-            
-            if (sensorCount == 0) {
+            if (sensors.isEmpty()) {
                 return Artifact.Color.UNKNOWN;
             }
 
-            // Average the readings
-            int avgRed = totalRed / sensorCount;
-            int avgGreen = totalGreen / sensorCount;
-            int avgBlue = totalBlue / sensorCount;
+            // Collect color readings from all available sensors
+            int totalRed = 0, totalGreen = 0, totalBlue = 0;
+            for (com.qualcomm.robotcore.hardware.ColorSensor sensor : sensors) {
+                totalRed += sensor.red();
+                totalGreen += sensor.green();
+                totalBlue += sensor.blue();
+            }
 
-            // Simple color detection logic for purple and green
+            // Average the readings
+            int avgRed = totalRed / sensors.size();
+            int avgGreen = totalGreen / sensors.size();
+            int avgBlue = totalBlue / sensors.size();
+
+            // Color detection logic for purple and green artifacts
             // Purple = high red + high blue, low green
             // Green = high green, lower red and blue
             
@@ -948,49 +1067,62 @@ public class IndexingSystem {
 
     /**
      * Execute hardware actions for collection state
+     * Rollers continue running, intake transfer servo moves artifact to center,
+     * center servos accept and complete the transfer.
      */
     private void executeCollectionHardware() {
-        // Run intake roller motor to collect artifact
-        setIntakePower(lastIntakeSource, config.getIntakeRollerPower());
+        // Intake rollers already running continuously (in collection mode)
+        setIntakeCollectionMode(lastIntakeSource);
         
-        // Set intake transfer servo to transfer position
-        setIntakeTransferServo(lastIntakeSource, config.getTransferServoTransferPosition());
+        // Activate intake transfer servo to move artifact from intake to center
+        setIntakeTransferServo(lastIntakeSource, true);
         
-        // Set center transfer servos to accept artifact
-        setTransferServos(true);
+        // Activate center transfer servos to accept artifact from intake transfer
+        setCenterTransferServos(true);
     }
 
     /**
      * Execute hardware actions for transferring state
+     * Continue the transfer process with servos active
      */
     private void executeTransferHardware() {
-        // Keep intake roller running to push artifact
-        setIntakePower(lastIntakeSource, config.getIntakeRollerPower());
+        // Intake rollers continue running to push artifact through
+        setIntakeCollectionMode(lastIntakeSource);
         
-        // Transfer servos already positioned during collection
-        setTransferServos(true);
+        // Keep transfer servos active
+        setIntakeTransferServo(lastIntakeSource, true);
+        setCenterTransferServos(true);
     }
 
     /**
      * Execute hardware actions for pushing state
+     * Second artifact pushes first artifact from center into opposite (empty) intake.
+     * Center servos push the artifact out, opposite intake accepts it.
      */
     private void executePushHardware() {
-        // Run opposite intake in reverse to accept pushed artifact
         IntakeSource oppositeIntake = (lastIntakeSource == IntakeSource.FRONT) 
             ? IntakeSource.BACK 
             : IntakeSource.FRONT;
         
-        setIntakePower(oppositeIntake, -config.getIntakeRollerPower());
+        // Collecting intake continues at collection speed
+        setIntakeCollectionMode(lastIntakeSource);
         
-        // Set opposite intake transfer servo to receive
-        setIntakeTransferServo(oppositeIntake, config.getTransferServoTransferPosition());
+        // Opposite (empty) intake runs to accept pushed artifact
+        setIntakeCollectionMode(oppositeIntake);
         
-        // Use center servos to facilitate push
-        setTransferServos(true);
+        // Activate intake transfer servo on collecting side
+        setIntakeTransferServo(lastIntakeSource, true);
+        
+        // Opposite intake transfer servo ready to receive
+        setIntakeTransferServo(oppositeIntake, true);
+        
+        // Center servos push artifact out to opposite intake
+        setCenterTransferServos(true);
     }
 
     /**
      * Execute hardware actions for firing state
+     * Center servos feed artifact to shooter
      */
     private void executeFiringHardware() {
         // Check if shooter is ready
@@ -1006,8 +1138,8 @@ public class IndexingSystem {
             shooter.fire();
         }
 
-        // Use center transfer servos to feed artifact to shooter
-        setTransferServos(true);
+        // Center transfer servos feed artifact to shooter
+        setCenterTransferServos(true);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
