@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.util.aurora;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -1263,7 +1264,7 @@ public class IndexingSystem {
             }
             
             // Convert threshold from cm to mm for comparison
-            double thresholdMM = config.getArtifactDetectionDistanceCm() * 10.0;
+            double thresholdMM = config.getArtifactDetectionDistance() * 10.0;
             
             // Check if distance is within threshold (default 100mm = 10cm)
             if (distanceMM < 0 || distanceMM >= thresholdMM) {
@@ -1313,7 +1314,7 @@ public class IndexingSystem {
             // Average normalized color readings (0-1 range from REV Color Sensor V3)
             float totalRed = 0, totalGreen = 0, totalBlue = 0;
             for (com.qualcomm.robotcore.hardware.NormalizedColorSensor sensor : sensors) {
-                org.firstinspires.ftc.robotcore.external.navigation.NormalizedRGBA colors = sensor.getNormalizedColors();
+                NormalizedRGBA colors = sensor.getNormalizedColors();
                 totalRed += colors.red;
                 totalGreen += colors.green;
                 totalBlue += colors.blue;
@@ -1362,7 +1363,7 @@ public class IndexingSystem {
             // Collect normalized color readings from all available sensors (0-1 range)
             float totalRed = 0, totalGreen = 0, totalBlue = 0;
             for (com.qualcomm.robotcore.hardware.NormalizedColorSensor sensor : sensors) {
-                org.firstinspires.ftc.robotcore.external.navigation.NormalizedRGBA colors = sensor.getNormalizedColors();
+                NormalizedRGBA colors = sensor.getNormalizedColors();
                 totalRed += colors.red;
                 totalGreen += colors.green;
                 totalBlue += colors.blue;
