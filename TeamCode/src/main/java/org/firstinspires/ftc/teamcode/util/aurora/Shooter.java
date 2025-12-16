@@ -195,7 +195,7 @@ public class Shooter {
 
         // Check if minimum spinup time has elapsed
         long timeSinceSpinup = System.currentTimeMillis() - lastSpinupTime;
-        if (timeSinceSpinup < config.getMinShooterSpinupTimeMs()) {
+        if (timeSinceSpinup < config.getPreset().getSpinupTimeMs()) {
             return false;
         }
 
