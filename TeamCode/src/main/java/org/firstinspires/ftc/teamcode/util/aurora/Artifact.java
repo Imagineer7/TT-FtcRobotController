@@ -108,7 +108,7 @@ public class Artifact {
 
     @Override
     public String toString() {
-        return String.format("Artifact{color=%s, location=%s, order=%d}", 
+        return String.format("Artifact{color=%s, location=%s, order=%d}",
             color, location, collectionOrder);
     }
 

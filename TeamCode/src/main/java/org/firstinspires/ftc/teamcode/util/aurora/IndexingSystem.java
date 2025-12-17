@@ -522,8 +522,8 @@ public class IndexingSystem {
         Artifact secondArtifact = artifacts.get(artifacts.size() - 1);
 
         // Determine opposite intake from where second artifact came
-        Artifact.Location oppositeIntake = (lastIntakeSource == IntakeSource.FRONT) 
-            ? Artifact.Location.BACK_INTAKE 
+        Artifact.Location oppositeIntake = (lastIntakeSource == IntakeSource.FRONT)
+            ? Artifact.Location.BACK_INTAKE
             : Artifact.Location.FRONT_INTAKE;
 
         // Move first artifact to opposite intake
@@ -1285,54 +1285,6 @@ public class IndexingSystem {
         }
 
         return false;
-    }
-    
-    /**
-     * Check if the detected object is yellow (non-artifact)
-     * @param source Which intake to check
-     * @return true if overall color is yellow
-     */
-    private boolean isColorYellow(IntakeSource source) {
-        if (hardware == null) return false;
-        
-        try {
-            // Collect readings from all 3 color sensors for the intake (REV Color Sensor V3)
-            List<com.qualcomm.robotcore.hardware.NormalizedColorSensor> sensors = new ArrayList<>();
-            
-            if (source == IntakeSource.FRONT) {
-                if (hardware.getFrontLeftColorSensor() != null) sensors.add(hardware.getFrontLeftColorSensor());
-                if (hardware.getFrontRightColorSensor() != null) sensors.add(hardware.getFrontRightColorSensor());
-                if (hardware.getFrontCenterColorSensor() != null) sensors.add(hardware.getFrontCenterColorSensor());
-            } else if (source == IntakeSource.BACK) {
-                if (hardware.getBackRightColorSensor() != null) sensors.add(hardware.getBackRightColorSensor());
-                if (hardware.getLeftRightColorSensor() != null) sensors.add(hardware.getLeftRightColorSensor());
-                if (hardware.getBackCenterColorSensor() != null) sensors.add(hardware.getBackCenterColorSensor());
-            }
-            
-            if (sensors.isEmpty()) {
-                return false; // Can't determine, assume not yellow
-            }
-            
-            // Average normalized color readings (0-1 range from REV Color Sensor V3)
-            float totalRed = 0, totalGreen = 0, totalBlue = 0;
-            for (com.qualcomm.robotcore.hardware.NormalizedColorSensor sensor : sensors) {
-                NormalizedRGBA colors = sensor.getNormalizedColors();
-                totalRed += colors.red;
-                totalGreen += colors.green;
-                totalBlue += colors.blue;
-            }
-            
-            float avgRed = totalRed / sensors.size();
-            float avgGreen = totalGreen / sensors.size();
-            float avgBlue = totalBlue / sensors.size();
-            
-            // Yellow has high red and green, low blue (normalized values 0-1)
-            // Check if it's predominantly yellow
-            return (avgRed > 0.4f && avgGreen > 0.4f && avgBlue < 0.3f && 
-                    avgRed > avgBlue && avgGreen > avgBlue);
-        } catch (Exception e) {
-            return false;
-        }
     }
 
     /**

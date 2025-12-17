@@ -38,7 +38,7 @@ public class IndexingConfig {
     private double transferServoTime = 0.4;
 
     /** Power for transfer servo when active - CRServo runs at this power (-1.0 to 1.0) */
-    private double transferServoPower = 0.7;
+    private double transferServoPower = 0.8;
 
     /** Idle power for transfer servo (0.0 = stopped) */
     private double transferServoIdlePower = 0.0;
@@ -70,7 +70,7 @@ public class IndexingConfig {
     // ═══════════════════════════════════════════════════════════════════════
 
     /** Time to run feed system to fire an artifact (seconds) */
-    private double fireFeedTime = 0.25;
+    private double fireFeedTime = 0.5;
 
     /** Power for feed system during firing (0.0 to 1.0) */
     private double fireFeedPower = 1.0;
