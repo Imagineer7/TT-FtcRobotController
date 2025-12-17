@@ -1,10 +1,14 @@
 package org.firstinspires.ftc.teamcode.util.aurora;
 
+import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.CRServo;
+import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
@@ -48,6 +52,24 @@ public class AuroraHardwareConfig {
     public static final String FEED_SERVO_1 = "servo1";
     public static final String FEED_SERVO_2 = "servo2";
     public static final String LIGHT_SERVO = "light";  // Optional
+
+    // Intake and Indexing System
+    public static final String FRONT_ROLLER_MOTOR = "frontRollerMotor";
+    public static final String BACK_ROLLER_MOTOR = "backRollerMotor";
+    public static final String FRONT_TRANSFER_SERVO = "frontTransferServo";
+    public static final String BACK_TRANSFER_SERVO = "backTransferServo";
+    public static final String TRANSFER_SERVO_CL = "transferServoCL";
+    public static final String TRANSFER_SERVO_CR = "transferServoCR";
+    
+    // Artifact Detection Sensors
+    public static final String FRONT_DISTANCE_SENSOR = "frontDist";
+    public static final String BACK_DISTANCE_SENSOR = "backDist";
+    public static final String FRONT_LEFT_COLOR_SENSOR = "frontLeftColor";
+    public static final String FRONT_RIGHT_COLOR_SENSOR = "frontRightColor";
+    public static final String BACK_RIGHT_COLOR_SENSOR = "backRightColor";
+    public static final String LEFT_RIGHT_COLOR_SENSOR = "leftRightColor";
+    public static final String FRONT_CENTER_COLOR_SENSOR = "frontCenterColor";
+    public static final String BACK_CENTER_COLOR_SENSOR = "backCenterColor";
 
     // Sensors
     public static final String IMU_SENSOR = "imu";
@@ -93,6 +115,30 @@ public class AuroraHardwareConfig {
     private CRServo feedServo2;
     private Servo lightServo;  // Optional
 
+    // Intake and Indexing System
+    private DcMotor frontRollerMotor;
+    private DcMotor backRollerMotor;
+    private CRServo frontTransferServo;
+    private CRServo backTransferServo;
+    private CRServo transferServoCL;
+    private CRServo transferServoCR;
+
+    // Artifact Detection Sensors
+    // goBILDA Laser Distance Sensors (Analog Mode: 0-3.3V = 0-1000mm)
+    private AnalogInput frontDistanceSensor;
+    private AnalogInput backDistanceSensor;
+    // REV Color Sensor V3 (Normalized RGB values 0-1)
+    private NormalizedColorSensor frontLeftColorSensor;
+    private NormalizedColorSensor frontRightColorSensor;
+    private NormalizedColorSensor backRightColorSensor;
+    private NormalizedColorSensor leftRightColorSensor;
+    private NormalizedColorSensor frontCenterColorSensor;
+    private NormalizedColorSensor backCenterColorSensor;
+    
+    // Distance sensor calibration constants (for goBILDA laser sensors in analog mode)
+    private static final double MAX_VOLTS = 3.3;
+    private static final double MAX_DISTANCE_MM = 1000.0;
+
     // Sensors
     private IMU imu;
     private GoBildaPinpointDriver odometry;
@@ -101,12 +147,14 @@ public class AuroraHardwareConfig {
     // Initialization Status
     private boolean driveSystemInitialized = false;
     private boolean shooterSystemInitialized = false;
+    private boolean indexingSystemInitialized = false;
     private boolean imuInitialized = false;
     private boolean odometryInitialized = false;
 
     // Error Messages
     private String driveInitError = "";
     private String shooterInitError = "";
+    private String indexingInitError = "";
     private String imuInitError = "";
     private String odometryInitError = "";
 
@@ -138,6 +186,7 @@ public class AuroraHardwareConfig {
 
         initializeDriveSystem();
         initializeShooterSystem();
+        initializeIndexingSystem();
         initializeIMU();
         initializeVoltageSensor();
 
@@ -156,6 +205,7 @@ public class AuroraHardwareConfig {
 
         initializeDriveSystem();
         initializeShooterSystem();
+        initializeIndexingSystem();
         initializeIMU();
         initializeOdometry();
         initializeVoltageSensor();
@@ -234,6 +284,102 @@ public class AuroraHardwareConfig {
             shooterSystemInitialized = false;
             shooterInitError = e.getMessage();
             telemetry.addLine("  ❌ Shooter System: " + shooterInitError);
+        }
+    }
+
+    /**
+     * Initialize the intake and indexing system
+     */
+    private void initializeIndexingSystem() {
+        try {
+            // Initialize roller motors
+            frontRollerMotor = hardwareMap.get(DcMotor.class, FRONT_ROLLER_MOTOR);
+            backRollerMotor = hardwareMap.get(DcMotor.class, BACK_ROLLER_MOTOR);
+
+            // Set motor directions
+            frontRollerMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+            backRollerMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+
+            // Set zero power behavior
+            frontRollerMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            backRollerMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+            // Set run mode
+            frontRollerMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            backRollerMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+            // Initialize transfer servos (CRServos - Continuous Rotation)
+            frontTransferServo = hardwareMap.get(CRServo.class, FRONT_TRANSFER_SERVO);
+            backTransferServo = hardwareMap.get(CRServo.class, BACK_TRANSFER_SERVO);
+            transferServoCL = hardwareMap.get(CRServo.class, TRANSFER_SERVO_CL);
+            transferServoCR = hardwareMap.get(CRServo.class, TRANSFER_SERVO_CR);
+
+            // Initialize distance sensors (goBILDA Laser Distance Sensors in analog mode)
+            // These sensors output 0-3.3V corresponding to 0-1000mm distance
+            try {
+                frontDistanceSensor = hardwareMap.get(AnalogInput.class, FRONT_DISTANCE_SENSOR);
+            } catch (Exception e) {
+                frontDistanceSensor = null;
+                telemetry.addLine("  ⚠️ Front distance sensor not found (optional)");
+            }
+
+            try {
+                backDistanceSensor = hardwareMap.get(AnalogInput.class, BACK_DISTANCE_SENSOR);
+            } catch (Exception e) {
+                backDistanceSensor = null;
+                telemetry.addLine("  ⚠️ Back distance sensor not found (optional)");
+            }
+
+            // Initialize color sensors (REV Color Sensor V3 - optional, may not all be present)
+            try {
+                frontLeftColorSensor = hardwareMap.get(NormalizedColorSensor.class, FRONT_LEFT_COLOR_SENSOR);
+            } catch (Exception e) {
+                frontLeftColorSensor = null;
+                telemetry.addLine("  ⚠️ Front left color sensor not found (optional)");
+            }
+
+            try {
+                frontRightColorSensor = hardwareMap.get(NormalizedColorSensor.class, FRONT_RIGHT_COLOR_SENSOR);
+            } catch (Exception e) {
+                frontRightColorSensor = null;
+                telemetry.addLine("  ⚠️ Front right color sensor not found (optional)");
+            }
+
+            try {
+                backRightColorSensor = hardwareMap.get(NormalizedColorSensor.class, BACK_RIGHT_COLOR_SENSOR);
+            } catch (Exception e) {
+                backRightColorSensor = null;
+                telemetry.addLine("  ⚠️ Back right color sensor not found (optional)");
+            }
+
+            try {
+                leftRightColorSensor = hardwareMap.get(NormalizedColorSensor.class, LEFT_RIGHT_COLOR_SENSOR);
+            } catch (Exception e) {
+                leftRightColorSensor = null;
+                telemetry.addLine("  ⚠️ Left right color sensor not found (optional)");
+            }
+
+            try {
+                frontCenterColorSensor = hardwareMap.get(NormalizedColorSensor.class, FRONT_CENTER_COLOR_SENSOR);
+            } catch (Exception e) {
+                frontCenterColorSensor = null;
+                telemetry.addLine("  ⚠️ Front center color sensor not found (optional)");
+            }
+
+            try {
+                backCenterColorSensor = hardwareMap.get(NormalizedColorSensor.class, BACK_CENTER_COLOR_SENSOR);
+            } catch (Exception e) {
+                backCenterColorSensor = null;
+                telemetry.addLine("  ⚠️ Back center color sensor not found (optional)");
+            }
+
+            indexingSystemInitialized = true;
+            telemetry.addLine("  ✅ Indexing System");
+
+        } catch (Exception e) {
+            indexingSystemInitialized = false;
+            indexingInitError = e.getMessage();
+            telemetry.addLine("  ❌ Indexing System: " + indexingInitError);
         }
     }
 
@@ -321,6 +467,47 @@ public class AuroraHardwareConfig {
     public CRServo getFeedServo2() { return feedServo2; }
     public Servo getLightServo() { return lightServo; }  // May be null
 
+    // Intake and Indexing System
+    public DcMotor getFrontRollerMotor() { return frontRollerMotor; }
+    public DcMotor getBackRollerMotor() { return backRollerMotor; }
+    public CRServo getFrontTransferServo() { return frontTransferServo; }
+    public CRServo getBackTransferServo() { return backTransferServo; }
+    public CRServo getTransferServoCL() { return transferServoCL; }
+    public CRServo getTransferServoCR() { return transferServoCR; }
+
+    // Artifact Detection Sensors
+    public AnalogInput getFrontDistanceSensor() { return frontDistanceSensor; }
+    public AnalogInput getBackDistanceSensor() { return backDistanceSensor; }
+    
+    /**
+     * Get distance reading from front sensor in millimeters
+     * Converts analog voltage (0-3.3V) to distance (0-1000mm)
+     * @return Distance in mm, or -1 if sensor not available
+     */
+    public double getFrontDistanceMM() {
+        if (frontDistanceSensor == null) return -1;
+        double volts = frontDistanceSensor.getVoltage();
+        return (volts / MAX_VOLTS) * MAX_DISTANCE_MM;
+    }
+    
+    /**
+     * Get distance reading from back sensor in millimeters
+     * Converts analog voltage (0-3.3V) to distance (0-1000mm)
+     * @return Distance in mm, or -1 if sensor not available
+     */
+    public double getBackDistanceMM() {
+        if (backDistanceSensor == null) return -1;
+        double volts = backDistanceSensor.getVoltage();
+        return (volts / MAX_VOLTS) * MAX_DISTANCE_MM;
+    }
+    
+    public NormalizedColorSensor getFrontLeftColorSensor() { return frontLeftColorSensor; }
+    public NormalizedColorSensor getFrontRightColorSensor() { return frontRightColorSensor; }
+    public NormalizedColorSensor getBackRightColorSensor() { return backRightColorSensor; }
+    public NormalizedColorSensor getLeftRightColorSensor() { return leftRightColorSensor; }
+    public NormalizedColorSensor getFrontCenterColorSensor() { return frontCenterColorSensor; }
+    public NormalizedColorSensor getBackCenterColorSensor() { return backCenterColorSensor; }
+
     // Sensors
     public IMU getIMU() { return imu; }
     public GoBildaPinpointDriver getOdometry() { return odometry; }
@@ -335,11 +522,13 @@ public class AuroraHardwareConfig {
 
     public boolean isDriveSystemInitialized() { return driveSystemInitialized; }
     public boolean isShooterSystemInitialized() { return shooterSystemInitialized; }
+    public boolean isIndexingSystemInitialized() { return indexingSystemInitialized; }
     public boolean isIMUInitialized() { return imuInitialized; }
     public boolean isOdometryInitialized() { return odometryInitialized; }
 
     public String getDriveInitError() { return driveInitError; }
     public String getShooterInitError() { return shooterInitError; }
+    public String getIndexingInitError() { return indexingInitError; }
     public String getIMUInitError() { return imuInitError; }
     public String getOdometryInitError() { return odometryInitError; }
 
@@ -347,7 +536,7 @@ public class AuroraHardwareConfig {
      * Check if all critical systems are operational
      */
     public boolean isSystemHealthy() {
-        return driveSystemInitialized && shooterSystemInitialized && imuInitialized;
+        return driveSystemInitialized && shooterSystemInitialized && indexingSystemInitialized && imuInitialized;
     }
 
     /**
@@ -358,6 +547,7 @@ public class AuroraHardwareConfig {
         summary.append("\n📊 Hardware Status:\n");
         summary.append("  Drive: ").append(driveSystemInitialized ? "✅" : "❌").append("\n");
         summary.append("  Shooter: ").append(shooterSystemInitialized ? "✅" : "❌").append("\n");
+        summary.append("  Indexing: ").append(indexingSystemInitialized ? "✅" : "❌").append("\n");
         summary.append("  IMU: ").append(imuInitialized ? "✅" : "❌").append("\n");
         summary.append("  Odometry: ").append(odometryInitialized ? "✅" : "⚠️").append("\n");
         return summary.toString();
@@ -406,5 +596,7 @@ public class AuroraHardwareConfig {
         if (shooterMotor != null) shooterMotor.setPower(0);
         if (feedServo1 != null) feedServo1.setPower(0);
         if (feedServo2 != null) feedServo2.setPower(0);
+        if (frontRollerMotor != null) frontRollerMotor.setPower(0);
+        if (backRollerMotor != null) backRollerMotor.setPower(0);
     }
 }
