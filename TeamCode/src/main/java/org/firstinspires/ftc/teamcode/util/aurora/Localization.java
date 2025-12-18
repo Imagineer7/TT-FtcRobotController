@@ -4,7 +4,7 @@ package org.firstinspires.ftc.teamcode.util.aurora;
 //It will provide methods to get the robot's current coordinates and orientation.
 //No dependencies on other AURORA classes, except for AuroraHardwareConfig if necessary.
 
-//It will use the limelight to get position data when available, otherwise it will rely on odometry.
+//It will use the limelight to get position data when available, otherwise it will rely on odometry. Use LimelightVisionHelper for interfacing with the limelight.
 //It should mainly rely on the odometry for localization, using the limelight to correct drift when targets are visible.
 //It will provide methods to reset position and update localization data.
 //Additionally, it may include methods for calculating distances to targets or waypoints on the field.
@@ -13,9 +13,10 @@ package org.firstinspires.ftc.teamcode.util.aurora;
 //We are using the Gobilda odometry pods with pinpoint computer for our odometry system.
 //Its hardware configuration will be defined in AuroraHardwareConfig.java.
 //Also its name in the robot configuration file is "odo".
-//Use the GoBildaPinpointDriver class to interface with the pinpoint computer for odometry data.
+//Use the GoBildaPinpointDriver class to interface with the pinpoint computer for odometry data. (there is one built into the FTC SDK)
 
-//The X pod offset is NA
-//The Y pod offset is NA
+//The strafe X pod offset is 0mm
+//The forward Y pod offset is 201.857 mm
 public class Localization {
+
 }

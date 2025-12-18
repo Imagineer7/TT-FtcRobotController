@@ -5,6 +5,7 @@ package org.firstinspires.ftc.teamcode.util.aurora;
 
 //Reference the Limelight documentation for specific commands and data retrieval methods. Also reference the FTC SDK for hardware integration if needed.
 //Also use the examples provided under package org.firstinspires.ftc.robotcontroller.external.samples in this repository for Limelight integration examples.
+//the limelights name in the robot configuration file is "limelight".
 
 //This class should include methods to:
 //- Get target visibility status
