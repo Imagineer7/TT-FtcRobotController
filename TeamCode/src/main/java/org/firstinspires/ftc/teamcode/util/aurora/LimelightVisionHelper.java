@@ -474,9 +474,20 @@ public class LimelightVisionHelper {
         }
         
         int count = poses.size();
-        return new Pose3D(
-            sumX / count, sumY / count, sumZ / count,
-            sumYaw / count, sumPitch / count, sumRoll / count
-        );
+
+        // Create Position and YawPitchRollAngles objects for Pose3D constructor
+        org.firstinspires.ftc.robotcore.external.navigation.Position position =
+            new org.firstinspires.ftc.robotcore.external.navigation.Position(
+                org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit.MM,
+                sumX / count, sumY / count, sumZ / count, 0
+            );
+
+        org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles orientation =
+            new org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles(
+                org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.DEGREES,
+                sumYaw / count, sumPitch / count, sumRoll / count, 0
+            );
+
+        return new Pose3D(position, orientation);
     }
 }
