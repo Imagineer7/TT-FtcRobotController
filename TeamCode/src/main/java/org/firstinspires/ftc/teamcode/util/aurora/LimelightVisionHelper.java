@@ -169,18 +169,30 @@ public class LimelightVisionHelper {
     }
     
     /**
-     * Set LED mode
-     * @param mode 0=pipeline default, 1=force off, 2=force blink, 3=force on
+     * Note: LED mode control is not available through the FTC SDK.
+     * LED configuration must be done through the Limelight web interface
+     * or configured per-pipeline. This method is not implemented.
+     * 
+     * To configure LEDs:
+     * 1. Connect to Limelight web interface (typically http://limelight.local:5801)
+     * 2. Configure LED mode in pipeline settings
+     * 
+     * @deprecated LED control not supported by SDK - configure via web interface
      */
+    @Deprecated
     public void setLEDMode(int mode) {
-        // LED control is typically done through the Limelight web interface
-        // The SDK doesn't expose direct LED control, so this is a placeholder
-        // In practice, LED mode is configured per-pipeline
+        throw new UnsupportedOperationException(
+            "LED control not available through SDK. Configure via Limelight web interface."
+        );
     }
     
     /**
      * Get robot pose from Limelight with filtering
      * Takes multiple readings, groups similar readings, and averages the largest group
+     * 
+     * WARNING: This method takes approximately 100ms to complete due to multiple readings.
+     * Do not call this in time-critical control loops. Consider calling it in a separate
+     * thread or using getRobotPose() for faster (but less filtered) results.
      * 
      * @return filtered robot pose, or null if no valid pose available
      */
@@ -267,6 +279,9 @@ public class LimelightVisionHelper {
     /**
      * Read obelisk pattern from visible AprilTags
      * Switches to obelisk pipeline, reads tags, and returns to positioning pipeline
+     * 
+     * WARNING: This method includes a 100ms delay for pipeline switching.
+     * Do not call frequently in control loops. Cache the result if needed multiple times.
      * 
      * @return detected motif pattern, or null if none found
      */

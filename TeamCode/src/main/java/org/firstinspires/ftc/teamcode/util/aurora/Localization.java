@@ -29,9 +29,10 @@ public class Localization {
     // Configuration constants
     private static final String ODOMETRY_NAME = "odo";
     
-    // Odometry pod offsets (in mm from robot center)
-    private static final double STRAFE_X_POD_OFFSET = 0.0; // mm
-    private static final double FORWARD_Y_POD_OFFSET = 201.857; // mm
+    // Odometry pod offsets (from requirements: strafe X pod offset is 0mm, forward Y pod offset is 201.857mm)
+    // Note: These differ from AuroraHardwareConfig which uses inches. Requirements specify mm.
+    private static final double STRAFE_X_POD_OFFSET = 0.0; // mm - left/right offset
+    private static final double FORWARD_Y_POD_OFFSET = 201.857; // mm - forward/back offset
     
     // Sensor fusion parameters
     private static final double LIMELIGHT_UPDATE_INTERVAL_MS = 500; // minimum time between vision corrections
@@ -73,10 +74,12 @@ public class Localization {
             // Configure odometry offsets
             odometry.setOffsets(STRAFE_X_POD_OFFSET, FORWARD_Y_POD_OFFSET, DistanceUnit.MM);
             
-            // Configure encoder directions (from AuroraHardwareConfig)
+            // Configure encoder directions
+            // Forward (X) pod should increase when robot moves forward
+            // Strafe (Y) pod should increase when robot moves left
             odometry.setEncoderDirections(
-                GoBildaPinpointDriver.EncoderDirection.FORWARD,
-                GoBildaPinpointDriver.EncoderDirection.REVERSED
+                GoBildaPinpointDriver.EncoderDirection.FORWARD,   // Forward pod direction
+                GoBildaPinpointDriver.EncoderDirection.REVERSED   // Strafe pod direction
             );
             
             // Set encoder resolution for goBILDA 4-bar pods
@@ -388,8 +391,10 @@ public class Localization {
     private boolean applyLimelightCorrection() {
         if (limelight == null || !limelight.hasTarget()) return false;
         
-        // Get filtered pose from Limelight
-        Pose3D visionPose3D = limelight.getFilteredRobotPose();
+        // Use single reading instead of filtered to avoid blocking
+        // The filtering with getFilteredRobotPose() takes ~100ms which is too slow for control loops
+        // For most use cases, a single reading with freshness checks is sufficient
+        Pose3D visionPose3D = limelight.getRobotPose();
         if (visionPose3D == null) return false;
         
         // Convert 3D pose to 2D pose for odometry
