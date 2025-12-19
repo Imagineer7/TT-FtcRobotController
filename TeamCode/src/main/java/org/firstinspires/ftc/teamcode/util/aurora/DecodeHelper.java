@@ -128,14 +128,17 @@ public class DecodeHelper {
      * Simplified constructor using AuroraHardwareConfig
      */
     public DecodeHelper(AuroraHardwareConfig hardware, Telemetry telemetry) {
-        this(hardware.getShooterMotor(), hardware.getShooterMotor(), telemetry);
-        // Note: This assumes a single shooter motor. Update when dual motors are configured in hardware
+        this(hardware.getLeftShooterMotor(), hardware.getRightShooterMotor(), telemetry);
     }
 
     /**
      * Configure motor settings
      */
     private void configureMotors() {
+        // STOP MOTORS FIRST - prevent auto-start
+        leftShooterMotor.setPower(0);
+        rightShooterMotor.setPower(0);
+
         // Set run mode
         leftShooterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         rightShooterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
@@ -156,6 +159,10 @@ public class DecodeHelper {
             DcMotorSimple.Direction.REVERSE :
             DcMotorSimple.Direction.FORWARD
         );
+
+        // STOP MOTORS AGAIN - ensure they stay off
+        leftShooterMotor.setPower(0);
+        rightShooterMotor.setPower(0);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

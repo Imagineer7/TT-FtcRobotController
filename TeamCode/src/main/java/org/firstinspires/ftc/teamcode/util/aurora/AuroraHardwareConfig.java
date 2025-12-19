@@ -48,10 +48,14 @@ public class AuroraHardwareConfig {
     public static final String BACK_RIGHT_MOTOR = "backRight";
 
     // Shooter System
-    public static final String SHOOTER_MOTOR = "shooter";
+    public static final String LEFT_SHOOTER_MOTOR = "shooter1";
+    public static final String RIGHT_SHOOTER_MOTOR = "shooter2";
     public static final String FEED_SERVO_1 = "servo1";
     public static final String FEED_SERVO_2 = "servo2";
     public static final String LIGHT_SERVO = "light";  // Optional
+
+    // Turret System
+    public static final String TURRET_SERVO = "turret_servo";
 
     // Intake and Indexing System
     public static final String FRONT_ROLLER_MOTOR = "frontRollerMotor";
@@ -110,10 +114,14 @@ public class AuroraHardwareConfig {
     private DcMotor backRightMotor;
 
     // Shooter System
-    private DcMotor shooterMotor;
+    private DcMotor leftShooterMotor;
+    private DcMotor rightShooterMotor;
     private CRServo feedServo1;
     private CRServo feedServo2;
     private Servo lightServo;  // Optional
+
+    // Turret System
+    private Servo turretServo;  // Can also be CRServo depending on Turret mode
 
     // Intake and Indexing System
     private DcMotor frontRollerMotor;
@@ -147,6 +155,7 @@ public class AuroraHardwareConfig {
     // Initialization Status
     private boolean driveSystemInitialized = false;
     private boolean shooterSystemInitialized = false;
+    private boolean turretSystemInitialized = false;
     private boolean indexingSystemInitialized = false;
     private boolean imuInitialized = false;
     private boolean odometryInitialized = false;
@@ -154,6 +163,7 @@ public class AuroraHardwareConfig {
     // Error Messages
     private String driveInitError = "";
     private String shooterInitError = "";
+    private String turretInitError = "";
     private String indexingInitError = "";
     private String imuInitError = "";
     private String odometryInitError = "";
@@ -186,6 +196,7 @@ public class AuroraHardwareConfig {
 
         initializeDriveSystem();
         initializeShooterSystem();
+        initializeTurretSystem();
         initializeIndexingSystem();
         initializeIMU();
         initializeVoltageSensor();
@@ -205,6 +216,7 @@ public class AuroraHardwareConfig {
 
         initializeDriveSystem();
         initializeShooterSystem();
+        initializeTurretSystem();
         initializeIndexingSystem();
         initializeIMU();
         initializeOdometry();
@@ -255,15 +267,26 @@ public class AuroraHardwareConfig {
     }
 
     /**
-     * Initialize the shooter system (motor and servos)
+     * Initialize the shooter system (dual motors and servos)
      */
     private void initializeShooterSystem() {
         try {
-            // Initialize shooter motor
-            shooterMotor = hardwareMap.get(DcMotor.class, SHOOTER_MOTOR);
-            shooterMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-            shooterMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-            shooterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            // Initialize shooter motors
+            leftShooterMotor = hardwareMap.get(DcMotor.class, LEFT_SHOOTER_MOTOR);
+            rightShooterMotor = hardwareMap.get(DcMotor.class, RIGHT_SHOOTER_MOTOR);
+
+            // STOP MOTORS IMMEDIATELY to prevent auto-start
+            leftShooterMotor.setPower(0);
+            rightShooterMotor.setPower(0);
+
+            // Note: Motor directions are configured by DecodeHelper using ShooterConfig
+            // Do not set directions here to avoid conflicts
+
+            leftShooterMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            rightShooterMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
+            leftShooterMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            rightShooterMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
             // Initialize feed servos
             feedServo1 = hardwareMap.get(CRServo.class, FEED_SERVO_1);
@@ -278,12 +301,34 @@ public class AuroraHardwareConfig {
             }
 
             shooterSystemInitialized = true;
-            telemetry.addLine("  ✅ Shooter System");
+            telemetry.addLine("  ✅ Shooter System (Dual Motor)");
 
         } catch (Exception e) {
             shooterSystemInitialized = false;
             shooterInitError = e.getMessage();
             telemetry.addLine("  ❌ Shooter System: " + shooterInitError);
+        }
+    }
+
+    /**
+     * Initialize the turret system (servo)
+     * Note: The Turret class handles the servo as either position or continuous rotation
+     */
+    private void initializeTurretSystem() {
+        try {
+            // Try to initialize as position servo first (most common)
+            // The Turret class will handle it based on its SERVO_MODE configuration
+            turretServo = hardwareMap.get(Servo.class, TURRET_SERVO);
+
+            turretSystemInitialized = true;
+            telemetry.addLine("  ✅ Turret System");
+
+        } catch (Exception e) {
+            // If position servo fails, turret might be configured as CRServo
+            // The Turret class will handle the actual hardware access
+            turretSystemInitialized = false;
+            turretInitError = e.getMessage();
+            telemetry.addLine("  ⚠️ Turret System: Not configured or " + turretInitError);
         }
     }
 
@@ -462,10 +507,14 @@ public class AuroraHardwareConfig {
     public DcMotor getBackRightMotor() { return backRightMotor; }
 
     // Shooter System
-    public DcMotor getShooterMotor() { return shooterMotor; }
+    public DcMotor getLeftShooterMotor() { return leftShooterMotor; }
+    public DcMotor getRightShooterMotor() { return rightShooterMotor; }
     public CRServo getFeedServo1() { return feedServo1; }
     public CRServo getFeedServo2() { return feedServo2; }
     public Servo getLightServo() { return lightServo; }  // May be null
+
+    // Turret System
+    public Servo getTurretServo() { return turretServo; }  // May be null if not configured
 
     // Intake and Indexing System
     public DcMotor getFrontRollerMotor() { return frontRollerMotor; }
@@ -522,12 +571,14 @@ public class AuroraHardwareConfig {
 
     public boolean isDriveSystemInitialized() { return driveSystemInitialized; }
     public boolean isShooterSystemInitialized() { return shooterSystemInitialized; }
+    public boolean isTurretSystemInitialized() { return turretSystemInitialized; }
     public boolean isIndexingSystemInitialized() { return indexingSystemInitialized; }
     public boolean isIMUInitialized() { return imuInitialized; }
     public boolean isOdometryInitialized() { return odometryInitialized; }
 
     public String getDriveInitError() { return driveInitError; }
     public String getShooterInitError() { return shooterInitError; }
+    public String getTurretInitError() { return turretInitError; }
     public String getIndexingInitError() { return indexingInitError; }
     public String getIMUInitError() { return imuInitError; }
     public String getOdometryInitError() { return odometryInitError; }
@@ -547,6 +598,7 @@ public class AuroraHardwareConfig {
         summary.append("\n📊 Hardware Status:\n");
         summary.append("  Drive: ").append(driveSystemInitialized ? "✅" : "❌").append("\n");
         summary.append("  Shooter: ").append(shooterSystemInitialized ? "✅" : "❌").append("\n");
+        summary.append("  Turret: ").append(turretSystemInitialized ? "✅" : "⚠️").append("\n");
         summary.append("  Indexing: ").append(indexingSystemInitialized ? "✅" : "❌").append("\n");
         summary.append("  IMU: ").append(imuInitialized ? "✅" : "❌").append("\n");
         summary.append("  Odometry: ").append(odometryInitialized ? "✅" : "⚠️").append("\n");
@@ -593,7 +645,8 @@ public class AuroraHardwareConfig {
         if (frontRightMotor != null) frontRightMotor.setPower(0);
         if (backLeftMotor != null) backLeftMotor.setPower(0);
         if (backRightMotor != null) backRightMotor.setPower(0);
-        if (shooterMotor != null) shooterMotor.setPower(0);
+        if (leftShooterMotor != null) leftShooterMotor.setPower(0);
+        if (rightShooterMotor != null) rightShooterMotor.setPower(0);
         if (feedServo1 != null) feedServo1.setPower(0);
         if (feedServo2 != null) feedServo2.setPower(0);
         if (frontRollerMotor != null) frontRollerMotor.setPower(0);

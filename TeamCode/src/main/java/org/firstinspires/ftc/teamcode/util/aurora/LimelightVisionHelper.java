@@ -38,7 +38,7 @@ public class LimelightVisionHelper {
     private static final double MIN_GROUP_SIZE = 3; // minimum readings in a group to consider it valid
     
     // Data freshness tracking
-    private static final long STALE_DATA_THRESHOLD_MS = 500; // data older than this is considered stale
+    private static final long STALE_DATA_THRESHOLD_MS = 1000; // data older than this is considered stale
     private long lastValidDataTimestamp = 0;
     private long lastUpdateAttemptTimestamp = 0;
     private int consecutiveFailedReads = 0;

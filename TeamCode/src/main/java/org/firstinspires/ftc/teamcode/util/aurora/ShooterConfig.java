@@ -206,9 +206,13 @@ public class ShooterConfig {
     /** Enable safety checks (RPM limits, sync error, etc.) */
     public static final boolean ENABLE_SAFETY_CHECKS = true;
 
-    /** Enable motor direction reversal (if needed for mechanical setup) */
+    /**
+     * Motor direction configuration
+     * Adjust these if motors spin the wrong direction
+     * For counter-rotating flywheels, one should be FORWARD, one REVERSE
+     */
     public static final boolean REVERSE_LEFT_MOTOR = false;
-    public static final boolean REVERSE_RIGHT_MOTOR = false;
+    public static final boolean REVERSE_RIGHT_MOTOR = true;
 
     // ═══════════════════════════════════════════════════════════════════════
     // PUBLIC METHODS - PRESET MANAGEMENT
