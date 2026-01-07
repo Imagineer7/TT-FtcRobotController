@@ -27,8 +27,8 @@ public class Localization {
     private LimelightVisionHelper limelight;
     
     // Configuration constants
-    private static final String ODOMETRY_NAME = "odo";
-    
+    private static final String ODOMETRY_NAME = "Odometry Pinpoint Computer";
+
     // Odometry pod offsets (from requirements: strafe X pod offset is 0mm, forward Y pod offset is 201.857mm)
     // Note: These differ from AuroraHardwareConfig which uses inches. Requirements specify mm.
     private static final double STRAFE_X_POD_OFFSET = 0.0; // mm - left/right offset

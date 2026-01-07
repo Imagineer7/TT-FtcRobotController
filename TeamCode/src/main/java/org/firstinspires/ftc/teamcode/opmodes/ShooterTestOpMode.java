@@ -73,10 +73,11 @@ public class ShooterTestOpMode extends LinearOpMode {
         telemetry.addLine("Initializing hardware...");
         telemetry.update();
 
+        boolean initSuccess = false;
         try {
-            // Initialize motors (shooter1 and shooter2 as configured in hardware)
-            leftShooterMotor = hardwareMap.get(DcMotor.class, "shooter1");
-            rightShooterMotor = hardwareMap.get(DcMotor.class, "shooter2");
+            // Initialize motors (Shooter Front and Shooter Back as configured in hardware)
+            leftShooterMotor = hardwareMap.get(DcMotor.class, "Shooter Front");
+            rightShooterMotor = hardwareMap.get(DcMotor.class, "Shooter Back");
 
             // Initialize DecodeHelper
             shooter = new DecodeHelper(leftShooterMotor, rightShooterMotor, telemetry);
@@ -85,39 +86,50 @@ public class ShooterTestOpMode extends LinearOpMode {
             telemetry.addLine();
             telemetry.addLine("Ready to start!");
             telemetry.addLine("Press PLAY to begin testing");
+            initSuccess = true;
 
         } catch (Exception e) {
             telemetry.addLine("❌ ERROR: Failed to initialize hardware");
             telemetry.addLine(e.getMessage());
-            telemetry.update();
-            return;
+            telemetry.addLine();
+            telemetry.addLine("Please check:");
+            telemetry.addLine("1. Motors 'Shooter Front' and 'Shooter Back' exist in hardware config");
+            telemetry.addLine("2. Robot is properly connected");
+            telemetry.addLine();
+            telemetry.addLine("Press STOP to exit");
         }
 
         telemetry.update();
         waitForStart();
 
-        // Main control loop
-        while (opModeIsActive()) {
-            // Handle control inputs
-            handlePresetControls();
-            handleManualControls();
-            handleTestingControls();
+        // Only run main loop if initialization succeeded
+        if (initSuccess) {
+            // Main control loop
+            while (opModeIsActive()) {
+                // Handle control inputs
+                handlePresetControls();
+                handleManualControls();
+                handleTestingControls();
 
-            // Update shooter system
-            shooter.update();
+                // Update shooter system
+                shooter.update();
 
-            // Display telemetry
-            displayTelemetry();
+                // Display telemetry
+                displayTelemetry();
+                telemetry.update();
+
+                // Small delay to prevent excessive updates
+                sleep(20);
+            }
+
+            // Stop shooter on exit
+            shooter.disableShooter();
+            telemetry.addLine("🛑 OpMode stopped - shooter disabled");
             telemetry.update();
-
-            // Small delay to prevent excessive updates
-            sleep(20);
+        } else {
+            telemetry.addLine("❌ OpMode cannot run due to initialization failure");
+            telemetry.update();
         }
-
-        // Stop shooter on exit
-        shooter.disableShooter();
-        telemetry.addLine("🛑 OpMode stopped - shooter disabled");
-        telemetry.update();
     }
 
     /**
@@ -152,8 +164,10 @@ public class ShooterTestOpMode extends LinearOpMode {
 
         // Left Trigger - Warmup Mode
         boolean warmupActive = gamepad1.left_trigger > 0.3;
-        ShooterConfig.ShooterPreset warmupPreset = shooter.getActivePreset() != null ?
-                shooter.getActivePreset() : ShooterConfig.ShooterPreset.LONG_RANGE;
+        // Only pass preset when warmup is actually active, otherwise pass null to avoid auto-spinup
+        ShooterConfig.ShooterPreset warmupPreset = warmupActive ?
+                (shooter.getActivePreset() != null ? shooter.getActivePreset() : ShooterConfig.ShooterPreset.LONG_RANGE) :
+                null;
         shooter.handleWarmupButton(warmupActive, warmupPreset);
     }
 
@@ -265,7 +279,8 @@ public class ShooterTestOpMode extends LinearOpMode {
         telemetry.addData("  Left Motor", "%.0f RPM", shooter.getLeftRPM());
         telemetry.addData("  Right Motor", "%.0f RPM", shooter.getRightRPM());
         telemetry.addData("  Average", "%.0f RPM", shooter.getAverageRPM());
-        telemetry.addData("  Sync Error", "%.0f RPM", shooter.getRPMSyncError());
+        telemetry.addData("  Sync Error (instant)", "%.0f RPM", shooter.getRPMSyncError());
+        telemetry.addData("  Sync Error (avg)", "%.0f RPM", shooter.getAverageSyncError());
         telemetry.addData("  Progress", "%.1f%%", shooter.getRPMPercentage());
         telemetry.addLine();
 

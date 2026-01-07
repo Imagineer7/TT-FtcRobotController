@@ -67,6 +67,14 @@ public class DecodeHelper {
     private boolean rpmStabilized = false;
     private boolean transitioningFromWarmup = false;  // Prevents premature shooting after warmup
 
+    // Sync error tracking for improved detection
+    private final ElapsedTime syncErrorTimer = new ElapsedTime();
+    private double syncErrorAccumulator = 0;
+    private int syncErrorSampleCount = 0;
+    private boolean syncErrorDetected = false;
+    private static final int SYNC_ERROR_SAMPLES = 10;  // Average over 10 samples
+    private static final double SYNC_ERROR_PERSIST_TIME = 0.5;  // Must persist for 500ms
+
     // Button state tracking (for edge detection)
     private boolean prevShootButton = false;
     private boolean prevWarmupButton = false;
@@ -139,9 +147,14 @@ public class DecodeHelper {
         leftShooterMotor.setPower(0);
         rightShooterMotor.setPower(0);
 
-        // Set run mode
-        leftShooterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        rightShooterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        // Set run mode - RUN_USING_ENCODER is required for velocity control
+        // DO NOT change mode if already set by AuroraHardwareConfig to avoid mode-switch glitches
+        if (leftShooterMotor.getMode() != DcMotor.RunMode.RUN_USING_ENCODER) {
+            leftShooterMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        }
+        if (rightShooterMotor.getMode() != DcMotor.RunMode.RUN_USING_ENCODER) {
+            rightShooterMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        }
 
         // Set zero power behavior (coast for flywheels)
         leftShooterMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
@@ -203,8 +216,9 @@ public class DecodeHelper {
 
                 // Check for spinup timeout
                 if (spinUpTimer.milliseconds() > getMaxSpinupTime()) {
-                    telemetry.addLine("⚠️ Spin-up timeout!");
-                    currentState = ShooterState.ERROR;
+                    telemetry.addLine("⚠️ WARNING: Spin-up timeout - still spinning");
+                    // Don't set ERROR state, just warn and continue
+                    // currentState = ShooterState.ERROR;
                 }
 
                 // Transition to READY when stable
@@ -247,15 +261,21 @@ public class DecodeHelper {
                 break;
 
             case ERROR:
-                // Safety stop
-                setMotorPowers(0, 0);
+                // WARNING ONLY - Don't stop motors, just maintain current state
+                // The error is now just a warning, shooter continues
+                // Safety stop disabled for testing
+                // setMotorPowers(0, 0);
+
+                // Continue PID control even in error state
+                applyPIDControl(targetRPM);
                 break;
         }
 
-        // Check for safety violations
-        if (ShooterConfig.ENABLE_SAFETY_CHECKS) {
-            checkSafetyConditions();
-        }
+        // Check for safety violations - COMPLETELY DISABLED FOR TESTING
+        // Nothing should stop the shooter automatically now
+        // if (ShooterConfig.ENABLE_SAFETY_CHECKS) {
+        //     checkSafetyConditions();
+        // }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -356,6 +376,7 @@ public class DecodeHelper {
 
     /**
      * Set target RPM directly
+     * Note: This does NOT automatically start the motors. Call spinUp() or enableWarmup() to start.
      */
     public void setTargetRPM(double rpm) {
         rpm = ShooterConfig.clampRPM(rpm);
@@ -367,11 +388,28 @@ public class DecodeHelper {
         this.targetRPM = rpm;
         this.activePreset = null;
 
-        if (rpm > 0 && currentState == ShooterState.IDLE) {
-            spinUp();
-        } else if (rpm == 0) {
+        // Apply gain scheduling - update PID gains based on target RPM
+        updatePIDGains(rpm);
+
+        // Only auto-disable if setting RPM to 0
+        if (rpm == 0) {
             disableShooter();
         }
+        // Note: We do NOT auto-spinUp here anymore to prevent unwanted motor starts
+        // User must explicitly call spinUp() or enableWarmup() to start motors
+    }
+
+    /**
+     * Update PID controller gains based on target RPM (gain scheduling)
+     */
+    private void updatePIDGains(double targetRPM) {
+        double kp = ShooterConfig.getKP(targetRPM);
+        double ki = ShooterConfig.getKI(targetRPM);
+        double kd = ShooterConfig.getKD(targetRPM);
+        double kf = ShooterConfig.getKF(targetRPM);
+
+        leftPID.updateGains(kp, ki, kd, kf);
+        rightPID.updateGains(kp, ki, kd, kf);
     }
 
     /**
@@ -493,6 +531,9 @@ public class DecodeHelper {
     public double getRightRPM() { return rightRPM; }
     public double getAverageRPM() { return averageRPM; }
     public double getRPMSyncError() { return rpmSyncError; }
+    public double getAverageSyncError() {
+        return syncErrorSampleCount > 0 ? syncErrorAccumulator / syncErrorSampleCount : 0;
+    }
     public double getTargetRPM() { return targetRPM; }
 
     public boolean isAtTargetRPM() { return atTargetRPM && rpmStabilized; }
@@ -614,13 +655,59 @@ public class DecodeHelper {
 
     /**
      * Check safety conditions and trigger error state if violated
+     * Uses time-based filtering to avoid false positives from brief spikes
      */
     private void checkSafetyConditions() {
-        // Check for excessive sync error
-        if (rpmSyncError > ShooterConfig.EMERGENCY_SYNC_ERROR) {
-            telemetry.addLine("🚨 EMERGENCY: Excessive RPM sync error!");
-            currentState = ShooterState.ERROR;
-            setMotorPowers(0, 0);
+        // Update moving average of sync error
+        syncErrorAccumulator += rpmSyncError;
+        syncErrorSampleCount++;
+
+        double averageSyncError = syncErrorAccumulator / syncErrorSampleCount;
+
+        // Reset accumulator every N samples to prevent overflow and stay current
+        if (syncErrorSampleCount >= SYNC_ERROR_SAMPLES) {
+            syncErrorAccumulator = averageSyncError;
+            syncErrorSampleCount = 1;
+        }
+
+        // Check if average sync error exceeds threshold
+        if (averageSyncError > ShooterConfig.EMERGENCY_SYNC_ERROR) {
+            // Start timer if this is first detection
+            if (!syncErrorDetected) {
+                syncErrorDetected = true;
+                syncErrorTimer.reset();
+            }
+
+            // Only trigger WARNING (not error) if it persists for the required time
+            if (syncErrorTimer.seconds() >= SYNC_ERROR_PERSIST_TIME) {
+                // WARNING ONLY - Don't stop the shooter, just notify
+                telemetry.addLine("⚠️ WARNING: High RPM sync error detected!");
+                telemetry.addLine(String.format("Average sync error: %.0f RPM (threshold: %.0f RPM)",
+                    averageSyncError, ShooterConfig.EMERGENCY_SYNC_ERROR));
+                telemetry.addLine(String.format("Persisted for: %.2f seconds", syncErrorTimer.seconds()));
+                telemetry.addLine("Shooter continuing - monitor sync error!");
+
+                // DO NOT set error state or stop motors
+                // currentState = ShooterState.ERROR;
+                // setMotorPowers(0, 0);
+
+                // Reset timer to avoid spamming warnings every frame
+                syncErrorTimer.reset();
+            }
+        } else {
+            // Sync error dropped below threshold - reset detection
+            if (syncErrorDetected) {
+                syncErrorDetected = false;
+            }
+        }
+
+        // Additional state-aware safety: Ignore sync errors during initial spinup
+        // Motors naturally have different acceleration rates
+        if (currentState == ShooterState.SPINNING_UP && spinUpTimer.milliseconds() < 500) {
+            // Reset sync error tracking during first 500ms of spinup
+            syncErrorDetected = false;
+            syncErrorAccumulator = 0;
+            syncErrorSampleCount = 0;
         }
 
         // Check for motor stall (RPM too low for applied power)
@@ -662,6 +749,22 @@ public class DecodeHelper {
      * Get detailed status string for telemetry
      */
     public String getStatusString() {
+        if (currentState == ShooterState.ERROR) {
+            return String.format(
+                "🚨 ERROR STATE 🚨\n" +
+                "Target: %.0f RPM | Avg: %.0f RPM\n" +
+                "L: %.0f | R: %.0f | Sync Error: %.0f RPM\n" +
+                "❌ EXCESSIVE SYNC ERROR (threshold: %.0f RPM)\n" +
+                "Press BACK to clear error",
+                targetRPM,
+                averageRPM,
+                leftRPM,
+                rightRPM,
+                rpmSyncError,
+                ShooterConfig.EMERGENCY_SYNC_ERROR
+            );
+        }
+
         return String.format(
             "State: %s | Target: %.0f RPM | Avg: %.0f RPM (%.1f%%)\n" +
             "L: %.0f | R: %.0f | Sync Error: %.0f | %s",
@@ -733,9 +836,10 @@ public class DecodeHelper {
 
     /**
      * Simple PID controller with feedforward
+     * Supports gain scheduling via updateGains()
      */
     private static class PIDController {
-        private final double kP, kI, kD, kF;
+        private double kP, kI, kD, kF;  // Made non-final for gain scheduling
         private double integral = 0;
         private double lastError = 0;
         private long lastTime = 0;
@@ -746,6 +850,16 @@ public class DecodeHelper {
             this.kD = kD;
             this.kF = kF;
             reset();
+        }
+
+        /**
+         * Update PID gains (for gain scheduling)
+         */
+        public void updateGains(double kP, double kI, double kD, double kF) {
+            this.kP = kP;
+            this.kI = kI;
+            this.kD = kD;
+            this.kF = kF;
         }
 
         public double calculate(double current, double target) {

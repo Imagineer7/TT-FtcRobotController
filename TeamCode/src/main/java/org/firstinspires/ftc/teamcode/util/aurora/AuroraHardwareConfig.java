@@ -42,42 +42,48 @@ public class AuroraHardwareConfig {
     // ═══════════════════════════════════════════════════════════════════════
 
     // Drive System Motors
-    public static final String FRONT_LEFT_MOTOR = "frontLeft";
-    public static final String FRONT_RIGHT_MOTOR = "frontRight";
-    public static final String BACK_LEFT_MOTOR = "backLeft";
-    public static final String BACK_RIGHT_MOTOR = "backRight";
+    public static final String FRONT_LEFT_MOTOR = "Left Front";
+    public static final String FRONT_RIGHT_MOTOR = "Right Front";
+    public static final String BACK_LEFT_MOTOR = "Left Back";
+    public static final String BACK_RIGHT_MOTOR = "Right Back";
 
     // Shooter System
-    public static final String LEFT_SHOOTER_MOTOR = "shooter1";
-    public static final String RIGHT_SHOOTER_MOTOR = "shooter2";
-    public static final String FEED_SERVO_1 = "servo1";
-    public static final String FEED_SERVO_2 = "servo2";
-    public static final String LIGHT_SERVO = "light";  // Optional
+    public static final String LEFT_SHOOTER_MOTOR = "Shooter Front";
+    public static final String RIGHT_SHOOTER_MOTOR = "Shooter Back";
+    public static final String LIGHT_SERVO = "RGB Light Back";  // Optional
 
     // Turret System
-    public static final String TURRET_SERVO = "turret_servo";
+    public static final String TURRET_SERVO = "Turret Left";
 
     // Intake and Indexing System
-    public static final String FRONT_ROLLER_MOTOR = "frontRollerMotor";
-    public static final String BACK_ROLLER_MOTOR = "backRollerMotor";
-    public static final String FRONT_TRANSFER_SERVO = "frontTransferServo";
-    public static final String BACK_TRANSFER_SERVO = "backTransferServo";
-    public static final String TRANSFER_SERVO_CL = "transferServoCL";
-    public static final String TRANSFER_SERVO_CR = "transferServoCR";
-    
+    public static final String FRONT_ROLLER_MOTOR = "Top Intake Front";
+    public static final String BACK_ROLLER_MOTOR = "Top Intake Back";
+    public static final String FRONT_BOTTOM_INTAKE_SERVO = "Bottom intake Front";  // Assists front roller (opposite direction)
+    public static final String BACK_BOTTOM_INTAKE_SERVO = "Bottom intake Back";    // Assists back roller (opposite direction)
+
+    // Transfer System Servos
+    public static final String FRONT_TRANSFER_SERVO = "Transfer System Front";
+    public static final String BACK_TRANSFER_SERVO = "Transfer System Back";
+    public static final String TRANSFER_SERVO_CL = "Uptake Transfer Left";
+    public static final String TRANSFER_SERVO_CR = "Uptake Transfer Right";
+
+    // Injector System (moves artifacts between transfer system and center storage)
+    public static final String INJECTOR_SERVO_LEFT = "Injector System Left";
+    public static final String INJECTOR_SERVO_RIGHT = "Injector System Right";
+
     // Artifact Detection Sensors
-    public static final String FRONT_DISTANCE_SENSOR = "frontDist";
-    public static final String BACK_DISTANCE_SENSOR = "backDist";
-    public static final String FRONT_LEFT_COLOR_SENSOR = "frontLeftColor";
-    public static final String FRONT_RIGHT_COLOR_SENSOR = "frontRightColor";
-    public static final String BACK_RIGHT_COLOR_SENSOR = "backRightColor";
-    public static final String LEFT_RIGHT_COLOR_SENSOR = "leftRightColor";
-    public static final String FRONT_CENTER_COLOR_SENSOR = "frontCenterColor";
-    public static final String BACK_CENTER_COLOR_SENSOR = "backCenterColor";
+    public static final String FRONT_DISTANCE_SENSOR = "Laser Sensor Front";
+    public static final String BACK_DISTANCE_SENSOR = "Laser Sensor Back";
+    public static final String FRONT_LEFT_COLOR_SENSOR = "Color Sensor Left Front";
+    public static final String FRONT_RIGHT_COLOR_SENSOR = "Color Sensor Right Front";
+    public static final String BACK_RIGHT_COLOR_SENSOR = "Color Sensor Right Back";
+    public static final String LEFT_RIGHT_COLOR_SENSOR = "Color Sensor Left Back";
+    public static final String FRONT_CENTER_COLOR_SENSOR = "Color Sensor Front";
+    public static final String BACK_CENTER_COLOR_SENSOR = "Color Sensor Back";
 
     // Sensors
     public static final String IMU_SENSOR = "imu";
-    public static final String ODOMETRY_COMPUTER = "odo";
+    public static final String ODOMETRY_COMPUTER = "Odometry Pinpoint Computer";
 
     // ═══════════════════════════════════════════════════════════════════════
     // HARDWARE CONFIGURATION PARAMETERS
@@ -116,8 +122,6 @@ public class AuroraHardwareConfig {
     // Shooter System
     private DcMotor leftShooterMotor;
     private DcMotor rightShooterMotor;
-    private CRServo feedServo1;
-    private CRServo feedServo2;
     private Servo lightServo;  // Optional
 
     // Turret System
@@ -126,10 +130,14 @@ public class AuroraHardwareConfig {
     // Intake and Indexing System
     private DcMotor frontRollerMotor;
     private DcMotor backRollerMotor;
+    private CRServo frontBottomIntakeServo;  // Assists front roller (opposite direction)
+    private CRServo backBottomIntakeServo;   // Assists back roller (opposite direction)
     private CRServo frontTransferServo;
     private CRServo backTransferServo;
     private CRServo transferServoCL;
     private CRServo transferServoCR;
+    private CRServo injectorServoLeft;       // Moves artifacts between transfer and center storage
+    private CRServo injectorServoRight;      // Moves artifacts between transfer and center storage
 
     // Artifact Detection Sensors
     // goBILDA Laser Distance Sensors (Analog Mode: 0-3.3V = 0-1000mm)
@@ -282,15 +290,11 @@ public class AuroraHardwareConfig {
             // Note: Motor directions are configured by DecodeHelper using ShooterConfig
             // Do not set directions here to avoid conflicts
 
-            leftShooterMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-            rightShooterMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            leftShooterMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            rightShooterMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
             leftShooterMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
             rightShooterMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
-            // Initialize feed servos
-            feedServo1 = hardwareMap.get(CRServo.class, FEED_SERVO_1);
-            feedServo2 = hardwareMap.get(CRServo.class, FEED_SERVO_2);
 
             // Initialize optional light servo
             try {
@@ -353,11 +357,19 @@ public class AuroraHardwareConfig {
             frontRollerMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             backRollerMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
+            // Initialize bottom intake assist servos (run opposite direction of main rollers)
+            frontBottomIntakeServo = hardwareMap.get(CRServo.class, FRONT_BOTTOM_INTAKE_SERVO);
+            backBottomIntakeServo = hardwareMap.get(CRServo.class, BACK_BOTTOM_INTAKE_SERVO);
+
             // Initialize transfer servos (CRServos - Continuous Rotation)
             frontTransferServo = hardwareMap.get(CRServo.class, FRONT_TRANSFER_SERVO);
             backTransferServo = hardwareMap.get(CRServo.class, BACK_TRANSFER_SERVO);
             transferServoCL = hardwareMap.get(CRServo.class, TRANSFER_SERVO_CL);
             transferServoCR = hardwareMap.get(CRServo.class, TRANSFER_SERVO_CR);
+
+            // Initialize injector servos (move artifacts between transfer system and center storage)
+            injectorServoLeft = hardwareMap.get(CRServo.class, INJECTOR_SERVO_LEFT);
+            injectorServoRight = hardwareMap.get(CRServo.class, INJECTOR_SERVO_RIGHT);
 
             // Initialize distance sensors (goBILDA Laser Distance Sensors in analog mode)
             // These sensors output 0-3.3V corresponding to 0-1000mm distance
@@ -509,8 +521,6 @@ public class AuroraHardwareConfig {
     // Shooter System
     public DcMotor getLeftShooterMotor() { return leftShooterMotor; }
     public DcMotor getRightShooterMotor() { return rightShooterMotor; }
-    public CRServo getFeedServo1() { return feedServo1; }
-    public CRServo getFeedServo2() { return feedServo2; }
     public Servo getLightServo() { return lightServo; }  // May be null
 
     // Turret System
@@ -519,10 +529,14 @@ public class AuroraHardwareConfig {
     // Intake and Indexing System
     public DcMotor getFrontRollerMotor() { return frontRollerMotor; }
     public DcMotor getBackRollerMotor() { return backRollerMotor; }
+    public CRServo getFrontBottomIntakeServo() { return frontBottomIntakeServo; }
+    public CRServo getBackBottomIntakeServo() { return backBottomIntakeServo; }
     public CRServo getFrontTransferServo() { return frontTransferServo; }
     public CRServo getBackTransferServo() { return backTransferServo; }
     public CRServo getTransferServoCL() { return transferServoCL; }
     public CRServo getTransferServoCR() { return transferServoCR; }
+    public CRServo getInjectorServoLeft() { return injectorServoLeft; }
+    public CRServo getInjectorServoRight() { return injectorServoRight; }
 
     // Artifact Detection Sensors
     public AnalogInput getFrontDistanceSensor() { return frontDistanceSensor; }
@@ -638,18 +652,35 @@ public class AuroraHardwareConfig {
     }
 
     /**
-     * Stop all motors (emergency stop)
+     * Stop all motors and servos (emergency stop)
      */
     public void stopAllMotors() {
+        // Stop drive motors
         if (frontLeftMotor != null) frontLeftMotor.setPower(0);
         if (frontRightMotor != null) frontRightMotor.setPower(0);
         if (backLeftMotor != null) backLeftMotor.setPower(0);
         if (backRightMotor != null) backRightMotor.setPower(0);
+
+        // Stop shooter motors
         if (leftShooterMotor != null) leftShooterMotor.setPower(0);
         if (rightShooterMotor != null) rightShooterMotor.setPower(0);
-        if (feedServo1 != null) feedServo1.setPower(0);
-        if (feedServo2 != null) feedServo2.setPower(0);
+
+        // Stop intake rollers
         if (frontRollerMotor != null) frontRollerMotor.setPower(0);
         if (backRollerMotor != null) backRollerMotor.setPower(0);
+
+        // Stop bottom intake servos
+        if (frontBottomIntakeServo != null) frontBottomIntakeServo.setPower(0);
+        if (backBottomIntakeServo != null) backBottomIntakeServo.setPower(0);
+
+        // Stop transfer servos
+        if (frontTransferServo != null) frontTransferServo.setPower(0);
+        if (backTransferServo != null) backTransferServo.setPower(0);
+        if (transferServoCL != null) transferServoCL.setPower(0);
+        if (transferServoCR != null) transferServoCR.setPower(0);
+
+        // Stop injector servos
+        if (injectorServoLeft != null) injectorServoLeft.setPower(0);
+        if (injectorServoRight != null) injectorServoRight.setPower(0);
     }
 }

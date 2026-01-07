@@ -116,7 +116,7 @@ public class TurretTestOpMode extends LinearOpMode {
         // Get direct hardware servo access for manual calibration
         // We'll use continuous rotation mode for calibration
         try {
-            hardwareServo = hardwareMap.get(com.qualcomm.robotcore.hardware.CRServo.class, "turret_servo");
+            hardwareServo = hardwareMap.get(com.qualcomm.robotcore.hardware.CRServo.class, "turretServo");
             telemetry.addLine("✅ Hardware servo access obtained (CR mode)");
         } catch (Exception e) {
             telemetry.addLine("⚠️ Could not access hardware servo");
@@ -151,14 +151,24 @@ public class TurretTestOpMode extends LinearOpMode {
 
             // Normal controls (only when not calibrating)
             if (calibrationState == CalibrationState.IDLE) {
-                // Position mode direct control with right trigger (for 300° servo)
-                // Right trigger controls full 0-300° range
+                // Direct position control with right trigger (0.0-1.0 servo position)
+                // This tests setServoPositionDirect() method
                 if (gamepad1.right_trigger >= 0.05) {
-                    // Map trigger to 0-300° range (trigger is already 0.0 to 1.0)
-                    double targetAngle = gamepad1.right_trigger * 300.0;
+                    turret.setServoPositionDirect(gamepad1.right_trigger);
+                }
+                // Angle control with left trigger (tests setAngle() method)
+                // For 5-turn mode: 0.5 trigger = 0°, 0.0 = -308.5°, 1.0 = +308.5°
+                else if (gamepad1.left_trigger >= 0.05) {
+                    // Map trigger to full turret angle range (centered at 0.5)
+                    // 5-turn: ±308.5° range
+                    // 2.25-turn: ±138.5° range
+                    // 300°: ±51.5° range
+                    double maxAngle = turret.getMode() == Turret.TurretMode.POSITION_MODE_5TURN ? 308.5 :
+                                     turret.getMode() == Turret.TurretMode.POSITION_MODE_2_25TURN ? 138.5 : 51.5;
+                    double targetAngle = (gamepad1.left_trigger - 0.5) * 2.0 * maxAngle;
                     turret.setAngle(targetAngle);
                 }
-                // Only use other controls if trigger is not being used
+                // Only use other controls if triggers are not being used
                 else if (gamepad1.dpad_up) {
                     turret.setToForward();
                     telemetry.addLine("→ Facing FORWARD");
@@ -376,21 +386,40 @@ public class TurretTestOpMode extends LinearOpMode {
         telemetry.addData("Current Angle", "%.1f°", turret.getCurrentAngle());
         telemetry.addData("Target Angle", "%.1f°", turret.getTargetAngle());
         telemetry.addData("Error", "%.1f°", turret.getAngleError());
+        telemetry.addData("Servo Position", "%.3f", turret.getServoPosition());
         telemetry.addData("At Target", turret.isAtTarget() ? "✅ YES" : "⚠️ NO");
         telemetry.addLine();
+
         telemetry.addLine("───────────────────────────────────");
         telemetry.addLine("📊 TRIGGER INPUT");
         telemetry.addLine("───────────────────────────────────");
-        telemetry.addData("Right Trigger", "%.3f (%.1f°)", gamepad1.right_trigger, gamepad1.right_trigger * 300.0);
+
+        // Calculate angle range based on mode
+        double maxAngle = turret.getMode() == Turret.TurretMode.POSITION_MODE_5TURN ? 308.5 :
+                         turret.getMode() == Turret.TurretMode.POSITION_MODE_2_25TURN ? 138.5 : 51.5;
+
+        // Right trigger - direct position control
+        telemetry.addData("Right Trigger", "%.3f (pos)", gamepad1.right_trigger);
+        telemetry.addLine("  Direct servo position 0.0-1.0");
+
+        // Left trigger - angle control
+        double leftTriggerAngle = (gamepad1.left_trigger - 0.5) * 2.0 * maxAngle;
+        telemetry.addData("Left Trigger", "%.3f (%.1f°)", gamepad1.left_trigger, leftTriggerAngle);
+        telemetry.addLine(String.format("  Angle: 0.0=%.1f°, 0.5=0°, 1.0=+%.1f°", -maxAngle, maxAngle));
         telemetry.addLine();
 
         telemetry.addLine("───────────────────────────────────");
         telemetry.addLine("🎮 CONTROLS");
         telemetry.addLine("───────────────────────────────────");
-        telemetry.addLine("RIGHT TRIGGER: Direct position (0-300°)");
-        telemetry.addLine("  Not pressed = 0°");
-        telemetry.addLine("  Half pressed = 150°");
-        telemetry.addLine("  Full pressed = 300°");
+        telemetry.addLine("RIGHT TRIGGER: Direct position (0.0-1.0)");
+        telemetry.addLine("  Tests setServoPositionDirect()");
+        telemetry.addLine("  Raw servo position control");
+        telemetry.addLine();
+        telemetry.addLine("LEFT TRIGGER: Angle control");
+        telemetry.addLine("  Tests setAngle() method");
+        telemetry.addLine("  0.0 = max negative, 0.5 = 0°, 1.0 = max positive");
+        telemetry.addLine(String.format("  Range: ±%.1f° (centered)", maxAngle));
+        telemetry.addLine();
         telemetry.addLine("D-Pad: Preset positions");
         telemetry.addLine("Right Stick X: Manual rotation");
         telemetry.addLine("A/B: 45°/-45° angles");

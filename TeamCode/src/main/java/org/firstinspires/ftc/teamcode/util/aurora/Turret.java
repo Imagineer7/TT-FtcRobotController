@@ -102,6 +102,20 @@ Direction with Increasing PWM Signal 	Clockwise
 //Robot configuration has the servo as "turret_servo".
 //Depending on the mode set in the code, initialize the servo accordingly.
 
+/*
+With an Average Radio System:
+2.25 Turns (810°)
+Your average transmitter and receiver will output a relatively narrow PWM signal range.
+
+Radio System + Travel Tuner:
+5 Turns (1800°)
+Adding a Servo Travel Tuner to your radio system setup will allow you to achieve wide PWM signal ranges.
+
+Wide Signal Controllers:
+5 Turns (1800°)
+Controllers such as Arduinos, and Raspberry Pi servo hats can usually send a wide signal.
+ */
+
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -121,7 +135,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  *
  * Supported Servo Modes:
  * - POSITION_MODE_300: Standard 300° servo (limited to ~103° turret rotation)
- * - POSITION_MODE_5TURN: 5-turn 1800° servo (full 360° turret rotation)
+ * - POSITION_MODE_2_25TURN: 2.25-turn 810° servo without travel tuner (~277° turret rotation)
+ * - POSITION_MODE_5TURN: 5-turn 1800° position servo with travel tuner (full 360° turret rotation)
  * - CONTINUOUS_ROTATION: CR servo with time-based position estimation
  */
 public class Turret {
@@ -134,20 +149,21 @@ public class Turret {
      * Turret servo operating mode
      */
     public enum TurretMode {
-        POSITION_MODE_300,      // Standard 300° position servo (limited rotation)
-        POSITION_MODE_5TURN,    // 5-turn 1800° position servo (full rotation)
-        CONTINUOUS_ROTATION     // Continuous rotation with time-based tracking
+        POSITION_MODE_300,       // Standard 300° position servo (limited rotation)
+        POSITION_MODE_2_25TURN,  // 2.25-turn 810° servo without travel tuner (~277° turret rotation)
+        POSITION_MODE_5TURN,     // 5-turn 1800° position servo with travel tuner (full rotation)
+        CONTINUOUS_ROTATION      // Continuous rotation with time-based tracking
     }
 
     /** CONFIGURE THIS: Set the mode for your servo type */
-    private static final TurretMode SERVO_MODE = TurretMode.POSITION_MODE_300;
+    private static final TurretMode SERVO_MODE = TurretMode.POSITION_MODE_5TURN;
 
     // ═══════════════════════════════════════════════════════════════════════
     // HARDWARE CONSTANTS
     // ═══════════════════════════════════════════════════════════════════════
 
     /** Servo device name in robot configuration */
-    public static final String TURRET_SERVO_NAME = "turret_servo";
+    public static final String TURRET_SERVO_NAME = "Turret Left";
 
     /** Gear ratio: turret teeth / servo teeth */
     private static final double GEAR_RATIO = 108.0 / 37.0; // = 2.92
@@ -157,10 +173,12 @@ public class Turret {
 
     /** Maximum servo travel in each mode */
     private static final double SERVO_MAX_POSITION_300 = 300.0;
+    private static final double SERVO_MAX_POSITION_2_25TURN = 810.0;  // 2.25 turns without travel tuner
     private static final double SERVO_MAX_POSITION_5TURN = 1800.0;
 
     /** Maximum turret rotation in each mode */
     private static final double MAX_TURRET_ANGLE_300 = SERVO_MAX_POSITION_300 / GEAR_RATIO; // ~103°
+    private static final double MAX_TURRET_ANGLE_2_25TURN = SERVO_MAX_POSITION_2_25TURN / GEAR_RATIO; // ~277°
     private static final double MAX_TURRET_ANGLE_5TURN = SERVO_MAX_POSITION_5TURN / GEAR_RATIO; // ~617°
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -294,10 +312,15 @@ public class Turret {
      */
     private void updatePositionServoTracking() {
         // Position servos handle movement automatically
-        // Just sync our tracking with actual servo position
+        // Sync our tracking with actual servo position
         double servoPosition = positionServo.getPosition();
         double servoDegrees = servoPosition * getMaxServoTravel();
-        currentTurretAngle = servoDegreesToTurretDegrees(servoDegrees);
+
+        // Account for centering offset
+        double centerServoDegrees = getMaxServoTravel() / 2.0;
+        double offsetServoDegrees = servoDegrees - centerServoDegrees;
+
+        currentTurretAngle = servoDegreesToTurretDegrees(offsetServoDegrees);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -331,8 +354,21 @@ public class Turret {
      * Set angle using position servo
      */
     private void setAnglePosition(double turretAngle) {
+        // Convert turret angle to servo degrees
         double servoDegrees = turretDegreesToServoDegrees(turretAngle);
-        double servoPosition = servoDegrees / getMaxServoTravel();
+
+        // Center the servo position around 0.5 for symmetrical control
+        // This allows equal rotation in both directions from center
+        double maxTravel = getMaxServoTravel();
+        double centerServoDegrees = maxTravel / 2.0;
+        double offsetServoDegrees = servoDegrees + centerServoDegrees;
+
+        // Convert to 0.0-1.0 servo position
+        double servoPosition = offsetServoDegrees / maxTravel;
+
+        // Clamp to valid range (should already be valid from clampAngle, but safety check)
+        servoPosition = Math.max(0.0, Math.min(1.0, servoPosition));
+
         positionServo.setPosition(servoPosition);
         currentTurretAngle = turretAngle;
     }
@@ -425,6 +461,36 @@ public class Turret {
             double movement = power * 5.0; // degrees per update
             setAngle(currentTurretAngle + movement);
         }
+    }
+
+    /**
+     * Set servo position directly using SDK's setPosition() (position servo modes only)
+     * This bypasses all angle calculations and tracking - raw servo control.
+     *
+     * WARNING: This method should only be used for calibration or testing.
+     * For normal operation, use setAngle() instead.
+     *
+     * @param position Raw servo position (0.0 to 1.0)
+     * @return true if command accepted, false if in continuous rotation mode or not initialized
+     */
+    public boolean setServoPositionDirect(double position) {
+        if (!initialized) {
+            log("ERROR: Cannot set servo position - not initialized");
+            return false;
+        }
+
+        if (SERVO_MODE == TurretMode.CONTINUOUS_ROTATION) {
+            log("ERROR: Cannot set position directly in continuous rotation mode");
+            return false;
+        }
+
+        // Clamp position to valid range
+        double clampedPosition = Math.max(0.0, Math.min(1.0, position));
+
+        // Direct SDK call - no tracking updates
+        positionServo.setPosition(clampedPosition);
+
+        return true;
     }
 
     /**
@@ -523,6 +589,17 @@ public class Turret {
         return targetTurretAngle - currentTurretAngle;
     }
 
+    /**
+     * Get current raw servo position (position modes only)
+     * @return Servo position 0.0-1.0, or -1.0 if not in position mode
+     */
+    public double getServoPosition() {
+        if (SERVO_MODE == TurretMode.CONTINUOUS_ROTATION || positionServo == null) {
+            return -1.0;
+        }
+        return positionServo.getPosition();
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // CONFIGURATION METHODS
     // ═══════════════════════════════════════════════════════════════════════
@@ -604,9 +681,15 @@ public class Turret {
      * Get maximum servo travel for current mode
      */
     private double getMaxServoTravel() {
-        return (SERVO_MODE == TurretMode.POSITION_MODE_5TURN)
-            ? SERVO_MAX_POSITION_5TURN
-            : SERVO_MAX_POSITION_300;
+        switch (SERVO_MODE) {
+            case POSITION_MODE_5TURN:
+                return SERVO_MAX_POSITION_5TURN;
+            case POSITION_MODE_2_25TURN:
+                return SERVO_MAX_POSITION_2_25TURN;
+            case POSITION_MODE_300:
+            default:
+                return SERVO_MAX_POSITION_300;
+        }
     }
 
     /**
@@ -617,6 +700,8 @@ public class Turret {
             return 360.0; // Full rotation
         } else if (SERVO_MODE == TurretMode.POSITION_MODE_5TURN) {
             return MAX_TURRET_ANGLE_5TURN;
+        } else if (SERVO_MODE == TurretMode.POSITION_MODE_2_25TURN) {
+            return MAX_TURRET_ANGLE_2_25TURN;
         } else {
             return MAX_TURRET_ANGLE_300;
         }

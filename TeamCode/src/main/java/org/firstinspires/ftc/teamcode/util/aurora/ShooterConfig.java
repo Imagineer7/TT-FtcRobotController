@@ -140,23 +140,45 @@ public class ShooterConfig {
     public static final double GEAR_RATIO = 1.0;
 
     // ═══════════════════════════════════════════════════════════════════════
-    // PID CONTROL PARAMETERS
+    // PID CONTROL PARAMETERS - GAIN SCHEDULING
     // ═══════════════════════════════════════════════════════════════════════
+    // Different gains for different RPM ranges to handle the wide operating range
 
-    /** PID coefficient: Proportional gain */
-    public static final double PID_KP = 0.0001;
+    // LOW RPM (Short Range: ~2800 RPM) - Less aggressive to prevent overshoot
+    public static final double PID_KP_LOW = 0.00012;   // Further reduced KP to stop oscillation
+    public static final double PID_KI_LOW = 0.00002;   // Lower KI to prevent overshoot
+    public static final double PID_KD_LOW = 0.0;       // Zero KD - flywheel provides natural damping
+    public static final double PID_KF_LOW = 0.00020;   // Lower feedforward
 
-    /** PID coefficient: Integral gain */
-    public static final double PID_KI = 0.00001;
+    // MID RPM (Mid Range: ~3500 RPM) - Balanced
+    public static final double PID_KP_MID = 0.00015;   // Reduced KP to bring down from 115% to target
+    public static final double PID_KI_MID = 0.00003;   // Moderate KI
+    public static final double PID_KD_MID = 0.0;       // Zero KD for stability
+    public static final double PID_KF_MID = 0.00020;   // Reduced feedforward to lower baseline power
 
-    /** PID coefficient: Derivative gain */
-    public static final double PID_KD = 0.0;
+    // HIGH RPM (Long Range: ~4400 RPM) - More aggressive to reach target
+    public static final double PID_KP_HIGH = 0.00025;  // Higher KP for long range
+    public static final double PID_KI_HIGH = 0.00004;  // Higher KI to eliminate undershoot
+    public static final double PID_KD_HIGH = 0.0;      // Zero KD for consistency (long range working fine)
+    public static final double PID_KF_HIGH = 0.00030;  // Higher feedforward
 
-    /** PID coefficient: Feedforward gain (velocity feedforward) */
-    public static final double PID_KF = 0.00015;
+    // RPM thresholds for gain scheduling
+    public static final double LOW_RPM_THRESHOLD = 3100;   // Below this = LOW gains
+    public static final double HIGH_RPM_THRESHOLD = 3800;  // Above this = HIGH gains
+    // Between thresholds = MID gains
+
+    // Legacy single-gain values (deprecated, use gain scheduling instead)
+    /** @deprecated Use gain scheduling based on RPM range */
+    public static final double PID_KP = PID_KP_MID;
+    /** @deprecated Use gain scheduling based on RPM range */
+    public static final double PID_KI = PID_KI_MID;
+    /** @deprecated Use gain scheduling based on RPM range */
+    public static final double PID_KD = PID_KD_MID;
+    /** @deprecated Use gain scheduling based on RPM range */
+    public static final double PID_KF = PID_KF_MID;
 
     /** Maximum integral accumulation (anti-windup) */
-    public static final double MAX_INTEGRAL = 0.3;
+    public static final double MAX_INTEGRAL = 0.5;
 
     /** Minimum power output (prevent stalling) */
     public static final double MIN_POWER = 0.0;
@@ -211,7 +233,7 @@ public class ShooterConfig {
      * Adjust these if motors spin the wrong direction
      * For counter-rotating flywheels, one should be FORWARD, one REVERSE
      */
-    public static final boolean REVERSE_LEFT_MOTOR = false;
+    public static final boolean REVERSE_LEFT_MOTOR = true;   // Changed: Shooter Front was spinning wrong direction
     public static final boolean REVERSE_RIGHT_MOTOR = true;
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -361,5 +383,62 @@ public class ShooterConfig {
      */
     public static double getWarmupRPM(double targetRPM) {
         return targetRPM * WARMUP_PERCENTAGE;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // GAIN SCHEDULING METHODS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Get appropriate KP gain based on target RPM
+     * Uses gain scheduling to handle wide RPM range
+     */
+    public static double getKP(double targetRPM) {
+        if (targetRPM < LOW_RPM_THRESHOLD) {
+            return PID_KP_LOW;
+        } else if (targetRPM > HIGH_RPM_THRESHOLD) {
+            return PID_KP_HIGH;
+        } else {
+            return PID_KP_MID;
+        }
+    }
+
+    /**
+     * Get appropriate KI gain based on target RPM
+     */
+    public static double getKI(double targetRPM) {
+        if (targetRPM < LOW_RPM_THRESHOLD) {
+            return PID_KI_LOW;
+        } else if (targetRPM > HIGH_RPM_THRESHOLD) {
+            return PID_KI_HIGH;
+        } else {
+            return PID_KI_MID;
+        }
+    }
+
+    /**
+     * Get appropriate KD gain based on target RPM
+     */
+    public static double getKD(double targetRPM) {
+        if (targetRPM < LOW_RPM_THRESHOLD) {
+            return PID_KD_LOW;
+        } else if (targetRPM > HIGH_RPM_THRESHOLD) {
+            return PID_KD_HIGH;
+        } else {
+            return PID_KD_MID;
+        }
+    }
+
+    /**
+     * Get appropriate KF gain based on target RPM
+     */
+    public static double getKF(double targetRPM) {
+        if (targetRPM < LOW_RPM_THRESHOLD) {
+            return PID_KF_LOW;
+        } else if (targetRPM > HIGH_RPM_THRESHOLD) {
+            return PID_KF_HIGH;
+        } else {
+            return PID_KF_MID;
+        }
     }
 }
