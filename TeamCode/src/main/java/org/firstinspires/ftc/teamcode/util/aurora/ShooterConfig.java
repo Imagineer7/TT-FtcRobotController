@@ -8,7 +8,7 @@ package org.firstinspires.ftc.teamcode.util.aurora;
 /**
  * ShooterConfig - Centralized configuration for shooter parameters
  *
- * This allows easy tuning without recompiling and supports multiple presets.
+ * This allows easy tuning and supports multiple presets.
  *
  * Hardware Specifications:
  * - 2x DC Motors with encoders (1:1 gear ratio)

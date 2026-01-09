@@ -64,8 +64,10 @@ public class AuroraHardwareConfig {
     // Transfer System Servos
     public static final String FRONT_TRANSFER_SERVO = "Transfer System Front";
     public static final String BACK_TRANSFER_SERVO = "Transfer System Back";
-    public static final String TRANSFER_SERVO_CL = "Uptake Transfer Left";
-    public static final String TRANSFER_SERVO_CR = "Uptake Transfer Right";
+
+    // Uptake System Servos (feed artifacts from center slot up into shooter)
+    public static final String UPTAKE_SERVO_L = "Uptake Transfer Left";
+    public static final String UPTAKE_SERVO_R = "Uptake Transfer Right";
 
     // Injector System (moves artifacts between transfer system and center storage)
     public static final String INJECTOR_SERVO_LEFT = "Injector System Left";
@@ -134,8 +136,8 @@ public class AuroraHardwareConfig {
     private CRServo backBottomIntakeServo;   // Assists back roller (opposite direction)
     private CRServo frontTransferServo;
     private CRServo backTransferServo;
-    private CRServo transferServoCL;
-    private CRServo transferServoCR;
+    private CRServo uptakeServoL;            // Feeds artifacts from center up into shooter
+    private CRServo uptakeServoR;            // Feeds artifacts from center up into shooter
     private CRServo injectorServoLeft;       // Moves artifacts between transfer and center storage
     private CRServo injectorServoRight;      // Moves artifacts between transfer and center storage
 
@@ -364,8 +366,10 @@ public class AuroraHardwareConfig {
             // Initialize transfer servos (CRServos - Continuous Rotation)
             frontTransferServo = hardwareMap.get(CRServo.class, FRONT_TRANSFER_SERVO);
             backTransferServo = hardwareMap.get(CRServo.class, BACK_TRANSFER_SERVO);
-            transferServoCL = hardwareMap.get(CRServo.class, TRANSFER_SERVO_CL);
-            transferServoCR = hardwareMap.get(CRServo.class, TRANSFER_SERVO_CR);
+
+            // Initialize uptake servos (feed artifacts from center up into shooter)
+            uptakeServoL = hardwareMap.get(CRServo.class, UPTAKE_SERVO_L);
+            uptakeServoR = hardwareMap.get(CRServo.class, UPTAKE_SERVO_R);
 
             // Initialize injector servos (move artifacts between transfer system and center storage)
             injectorServoLeft = hardwareMap.get(CRServo.class, INJECTOR_SERVO_LEFT);
@@ -533,8 +537,8 @@ public class AuroraHardwareConfig {
     public CRServo getBackBottomIntakeServo() { return backBottomIntakeServo; }
     public CRServo getFrontTransferServo() { return frontTransferServo; }
     public CRServo getBackTransferServo() { return backTransferServo; }
-    public CRServo getTransferServoCL() { return transferServoCL; }
-    public CRServo getTransferServoCR() { return transferServoCR; }
+    public CRServo getUptakeServoL() { return uptakeServoL; }
+    public CRServo getUptakeServoR() { return uptakeServoR; }
     public CRServo getInjectorServoLeft() { return injectorServoLeft; }
     public CRServo getInjectorServoRight() { return injectorServoRight; }
 
@@ -676,8 +680,10 @@ public class AuroraHardwareConfig {
         // Stop transfer servos
         if (frontTransferServo != null) frontTransferServo.setPower(0);
         if (backTransferServo != null) backTransferServo.setPower(0);
-        if (transferServoCL != null) transferServoCL.setPower(0);
-        if (transferServoCR != null) transferServoCR.setPower(0);
+
+        // Stop uptake servos
+        if (uptakeServoL != null) uptakeServoL.setPower(0);
+        if (uptakeServoR != null) uptakeServoR.setPower(0);
 
         // Stop injector servos
         if (injectorServoLeft != null) injectorServoLeft.setPower(0);

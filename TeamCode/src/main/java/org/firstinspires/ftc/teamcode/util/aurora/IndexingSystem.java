@@ -10,7 +10,7 @@ import java.util.List;
  *
  * This system manages the collection, storage, and firing of up to 3 artifacts using
  * a push-based mechanical indexing mechanism. The system respects physical constraints
- * where center transfer wheels do not contact artifacts directly.
+ * where injector servos move artifacts between transfer system and center storage.
  *
  * INDEXING RULES:
  * 1. First Artifact:
@@ -430,7 +430,7 @@ public class IndexingSystem {
     private void updateTransferring(long elapsedTime) {
         if (elapsedTime >= config.getTransferServoTimeMs() + config.getCenterAcceptTimeMs()) {
             // Return transfer servos to idle
-            setCenterTransferServos(false);
+            setInjectorServos(false);
             setIntakeTransferServo(lastIntakeSource, false);
             completeTransferToCenter();
         }
@@ -850,8 +850,8 @@ public class IndexingSystem {
      */
     private void updateFiring(long elapsedTime) {
         if (elapsedTime >= config.getFireFeedTimeMs()) {
-            // Return center transfer servos to idle
-            setCenterTransferServos(false);
+            // Return uptake servos to idle
+            setUptakeServos(false);
             completeFiring();
         }
     }
@@ -1155,7 +1155,7 @@ public class IndexingSystem {
      */
     private void setIntakeStorageMode(IntakeSource source) {
         // Run rollers at reduced speed to maintain artifact in storage
-        setIntakePower(source, config.getIntakeRollerPower() * 0.3); // 30% power in storage mode
+        setIntakePower(source, config.getIntakeRollerPower() * 0.5); // 50% power in storage mode
     }
     
     /**
@@ -1168,25 +1168,49 @@ public class IndexingSystem {
     }
 
     /**
-     * Set center transfer servo power (CRServos)
-     * These servos complete the move from intake transfer into center,
+     * Set injector servo power (CRServos)
+     * These servos move artifacts between transfer system and center storage,
+     * completing the move from intake transfer into center,
      * and also push artifacts out of center into an empty intake.
      * @param active true to activate transfer (run at power), false for idle (stop)
      */
-    private void setCenterTransferServos(boolean active) {
+    private void setInjectorServos(boolean active) {
         if (hardware == null) return;
 
         try {
             double power = active ? config.getTransferServoPower() : config.getTransferServoIdlePower();
 
-            if (hardware.getTransferServoCL() != null) {
-                hardware.getTransferServoCL().setPower(power);
+            if (hardware.getInjectorServoLeft() != null) {
+                hardware.getInjectorServoLeft().setPower(power);
             }
-            if (hardware.getTransferServoCR() != null) {
-                hardware.getTransferServoCR().setPower(power);
+            if (hardware.getInjectorServoRight() != null) {
+                hardware.getInjectorServoRight().setPower(power);
             }
         } catch (Exception e) {
-            setError("Failed to set center transfer servos: " + e.getMessage());
+            setError("Failed to set injector servos: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Set uptake servo power (CRServos)
+     * These servos feed artifacts from the center slot UP into the shooter.
+     * They are the only servos that can move an artifact sitting in center slot.
+     * @param active true to activate uptake (run at power), false for idle (stop)
+     */
+    private void setUptakeServos(boolean active) {
+        if (hardware == null) return;
+
+        try {
+            double power = active ? config.getTransferServoPower() : config.getTransferServoIdlePower();
+
+            if (hardware.getUptakeServoL() != null) {
+                hardware.getUptakeServoL().setPower(power);
+            }
+            if (hardware.getUptakeServoR() != null) {
+                hardware.getUptakeServoR().setPower(power);
+            }
+        } catch (Exception e) {
+            setError("Failed to set uptake servos: " + e.getMessage());
         }
     }
 
@@ -1218,7 +1242,8 @@ public class IndexingSystem {
      * Note: Rollers continue running in appropriate mode (don't stop completely)
      */
     private void resetAllServos() {
-        setCenterTransferServos(false); // Stop (power = 0)
+        setInjectorServos(false); // Stop (power = 0)
+        setUptakeServos(false); // Stop (power = 0)
         setIntakeTransferServo(IntakeSource.FRONT, false);
         setIntakeTransferServo(IntakeSource.BACK, false);
     }
@@ -1352,7 +1377,7 @@ public class IndexingSystem {
     /**
      * Execute hardware actions for collection state
      * Rollers continue running, intake transfer servo moves artifact to center,
-     * center servos accept and complete the transfer.
+     * injector servos accept and complete the transfer.
      */
     private void executeCollectionHardware() {
         // Intake rollers already running continuously (in collection mode)
@@ -1361,8 +1386,8 @@ public class IndexingSystem {
         // Activate intake transfer servo to move artifact from intake to center
         setIntakeTransferServo(lastIntakeSource, true);
         
-        // Activate center transfer servos to accept artifact from intake transfer
-        setCenterTransferServos(true);
+        // Activate injector servos to accept artifact from intake transfer
+        setInjectorServos(true);
     }
 
     /**
@@ -1375,7 +1400,7 @@ public class IndexingSystem {
         
         // Keep transfer servos active
         setIntakeTransferServo(lastIntakeSource, true);
-        setCenterTransferServos(true);
+        setInjectorServos(true);
     }
 
     /**
@@ -1400,13 +1425,13 @@ public class IndexingSystem {
         // Opposite intake transfer servo ready to receive
         setIntakeTransferServo(oppositeIntake, true);
         
-        // Center servos push artifact out to opposite intake
-        setCenterTransferServos(true);
+        // Injector servos push artifact out to opposite intake
+        setInjectorServos(true);
     }
 
     /**
      * Execute hardware actions for firing state
-     * Center servos feed artifact to shooter
+     * Uptake servos feed artifact up into shooter
      */
     private void executeFiringHardware() {
         // Check if shooter is ready
@@ -1422,8 +1447,8 @@ public class IndexingSystem {
             shooter.fire();
         }
 
-        // Center transfer servos feed artifact to shooter
-        setCenterTransferServos(true);
+        // Uptake servos feed artifact up into shooter
+        setUptakeServos(true);
     }
 
     // ═══════════════════════════════════════════════════════════════════════

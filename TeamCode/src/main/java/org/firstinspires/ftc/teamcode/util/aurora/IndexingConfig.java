@@ -19,32 +19,32 @@ public class IndexingConfig {
     // ═══════════════════════════════════════════════════════════════════════
 
     /** Time to run intake rollers to collect an artifact (seconds) */
-    private double intakeRollerTime = 0.5;
+    private double intakeRollerTime = 0.8;
 
     /** Power level for intake rollers (0.0 to 1.0) */
     private double intakeRollerPower = 0.8;
 
     /** Time to run intake rollers in reverse to eject (seconds) */
-    private double intakeEjectTime = 0.3;
+    private double intakeEjectTime = 0.8;
 
     /** Power level for intake ejection (-1.0 to 0.0) */
-    private double intakeEjectPower = -0.6;
+    private double intakeEjectPower = -0.8;
 
     // ═══════════════════════════════════════════════════════════════════════
     // TRANSFER SYSTEM TIMING PARAMETERS (seconds)
     // ═══════════════════════════════════════════════════════════════════════
 
     /** Time for transfer servo operation to move artifact to center (seconds) */
-    private double transferServoTime = 0.4;
+    private double transferServoTime = 1.2;
 
     /** Power for transfer servo when active - CRServo runs at this power (-1.0 to 1.0) */
-    private double transferServoPower = 0.8;
+    private double transferServoPower = 1.0;
 
     /** Idle power for transfer servo (0.0 = stopped) */
     private double transferServoIdlePower = 0.0;
 
     /** Time for center rollers to accept artifact during push (seconds) */
-    private double centerAcceptTime = 0.3;
+    private double centerAcceptTime = 0.8;
 
     /** Power for center rollers during artifact acceptance (0.0 to 1.0) */
     private double centerRollerPower = 0.7;
@@ -54,16 +54,16 @@ public class IndexingConfig {
     // ═══════════════════════════════════════════════════════════════════════
 
     /** Time for first artifact to settle in center storage (seconds) */
-    private double firstArtifactSettleTime = 0.2;
+    private double firstArtifactSettleTime = 0.5;
 
     /** Time for second artifact push operation (pushes first to opposite intake) (seconds) */
-    private double secondArtifactPushTime = 0.6;
+    private double secondArtifactPushTime = 1.0;
 
     /** Delay before starting push operation (seconds) */
-    private double pushStartDelay = 0.1;
+    private double pushStartDelay = 0.2;
 
     /** Time for artifact to fully enter storage intake (seconds) */
-    private double storageIntakeAcceptTime = 0.4;
+    private double storageIntakeAcceptTime = 0.8;
 
     // ═══════════════════════════════════════════════════════════════════════
     // FIRING SYSTEM TIMING PARAMETERS (seconds)
@@ -86,10 +86,10 @@ public class IndexingConfig {
     // ═══════════════════════════════════════════════════════════════════════
 
     /** Distance threshold for artifact detection (centimeters) - artifacts detected when distance < 10cm */
-    private double artifactDetectionDistance = 10.0;
+    private double artifactDetectionDistance = 5.0;
 
     /** Minimum time sensor must detect artifact before confirming (seconds) */
-    private double sensorDebounceTime = 0.05;
+    private double sensorDebounceTime = 0.1;
 
     /** Color sensor confidence threshold (0.0 to 1.0) */
     private double colorConfidenceThreshold = 0.6;
