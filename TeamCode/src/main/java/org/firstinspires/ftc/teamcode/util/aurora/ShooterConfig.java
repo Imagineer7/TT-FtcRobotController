@@ -33,9 +33,9 @@ public class ShooterConfig {
      * To enable rapid fire mode, set spinupTime to 0.0 when holding the shoot button.
      */
     public enum ShooterPreset {
-        LONG_RANGE("Long Range", 0.85, 4400, 1.0, 1.2),
-        MID_RANGE("Mid Range", 0.75, 3500, 0.6, 0.8),
-        SHORT_RANGE("Short Range", 1.0, 2800, 0.25, 0.8);
+        LONG_RANGE("Long Range", 0.85, 2800, 1.0, 1.2),
+        MID_RANGE("Mid Range", 0.75, 2300, 0.6, 0.8),
+        SHORT_RANGE("Short Range", 1.0, 2000, 0.25, 0.8);
 
         private final String name;
         private final double power;

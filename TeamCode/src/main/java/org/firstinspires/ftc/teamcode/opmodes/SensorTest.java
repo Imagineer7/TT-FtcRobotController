@@ -90,8 +90,11 @@ public class SensorTest extends LinearOpMode {
             hardware = new AuroraHardwareConfig(hardwareMap, telemetry);
             hardware.initialize();
 
+            // Give time to read initialization messages
+            sleep(1000);
+
             if (!hardware.isIndexingSystemInitialized()) {
-                telemetry.addLine("⚠️ WARNING: Some sensors may not be available");
+                telemetry.addLine("⚠️ WARNING: Indexing system failed to initialize");
             }
         } catch (Exception e) {
             telemetry.addLine("❌ Hardware initialization failed:");
@@ -100,33 +103,71 @@ public class SensorTest extends LinearOpMode {
             throw e;
         }
 
-        telemetry.addLine("✅ Hardware initialization complete!");
+        // DON'T clear telemetry - keep the initialization messages visible
         telemetry.addLine("");
+        telemetry.addLine("════════════════════════════════════");
+        telemetry.addLine("📊 DETAILED SENSOR STATUS:");
+        telemetry.addLine("════════════════════════════════════");
 
-        // Report sensor availability
-        telemetry.addLine("📊 SENSOR STATUS:");
-        telemetry.addData("Front Distance", hardware.getFrontDistanceSensor() != null ? "✓" : "✗ Missing");
-        telemetry.addData("Back Distance", hardware.getBackDistanceSensor() != null ? "✓" : "✗ Missing");
-        telemetry.addData("Front Left Color", hardware.getFrontLeftColorSensor() != null ? "✓" : "✗ Missing");
-        telemetry.addData("Front Right Color", hardware.getFrontRightColorSensor() != null ? "✓" : "✗ Missing");
-        telemetry.addData("Back Left Color", hardware.getLeftRightColorSensor() != null ? "✓" : "✗ Missing");
-        telemetry.addData("Back Right Color", hardware.getBackRightColorSensor() != null ? "✓" : "✗ Missing");
-        telemetry.addData("Center Front Color", hardware.getFrontCenterColorSensor() != null ? "✓" : "✗ Missing");
-        telemetry.addData("Center Back Color", hardware.getBackCenterColorSensor() != null ? "✓" : "✗ Missing");
-        telemetry.addLine("");
+        // Distance sensors
+        telemetry.addLine("\n📏 Distance Sensors:");
+        if (hardware.getFrontDistanceSensor() != null) {
+            telemetry.addLine("  ✅ Front Distance - OK");
+        } else {
+            telemetry.addLine("  ❌ Front Distance - MISSING");
+        }
 
-        // Show expected device names
-        telemetry.addLine("📝 EXPECTED DEVICE NAMES:");
-        telemetry.addLine("  Distance: 'Laser Sensor Front'");
-        telemetry.addLine("  Distance: 'Laser Sensor Back'");
-        telemetry.addLine("  Color: 'Color Sensor Left Front'");
-        telemetry.addLine("  Color: 'Color Sensor Right Front'");
-        telemetry.addLine("  Color: 'Color Sensor Left Back'");
-        telemetry.addLine("  Color: 'Color Sensor Right Back'");
-        telemetry.addLine("  Color: 'Color Sensor Front'");
-        telemetry.addLine("  Color: 'Color Sensor Back'");
+        if (hardware.getBackDistanceSensor() != null) {
+            telemetry.addLine("  ✅ Back Distance - OK");
+        } else {
+            telemetry.addLine("  ❌ Back Distance - MISSING");
+        }
+
+        // Color sensors
+        telemetry.addLine("\n🎨 Color Sensors (Gain=50):");
+        telemetry.addLine("  ⚠️ NOTE: Front Left & Back Right temporarily");
+        telemetry.addLine("     replaced with REV 2m distance sensors");
         telemetry.addLine("");
-        telemetry.addLine("Press [START] to begin");
+        if (hardware.getFrontLeftColorSensor() != null) {
+            telemetry.addLine("  ✅ Front Left - OK");
+        } else {
+            telemetry.addLine("  ⚠️ Front Left - TEMP: REV 2m Distance Sensor");
+        }
+
+        if (hardware.getFrontRightColorSensor() != null) {
+            telemetry.addLine("  ✅ Front Right - OK");
+        } else {
+            telemetry.addLine("  ❌ Front Right - MISSING");
+        }
+
+        if (hardware.getBackRightColorSensor() != null) {
+            telemetry.addLine("  ✅ Back Right - OK");
+        } else {
+            telemetry.addLine("  ⚠️ Back Right - TEMP: REV 2m Distance Sensor");
+        }
+
+        if (hardware.getLeftRightColorSensor() != null) {
+            telemetry.addLine("  ✅ Left Back - OK");
+        } else {
+            telemetry.addLine("  ❌ Left Back - MISSING");
+        }
+
+        if (hardware.getFrontCenterColorSensor() != null) {
+            telemetry.addLine("  ✅ Front Center - OK");
+        } else {
+            telemetry.addLine("  ❌ Front Center - MISSING");
+        }
+
+        if (hardware.getBackCenterColorSensor() != null) {
+            telemetry.addLine("  ✅ Back Center - OK");
+        } else {
+            telemetry.addLine("  ❌ Back Center - MISSING");
+        }
+
+        telemetry.addLine("");
+        telemetry.addLine("════════════════════════════════════");
+        telemetry.addLine("Press [START] to begin sensor testing");
+        telemetry.addLine("════════════════════════════════════");
         telemetry.update();
 
         waitForStart();

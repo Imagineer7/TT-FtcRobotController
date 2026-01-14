@@ -74,18 +74,18 @@ public class AuroraHardwareConfig {
     public static final String INJECTOR_SERVO_RIGHT = "Injector System Right";
 
     // Artifact Detection Sensors
-    public static final String FRONT_DISTANCE_SENSOR = "Laser Sensor Front";
-    public static final String BACK_DISTANCE_SENSOR = "Laser Sensor Back";
-    public static final String FRONT_LEFT_COLOR_SENSOR = "Color Sensor Left Front";
-    public static final String FRONT_RIGHT_COLOR_SENSOR = "Color Sensor Right Front";
-    public static final String BACK_RIGHT_COLOR_SENSOR = "Color Sensor Right Back";
-    public static final String LEFT_RIGHT_COLOR_SENSOR = "Color Sensor Left Back";
-    public static final String FRONT_CENTER_COLOR_SENSOR = "Color Sensor Front";
-    public static final String BACK_CENTER_COLOR_SENSOR = "Color Sensor Back";
+    public static final String FRONT_DISTANCE_SENSOR = "LaserSensorFront";
+    public static final String BACK_DISTANCE_SENSOR = "LaserSensorBack";
+    public static final String FRONT_LEFT_COLOR_SENSOR = "ColorSensorLeftFront";
+    public static final String FRONT_RIGHT_COLOR_SENSOR = "ColorSensorRightFront";
+    public static final String BACK_RIGHT_COLOR_SENSOR = "ColorSensorRightBack";
+    public static final String LEFT_RIGHT_COLOR_SENSOR = "ColorSensorLeftBack";
+    public static final String FRONT_CENTER_COLOR_SENSOR = "ColorSensorFront";
+    public static final String BACK_CENTER_COLOR_SENSOR = "ColorSensorBack";
 
     // Sensors
     public static final String IMU_SENSOR = "imu";
-    public static final String ODOMETRY_COMPUTER = "Odometry Pinpoint Computer";
+    public static final String ODOMETRY_COMPUTER = "OdometryPinpointComputer";
 
     // ═══════════════════════════════════════════════════════════════════════
     // HARDWARE CONFIGURATION PARAMETERS
@@ -342,6 +342,8 @@ public class AuroraHardwareConfig {
      * Initialize the intake and indexing system
      */
     private void initializeIndexingSystem() {
+        boolean motorsAndServosOk = true;
+
         try {
             // Initialize roller motors
             frontRollerMotor = hardwareMap.get(DcMotor.class, FRONT_ROLLER_MOTOR);
@@ -375,72 +377,108 @@ public class AuroraHardwareConfig {
             injectorServoLeft = hardwareMap.get(CRServo.class, INJECTOR_SERVO_LEFT);
             injectorServoRight = hardwareMap.get(CRServo.class, INJECTOR_SERVO_RIGHT);
 
-            // Initialize distance sensors (goBILDA Laser Distance Sensors in analog mode)
-            // These sensors output 0-3.3V corresponding to 0-1000mm distance
-            try {
-                frontDistanceSensor = hardwareMap.get(AnalogInput.class, FRONT_DISTANCE_SENSOR);
-            } catch (Exception e) {
-                frontDistanceSensor = null;
-                telemetry.addLine("  ⚠️ Front distance sensor not found (optional)");
-            }
-
-            try {
-                backDistanceSensor = hardwareMap.get(AnalogInput.class, BACK_DISTANCE_SENSOR);
-            } catch (Exception e) {
-                backDistanceSensor = null;
-                telemetry.addLine("  ⚠️ Back distance sensor not found (optional)");
-            }
-
-            // Initialize color sensors (REV Color Sensor V3 - optional, may not all be present)
-            try {
-                frontLeftColorSensor = hardwareMap.get(NormalizedColorSensor.class, FRONT_LEFT_COLOR_SENSOR);
-            } catch (Exception e) {
-                frontLeftColorSensor = null;
-                telemetry.addLine("  ⚠️ Front left color sensor not found (optional)");
-            }
-
-            try {
-                frontRightColorSensor = hardwareMap.get(NormalizedColorSensor.class, FRONT_RIGHT_COLOR_SENSOR);
-            } catch (Exception e) {
-                frontRightColorSensor = null;
-                telemetry.addLine("  ⚠️ Front right color sensor not found (optional)");
-            }
-
-            try {
-                backRightColorSensor = hardwareMap.get(NormalizedColorSensor.class, BACK_RIGHT_COLOR_SENSOR);
-            } catch (Exception e) {
-                backRightColorSensor = null;
-                telemetry.addLine("  ⚠️ Back right color sensor not found (optional)");
-            }
-
-            try {
-                leftRightColorSensor = hardwareMap.get(NormalizedColorSensor.class, LEFT_RIGHT_COLOR_SENSOR);
-            } catch (Exception e) {
-                leftRightColorSensor = null;
-                telemetry.addLine("  ⚠️ Left right color sensor not found (optional)");
-            }
-
-            try {
-                frontCenterColorSensor = hardwareMap.get(NormalizedColorSensor.class, FRONT_CENTER_COLOR_SENSOR);
-            } catch (Exception e) {
-                frontCenterColorSensor = null;
-                telemetry.addLine("  ⚠️ Front center color sensor not found (optional)");
-            }
-
-            try {
-                backCenterColorSensor = hardwareMap.get(NormalizedColorSensor.class, BACK_CENTER_COLOR_SENSOR);
-            } catch (Exception e) {
-                backCenterColorSensor = null;
-                telemetry.addLine("  ⚠️ Back center color sensor not found (optional)");
-            }
-
-            indexingSystemInitialized = true;
-            telemetry.addLine("  ✅ Indexing System");
-
         } catch (Exception e) {
-            indexingSystemInitialized = false;
+            motorsAndServosOk = false;
             indexingInitError = e.getMessage();
-            telemetry.addLine("  ❌ Indexing System: " + indexingInitError);
+            telemetry.addLine("  ❌ Indexing motors/servos: " + indexingInitError);
+        }
+
+        // Initialize distance sensors (goBILDA Laser Distance Sensors in analog mode)
+        // These sensors output 0-3.3V corresponding to 0-1000mm distance
+        // SEPARATE from motor/servo initialization so sensor failures don't break everything
+        try {
+            frontDistanceSensor = hardwareMap.get(AnalogInput.class, FRONT_DISTANCE_SENSOR);
+            telemetry.addLine("  ✅ Front distance sensor");
+        } catch (Exception e) {
+            frontDistanceSensor = null;
+            telemetry.addLine("  ⚠️ Front distance sensor: " + e.getMessage());
+        }
+
+        try {
+            backDistanceSensor = hardwareMap.get(AnalogInput.class, BACK_DISTANCE_SENSOR);
+            telemetry.addLine("  ✅ Back distance sensor");
+        } catch (Exception e) {
+            backDistanceSensor = null;
+            telemetry.addLine("  ⚠️ Back distance sensor: " + e.getMessage());
+        }
+
+        // Initialize color sensors (REV Color Sensor V3 - optional, may not all be present)
+        // IMPORTANT: Set gain to increase detection range (default is too low)
+        // REV Color Sensor V3 needs gain adjustment to detect colors at useful distances
+        // SEPARATE from motor/servo initialization so sensor failures don't break everything
+        // NOTE: Front Left and Back Right are temporarily replaced with REV 2m distance sensors
+        try {
+            frontLeftColorSensor = hardwareMap.get(NormalizedColorSensor.class, FRONT_LEFT_COLOR_SENSOR);
+            if (frontLeftColorSensor != null) {
+                frontLeftColorSensor.setGain(50);  // Increased gain for better detection range
+                telemetry.addLine("  ✅ Front left color sensor (gain=50)");
+            }
+        } catch (Exception e) {
+            frontLeftColorSensor = null;
+            telemetry.addLine("  ⚠️ Front left color sensor: " + e.getMessage() + " (temp: REV 2m distance)");
+        }
+
+        try {
+            frontRightColorSensor = hardwareMap.get(NormalizedColorSensor.class, FRONT_RIGHT_COLOR_SENSOR);
+            if (frontRightColorSensor != null) {
+                frontRightColorSensor.setGain(50);  // Increased gain for better detection range
+                telemetry.addLine("  ✅ Front right color sensor (gain=50)");
+            }
+        } catch (Exception e) {
+            frontRightColorSensor = null;
+            telemetry.addLine("  ⚠️ Front right color sensor: " + e.getMessage());
+        }
+
+        try {
+            backRightColorSensor = hardwareMap.get(NormalizedColorSensor.class, BACK_RIGHT_COLOR_SENSOR);
+            if (backRightColorSensor != null) {
+                backRightColorSensor.setGain(50);  // Increased gain for better detection range
+                telemetry.addLine("  ✅ Back right color sensor (gain=50)");
+            }
+        } catch (Exception e) {
+            backRightColorSensor = null;
+            telemetry.addLine("  ⚠️ Back right color sensor: " + e.getMessage() + " (temp: REV 2m distance)");
+        }
+
+        try {
+            leftRightColorSensor = hardwareMap.get(NormalizedColorSensor.class, LEFT_RIGHT_COLOR_SENSOR);
+            if (leftRightColorSensor != null) {
+                leftRightColorSensor.setGain(50);  // Increased gain for better detection range
+                telemetry.addLine("  ✅ Left back color sensor (gain=50)");
+            }
+        } catch (Exception e) {
+            leftRightColorSensor = null;
+            telemetry.addLine("  ⚠️ Left back color sensor: " + e.getMessage());
+        }
+
+        try {
+            frontCenterColorSensor = hardwareMap.get(NormalizedColorSensor.class, FRONT_CENTER_COLOR_SENSOR);
+            if (frontCenterColorSensor != null) {
+                frontCenterColorSensor.setGain(50);  // Increased gain for better detection range
+                telemetry.addLine("  ✅ Front center color sensor (gain=50)");
+            }
+        } catch (Exception e) {
+            frontCenterColorSensor = null;
+            telemetry.addLine("  ⚠️ Front center color sensor: " + e.getMessage());
+        }
+
+        try {
+            backCenterColorSensor = hardwareMap.get(NormalizedColorSensor.class, BACK_CENTER_COLOR_SENSOR);
+            if (backCenterColorSensor != null) {
+                backCenterColorSensor.setGain(50);  // Increased gain for better detection range
+                telemetry.addLine("  ✅ Back center color sensor (gain=50)");
+            }
+        } catch (Exception e) {
+            backCenterColorSensor = null;
+            telemetry.addLine("  ⚠️ Back center color sensor: " + e.getMessage());
+        }
+
+        // Mark system as initialized if motors and servos are OK
+        // Sensors are optional and their failure doesn't prevent system from being "initialized"
+        indexingSystemInitialized = motorsAndServosOk;
+
+        if (motorsAndServosOk) {
+            telemetry.addLine("  ✅ Indexing System (motors & servos OK)");
         }
     }
 
