@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.AnalogInput;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
+import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.Artifact;
 
 /**
@@ -408,34 +409,27 @@ public class SensorTest extends LinearOpMode {
 
     /**
      * Determine artifact color from RGB values
-     * Same logic as IndexingSystem
+     * Uses IndexingConfig RGB threshold method with measured values
      */
     private Artifact.Color determineArtifactColor(float red, float green, float blue) {
-        // Find dominant color
-        float max = Math.max(red, Math.max(green, blue));
+        // Use IndexingConfig for color detection with measured RGB thresholds
+        IndexingConfig config = new IndexingConfig();
+        String detectedColor = config.detectArtifactColor(red, green, blue);
 
-        // Check if reading is strong enough (confidence check)
-        if (max < colorConfidenceThreshold) {
-            return Artifact.Color.UNKNOWN;
-        }
-
-        // Determine color based on dominant channel
-        if (red > green && red > blue) {
-            // Red dominant - could be purple (red + blue)
-            if (blue > green * 0.5) {  // Purple has significant blue
+        if ("PURPLE".equals(detectedColor)) {
+            // Verify confidence meets minimum threshold
+            double confidence = config.calculateColorConfidence(red, green, blue, "PURPLE");
+            if (confidence >= config.getColorDetectionMinScore()) {
                 return Artifact.Color.PURPLE;
             }
-            return Artifact.Color.UNKNOWN;
-        } else if (green > red && green > blue) {
-            // Green dominant
-            return Artifact.Color.GREEN;
-        } else if (blue > red && blue > green) {
-            // Blue dominant - likely purple
-            if (red > green * 0.5) {  // Purple has significant red
-                return Artifact.Color.PURPLE;
+        } else if ("GREEN".equals(detectedColor)) {
+            // Verify confidence meets minimum threshold
+            double confidence = config.calculateColorConfidence(red, green, blue, "GREEN");
+            if (confidence >= config.getColorDetectionMinScore()) {
+                return Artifact.Color.GREEN;
             }
-            return Artifact.Color.UNKNOWN;
         }
+
 
         return Artifact.Color.UNKNOWN;
     }

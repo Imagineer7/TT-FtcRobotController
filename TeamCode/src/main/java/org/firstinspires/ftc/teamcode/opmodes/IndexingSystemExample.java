@@ -98,6 +98,10 @@ public class IndexingSystemExample extends LinearOpMode {
 
         waitForStart();
 
+        // Enable systems after start
+        indexingSystem.enable();
+        shooter.enable();
+
         // Main loop
         while (opModeIsActive()) {
             try {
@@ -120,6 +124,9 @@ public class IndexingSystemExample extends LinearOpMode {
         }
 
         // Cleanup
+        if (indexingSystem != null) {
+            indexingSystem.disable();
+        }
         if (shooter != null) {
             shooter.stop();
         }

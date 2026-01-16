@@ -56,26 +56,31 @@ public class AuroraHardwareConfig {
     public static final String TURRET_SERVO = "Turret Left";
 
     // Intake and Indexing System
-    public static final String FRONT_ROLLER_MOTOR = "Top Intake Front";
-    public static final String BACK_ROLLER_MOTOR = "Top Intake Back";
-    public static final String FRONT_BOTTOM_INTAKE_SERVO = "Bottom intake Front";  // Assists front roller (opposite direction)
-    public static final String BACK_BOTTOM_INTAKE_SERVO = "Bottom intake Back";    // Assists back roller (opposite direction)
+    public static final String FRONT_ROLLER_MOTOR = "TopIntakeFront";
+    public static final String BACK_ROLLER_MOTOR = "TopIntakeBack";
+    public static final String FRONT_BOTTOM_INTAKE_SERVO = "BottomIntakeFront";  // Assists front roller (opposite direction)
+    public static final String BACK_BOTTOM_INTAKE_SERVO = "BottomIntakeBack";    // Assists back roller (opposite direction)
 
     // Transfer System Servos
-    public static final String FRONT_TRANSFER_SERVO = "Transfer System Front";
-    public static final String BACK_TRANSFER_SERVO = "Transfer System Back";
+    public static final String FRONT_TRANSFER_SERVO = "TransferSystemFront";
+    public static final String BACK_TRANSFER_SERVO = "TransferSystemBack";
 
     // Uptake System Servos (feed artifacts from center slot up into shooter)
-    public static final String UPTAKE_SERVO_L = "Uptake Transfer Left";
-    public static final String UPTAKE_SERVO_R = "Uptake Transfer Right";
+    public static final String UPTAKE_SERVO_L = "UptakeTransferLeft";
+    public static final String UPTAKE_SERVO_R = "UptakeTransferRight";
 
     // Injector System (moves artifacts between transfer system and center storage)
-    public static final String INJECTOR_SERVO_LEFT = "Injector System Left";
-    public static final String INJECTOR_SERVO_RIGHT = "Injector System Right";
+    public static final String INJECTOR_SERVO_LEFT = "InjectorSystemLeft";
+    public static final String INJECTOR_SERVO_RIGHT = "InjectorSystemRight";
 
     // Artifact Detection Sensors
     public static final String FRONT_DISTANCE_SENSOR = "LaserSensorFront";
     public static final String BACK_DISTANCE_SENSOR = "LaserSensorBack";
+
+    // NEW: REV 2m Distance Sensors for enhanced artifact detection
+    public static final String FRONT_LEFT_DISTANCE_SENSOR = "DistSensorLeftFront";
+    public static final String BACK_RIGHT_DISTANCE_SENSOR = "DistSensorRightBack";
+
     public static final String FRONT_LEFT_COLOR_SENSOR = "ColorSensorLeftFront";
     public static final String FRONT_RIGHT_COLOR_SENSOR = "ColorSensorRightFront";
     public static final String BACK_RIGHT_COLOR_SENSOR = "ColorSensorRightBack";
@@ -145,10 +150,16 @@ public class AuroraHardwareConfig {
     // goBILDA Laser Distance Sensors (Analog Mode: 0-3.3V = 0-1000mm)
     private AnalogInput frontDistanceSensor;
     private AnalogInput backDistanceSensor;
+
+    // NEW: REV 2m Distance Sensors for enhanced artifact detection
+    // These face parallel with intake rollers, read ~25cm unless artifact present
+    private DistanceSensor frontLeftDistanceSensor;
+    private DistanceSensor backRightDistanceSensor;
+
     // REV Color Sensor V3 (Normalized RGB values 0-1)
-    private NormalizedColorSensor frontLeftColorSensor;
+    private NormalizedColorSensor frontLeftColorSensor;   // NOTE: Replaced with distance sensor
     private NormalizedColorSensor frontRightColorSensor;
-    private NormalizedColorSensor backRightColorSensor;
+    private NormalizedColorSensor backRightColorSensor;   // NOTE: Replaced with distance sensor
     private NormalizedColorSensor leftRightColorSensor;
     private NormalizedColorSensor frontCenterColorSensor;
     private NormalizedColorSensor backCenterColorSensor;
@@ -349,9 +360,9 @@ public class AuroraHardwareConfig {
             frontRollerMotor = hardwareMap.get(DcMotor.class, FRONT_ROLLER_MOTOR);
             backRollerMotor = hardwareMap.get(DcMotor.class, BACK_ROLLER_MOTOR);
 
-            // Set motor directions
-            frontRollerMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-            backRollerMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+            // Set motor directions - REVERSE to flip intake direction
+            frontRollerMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+            backRollerMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
             // Set zero power behavior
             frontRollerMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -377,10 +388,17 @@ public class AuroraHardwareConfig {
             injectorServoLeft = hardwareMap.get(CRServo.class, INJECTOR_SERVO_LEFT);
             injectorServoRight = hardwareMap.get(CRServo.class, INJECTOR_SERVO_RIGHT);
 
+
         } catch (Exception e) {
             motorsAndServosOk = false;
             indexingInitError = e.getMessage();
             telemetry.addLine("  ❌ Indexing motors/servos: " + indexingInitError);
+            telemetry.addLine("  Check Driver Station config for:");
+            telemetry.addLine("    TopIntakeFront, TopIntakeBack (motors)");
+            telemetry.addLine("    TransferSystemFront, TransferSystemBack");
+            telemetry.addLine("    UptakeTransferLeft, UptakeTransferRight");
+            telemetry.addLine("    InjectorSystemLeft, InjectorSystemRight");
+            telemetry.addLine("    BottomIntakeFront, BottomIntakeBack");
         }
 
         // Initialize distance sensors (goBILDA Laser Distance Sensors in analog mode)
@@ -400,6 +418,24 @@ public class AuroraHardwareConfig {
         } catch (Exception e) {
             backDistanceSensor = null;
             telemetry.addLine("  ⚠️ Back distance sensor: " + e.getMessage());
+        }
+
+        // Initialize NEW REV 2m Distance Sensors for enhanced artifact detection
+        // These sensors face parallel with intake rollers and provide ~25cm baseline reading
+        try {
+            frontLeftDistanceSensor = hardwareMap.get(DistanceSensor.class, FRONT_LEFT_DISTANCE_SENSOR);
+            telemetry.addLine("  ✅ Front left REV 2m distance sensor");
+        } catch (Exception e) {
+            frontLeftDistanceSensor = null;
+            telemetry.addLine("  ⚠️ Front left REV 2m distance sensor: " + e.getMessage());
+        }
+
+        try {
+            backRightDistanceSensor = hardwareMap.get(DistanceSensor.class, BACK_RIGHT_DISTANCE_SENSOR);
+            telemetry.addLine("  ✅ Back right REV 2m distance sensor");
+        } catch (Exception e) {
+            backRightDistanceSensor = null;
+            telemetry.addLine("  ⚠️ Back right REV 2m distance sensor: " + e.getMessage());
         }
 
         // Initialize color sensors (REV Color Sensor V3 - optional, may not all be present)
@@ -605,7 +641,39 @@ public class AuroraHardwareConfig {
         double volts = backDistanceSensor.getVoltage();
         return (volts / MAX_VOLTS) * MAX_DISTANCE_MM;
     }
-    
+
+    // NEW: REV 2m Distance Sensors for enhanced artifact detection
+    public DistanceSensor getFrontLeftDistanceSensor() { return frontLeftDistanceSensor; }
+    public DistanceSensor getBackRightDistanceSensor() { return backRightDistanceSensor; }
+
+    /**
+     * Get distance reading from front left REV 2m sensor in centimeters
+     * These sensors face parallel with intake rollers, ~25cm baseline when empty
+     * @return Distance in cm, or -1 if sensor not available
+     */
+    public double getFrontLeftDistanceCM() {
+        if (frontLeftDistanceSensor == null) return -1;
+        try {
+            return frontLeftDistanceSensor.getDistance(DistanceUnit.CM);
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
+    /**
+     * Get distance reading from back right REV 2m sensor in centimeters
+     * These sensors face parallel with intake rollers, ~25cm baseline when empty
+     * @return Distance in cm, or -1 if sensor not available
+     */
+    public double getBackRightDistanceCM() {
+        if (backRightDistanceSensor == null) return -1;
+        try {
+            return backRightDistanceSensor.getDistance(DistanceUnit.CM);
+        } catch (Exception e) {
+            return -1;
+        }
+    }
+
     public NormalizedColorSensor getFrontLeftColorSensor() { return frontLeftColorSensor; }
     public NormalizedColorSensor getFrontRightColorSensor() { return frontRightColorSensor; }
     public NormalizedColorSensor getBackRightColorSensor() { return backRightColorSensor; }

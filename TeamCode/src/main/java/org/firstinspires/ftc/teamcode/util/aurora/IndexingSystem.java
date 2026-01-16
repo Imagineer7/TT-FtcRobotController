@@ -106,6 +106,17 @@ public class IndexingSystem {
     private String lastError;
     private int errorCount;
 
+    // Color detection delay tracking
+    private long frontArtifactFirstDetected = 0;
+    private long backArtifactFirstDetected = 0;
+    private Artifact frontPendingArtifact = null;
+    private Artifact backPendingArtifact = null;
+
+    // Automatic detection state
+    private boolean autoDetectionEnabled = true;
+    private long lastSensorCheck = 0;
+    private static final long SENSOR_CHECK_INTERVAL = 50; // 50ms = 20Hz
+
     // ═══════════════════════════════════════════════════════════════════════
     // CONSTRUCTOR
     // ═══════════════════════════════════════════════════════════════════════
@@ -118,50 +129,130 @@ public class IndexingSystem {
      * @param telemetry The telemetry system for logging
      */
     public IndexingSystem(AuroraHardwareConfig hardware, IndexingConfig config, Shooter shooter, Telemetry telemetry) {
-        this.hardware = hardware;
-        this.config = config;
-        this.shooter = shooter;
-        this.telemetry = telemetry;
+        try {
+            this.hardware = hardware;
+            this.config = config;
+            this.shooter = shooter;
+            this.telemetry = telemetry;
 
-        this.currentState = SystemState.IDLE;
-        this.stateStartTime = System.currentTimeMillis();
+            this.currentState = SystemState.IDLE;
+            this.stateStartTime = System.currentTimeMillis();
 
-        this.artifacts = new ArrayList<>();
-        this.nextCollectionOrder = 1;
+            this.artifacts = new ArrayList<>();
+            this.nextCollectionOrder = 1;
 
-        this.artifactInCenter = null;
-        this.artifactInFrontIntake = null;
-        this.artifactInBackIntake = null;
-        this.lastIntakeSource = IntakeSource.UNKNOWN;
+            this.artifactInCenter = null;
+            this.artifactInFrontIntake = null;
+            this.artifactInBackIntake = null;
+            this.lastIntakeSource = IntakeSource.UNKNOWN;
 
-        this.operationStartTime = 0;
-        this.operationInProgress = false;
+            this.operationStartTime = 0;
+            this.operationInProgress = false;
 
-        this.plannedSecondShot = null;
-        this.plannedThirdShot = null;
+            this.plannedSecondShot = null;
+            this.plannedThirdShot = null;
 
-        this.lastError = "";
-        this.errorCount = 0;
-        
-        // Initialize hardware: Start rollers running continuously in collection mode
-        initializeHardware();
+            this.lastError = "";
+            this.errorCount = 0;
+
+            // Don't initialize hardware automatically - wait for enable() call
+            // This prevents motors from running during initialization phase
+
+            // Log successful initialization
+            if (telemetry != null && config != null && config.isDebugTelemetry()) {
+                telemetry.addLine("✅ IndexingSystem initialized successfully");
+            }
+        } catch (Exception e) {
+            // Log initialization error
+            if (telemetry != null) {
+                telemetry.addLine("❌ IndexingSystem init error: " + e.getMessage());
+                telemetry.update();
+            }
+            // Set safe defaults
+            this.currentState = SystemState.ERROR;
+            this.lastError = "Initialization failed: " + e.getMessage();
+            throw new RuntimeException("IndexingSystem initialization failed", e);
+        }
     }
     
     /**
      * Initialize hardware - start rollers running continuously
      */
     private void initializeHardware() {
-        // Both intakes start in collection mode (full power, rolling inward)
-        setIntakeCollectionMode(IntakeSource.FRONT);
-        setIntakeCollectionMode(IntakeSource.BACK);
-        
-        // All servos start in idle position
-        resetAllServos();
+        try {
+            // Both intakes start in collection mode (full power, rolling inward)
+            // These will gracefully handle missing motors
+            setIntakeCollectionMode(IntakeSource.FRONT);
+            setIntakeCollectionMode(IntakeSource.BACK);
+
+            // All servos start in idle position
+            // This will gracefully handle missing servos
+            resetAllServos();
+
+            if (telemetry != null && config != null && config.isDebugTelemetry()) {
+                // Count available hardware
+                int availableMotors = 0;
+                if (hardware != null) {
+                    if (hardware.getFrontRollerMotor() != null) availableMotors++;
+                    if (hardware.getBackRollerMotor() != null) availableMotors++;
+                }
+
+                int availableServos = 0;
+                if (hardware != null) {
+                    if (hardware.getInjectorServoLeft() != null) availableServos++;
+                    if (hardware.getInjectorServoRight() != null) availableServos++;
+                    if (hardware.getUptakeServoL() != null) availableServos++;
+                    if (hardware.getUptakeServoR() != null) availableServos++;
+                    if (hardware.getFrontTransferServo() != null) availableServos++;
+                    if (hardware.getBackTransferServo() != null) availableServos++;
+                }
+
+                telemetry.addLine(String.format("Hardware: %d motors, %d servos available",
+                    availableMotors, availableServos));
+            }
+
+        } catch (Exception e) {
+            setError("Hardware initialization failed: " + e.getMessage());
+            if (telemetry != null) {
+                telemetry.addLine("❌ Hardware init error: " + e.getMessage());
+            }
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
     // PUBLIC API METHODS
     // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Enable the indexing system - starts hardware operation
+     * Call this after initialization but before starting operation
+     */
+    public void enable() {
+        try {
+            initializeHardware();
+            if (telemetry != null && config != null && config.isDebugTelemetry()) {
+                telemetry.addLine("✅ IndexingSystem enabled successfully");
+            }
+        } catch (Exception e) {
+            setError("Enable failed: " + e.getMessage());
+            if (telemetry != null) {
+                telemetry.addLine("❌ IndexingSystem enable error: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Disable the indexing system - stops all motors and servos
+     * Call this when stopping the OpMode
+     */
+    public void disable() {
+        // Stop all intake motors
+        setIntakePower(IntakeSource.FRONT, 0.0);
+        setIntakePower(IntakeSource.BACK, 0.0);
+
+        // Stop all servos
+        resetAllServos();
+    }
 
     /**
      * Called when an artifact is detected at an intake
@@ -193,6 +284,187 @@ public class IndexingSystem {
         lastIntakeSource = source;
         startArtifactCollection(collectionArtifact);
         return true;
+    }
+
+    /**
+     * Called when an artifact is first detected at an intake - starts color detection delay
+     * This replaces the immediate onArtifactDetected call for better color readings
+     * @param source Which intake detected the artifact
+     * @return true if detection delay started
+     */
+    public boolean onArtifactFirstDetected(IntakeSource source) {
+        // Safety checks
+        if (getArtifactCount() >= IndexingConfig.MAX_ARTIFACTS) {
+            return false;
+        }
+
+        if (operationInProgress) {
+            return false;
+        }
+
+        // Detect color NOW while artifact is in front of sensor
+        Artifact.Color detectedColor = detectArtifactColor(source);
+
+        // Only proceed if we detected a valid color
+        if (detectedColor != Artifact.Color.PURPLE && detectedColor != Artifact.Color.GREEN) {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("🔍 " + source + ": No valid color detected, waiting...");
+            }
+            return false;
+        }
+
+        // Start color detection delay for the appropriate intake
+        // Store the detected color so we don't need to re-detect after delay
+        long currentTime = System.currentTimeMillis();
+
+        if (source == IntakeSource.FRONT) {
+            if (frontPendingArtifact == null) { // Only start if not already pending
+                frontArtifactFirstDetected = currentTime;
+                // Store the detected color in the pending artifact
+                frontPendingArtifact = new Artifact(detectedColor, Artifact.Location.UNKNOWN, 0);
+
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("🔍 FRONT: Detected " + detectedColor + " - waiting 0.8s...");
+                }
+            }
+        } else if (source == IntakeSource.BACK) {
+            if (backPendingArtifact == null) { // Only start if not already pending
+                backArtifactFirstDetected = currentTime;
+                // Store the detected color in the pending artifact
+                backPendingArtifact = new Artifact(detectedColor, Artifact.Location.UNKNOWN, 0);
+
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("🔍 BACK: Detected " + detectedColor + " - waiting 0.8s...");
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Called to cancel pending artifact detection (artifact removed before delay completed)
+     * @param source Which intake to cancel
+     */
+    public void cancelPendingArtifact(IntakeSource source) {
+        if (source == IntakeSource.FRONT) {
+            frontArtifactFirstDetected = 0;
+            frontPendingArtifact = null;
+            if (config.isDebugTelemetry()) {
+                telemetry.addLine("🔍 FRONT: Artifact removed before collection");
+            }
+        } else if (source == IntakeSource.BACK) {
+            backArtifactFirstDetected = 0;
+            backPendingArtifact = null;
+            if (config.isDebugTelemetry()) {
+                telemetry.addLine("🔍 BACK: Artifact removed before collection");
+            }
+        }
+    }
+
+    /**
+     * Check and update color detection delays - call this from your update loop
+     * This handles the 0.8-second delay before actually starting collection
+     */
+    public void updateColorDetectionDelays() {
+        long currentTime = System.currentTimeMillis();
+
+        // Check front intake delay
+        if (frontPendingArtifact != null) {
+            if (currentTime - frontArtifactFirstDetected >= config.getColorDetectionDelayMs()) {
+                // Delay complete - use the color that was detected when artifact first arrived
+                Artifact.Color detectedColor = frontPendingArtifact.getColor();
+
+                if (detectedColor != Artifact.Color.UNKNOWN) {
+                    Artifact finalArtifact = new Artifact(detectedColor, Artifact.Location.UNKNOWN, nextCollectionOrder);
+                    lastIntakeSource = IntakeSource.FRONT;
+
+                    // Clear pending state BEFORE starting collection
+                    frontPendingArtifact = null;
+                    frontArtifactFirstDetected = 0;
+
+                    // Start collection - this activates the transfer servos and injectors
+                    startArtifactCollection(finalArtifact);
+
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        telemetry.addLine("🔍 FRONT: Starting collection of " + detectedColor + " artifact");
+                    }
+                } else {
+                    // Color was unknown - shouldn't happen but handle gracefully
+                    frontPendingArtifact = null;
+                    frontArtifactFirstDetected = 0;
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        telemetry.addLine("🔍 FRONT: Collection cancelled - no valid color");
+                    }
+                }
+            }
+        }
+
+        // Check back intake delay
+        if (backPendingArtifact != null) {
+            if (currentTime - backArtifactFirstDetected >= config.getColorDetectionDelayMs()) {
+                // Delay complete - use the color that was detected when artifact first arrived
+                Artifact.Color detectedColor = backPendingArtifact.getColor();
+
+                if (detectedColor != Artifact.Color.UNKNOWN) {
+                    Artifact finalArtifact = new Artifact(detectedColor, Artifact.Location.UNKNOWN, nextCollectionOrder);
+                    lastIntakeSource = IntakeSource.BACK;
+
+                    // Clear pending state BEFORE starting collection
+                    backPendingArtifact = null;
+                    backArtifactFirstDetected = 0;
+
+                    // Start collection - this activates the transfer servos and injectors
+                    startArtifactCollection(finalArtifact);
+
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        telemetry.addLine("🔍 BACK: Starting collection of " + detectedColor + " artifact");
+                    }
+                } else {
+                    // Color was unknown - shouldn't happen but handle gracefully
+                    backPendingArtifact = null;
+                    backArtifactFirstDetected = 0;
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        telemetry.addLine("🔍 BACK: Collection cancelled - no valid color");
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Check if an intake has a pending artifact (waiting for color detection delay)
+     * @param source Which intake to check
+     * @return true if artifact is pending color detection
+     */
+    public boolean hasPendingArtifact(IntakeSource source) {
+        if (source == IntakeSource.FRONT) {
+            return frontPendingArtifact != null;
+        } else if (source == IntakeSource.BACK) {
+            return backPendingArtifact != null;
+        }
+        return false;
+    }
+
+    /**
+     * Get remaining color detection delay time for an intake
+     * @param source Which intake to check
+     * @return Remaining delay in milliseconds, or 0 if no pending artifact
+     */
+    public long getRemainingColorDelay(IntakeSource source) {
+        long currentTime = System.currentTimeMillis();
+
+        if (source == IntakeSource.FRONT && frontPendingArtifact != null) {
+            long elapsed = currentTime - frontArtifactFirstDetected;
+            long remaining = config.getColorDetectionDelayMs() - elapsed;
+            return Math.max(0, remaining);
+        } else if (source == IntakeSource.BACK && backPendingArtifact != null) {
+            long elapsed = currentTime - backArtifactFirstDetected;
+            long remaining = config.getColorDetectionDelayMs() - elapsed;
+            return Math.max(0, remaining);
+        }
+
+        return 0;
     }
 
     /**
@@ -276,31 +548,54 @@ public class IndexingSystem {
     public void update() {
         long currentTime = System.currentTimeMillis();
         long stateElapsedTime = currentTime - stateStartTime;
-        long operationElapsedTime = currentTime - operationStartTime;
 
-        // Check for operation timeout
-        if (operationInProgress && operationElapsedTime > config.getOperationTimeoutMs()) {
-            setError("Operation timeout in state: " + currentState);
-            resetToIdle();
-            return;
+        // Update color detection delays first
+        updateColorDetectionDelays();
+
+        // Handle automatic sensor monitoring and detection
+        if (autoDetectionEnabled) {
+            handleAutomaticDetection(currentTime);
         }
 
-        // State machine processing
+        // State machine processing FIRST (this may reset operationStartTime during state transitions)
         switch (currentState) {
             case COLLECTING:
-                updateCollecting(operationElapsedTime);
+                // Recalculate elapsed time for this specific state
+                long collectingElapsed = System.currentTimeMillis() - operationStartTime;
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addData("⏱️ COLLECTING", String.format("%.1fs / %.1fs",
+                        collectingElapsed / 1000.0, config.getIntakeRollerTimeMs() / 1000.0));
+                }
+                updateCollecting(collectingElapsed);
                 break;
 
             case TRANSFERRING:
-                updateTransferring(operationElapsedTime);
+                // Recalculate elapsed time for this specific state
+                long transferringElapsed = System.currentTimeMillis() - operationStartTime;
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    long totalTransferTime = config.getTransferServoTimeMs() + config.getCenterAcceptTimeMs();
+                    telemetry.addData("⏱️ TRANSFERRING", String.format("%.1fs / %.1fs",
+                        transferringElapsed / 1000.0, totalTransferTime / 1000.0));
+                }
+                updateTransferring(transferringElapsed);
                 break;
 
             case PUSHING:
-                updatePushing(operationElapsedTime);
+                // Recalculate elapsed time for this specific state
+                long pushingElapsed = System.currentTimeMillis() - operationStartTime;
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    long totalPushTime = config.getPushStartDelayMs() +
+                                        config.getSecondArtifactPushTimeMs() +
+                                        config.getStorageIntakeAcceptTimeMs();
+                    telemetry.addData("⏱️ PUSHING", String.format("%.1fs / %.1fs",
+                        pushingElapsed / 1000.0, totalPushTime / 1000.0));
+                }
+                updatePushing(pushingElapsed);
                 break;
 
             case FIRING:
-                updateFiring(operationElapsedTime);
+                long firingElapsed = System.currentTimeMillis() - operationStartTime;
+                updateFiring(firingElapsed);
                 break;
 
             case READY_TO_FIRE:
@@ -317,6 +612,21 @@ public class IndexingSystem {
                     resetToIdle();
                 }
                 break;
+        }
+
+        // Check for operation timeout AFTER state machine processing
+        // This uses the NEW operationStartTime if a state transition occurred
+        if (operationInProgress) {
+            long newOperationElapsedTime = System.currentTimeMillis() - operationStartTime;
+            if (newOperationElapsedTime > config.getOperationTimeoutMs()) {
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("⚠️ TIMEOUT in state: " + currentState +
+                        " after " + (newOperationElapsedTime / 1000.0) + "s");
+                }
+                setError("Operation timeout in state: " + currentState);
+                resetToIdle();
+                return;
+            }
         }
 
         // Update telemetry if debug enabled
@@ -340,6 +650,13 @@ public class IndexingSystem {
         plannedThirdShot = null;
         lastError = "";
         errorCount = 0;
+
+        // Clear pending color detection delays
+        frontArtifactFirstDetected = 0;
+        backArtifactFirstDetected = 0;
+        frontPendingArtifact = null;
+        backPendingArtifact = null;
+
         resetToIdle();
         
         // Reinitialize hardware to restart rollers
@@ -354,6 +671,9 @@ public class IndexingSystem {
      * Start collecting an artifact from an intake
      */
     private void startArtifactCollection(Artifact artifact) {
+        // Clear any stale pending artifacts to prevent conflicts
+        clearPendingArtifacts();
+
         changeState(SystemState.COLLECTING);
         operationInProgress = true;
         operationStartTime = System.currentTimeMillis();
@@ -365,8 +685,25 @@ public class IndexingSystem {
         executeCollectionHardware();
 
         if (config.isDebugTelemetry()) {
-            telemetry.addLine(String.format("Collecting artifact #%d from %s", 
-                artifact.getCollectionOrder(), lastIntakeSource));
+            telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            telemetry.addLine(String.format("🔄 COLLECTING ARTIFACT #%d", artifact.getCollectionOrder()));
+            telemetry.addLine(String.format("   Color: %s", artifact.getColor()));
+            telemetry.addLine(String.format("   Source: %s intake", lastIntakeSource));
+            telemetry.addLine(String.format("   Total Count: %d/%d", getArtifactCount(), IndexingConfig.MAX_ARTIFACTS));
+
+            // Show what will happen next
+            switch (artifact.getCollectionOrder()) {
+                case 1:
+                    telemetry.addLine("   Next: Transfer to center storage");
+                    break;
+                case 2:
+                    telemetry.addLine("   Next: Push first to storage, move to center");
+                    break;
+                case 3:
+                    telemetry.addLine("   Next: Store in collection intake");
+                    break;
+            }
+            telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         }
     }
 
@@ -385,7 +722,16 @@ public class IndexingSystem {
      * Complete artifact collection and determine next action
      */
     private void completeCollection() {
+        if (artifacts.isEmpty()) {
+            setError("completeCollection called but no artifacts in list!");
+            return;
+        }
+
         Artifact artifact = artifacts.get(artifacts.size() - 1);
+
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine("✅ Collection complete - artifact #" + artifact.getCollectionOrder());
+        }
 
         switch (artifact.getCollectionOrder()) {
             case 1:
@@ -419,8 +765,10 @@ public class IndexingSystem {
         // Start hardware for transfer
         executeTransferHardware();
 
-        if (config.isDebugTelemetry()) {
-            telemetry.addLine("Transferring artifact to center storage");
+        if (config.isDebugTelemetry() && telemetry != null) {
+            long totalTime = config.getTransferServoTimeMs() + config.getCenterAcceptTimeMs();
+            telemetry.addLine("🔄 TRANSFERRING to center (will take " + (totalTime / 1000.0) + "s)");
+            telemetry.addLine("   State: " + currentState + ", opInProgress: " + operationInProgress);
         }
     }
 
@@ -449,14 +797,32 @@ public class IndexingSystem {
 
         nextCollectionOrder++;
 
+        // ENSURE all servos are turned off after transfer
+        resetAllServos();
+
+        // Update intake modes after artifact placement
+        updateIntakeModes();
+
         if (updatedArtifact.getCollectionOrder() == 1) {
             // First artifact in center, ready for more collection
             changeState(SystemState.IDLE);
             operationInProgress = false;
+
+            if (config.isDebugTelemetry()) {
+                telemetry.addLine("✅ First artifact transfer complete - servos stopped");
+                telemetry.addLine(String.format("   Center: %s #%d - ready for collection",
+                    updatedArtifact.getColor(), updatedArtifact.getCollectionOrder()));
+            }
         } else {
             // Ready to fire
             changeState(SystemState.READY_TO_FIRE);
             operationInProgress = false;
+
+            if (config.isDebugTelemetry()) {
+                telemetry.addLine("✅ Artifact transfer complete - ready to fire");
+                telemetry.addLine(String.format("   Center: %s #%d",
+                    updatedArtifact.getColor(), updatedArtifact.getCollectionOrder()));
+            }
         }
     }
 
@@ -469,6 +835,37 @@ public class IndexingSystem {
             return;
         }
 
+        // Clear any stale pending artifacts to prevent conflicts during push
+        clearPendingArtifacts();
+
+        // Determine opposite intake from where second artifact came
+        Artifact.Location oppositeIntake = (lastIntakeSource == IntakeSource.FRONT)
+            ? Artifact.Location.BACK_INTAKE
+            : Artifact.Location.FRONT_INTAKE;
+
+        // IMMEDIATELY update storage references to prevent auto-detection conflicts
+        // The first artifact will be pushed to the opposite intake
+        Artifact firstArtifact = artifactInCenter;
+        Artifact movedFirst = firstArtifact.withLocation(oppositeIntake);
+
+        // Update artifact list
+        for (int i = 0; i < artifacts.size(); i++) {
+            if (artifacts.get(i).getCollectionOrder() == 1) {
+                artifacts.set(i, movedFirst);
+                break;
+            }
+        }
+
+        // Update storage references IMMEDIATELY
+        if (oppositeIntake == Artifact.Location.FRONT_INTAKE) {
+            artifactInFrontIntake = movedFirst;
+        } else {
+            artifactInBackIntake = movedFirst;
+        }
+
+        // Update intake modes immediately to prevent false detection
+        updateIntakeModes();
+
         changeState(SystemState.PUSHING);
         operationStartTime = System.currentTimeMillis();
 
@@ -476,7 +873,14 @@ public class IndexingSystem {
         executePushHardware();
 
         if (config.isDebugTelemetry()) {
-            telemetry.addLine("Second artifact pushing first to opposite intake");
+            telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            telemetry.addLine("🔄 STARTING SECOND ARTIFACT INDEXING");
+            telemetry.addLine(String.format("   Second artifact: %s from %s",
+                secondArtifact.getColor(), lastIntakeSource));
+            telemetry.addLine(String.format("   First artifact: %s → %s",
+                firstArtifact.getColor(), oppositeIntake));
+            telemetry.addLine("   Action: Push first out, move second to center");
+            telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         }
     }
 
@@ -497,59 +901,31 @@ public class IndexingSystem {
 
     /**
      * Complete push operation
-     * Handles both: (1) second artifact indexing, (2) two-artifact rearrangement
+     * Handles normal second artifact indexing (first artifact pushed to storage, second to center)
      */
     private void completePushOperation() {
-        int artifactCount = getArtifactCount();
-        
-        if (artifactCount == 2) {
-            // Two-artifact rearrangement for optimal shot order
-            completeTwoArtifactRearrangement();
-        } else if (artifactCount == 3) {
-            // This shouldn't happen during push, but handle gracefully
-            completeSecondArtifactIndexing();
-        } else {
-            // Normal second artifact indexing (count goes from 1 to 2)
-            completeSecondArtifactIndexing();
-        }
+        // For normal second artifact collection, always complete second artifact indexing
+        // The first artifact was already moved to storage in startSecondArtifactIndexing
+        completeSecondArtifactIndexing();
     }
     
     /**
      * Complete normal second artifact indexing
      */
     private void completeSecondArtifactIndexing() {
-        Artifact firstArtifact = artifactInCenter;
         Artifact secondArtifact = artifacts.get(artifacts.size() - 1);
 
-        // Determine opposite intake from where second artifact came
-        Artifact.Location oppositeIntake = (lastIntakeSource == IntakeSource.FRONT)
-            ? Artifact.Location.BACK_INTAKE
-            : Artifact.Location.FRONT_INTAKE;
-
-        // Move first artifact to opposite intake
-        Artifact movedFirst = firstArtifact.withLocation(oppositeIntake);
-        for (int i = 0; i < artifacts.size(); i++) {
-            if (artifacts.get(i).getCollectionOrder() == 1) {
-                artifacts.set(i, movedFirst);
-                break;
-            }
-        }
-
-        // Update storage references
-        if (oppositeIntake == Artifact.Location.FRONT_INTAKE) {
-            artifactInFrontIntake = movedFirst;
-        } else {
-            artifactInBackIntake = movedFirst;
-        }
-
-        // Move second artifact to center
+        // Move second artifact to center (first artifact already moved at start of push)
         Artifact secondInCenter = secondArtifact.withLocation(Artifact.Location.CENTER_STORAGE);
         artifacts.set(artifacts.size() - 1, secondInCenter);
         artifactInCenter = secondInCenter;
 
         nextCollectionOrder++;
 
-        // Update intake modes (intake with artifact now in storage mode)
+        // ENSURE all servos are turned off after push operation
+        resetAllServos();
+
+        // Update intake modes (should already be correct from startSecondArtifactIndexing)
         updateIntakeModes();
 
         // Plan shots with motif
@@ -559,7 +935,16 @@ public class IndexingSystem {
         operationInProgress = false;
 
         if (config.isDebugTelemetry()) {
-            telemetry.addLine("Push complete: first->storage, second->center");
+            telemetry.addLine("✅ Second artifact indexing complete - servos stopped");
+            telemetry.addLine(String.format("   Center: %s #%d", secondInCenter.getColor(), secondInCenter.getCollectionOrder()));
+
+            // Show where first artifact went
+            if (artifactInFrontIntake != null) {
+                telemetry.addLine(String.format("   Front Storage: %s #%d", artifactInFrontIntake.getColor(), artifactInFrontIntake.getCollectionOrder()));
+            }
+            if (artifactInBackIntake != null) {
+                telemetry.addLine(String.format("   Back Storage: %s #%d", artifactInBackIntake.getColor(), artifactInBackIntake.getCollectionOrder()));
+            }
         }
     }
     
@@ -1073,9 +1458,16 @@ public class IndexingSystem {
     }
 
     private void resetToIdle() {
+        // CRITICAL: Stop all servos before going to idle
+        resetAllServos();
+
         currentState = SystemState.IDLE;
         operationInProgress = false;
         stateStartTime = System.currentTimeMillis();
+
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine("🔄 System reset to IDLE - servos stopped");
+        }
     }
 
     private void setError(String error) {
@@ -1123,6 +1515,25 @@ public class IndexingSystem {
     public Artifact getPlannedThirdShot() { return plannedThirdShot; }
 
     public Shooter getShooter() { return shooter; }
+
+    /**
+     * Enable or disable automatic artifact detection
+     * @param enabled true to enable auto-detection, false to disable
+     */
+    public void setAutoDetectionEnabled(boolean enabled) {
+        this.autoDetectionEnabled = enabled;
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine("Auto-detection " + (enabled ? "ENABLED" : "DISABLED"));
+        }
+    }
+
+    /**
+     * Check if automatic detection is enabled
+     * @return true if auto-detection is active
+     */
+    public boolean isAutoDetectionEnabled() {
+        return autoDetectionEnabled;
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // HARDWARE CONTROL METHODS
@@ -1172,23 +1583,42 @@ public class IndexingSystem {
      * These servos move artifacts between transfer system and center storage,
      * completing the move from intake transfer into center,
      * and also push artifacts out of center into an empty intake.
+     * Note: Direction depends on which intake is being used.
      * @param active true to activate transfer (run at power), false for idle (stop)
+     * @param source which intake is being used (affects servo direction)
      */
-    private void setInjectorServos(boolean active) {
+    private void setInjectorServos(boolean active, IntakeSource source) {
         if (hardware == null) return;
 
         try {
-            double power = active ? config.getTransferServoPower() : config.getTransferServoIdlePower();
+            double basePower = active ? config.getTransferServoPower() : config.getTransferServoIdlePower();
+
+            // Reverse servo directions when collecting from back intake
+            boolean reverseDirection = (source == IntakeSource.BACK);
 
             if (hardware.getInjectorServoLeft() != null) {
-                hardware.getInjectorServoLeft().setPower(power);
+                // Left servo base configuration: reversed (facing opposite direction)
+                // For back intake: reverse this again (double negative = positive)
+                double leftPower = reverseDirection ? basePower : -basePower;
+                hardware.getInjectorServoLeft().setPower(leftPower);
             }
             if (hardware.getInjectorServoRight() != null) {
-                hardware.getInjectorServoRight().setPower(power);
+                // Right servo base configuration: normal
+                // For back intake: reverse this
+                double rightPower = reverseDirection ? -basePower : basePower;
+                hardware.getInjectorServoRight().setPower(rightPower);
             }
         } catch (Exception e) {
             setError("Failed to set injector servos: " + e.getMessage());
         }
+    }
+
+    /**
+     * Set injector servos without source context (uses front intake behavior)
+     * @param active true to activate transfer, false for idle
+     */
+    private void setInjectorServos(boolean active) {
+        setInjectorServos(active, IntakeSource.FRONT);
     }
 
     /**
@@ -1273,7 +1703,7 @@ public class IndexingSystem {
      * An artifact is detected if:
      * - Distance < 10cm (configurable) using goBILDA laser sensor in analog mode
      * - Color is GREEN or PURPLE (valid artifact colors only)
-     * @param source Which intake sensor to check
+     * @param source Which intake to check
      * @return true if artifact detected
      */
     private boolean isArtifactDetected(IntakeSource source) {
@@ -1314,7 +1744,8 @@ public class IndexingSystem {
 
     /**
      * Detect artifact color from color sensors
-     * Uses all 3 REV Color Sensor V3 per intake for accurate color data
+     * NOTE: Front Left and Back Right sensors replaced with REV 2m distance sensors
+     * Uses remaining REV Color Sensor V3 per intake for accurate color data
      * @param source Which intake sensor to check
      * @return Detected artifact color (PURPLE, GREEN, or UNKNOWN)
      */
@@ -1322,20 +1753,25 @@ public class IndexingSystem {
         if (hardware == null) return Artifact.Color.UNKNOWN;
 
         try {
-            // Collect readings from all 3 color sensors for the intake (REV Color Sensor V3)
+            // Collect readings from available color sensors for the intake (REV Color Sensor V3)
             List<com.qualcomm.robotcore.hardware.NormalizedColorSensor> sensors = new ArrayList<>();
             
             if (source == IntakeSource.FRONT) {
+                // NOTE: Front Left replaced with REV 2m distance sensor
                 if (hardware.getFrontLeftColorSensor() != null) sensors.add(hardware.getFrontLeftColorSensor());
                 if (hardware.getFrontRightColorSensor() != null) sensors.add(hardware.getFrontRightColorSensor());
                 if (hardware.getFrontCenterColorSensor() != null) sensors.add(hardware.getFrontCenterColorSensor());
             } else if (source == IntakeSource.BACK) {
+                // NOTE: Back Right replaced with REV 2m distance sensor
                 if (hardware.getBackRightColorSensor() != null) sensors.add(hardware.getBackRightColorSensor());
                 if (hardware.getLeftRightColorSensor() != null) sensors.add(hardware.getLeftRightColorSensor());
                 if (hardware.getBackCenterColorSensor() != null) sensors.add(hardware.getBackCenterColorSensor());
             }
 
             if (sensors.isEmpty()) {
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("⚠️ No color sensors available for " + source + " intake");
+                }
                 return Artifact.Color.UNKNOWN;
             }
 
@@ -1353,19 +1789,26 @@ public class IndexingSystem {
             float avgGreen = totalGreen / sensors.size();
             float avgBlue = totalBlue / sensors.size();
 
-            // Color detection logic for purple and green artifacts
-            // Purple = high red + high blue, low green
-            // Green = high green, lower red and blue
-            
-            // Calculate color scores (normalized 0-1 range)
-            float purpleScore = avgRed + avgBlue - avgGreen;  // Purple has high R+B, low G
-            float greenScore = avgGreen - (avgRed + avgBlue) / 2;  // Green has high G, lower R and B
-            
-            // Determine color based on scores (adjusted thresholds for normalized values)
-            if (greenScore > purpleScore && greenScore > 0.2f) {
-                return Artifact.Color.GREEN;
-            } else if (purpleScore > greenScore && purpleScore > 0.2f) {
-                return Artifact.Color.PURPLE;
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine(String.format("🎨 %s color: R%.2f G%.2f B%.2f (%d sensors)",
+                    source, avgRed, avgGreen, avgBlue, sensors.size()));
+            }
+
+            // Use IndexingConfig color detection with measured RGB thresholds
+            String detectedColor = config.detectArtifactColor(avgRed, avgGreen, avgBlue);
+
+            if ("PURPLE".equals(detectedColor)) {
+                // Verify confidence meets minimum threshold
+                double confidence = config.calculateColorConfidence(avgRed, avgGreen, avgBlue, "PURPLE");
+                if (confidence >= config.getColorDetectionMinScore()) {
+                    return Artifact.Color.PURPLE;
+                }
+            } else if ("GREEN".equals(detectedColor)) {
+                // Verify confidence meets minimum threshold
+                double confidence = config.calculateColorConfidence(avgRed, avgGreen, avgBlue, "GREEN");
+                if (confidence >= config.getColorDetectionMinScore()) {
+                    return Artifact.Color.GREEN;
+                }
             }
         } catch (Exception e) {
             // Sensor not available or error
@@ -1387,7 +1830,7 @@ public class IndexingSystem {
         setIntakeTransferServo(lastIntakeSource, true);
         
         // Activate injector servos to accept artifact from intake transfer
-        setInjectorServos(true);
+        setInjectorServos(true, lastIntakeSource);
     }
 
     /**
@@ -1400,7 +1843,7 @@ public class IndexingSystem {
         
         // Keep transfer servos active
         setIntakeTransferServo(lastIntakeSource, true);
-        setInjectorServos(true);
+        setInjectorServos(true, lastIntakeSource);
     }
 
     /**
@@ -1426,7 +1869,8 @@ public class IndexingSystem {
         setIntakeTransferServo(oppositeIntake, true);
         
         // Injector servos push artifact out to opposite intake
-        setInjectorServos(true);
+        // Use the source intake (where second artifact came from) for servo direction
+        setInjectorServos(true, lastIntakeSource);
     }
 
     /**
@@ -1451,6 +1895,148 @@ public class IndexingSystem {
         setUptakeServos(true);
     }
 
+    /**
+     * Handle automatic artifact detection - monitors sensors and triggers collection
+     * This runs internally during update() and manages the entire detection process
+     */
+    private void handleAutomaticDetection(long currentTime) {
+        // Check sensors at controlled intervals to prevent spam
+        if (currentTime - lastSensorCheck > SENSOR_CHECK_INTERVAL) {
+            lastSensorCheck = currentTime;
+
+            handleFrontIntakeAutoDetection();
+            handleBackIntakeAutoDetection();
+        }
+    }
+
+    /**
+     * Handle automatic front intake detection
+     */
+    private void handleFrontIntakeAutoDetection() {
+        boolean artifactPresent = isArtifactDetectedAtIntake(IntakeSource.FRONT);
+        boolean intakeEmpty = artifactInFrontIntake == null;
+        boolean systemIdle = currentState == SystemState.IDLE;
+        boolean noOperationInProgress = !operationInProgress;
+
+        // Only start new detection when system is completely IDLE with no operations
+        if (artifactPresent && intakeEmpty && systemIdle && noOperationInProgress && frontPendingArtifact == null) {
+            onArtifactFirstDetected(IntakeSource.FRONT);
+        }
+        // Do NOT cancel pending artifacts during operations - let them complete
+        // This prevents conflicts when artifacts are being moved by the system
+    }
+
+    /**
+     * Handle automatic back intake detection
+     */
+    private void handleBackIntakeAutoDetection() {
+        boolean artifactPresent = isArtifactDetectedAtIntake(IntakeSource.BACK);
+        boolean intakeEmpty = artifactInBackIntake == null;
+        boolean systemIdle = currentState == SystemState.IDLE;
+        boolean noOperationInProgress = !operationInProgress;
+
+        // Only start new detection when system is completely IDLE with no operations
+        if (artifactPresent && intakeEmpty && systemIdle && noOperationInProgress && backPendingArtifact == null) {
+            onArtifactFirstDetected(IntakeSource.BACK);
+        }
+        // Do NOT cancel pending artifacts during operations - let them complete
+        // This prevents conflicts when artifacts are being moved by the system
+    }
+
+    /**
+     * Check if artifact is detected at the specified intake using multiple sensor types
+     * Uses both original laser sensors and new REV 2m distance sensors for better detection
+     * @param source Which intake to check
+     * @return true if something is detected within distance threshold
+     */
+    private boolean isArtifactDetectedAtIntake(IntakeSource source) {
+        if (hardware == null) return false;
+
+        try {
+            boolean laserDetection = false;
+            boolean revDetection = false;
+
+            // Check original goBILDA laser sensors (converted to cm)
+            double laserDistanceCm = Double.MAX_VALUE;
+            if (source == IntakeSource.FRONT) {
+                laserDistanceCm = hardware.getFrontDistanceMM() / 10.0; // Convert mm to cm
+            } else if (source == IntakeSource.BACK) {
+                laserDistanceCm = hardware.getBackDistanceMM() / 10.0; // Convert mm to cm
+            }
+
+            if (laserDistanceCm >= 0 && laserDistanceCm < config.getArtifactDetectionDistance()) {
+                laserDetection = true;
+            }
+
+            // Check NEW REV 2m distance sensors (if enabled and available)
+            double revDistanceCm = Double.MAX_VALUE;
+            if (config.getUseRevDistanceSensors()) {
+                if (source == IntakeSource.FRONT) {
+                    // Front intake uses front left REV sensor
+                    revDistanceCm = hardware.getFrontLeftDistanceCM();
+                } else if (source == IntakeSource.BACK) {
+                    // Back intake uses back right REV sensor
+                    revDistanceCm = hardware.getBackRightDistanceCM();
+                }
+
+                if (revDistanceCm >= 0 && revDistanceCm < config.getRevSensorDetectionThreshold()) {
+                    revDetection = true;
+                }
+            }
+
+            // Combine sensor readings based on configuration
+            if (config.getUseRevDistanceSensors()) {
+                // Use weighted combination of both sensor types
+                double revWeight = config.getRevSensorWeight();
+                double laserWeight = 1.0 - revWeight;
+
+                // If either sensor detects with sufficient confidence, return true
+                boolean combinedDetection = (revDetection && revWeight > 0.5) ||
+                                          (laserDetection && laserWeight > 0.5) ||
+                                          (revDetection && laserDetection); // Both agree
+
+                if (config.isDebugTelemetry() && telemetry != null && combinedDetection) {
+                    telemetry.addLine(String.format("🔍 %s: Laser=%.1fcm Rev=%.1fcm",
+                        source, laserDistanceCm, revDistanceCm));
+                }
+
+                return combinedDetection;
+            } else {
+                // Use only original laser sensors
+                return laserDetection;
+            }
+
+        } catch (Exception e) {
+            // Sensor error - don't trigger false detection
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("⚠️ Sensor error in detection: " + e.getMessage());
+            }
+            return false;
+        }
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════════════════════════
+     * Clear any pending artifacts when starting a new operation
+     * This prevents stale detection delays from interfering with operations
+     */
+    private void clearPendingArtifacts() {
+        if (frontPendingArtifact != null) {
+            frontPendingArtifact = null;
+            frontArtifactFirstDetected = 0;
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("Cleared pending front artifact for operation");
+            }
+        }
+        if (backPendingArtifact != null) {
+            backPendingArtifact = null;
+            backArtifactFirstDetected = 0;
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("Cleared pending back artifact for operation");
+            }
+        }
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // TELEMETRY
     // ═══════════════════════════════════════════════════════════════════════
@@ -1461,17 +2047,72 @@ public class IndexingSystem {
         telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         telemetry.addLine("🤖 INDEXING SYSTEM");
         telemetry.addData("State", currentState);
-        telemetry.addData("Artifacts", String.format("%d/%d", 
-            getArtifactCount(), IndexingConfig.MAX_ARTIFACTS));
+        telemetry.addData("Artifacts", String.format("%d/%d (list size: %d)",
+            getArtifactCount(), IndexingConfig.MAX_ARTIFACTS, artifacts.size()));
+        telemetry.addData("Operation", operationInProgress ? "IN PROGRESS" : "IDLE");
         telemetry.addLine("");
         
-        telemetry.addData("Center", artifactInCenter != null ? 
-            artifactInCenter.getColor() : "Empty");
-        telemetry.addData("Front Intake", artifactInFrontIntake != null ? 
-            artifactInFrontIntake.getColor() : "Empty");
-        telemetry.addData("Back Intake", artifactInBackIntake != null ? 
-            artifactInBackIntake.getColor() : "Empty");
-        
+        // Artifact Locations with collection order
+        telemetry.addLine("📦 ARTIFACT LOCATIONS:");
+        telemetry.addData("  Center", artifactInCenter != null ?
+            String.format("%s #%d", artifactInCenter.getColor(), artifactInCenter.getCollectionOrder()) : "Empty");
+        telemetry.addData("  Front Intake", artifactInFrontIntake != null ?
+            String.format("%s #%d", artifactInFrontIntake.getColor(), artifactInFrontIntake.getCollectionOrder()) : "Empty");
+        telemetry.addData("  Back Intake", artifactInBackIntake != null ?
+            String.format("%s #%d", artifactInBackIntake.getColor(), artifactInBackIntake.getCollectionOrder()) : "Empty");
+
+        // Show collection order progress
+        telemetry.addData("  Next Collection", "#" + nextCollectionOrder);
+        telemetry.addLine("");
+
+        // Distance Sensor Readings
+        telemetry.addLine("📏 DISTANCE SENSORS:");
+
+        // Original laser sensors
+        double frontLaserMM = hardware.getFrontDistanceMM();
+        double backLaserMM = hardware.getBackDistanceMM();
+        telemetry.addData("  Laser Front", frontLaserMM >= 0 ?
+            String.format("%.1fmm", frontLaserMM) : "N/A");
+        telemetry.addData("  Laser Back", backLaserMM >= 0 ?
+            String.format("%.1fmm", backLaserMM) : "N/A");
+
+        // NEW: REV 2m Distance Sensors
+        if (config.getUseRevDistanceSensors()) {
+            double frontRevCM = hardware.getFrontLeftDistanceCM();
+            double backRevCM = hardware.getBackRightDistanceCM();
+            telemetry.addData("  REV Front Left", frontRevCM >= 0 ?
+                String.format("%.1fcm%s", frontRevCM, frontRevCM < config.getRevSensorDetectionThreshold() ? " 🔍" : "") : "N/A");
+            telemetry.addData("  REV Back Right", backRevCM >= 0 ?
+                String.format("%.1fcm%s", backRevCM, backRevCM < config.getRevSensorDetectionThreshold() ? " 🔍" : "") : "N/A");
+            telemetry.addData("  Detection Threshold", String.format("%.1fcm", config.getRevSensorDetectionThreshold()));
+        }
+
+        // Pending Detection Status
+        if (frontPendingArtifact != null || backPendingArtifact != null) {
+            telemetry.addLine("");
+            telemetry.addLine("⏱️ PENDING DETECTION:");
+            if (frontPendingArtifact != null) {
+                long remaining = getRemainingColorDelay(IntakeSource.FRONT);
+                telemetry.addData("  Front", String.format("%s - %.1fs remaining",
+                    frontPendingArtifact.getColor(), remaining / 1000.0));
+            }
+            if (backPendingArtifact != null) {
+                long remaining = getRemainingColorDelay(IntakeSource.BACK);
+                telemetry.addData("  Back", String.format("%s - %.1fs remaining",
+                    backPendingArtifact.getColor(), remaining / 1000.0));
+            }
+        }
+
+        // Show all collected artifacts (for debugging)
+        if (!artifacts.isEmpty()) {
+            telemetry.addLine("");
+            telemetry.addLine("📋 ALL ARTIFACTS:");
+            for (Artifact a : artifacts) {
+                telemetry.addData("  #" + a.getCollectionOrder(),
+                    String.format("%s at %s", a.getColor(), a.getLocation()));
+            }
+        }
+
         if (lastError != null && !lastError.isEmpty()) {
             telemetry.addLine("");
             telemetry.addData("⚠️ Last Error", lastError);

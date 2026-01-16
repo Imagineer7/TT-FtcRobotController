@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.opmodes;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.IndexingSystem;
 import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
@@ -67,13 +68,25 @@ public class IndexingSystemTest extends LinearOpMode {
 
     // Test Mode State
     private enum TestMode {
-        MANUAL,
-        AUTO_SINGLE_ARTIFACT,
-        AUTO_THREE_ARTIFACTS,
+        AUTO_COLLECTION,     // Default: Auto-detect and collect artifacts
+        MANUAL_CONTROL,      // Manual button control
+        SERVO_DEBUG,         // Individual servo testing
+        SENSOR_DEBUG,        // Raw sensor data
         RUNNING_TEST
     }
-    private TestMode currentMode = TestMode.MANUAL;
+    private TestMode currentMode = TestMode.AUTO_COLLECTION;
     private long testStartTime = 0;
+
+    // Telemetry Page System
+    private enum TelemetryPage {
+        OVERVIEW,           // Main system status
+        SUBSYSTEMS,         // Detailed subsystem status
+        RAW_DATA,           // Raw sensor and motor data
+        CONFIGURATION,      // Config parameters and timings
+        DIAGNOSTICS,        // Error logs and performance
+        CONTROLS            // Control help and status
+    }
+    private TelemetryPage currentPage = TelemetryPage.OVERVIEW;
 
     // Manual Control State
     private boolean manualMode = false;
@@ -88,10 +101,22 @@ public class IndexingSystemTest extends LinearOpMode {
     private boolean lastBack = false;
     private boolean lastLeftBumper = false;
     private boolean lastRightBumper = false;
+    private boolean lastDpadUp = false;
+    private boolean lastDpadDown = false;
+    private boolean lastDpadLeft = false;
+    private boolean lastDpadRight = false;
 
     // Gamepad 2 state
     private boolean lastG2A = false;
     private boolean lastG2B = false;
+    private boolean lastG2X = false;
+    private boolean lastG2Y = false;
+
+    // Performance tracking
+    private long loopStartTime = 0;
+    private long maxLoopTime = 0;
+    private long totalLoops = 0;
+    private long avgLoopTime = 0;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -137,13 +162,22 @@ public class IndexingSystemTest extends LinearOpMode {
 
         telemetry.addLine("✅ Initialization complete!");
         telemetry.addLine("");
+        telemetry.addLine("🤖 Default Mode: AUTO_COLLECTION");
+        telemetry.addLine("📊 Default Page: OVERVIEW");
+        telemetry.addLine("");
         telemetry.addLine("Press [START] to begin");
-        telemetry.addLine("See OpMode comments for controls");
+        telemetry.addLine("See CONTROLS page for all commands");
         telemetry.update();
 
         waitForStart();
 
         if (isStopRequested()) return;
+
+        // Initialize timing
+        testStartTime = System.currentTimeMillis();
+
+        // Enable systems after start
+        indexingSystem.enable();
 
         telemetry.clear();
         telemetry.addLine("════════════════════════════════════");
@@ -151,24 +185,160 @@ public class IndexingSystemTest extends LinearOpMode {
         telemetry.addLine("════════════════════════════════════");
         telemetry.update();
 
-        // Main control loop
+        // Main control loop - only runs after START is pressed
         while (opModeIsActive()) {
-            // Update all systems
+            loopStartTime = System.currentTimeMillis();
+
+            // Update all systems - IndexingSystem handles auto-detection internally
             indexingSystem.update();
             shooter.update();
 
             // Handle button inputs
             handleGamepadInputs();
 
-            // Update telemetry
-            updateTelemetry();
+            // Update telemetry based on current page
+            updateTelemetryPages();
+
+            // Performance tracking
+            updatePerformanceMetrics();
 
             // Small delay to prevent loop overrun
             sleep(20);
         }
 
         // Cleanup
+        indexingSystem.disable();
         hardware.stopAllMotors();
+    }
+
+    /**
+     * Convert sensor voltage to distance in centimeters
+     * Based on goBILDA laser sensor characteristics
+     */
+    private double convertVoltageToDistance(double voltage) {
+        if (voltage <= 0.5) return 0.0; // Invalid reading
+
+        // goBILDA laser sensor: ~0.5V at 5cm, ~3.3V at 100cm
+        // Linear approximation: distance = (voltage - 0.5) * 34.3 + 5
+        return (voltage - 0.5) * 34.3 + 5.0;
+    }
+
+    /**
+     * Create artifact with color detection from sensors
+     */
+    private Artifact createDetectedArtifact(IndexingSystem.IntakeSource source) {
+        Artifact.Color detectedColor = detectArtifactColor(source);
+
+        return new Artifact(
+            detectedColor,
+            source == IndexingSystem.IntakeSource.FRONT ?
+                Artifact.Location.FRONT_INTAKE : Artifact.Location.BACK_INTAKE,
+            0  // Collection order will be set by indexing system
+        );
+    }
+
+    /**
+     * Detect artifact color using color sensors at specified intake
+     */
+    private Artifact.Color detectArtifactColor(IndexingSystem.IntakeSource source) {
+        if (hardware == null) {
+            telemetry.addLine("⚠️ Color detection: hardware is null");
+            return Artifact.Color.UNKNOWN;
+        }
+
+        try {
+            double totalRed = 0, totalGreen = 0, totalBlue = 0;
+            int sensorCount = 0;
+
+            // Get color readings from available sensors
+            if (source == IndexingSystem.IntakeSource.FRONT) {
+                if (hardware.getFrontLeftColorSensor() != null) {
+                    com.qualcomm.robotcore.hardware.NormalizedRGBA colors = hardware.getFrontLeftColorSensor().getNormalizedColors();
+                    totalRed += colors.red;
+                    totalGreen += colors.green;
+                    totalBlue += colors.blue;
+                    sensorCount++;
+                }
+                if (hardware.getFrontRightColorSensor() != null) {
+                    com.qualcomm.robotcore.hardware.NormalizedRGBA colors = hardware.getFrontRightColorSensor().getNormalizedColors();
+                    totalRed += colors.red;
+                    totalGreen += colors.green;
+                    totalBlue += colors.blue;
+                    sensorCount++;
+                }
+                if (hardware.getFrontCenterColorSensor() != null) {
+                    com.qualcomm.robotcore.hardware.NormalizedRGBA colors = hardware.getFrontCenterColorSensor().getNormalizedColors();
+                    totalRed += colors.red;
+                    totalGreen += colors.green;
+                    totalBlue += colors.blue;
+                    sensorCount++;
+                }
+            } else if (source == IndexingSystem.IntakeSource.BACK) {
+                if (hardware.getBackRightColorSensor() != null) {
+                    com.qualcomm.robotcore.hardware.NormalizedRGBA colors = hardware.getBackRightColorSensor().getNormalizedColors();
+                    totalRed += colors.red;
+                    totalGreen += colors.green;
+                    totalBlue += colors.blue;
+                    sensorCount++;
+                }
+                if (hardware.getLeftRightColorSensor() != null) {
+                    com.qualcomm.robotcore.hardware.NormalizedRGBA colors = hardware.getLeftRightColorSensor().getNormalizedColors();
+                    totalRed += colors.red;
+                    totalGreen += colors.green;
+                    totalBlue += colors.blue;
+                    sensorCount++;
+                }
+                if (hardware.getBackCenterColorSensor() != null) {
+                    com.qualcomm.robotcore.hardware.NormalizedRGBA colors = hardware.getBackCenterColorSensor().getNormalizedColors();
+                    totalRed += colors.red;
+                    totalGreen += colors.green;
+                    totalBlue += colors.blue;
+                    sensorCount++;
+                }
+            }
+
+            if (sensorCount == 0) {
+                telemetry.addLine("⚠️ Color detection: No color sensors available for " + source);
+                return Artifact.Color.UNKNOWN;
+            }
+
+            // Average the readings and detect color
+            double avgRed = totalRed / sensorCount;
+            double avgGreen = totalGreen / sensorCount;
+            double avgBlue = totalBlue / sensorCount;
+
+            // Debug output for color detection
+            telemetry.addLine(String.format("🎨 %s Color: R:%.3f G:%.3f B:%.3f (%d sensors)",
+                source, avgRed, avgGreen, avgBlue, sensorCount));
+
+            // Calculate ratio scores for both colors
+            double purpleScore = indexingConfig.calculateColorConfidence(avgRed, avgGreen, avgBlue, "PURPLE");
+            double greenScore = indexingConfig.calculateColorConfidence(avgRed, avgGreen, avgBlue, "GREEN");
+
+            telemetry.addLine(String.format("🟣 Purple Score: %.3f | 🟢 Green Score: %.3f",
+                purpleScore, greenScore));
+
+            // Use the main indexing config for detection
+            String detectedColor = indexingConfig.detectArtifactColor(avgRed, avgGreen, avgBlue);
+
+            if ("PURPLE".equals(detectedColor)) {
+                telemetry.addLine(String.format("🟣 PURPLE detected! Score: %.3f (need %.2f)",
+                    purpleScore, indexingConfig.getColorDetectionMinScore()));
+                return Artifact.Color.PURPLE;
+            } else if ("GREEN".equals(detectedColor)) {
+                telemetry.addLine(String.format("🟢 GREEN detected! Score: %.3f (need %.2f)",
+                    greenScore, indexingConfig.getColorDetectionMinScore()));
+                return Artifact.Color.GREEN;
+            } else {
+                telemetry.addLine(String.format("❓ No detection - scores too low (need %.2f)",
+                    indexingConfig.getColorDetectionMinScore()));
+            }
+
+        } catch (Exception e) {
+            telemetry.addLine("❌ Color detection error: " + e.getMessage());
+        }
+
+        return Artifact.Color.UNKNOWN;
     }
 
     /**
@@ -179,30 +349,39 @@ public class IndexingSystemTest extends LinearOpMode {
         // GAMEPAD 1 - Indexing System Controls
         // ═══════════════════════════════════════════════════════════════
 
-        // [A] - Collect from FRONT intake
+        // [A] - Toggle auto-detection (when in auto mode) or manual collect from front
         if (gamepad1.a && !lastA) {
-            if (currentMode == TestMode.MANUAL) {
+            if (currentMode == TestMode.AUTO_COLLECTION) {
+                boolean currentlyEnabled = indexingSystem.isAutoDetectionEnabled();
+                indexingSystem.setAutoDetectionEnabled(!currentlyEnabled);
+                telemetry.addLine(currentlyEnabled ? "🔄 Auto-detection DISABLED" : "🔄 Auto-detection ENABLED");
+            } else if (currentMode == TestMode.MANUAL_CONTROL) {
                 Artifact artifact = new Artifact(
                     Artifact.Color.UNKNOWN,
                     Artifact.Location.UNKNOWN,
                     0  // Collection order will be set by system
                 );
                 indexingSystem.onArtifactDetected(artifact, IndexingSystem.IntakeSource.FRONT);
-                telemetry.addLine("▶ Collecting from FRONT intake");
+                telemetry.addLine("▶ Manual: Collecting from FRONT intake");
             }
         }
         lastA = gamepad1.a;
 
-        // [B] - Collect from BACK intake
+        // [B] - Collect from BACK intake (manual mode) or force manual collection
         if (gamepad1.b && !lastB) {
-            if (currentMode == TestMode.MANUAL) {
+            if (currentMode == TestMode.MANUAL_CONTROL) {
                 Artifact artifact = new Artifact(
                     Artifact.Color.UNKNOWN,
                     Artifact.Location.UNKNOWN,
                     0  // Collection order will be set by system
                 );
                 indexingSystem.onArtifactDetected(artifact, IndexingSystem.IntakeSource.BACK);
-                telemetry.addLine("▶ Collecting from BACK intake");
+                telemetry.addLine("▶ Manual: Collecting from BACK intake");
+            } else {
+                // Force collect from back in any mode
+                Artifact artifact = createDetectedArtifact(IndexingSystem.IntakeSource.BACK);
+                indexingSystem.onArtifactDetected(artifact, IndexingSystem.IntakeSource.BACK);
+                telemetry.addLine("▶ Forced: Collecting from BACK intake");
             }
         }
         lastB = gamepad1.b;
@@ -218,11 +397,25 @@ public class IndexingSystemTest extends LinearOpMode {
         }
         lastX = gamepad1.x;
 
-        // [Y] - Emergency stop
+        // [Y] - Emergency stop / Cycle test modes
         if (gamepad1.y && !lastY) {
-            hardware.stopAllMotors();
-            indexingSystem.reset();
-            telemetry.addLine("🛑 EMERGENCY STOP");
+            if (gamepad1.right_stick_button) {
+                // Emergency stop when right stick pressed
+                hardware.stopAllMotors();
+                indexingSystem.reset();
+                telemetry.addLine("🛑 EMERGENCY STOP");
+            } else {
+                // Cycle through test modes
+                currentMode = getNextTestMode(currentMode);
+                telemetry.addLine("🔄 Mode: " + currentMode.toString());
+
+                // Enable/disable auto-detection based on mode
+                if (currentMode == TestMode.AUTO_COLLECTION) {
+                    indexingSystem.setAutoDetectionEnabled(true);
+                } else {
+                    indexingSystem.setAutoDetectionEnabled(false);
+                }
+            }
         }
         lastY = gamepad1.y;
 
@@ -240,6 +433,27 @@ public class IndexingSystemTest extends LinearOpMode {
             telemetry.addLine(debugTelemetry ? "📊 Debug ON" : "📊 Debug OFF");
         }
         lastBack = gamepad1.back;
+
+        // D-PAD - Telemetry page navigation
+        if (gamepad1.dpad_up && !lastDpadUp) {
+            currentPage = getPreviousPage(currentPage);
+        }
+        lastDpadUp = gamepad1.dpad_up;
+
+        if (gamepad1.dpad_down && !lastDpadDown) {
+            currentPage = getNextPage(currentPage);
+        }
+        lastDpadDown = gamepad1.dpad_down;
+
+        if (gamepad1.dpad_left && !lastDpadLeft) {
+            currentPage = TelemetryPage.OVERVIEW; // Quick return to overview
+        }
+        lastDpadLeft = gamepad1.dpad_left;
+
+        if (gamepad1.dpad_right && !lastDpadRight) {
+            currentPage = TelemetryPage.RAW_DATA; // Quick jump to raw data
+        }
+        lastDpadRight = gamepad1.dpad_right;
 
         // Bumpers - Manual servo control
         if (gamepad1.left_bumper && !lastLeftBumper) {
@@ -270,10 +484,10 @@ public class IndexingSystemTest extends LinearOpMode {
             // Left trigger - Uptake servos
             if (gamepad1.left_trigger > 0.1) {
                 if (hardware.getUptakeServoL() != null) {
-                    hardware.getUptakeServoL().setPower(1.0);
+                    hardware.getUptakeServoL().setPower(gamepad1.left_trigger);
                 }
                 if (hardware.getUptakeServoR() != null) {
-                    hardware.getUptakeServoR().setPower(1.0);
+                    hardware.getUptakeServoR().setPower(gamepad1.left_trigger);
                 }
             } else {
                 if (hardware.getUptakeServoL() != null) {
@@ -303,7 +517,7 @@ public class IndexingSystemTest extends LinearOpMode {
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // GAMEPAD 2 - Shooter Controls
+        // GAMEPAD 2 - Shooter Controls & Advanced Functions
         // ═══════════════════════════════════════════════════════════════
 
         // [A] - Spin up shooter
@@ -319,39 +533,130 @@ public class IndexingSystemTest extends LinearOpMode {
             telemetry.addLine("⏹️ Shooter stopped");
         }
         lastG2B = gamepad2.b;
+
+        // [X] - Toggle shooter power setting / Manual color test
+        if (gamepad2.x && !lastG2X) {
+            // Manual color detection test
+            telemetry.addLine("🎨 MANUAL COLOR TEST:");
+            Artifact.Color frontColor = detectArtifactColor(IndexingSystem.IntakeSource.FRONT);
+            Artifact.Color backColor = detectArtifactColor(IndexingSystem.IntakeSource.BACK);
+            telemetry.addLine("Front: " + frontColor + ", Back: " + backColor);
+        }
+        lastG2X = gamepad2.x;
+
+        // [Y] - Advanced diagnostics
+        if (gamepad2.y && !lastG2Y) {
+            currentPage = TelemetryPage.DIAGNOSTICS;
+            telemetry.addLine("🔍 Diagnostics mode");
+        }
+        lastG2Y = gamepad2.y;
     }
 
     /**
-     * Update telemetry display
+     * Get next test mode in sequence
      */
-    private void updateTelemetry() {
+    private TestMode getNextTestMode(TestMode current) {
+        switch (current) {
+            case AUTO_COLLECTION: return TestMode.MANUAL_CONTROL;
+            case MANUAL_CONTROL: return TestMode.SERVO_DEBUG;
+            case SERVO_DEBUG: return TestMode.SENSOR_DEBUG;
+            case SENSOR_DEBUG: return TestMode.AUTO_COLLECTION;
+            default: return TestMode.AUTO_COLLECTION;
+        }
+    }
+
+    /**
+     * Get next telemetry page
+     */
+    private TelemetryPage getNextPage(TelemetryPage current) {
+        switch (current) {
+            case OVERVIEW: return TelemetryPage.SUBSYSTEMS;
+            case SUBSYSTEMS: return TelemetryPage.RAW_DATA;
+            case RAW_DATA: return TelemetryPage.CONFIGURATION;
+            case CONFIGURATION: return TelemetryPage.DIAGNOSTICS;
+            case DIAGNOSTICS: return TelemetryPage.CONTROLS;
+            case CONTROLS: return TelemetryPage.OVERVIEW;
+            default: return TelemetryPage.OVERVIEW;
+        }
+    }
+
+    /**
+     * Get previous telemetry page
+     */
+    private TelemetryPage getPreviousPage(TelemetryPage current) {
+        switch (current) {
+            case OVERVIEW: return TelemetryPage.CONTROLS;
+            case SUBSYSTEMS: return TelemetryPage.OVERVIEW;
+            case RAW_DATA: return TelemetryPage.SUBSYSTEMS;
+            case CONFIGURATION: return TelemetryPage.RAW_DATA;
+            case DIAGNOSTICS: return TelemetryPage.CONFIGURATION;
+            case CONTROLS: return TelemetryPage.DIAGNOSTICS;
+            default: return TelemetryPage.OVERVIEW;
+        }
+    }
+
+    /**
+     * Update telemetry based on current page
+     */
+    private void updateTelemetryPages() {
         telemetry.clear();
 
-        // Header
+        // Common header for all pages
         telemetry.addLine("════════════════════════════════════");
         telemetry.addLine("🔧 INDEXING SYSTEM TEST");
+        telemetry.addData("Page", currentPage.toString() + " (" + (currentPage.ordinal() + 1) + "/6)");
+        telemetry.addData("Mode", currentMode.toString());
         telemetry.addLine("════════════════════════════════════");
+
+        switch (currentPage) {
+            case OVERVIEW:
+                displayOverviewPage();
+                break;
+            case SUBSYSTEMS:
+                displaySubsystemsPage();
+                break;
+            case RAW_DATA:
+                displayRawDataPage();
+                break;
+            case CONFIGURATION:
+                displayConfigurationPage();
+                break;
+            case DIAGNOSTICS:
+                displayDiagnosticsPage();
+                break;
+            case CONTROLS:
+                displayControlsPage();
+                break;
+        }
+
+        // Common navigation footer
+        telemetry.addLine("────────────────────────────────────");
+        telemetry.addLine("Navigation: DPAD ↑↓ | DPAD ← Overview | DPAD → Raw Data");
+
+        telemetry.update();
+    }
+
+    /**
+     * Display overview page - main system status
+     */
+    private void displayOverviewPage() {
         telemetry.addLine("");
 
         // System Status
-        telemetry.addLine("📊 SYSTEM STATUS:");
-        telemetry.addData("  Mode", currentMode);
-        telemetry.addData("  Manual Servo Control", manualMode ? "ON" : "OFF");
-        telemetry.addData("  Debug Telemetry", debugTelemetry ? "ON" : "OFF");
-        telemetry.addLine("");
-
-        // Indexing System Status
         telemetry.addLine("🤖 INDEXING SYSTEM:");
         telemetry.addData("  State", indexingSystem.getCurrentState());
         telemetry.addData("  Artifacts", indexingSystem.getArtifactCount() + "/3");
         telemetry.addData("  Ready to Fire", indexingSystem.isReadyToFire() ? "YES ✓" : "NO");
 
-        // Intake Status
+        if (currentMode == TestMode.AUTO_COLLECTION) {
+            telemetry.addData("  Auto-Detection", indexingSystem.isAutoDetectionEnabled() ? "ACTIVE ✓" : "PAUSED");
+        }
+
+        // Intake Status with explanations
         telemetry.addLine("");
         telemetry.addLine("🔄 INTAKE STATUS:");
-        telemetry.addLine("  Front: " + getIntakeStatus(indexingSystem.getArtifactInFrontIntake()));
-        telemetry.addLine("  Back: " + getIntakeStatus(indexingSystem.getArtifactInBackIntake()));
-        telemetry.addLine("  (Intakes run continuously - full power or 50% if storing)");
+        telemetry.addData("  Front", getDetailedIntakeStatus(indexingSystem.getArtifactInFrontIntake()));
+        telemetry.addData("  Back", getDetailedIntakeStatus(indexingSystem.getArtifactInBackIntake()));
 
         // Artifact Locations
         telemetry.addLine("");
@@ -361,47 +666,572 @@ public class IndexingSystemTest extends LinearOpMode {
         Artifact backArtifact = indexingSystem.getArtifactInBackIntake();
 
         telemetry.addData("  Center", centerArtifact != null ?
-            centerArtifact.getColor() + " #" + centerArtifact.getCollectionOrder() : "Empty");
-        telemetry.addData("  Front", frontArtifact != null ?
-            frontArtifact.getColor() + " #" + frontArtifact.getCollectionOrder() : "Empty");
-        telemetry.addData("  Back", backArtifact != null ?
-            backArtifact.getColor() + " #" + backArtifact.getCollectionOrder() : "Empty");
+            String.format("%s #%d", centerArtifact.getColor(), centerArtifact.getCollectionOrder()) : "Empty");
+        telemetry.addData("  Front Storage", frontArtifact != null ?
+            String.format("%s #%d", frontArtifact.getColor(), frontArtifact.getCollectionOrder()) : "Empty");
+        telemetry.addData("  Back Storage", backArtifact != null ?
+            String.format("%s #%d", backArtifact.getColor(), backArtifact.getCollectionOrder()) : "Empty");
 
         // Shooter Status
         telemetry.addLine("");
         telemetry.addLine("🎯 SHOOTER:");
         telemetry.addData("  Status", shooter.isEnabled() ? "Enabled" : "Disabled");
         telemetry.addData("  Ready", shooter.isReadyToFire() ? "YES ✓" : "NO");
-        telemetry.addData("  At Speed", shooter.isAtTargetRPM() ? "YES ✓" : "NO");
 
-        // Configuration Info
-        if (debugTelemetry) {
+        // Distance sensors with enhanced display
+        if (currentMode == TestMode.AUTO_COLLECTION) {
             telemetry.addLine("");
-            telemetry.addLine("⚙️ TIMING CONFIG:");
-            telemetry.addData("  Intake Time", String.format("%.1fs", indexingConfig.getIntakeRollerTime()));
-            telemetry.addData("  Transfer Time", String.format("%.1fs", indexingConfig.getTransferServoTime()));
-            telemetry.addData("  Fire Time", String.format("%.1fs", indexingConfig.getFireFeedTime()));
-        }
+            telemetry.addLine("📏 DISTANCE SENSORS:");
+            try {
+                // Original laser sensors
+                if (hardware.getFrontDistanceSensor() != null) {
+                    double voltage = hardware.getFrontDistanceSensor().getVoltage();
+                    double distance = convertVoltageToDistance(voltage);
+                    boolean detected = distance > 0 && distance < indexingConfig.getArtifactDetectionDistance();
+                    telemetry.addData("  Laser Front", String.format("%.1fcm%s", distance, detected ? " 🔍" : ""));
 
-        // Controls
-        telemetry.addLine("");
-        telemetry.addLine("🎮 CONTROLS:");
-        telemetry.addLine("  [A] Detect Front  [B] Detect Back  [X] Fire");
-        telemetry.addLine("  [Y] Emergency Stop  [START] Reset");
-        if (manualMode) {
-            telemetry.addLine("  SERVO MANUAL MODE:");
-            telemetry.addLine("  [RB] Injector [LT] Uptake [RT] Transfer");
+                    // Show color detection for front if artifact detected
+                    if (detected) {
+                        Artifact.Color color = detectArtifactColor(IndexingSystem.IntakeSource.FRONT);
+                        telemetry.addData("    Color", color.toString());
+                    }
+                }
+                if (hardware.getBackDistanceSensor() != null) {
+                    double voltage = hardware.getBackDistanceSensor().getVoltage();
+                    double distance = convertVoltageToDistance(voltage);
+                    boolean detected = distance > 0 && distance < indexingConfig.getArtifactDetectionDistance();
+                    telemetry.addData("  Laser Back", String.format("%.1fcm%s", distance, detected ? " 🔍" : ""));
+
+                    // Show color detection for back if artifact detected
+                    if (detected) {
+                        Artifact.Color color = detectArtifactColor(IndexingSystem.IntakeSource.BACK);
+                        telemetry.addData("    Color", color.toString());
+                    }
+                }
+
+                // NEW: REV 2m Distance Sensors
+                if (indexingConfig.getUseRevDistanceSensors()) {
+                    double frontRevCM = hardware.getFrontLeftDistanceCM();
+                    double backRevCM = hardware.getBackRightDistanceCM();
+
+                    if (frontRevCM >= 0) {
+                        boolean revDetected = frontRevCM < indexingConfig.getRevSensorDetectionThreshold();
+                        telemetry.addData("  REV Front", String.format("%.1fcm%s", frontRevCM, revDetected ? " 🔍" : ""));
+                    } else {
+                        telemetry.addData("  REV Front", "N/A");
+                    }
+
+                    if (backRevCM >= 0) {
+                        boolean revDetected = backRevCM < indexingConfig.getRevSensorDetectionThreshold();
+                        telemetry.addData("  REV Back", String.format("%.1fcm%s", backRevCM, revDetected ? " 🔍" : ""));
+                    } else {
+                        telemetry.addData("  REV Back", "N/A");
+                    }
+
+                    telemetry.addData("  Threshold", String.format("%.1fcm", indexingConfig.getRevSensorDetectionThreshold()));
+                }
+            } catch (Exception e) {
+                telemetry.addLine("  Sensors: Error reading - " + e.getMessage());
+            }
         }
 
         // Errors
         String lastError = indexingSystem.getLastError();
         if (lastError != null && !lastError.isEmpty()) {
             telemetry.addLine("");
-            telemetry.addLine("⚠️ ERROR:");
+            telemetry.addLine("⚠️ LAST ERROR:");
             telemetry.addLine("  " + lastError);
         }
+    }
 
-        telemetry.update();
+    /**
+     * Display detailed subsystems page
+     */
+    private void displaySubsystemsPage() {
+        telemetry.addLine("");
+
+        // Indexing System State Machine
+        telemetry.addLine("🤖 INDEXING STATE MACHINE:");
+        telemetry.addData("  Current State", indexingSystem.getCurrentState());
+        telemetry.addData("  Operation Active", indexingSystem.isOperationInProgress() ? "YES" : "NO");
+
+        // Explain what the system is doing
+        String stateExplanation = getStateExplanation(indexingSystem.getCurrentState());
+        if (!stateExplanation.isEmpty()) {
+            telemetry.addLine("  Why: " + stateExplanation);
+        }
+
+        // Motor Subsystems
+        telemetry.addLine("");
+        telemetry.addLine("⚙️ MOTOR SUBSYSTEMS:");
+
+        // Front Intake Motor
+        if (hardware.getFrontRollerMotor() != null) {
+            double power = hardware.getFrontRollerMotor().getPower();
+            String status = power == 0 ? "STOPPED" : (power > 0.7 ? "COLLECTING" : "HOLDING");
+            telemetry.addData("  Front Roller", String.format("%s (%.2f)", status, power));
+        }
+
+        // Back Intake Motor
+        if (hardware.getBackRollerMotor() != null) {
+            double power = hardware.getBackRollerMotor().getPower();
+            String status = power == 0 ? "STOPPED" : (power > 0.7 ? "COLLECTING" : "HOLDING");
+            telemetry.addData("  Back Roller", String.format("%s (%.2f)", status, power));
+        }
+
+        // Servo Subsystems
+        telemetry.addLine("");
+        telemetry.addLine("🔧 SERVO SUBSYSTEMS:");
+
+        // Injector Servos
+        if (hardware.getInjectorServoLeft() != null) {
+            double power = hardware.getInjectorServoLeft().getPower();
+            telemetry.addData("  Injector Left", power == 0 ? "IDLE" : String.format("ACTIVE (%.2f)", power));
+        }
+        if (hardware.getInjectorServoRight() != null) {
+            double power = hardware.getInjectorServoRight().getPower();
+            telemetry.addData("  Injector Right", power == 0 ? "IDLE" : String.format("ACTIVE (%.2f)", power));
+        }
+
+        // Transfer Servos
+        if (hardware.getFrontTransferServo() != null) {
+            double power = hardware.getFrontTransferServo().getPower();
+            telemetry.addData("  Transfer Front", power == 0 ? "IDLE" : String.format("ACTIVE (%.2f)", power));
+        }
+        if (hardware.getBackTransferServo() != null) {
+            double power = hardware.getBackTransferServo().getPower();
+            telemetry.addData("  Transfer Back", power == 0 ? "IDLE" : String.format("ACTIVE (%.2f)", power));
+        }
+
+        // Shooter Subsystem
+        telemetry.addLine("");
+        telemetry.addLine("🎯 SHOOTER SUBSYSTEM:");
+        telemetry.addData("  Enabled", shooter.isEnabled() ? "YES" : "NO");
+        telemetry.addData("  Ready to Fire", shooter.isReadyToFire() ? "YES" : "NO");
+        telemetry.addData("  At Target RPM", shooter.isAtTargetRPM() ? "YES" : "NO");
+
+        // Hardware Status
+        telemetry.addLine("");
+        telemetry.addLine("🔌 HARDWARE STATUS:");
+
+        // Count connected components
+        int connectedMotors = 0;
+        int totalMotors = 2;
+        if (hardware.getFrontRollerMotor() != null) connectedMotors++;
+        if (hardware.getBackRollerMotor() != null) connectedMotors++;
+
+        int connectedServos = 0;
+        int totalServos = 6; // IndexingSystem uses 6 servos (excludes bottom intake servos)
+        if (hardware.getInjectorServoLeft() != null) connectedServos++;
+        if (hardware.getInjectorServoRight() != null) connectedServos++;
+        if (hardware.getUptakeServoL() != null) connectedServos++;
+        if (hardware.getUptakeServoR() != null) connectedServos++;
+        if (hardware.getFrontTransferServo() != null) connectedServos++;
+        if (hardware.getBackTransferServo() != null) connectedServos++;
+
+        telemetry.addData("  Motors Connected", String.format("%d/%d", connectedMotors, totalMotors));
+        telemetry.addData("  Servos Connected", String.format("%d/%d", connectedServos, totalServos));
+
+        // Show details about missing servos
+        if (connectedServos < totalServos) {
+            telemetry.addLine("  Missing servos handled gracefully");
+            if (hardware.getInjectorServoLeft() == null) telemetry.addLine("    - Injector Left servo not found");
+            if (hardware.getInjectorServoRight() == null) telemetry.addLine("    - Injector Right servo not found");
+            if (hardware.getUptakeServoL() == null) telemetry.addLine("    - Uptake Left servo not found");
+            if (hardware.getUptakeServoR() == null) telemetry.addLine("    - Uptake Right servo not found");
+            if (hardware.getFrontTransferServo() == null) telemetry.addLine("    - Front Transfer servo not found");
+            if (hardware.getBackTransferServo() == null) telemetry.addLine("    - Back Transfer servo not found");
+        }
+    }
+
+    /**
+     * Display raw sensor and motor data
+     */
+    private void displayRawDataPage() {
+        telemetry.addLine("");
+
+        // Distance Sensors
+        telemetry.addLine("📏 DISTANCE SENSORS:");
+        try {
+            // Original goBILDA Laser Sensors (Analog)
+            telemetry.addLine("  LASER SENSORS (Analog):");
+            if (hardware.getFrontDistanceSensor() != null) {
+                double voltage = hardware.getFrontDistanceSensor().getVoltage();
+                double distance = convertVoltageToDistance(voltage);
+                boolean detected = distance < indexingConfig.getArtifactDetectionDistance();
+                telemetry.addData("    Front", String.format("%.3fV → %.1fcm %s",
+                    voltage, distance, detected ? "DETECTED" : ""));
+            } else {
+                telemetry.addLine("    Front: NOT CONNECTED");
+            }
+
+            if (hardware.getBackDistanceSensor() != null) {
+                double voltage = hardware.getBackDistanceSensor().getVoltage();
+                double distance = convertVoltageToDistance(voltage);
+                boolean detected = distance < indexingConfig.getArtifactDetectionDistance();
+                telemetry.addData("    Back", String.format("%.3fV → %.1fcm %s",
+                    voltage, distance, detected ? "DETECTED" : ""));
+            } else {
+                telemetry.addLine("    Back: NOT CONNECTED");
+            }
+
+            // NEW: REV 2m Distance Sensors (I2C)
+            telemetry.addLine("  REV 2M SENSORS (I2C):");
+            if (indexingConfig.getUseRevDistanceSensors()) {
+                double frontRevCM = hardware.getFrontLeftDistanceCM();
+                double backRevCM = hardware.getBackRightDistanceCM();
+                double threshold = indexingConfig.getRevSensorDetectionThreshold();
+
+                if (frontRevCM >= 0) {
+                    boolean detected = frontRevCM < threshold;
+                    telemetry.addData("    Front Left", String.format("%.1fcm %s (threshold: %.1fcm)",
+                        frontRevCM, detected ? "DETECTED" : "", threshold));
+                } else {
+                    telemetry.addLine("    Front Left: NOT CONNECTED");
+                }
+
+                if (backRevCM >= 0) {
+                    boolean detected = backRevCM < threshold;
+                    telemetry.addData("    Back Right", String.format("%.1fcm %s (threshold: %.1fcm)",
+                        backRevCM, detected ? "DETECTED" : "", threshold));
+                } else {
+                    telemetry.addLine("    Back Right: NOT CONNECTED");
+                }
+
+                telemetry.addData("    Sensor Weight", String.format("%.0f%% REV, %.0f%% Laser",
+                    indexingConfig.getRevSensorWeight() * 100,
+                    (1.0 - indexingConfig.getRevSensorWeight()) * 100));
+            } else {
+                telemetry.addLine("    REV sensors DISABLED in config");
+            }
+        } catch (Exception e) {
+            telemetry.addLine("  Error: " + e.getMessage());
+        }
+
+        // Color Sensors - Front Intake
+        telemetry.addLine("");
+        telemetry.addLine("🎨 COLOR SENSORS - FRONT:");
+        telemetry.addLine("    Note: Left sensor replaced with REV distance sensor");
+        displayColorSensorData("  Left", hardware.getFrontLeftColorSensor(), "(REPLACED w/ REV distance)");
+        displayColorSensorData("  Right", hardware.getFrontRightColorSensor());
+        displayColorSensorData("  Center", hardware.getFrontCenterColorSensor());
+
+        // Color Sensors - Back Intake
+        telemetry.addLine("");
+        telemetry.addLine("🎨 COLOR SENSORS - BACK:");
+        telemetry.addLine("    Note: Right sensor replaced with REV distance sensor");
+        displayColorSensorData("  Right", hardware.getBackRightColorSensor(), "(REPLACED w/ REV distance)");
+        displayColorSensorData("  Left", hardware.getLeftRightColorSensor());
+        displayColorSensorData("  Center", hardware.getBackCenterColorSensor());
+
+        // Motor Powers
+        telemetry.addLine("");
+        telemetry.addLine("⚙️ MOTOR POWERS:");
+        if (hardware.getFrontRollerMotor() != null) {
+            telemetry.addData("  Front Roller", String.format("%.3f", hardware.getFrontRollerMotor().getPower()));
+        }
+        if (hardware.getBackRollerMotor() != null) {
+            telemetry.addData("  Back Roller", String.format("%.3f", hardware.getBackRollerMotor().getPower()));
+        }
+
+        // Servo Powers
+        telemetry.addLine("");
+        telemetry.addLine("🔧 SERVO POWERS:");
+        displayServoPower("  Injector L", hardware.getInjectorServoLeft());
+        displayServoPower("  Injector R", hardware.getInjectorServoRight());
+        displayServoPower("  Uptake L", hardware.getUptakeServoL());
+        displayServoPower("  Uptake R", hardware.getUptakeServoR());
+        displayServoPower("  Transfer F", hardware.getFrontTransferServo());
+        displayServoPower("  Transfer B", hardware.getBackTransferServo());
+    }
+
+    /**
+     * Display configuration parameters
+     */
+    private void displayConfigurationPage() {
+        telemetry.addLine("");
+
+        // Timing Configuration
+        telemetry.addLine("⏱️ TIMING CONFIG:");
+        telemetry.addData("  Intake Time", String.format("%.2fs", indexingConfig.getIntakeRollerTime()));
+        telemetry.addData("  Transfer Time", String.format("%.2fs", indexingConfig.getTransferServoTime()));
+        telemetry.addData("  Fire Feed Time", String.format("%.2fs", indexingConfig.getFireFeedTime()));
+        telemetry.addData("  Settle Time", String.format("%.2fs", indexingConfig.getFirstArtifactSettleTime()));
+        telemetry.addData("  Push Time", String.format("%.2fs", indexingConfig.getSecondArtifactPushTime()));
+
+        // Power Configuration
+        telemetry.addLine("");
+        telemetry.addLine("⚡ POWER CONFIG:");
+        telemetry.addData("  Intake Power", String.format("%.2f", indexingConfig.getIntakeRollerPower()));
+        telemetry.addData("  Transfer Power", String.format("%.2f", indexingConfig.getTransferServoPower()));
+        telemetry.addData("  Fire Feed Power", String.format("%.2f", indexingConfig.getFireFeedPower()));
+        telemetry.addData("  Center Power", String.format("%.2f", indexingConfig.getCenterRollerPower()));
+
+        // Color Detection Configuration
+        telemetry.addLine("");
+        telemetry.addLine("🎨 COLOR DETECTION CONFIG:");
+        telemetry.addData("  Distance Threshold", String.format("%.1fcm", indexingConfig.getArtifactDetectionDistance()));
+        telemetry.addData("  Color Confidence", String.format("%.2f", indexingConfig.getColorConfidenceThreshold()));
+        telemetry.addData("  Sensor Debounce", String.format("%.3fs", indexingConfig.getSensorDebounceTime()));
+
+        // Color Detection Patterns
+        telemetry.addLine("");
+        telemetry.addLine("🎨 COLOR PATTERNS (From Measurements):");
+        telemetry.addLine("  Purple: R≈G, Blue>R/G (R:0.1-0.15, G:0.1-0.15, B:0.15-0.3)");
+        telemetry.addLine("  Green: G>R/B (R:0.05-0.1, G:0.2-0.35, B:0.1-0.2)");
+        telemetry.addData("  Min Score Required", String.format("%.2f", indexingConfig.getColorDetectionMinScore()));
+        telemetry.addLine("");
+        telemetry.addLine("  Algorithm: Pattern-based scoring");
+        telemetry.addLine("  • Purple: Red≈Green similar, Blue dominant");
+        telemetry.addLine("  • Green: Green dominant, lower overall values");
+
+        // System Configuration
+        telemetry.addLine("");
+        telemetry.addLine("⚙️ SYSTEM CONFIG:");
+        telemetry.addData("  Debug Telemetry", debugTelemetry ? "ON" : "OFF");
+        telemetry.addData("  Safety Checks", indexingConfig.isEnableSafetyChecks() ? "ON" : "OFF");
+        telemetry.addData("  Auto Recovery", indexingConfig.isEnableAutoRecovery() ? "ON" : "OFF");
+        telemetry.addData("  Max Artifacts", String.valueOf(IndexingConfig.MAX_ARTIFACTS));
+    }
+
+    /**
+     * Display diagnostics and performance data
+     */
+    private void displayDiagnosticsPage() {
+        telemetry.addLine("");
+
+        // Performance Metrics
+        telemetry.addLine("📊 PERFORMANCE:");
+        telemetry.addData("  Loop Time", String.format("%.1fms (Max: %.1fms)", (double)avgLoopTime, (double)maxLoopTime));
+        telemetry.addData("  Total Loops", String.valueOf(totalLoops));
+        telemetry.addData("  Loop Rate", String.format("%.1f Hz", 1000.0 / Math.max(avgLoopTime, 1)));
+
+        // System Health
+        telemetry.addLine("");
+        telemetry.addLine("💚 SYSTEM HEALTH:");
+
+        // Check sensor connectivity
+        int connectedSensors = 0;
+        int totalSensors = 0;
+
+        if (hardware.getFrontDistanceSensor() != null) connectedSensors++;
+        totalSensors++;
+        if (hardware.getBackDistanceSensor() != null) connectedSensors++;
+        totalSensors++;
+
+        if (hardware.getFrontLeftColorSensor() != null) connectedSensors++;
+        totalSensors++;
+        if (hardware.getFrontRightColorSensor() != null) connectedSensors++;
+        totalSensors++;
+        if (hardware.getFrontCenterColorSensor() != null) connectedSensors++;
+        totalSensors++;
+        if (hardware.getBackRightColorSensor() != null) connectedSensors++;
+        totalSensors++;
+        if (hardware.getLeftRightColorSensor() != null) connectedSensors++;
+        totalSensors++;
+        if (hardware.getBackCenterColorSensor() != null) connectedSensors++;
+        totalSensors++;
+
+        telemetry.addData("  Sensors", String.format("%d/%d connected", connectedSensors, totalSensors));
+
+        // Check motor connectivity
+        int connectedMotors = 0;
+        int totalMotors = 2; // Front and back roller motors
+
+        if (hardware.getFrontRollerMotor() != null) connectedMotors++;
+        if (hardware.getBackRollerMotor() != null) connectedMotors++;
+
+        telemetry.addData("  Motors", String.format("%d/%d connected", connectedMotors, totalMotors));
+
+        // Check servo connectivity
+        int connectedServos = 0;
+        int totalServos = 6; // IndexingSystem uses 6 servos
+
+        if (hardware.getInjectorServoLeft() != null) connectedServos++;
+        if (hardware.getInjectorServoRight() != null) connectedServos++;
+        if (hardware.getUptakeServoL() != null) connectedServos++;
+        if (hardware.getUptakeServoR() != null) connectedServos++;
+        if (hardware.getFrontTransferServo() != null) connectedServos++;
+        if (hardware.getBackTransferServo() != null) connectedServos++;
+
+        telemetry.addData("  Servos", String.format("%d/%d connected", connectedServos, totalServos));
+
+        // Error History
+        telemetry.addLine("");
+        telemetry.addLine("⚠️ ERROR STATUS:");
+        String lastError = indexingSystem.getLastError();
+        if (lastError != null && !lastError.isEmpty()) {
+            telemetry.addLine("  Last Error: " + lastError);
+        } else {
+            telemetry.addLine("  No errors reported");
+        }
+
+        // Auto-Detection Statistics (if enabled)
+        if (currentMode == TestMode.AUTO_COLLECTION) {
+            telemetry.addLine("");
+            telemetry.addLine("🔍 AUTO-DETECTION:");
+            telemetry.addData("  Status", indexingSystem.isAutoDetectionEnabled() ? "ACTIVE" : "PAUSED");
+            telemetry.addLine("  Managed by IndexingSystem internally");
+        }
+
+        // Memory and System Info
+        telemetry.addLine("");
+        telemetry.addLine("💾 SYSTEM INFO:");
+        Runtime runtime = Runtime.getRuntime();
+        long totalMemory = runtime.totalMemory() / 1024 / 1024; // MB
+        long freeMemory = runtime.freeMemory() / 1024 / 1024; // MB
+        long usedMemory = totalMemory - freeMemory;
+
+        telemetry.addData("  Memory", String.format("%dMB used / %dMB total", usedMemory, totalMemory));
+        telemetry.addData("  Uptime", String.format("%.1fs", (System.currentTimeMillis() - testStartTime) / 1000.0));
+    }
+
+    /**
+     * Display controls and help
+     */
+    private void displayControlsPage() {
+        telemetry.addLine("");
+
+        telemetry.addLine("🎮 GAMEPAD 1 - INDEXING CONTROLS:");
+        telemetry.addLine("  [A] Toggle auto-detection / Manual front");
+        telemetry.addLine("  [B] Force back collect / Manual back");
+        telemetry.addLine("  [X] Fire artifact");
+        telemetry.addLine("  [Y] Cycle modes (+ R-stick = ESTOP)");
+        telemetry.addLine("  [START] Reset system");
+        telemetry.addLine("  [BACK] Toggle debug telemetry");
+        telemetry.addLine("");
+        telemetry.addLine("  [DPAD ↑↓] Navigate pages");
+        telemetry.addLine("  [DPAD ←] Quick overview");
+        telemetry.addLine("  [DPAD →] Quick raw data");
+        telemetry.addLine("");
+        telemetry.addLine("  [L-BUMPER] Manual servo mode");
+        telemetry.addLine("  [R-BUMPER] Injector servos (manual)");
+        telemetry.addLine("  [L-TRIGGER] Uptake servos (manual)");
+        telemetry.addLine("  [R-TRIGGER] Transfer servos (manual)");
+
+        telemetry.addLine("");
+        telemetry.addLine("🎮 GAMEPAD 2 - SHOOTER & ADVANCED:");
+        telemetry.addLine("  [A] Spin up shooter");
+        telemetry.addLine("  [B] Stop shooter");
+        telemetry.addLine("  [X] Manual color detection test");
+        telemetry.addLine("  [Y] Quick diagnostics");
+
+        telemetry.addLine("");
+        telemetry.addLine("📋 TEST MODES:");
+        telemetry.addLine("  AUTO_COLLECTION - IndexingSystem auto-detects");
+        telemetry.addLine("  MANUAL_CONTROL - Button-triggered only");
+        telemetry.addLine("  SERVO_DEBUG - Individual servo testing");
+        telemetry.addLine("  SENSOR_DEBUG - Raw sensor monitoring");
+
+        telemetry.addLine("");
+        telemetry.addLine("📊 TELEMETRY PAGES:");
+        telemetry.addLine("  OVERVIEW - Main system status");
+        telemetry.addLine("  SUBSYSTEMS - Detailed component status");
+        telemetry.addLine("  RAW_DATA - Sensor readings & motor powers");
+        telemetry.addLine("  CONFIGURATION - All config parameters");
+        telemetry.addLine("  DIAGNOSTICS - Performance & health data");
+        telemetry.addLine("  CONTROLS - This help page");
+    }
+
+    /**
+     * Update performance metrics
+     */
+    private void updatePerformanceMetrics() {
+        long currentTime = System.currentTimeMillis();
+        long loopTime = currentTime - loopStartTime;
+
+        totalLoops++;
+        maxLoopTime = Math.max(maxLoopTime, loopTime);
+
+        // Calculate rolling average (last 100 loops)
+        if (totalLoops == 1) {
+            avgLoopTime = loopTime;
+        } else {
+            avgLoopTime = (long)(avgLoopTime * 0.99 + loopTime * 0.01);
+        }
+    }
+
+    /**
+     * Get detailed intake status with explanation
+     */
+    private String getDetailedIntakeStatus(Artifact artifact) {
+        if (artifact != null) {
+            return String.format("STORING %s #%d (50%% power)",
+                artifact.getColor(), artifact.getCollectionOrder());
+        } else {
+            return "Ready to collect (100% power)";
+        }
+    }
+
+    /**
+     * Get explanation of what the indexing system is doing in current state
+     */
+    private String getStateExplanation(IndexingSystem.SystemState state) {
+        switch (state) {
+            case IDLE:
+                return "Waiting for artifact detection or fire command";
+            case COLLECTING:
+                return "Running intake rollers to collect detected artifact";
+            case TRANSFERRING:
+                return "Moving artifact from intake to center using transfer servos";
+            case PUSHING:
+                return "Second artifact pushing first artifact to storage intake";
+            case FIRING:
+                return "Feeding artifact from center to shooter";
+            case READY_TO_FIRE:
+                return "Artifact in center, waiting for fire signal";
+            case ERROR:
+                return "System error - check diagnostics page";
+            default:
+                return "";
+        }
+    }
+
+    /**
+     * Display color sensor data for telemetry with optional note
+     */
+    private void displayColorSensorData(String name, com.qualcomm.robotcore.hardware.NormalizedColorSensor sensor, String note) {
+        if (sensor != null) {
+            try {
+                com.qualcomm.robotcore.hardware.NormalizedRGBA colors = sensor.getNormalizedColors();
+
+                // Calculate scores for both colors
+                double purpleScore = indexingConfig.calculateColorConfidence(colors.red, colors.green, colors.blue, "PURPLE");
+                double greenScore = indexingConfig.calculateColorConfidence(colors.red, colors.green, colors.blue, "GREEN");
+
+                String detectedColor = indexingConfig.detectArtifactColor(colors.red, colors.green, colors.blue);
+
+                telemetry.addData(name, String.format("R:%.3f G:%.3f B:%.3f", colors.red, colors.green, colors.blue));
+                telemetry.addData(name + " Scores", String.format("P:%.2f G:%.2f → %s", purpleScore, greenScore, detectedColor));
+            } catch (Exception e) {
+                telemetry.addData(name, "ERROR: " + e.getMessage());
+            }
+        } else {
+            telemetry.addData(name, note != null ? note : "NOT CONNECTED");
+        }
+    }
+
+    /**
+     * Display color sensor data for telemetry
+     */
+    private void displayColorSensorData(String name, com.qualcomm.robotcore.hardware.NormalizedColorSensor sensor) {
+        displayColorSensorData(name, sensor, null);
+    }
+
+    /**
+     * Display servo power for telemetry
+     */
+    private void displayServoPower(String name, com.qualcomm.robotcore.hardware.CRServo servo) {
+        if (servo != null) {
+            try {
+                double power = servo.getPower();
+                telemetry.addData(name, String.format("%.3f", power));
+            } catch (Exception e) {
+                telemetry.addData(name, "ERROR");
+            }
+        } else {
+            telemetry.addData(name, "N/C");
+        }
     }
 
     /**
