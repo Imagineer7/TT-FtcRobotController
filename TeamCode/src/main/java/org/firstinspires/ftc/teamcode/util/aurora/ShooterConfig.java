@@ -35,7 +35,7 @@ public class ShooterConfig {
     public enum ShooterPreset {
         LONG_RANGE("Long Range", 0.85, 2800, 1.0, 1.2),
         MID_RANGE("Mid Range", 0.75, 2300, 0.6, 0.8),
-        SHORT_RANGE("Short Range", 1.0, 2000, 0.25, 0.8);
+        SHORT_RANGE("Short Range", 1.0, 1100, 0.25, 0.8);
 
         private final String name;
         private final double power;
@@ -90,11 +90,17 @@ public class ShooterConfig {
     /** Feed servo activation time (seconds) */
     private double feedTime = 0.2;
 
+    /** Uptake servo pre-position time when artifact in center (seconds) */
+    private double uptakePrePositionTime = 0.3;
+
+    /** Uptake servo retract time during push operations (seconds) */
+    private double uptakeRetractTime = 0.4;
+
     /** RPM tolerance for "at target" status */
-    private double rpmTolerance = 75;
+    private double rpmTolerance = 100;
 
     /** Stricter RPM tolerance during shooting */
-    private double shootingRpmTolerance = 50;
+    private double shootingRpmTolerance = 75;
 
     /** Time RPM must be stable before shooting (seconds) */
     private double rpmStabilityTime = 0.25;
@@ -220,6 +226,22 @@ public class ShooterConfig {
 
     /** Warm-up mode spin-up percentage (65% of target) */
     public static final double WARMUP_PERCENTAGE = 0.65;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // UPTAKE SERVO TIMING PARAMETERS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /** Time to run uptake servos to feed one artifact into shooter (milliseconds) */
+    public static final long UPTAKE_FEED_TIME_MS = 800;
+
+    /** Power level for uptake servos when feeding artifacts (0.0 to 1.0) */
+    public static final double UPTAKE_FEED_POWER = 0.8;
+
+    /** Power level for uptake servos when pre-positioning (0.0 to 1.0) */
+    public static final double UPTAKE_PREPOSITION_POWER = 0.5;
+
+    /** Time to maintain uptake pre-positioning before auto-stop (milliseconds) */
+    public static final long UPTAKE_PREPOSITION_TIMEOUT_MS = 500;
 
     // ═══════════════════════════════════════════════════════════════════════
     // SAFETY PARAMETERS
@@ -441,4 +463,21 @@ public class ShooterConfig {
             return PID_KF_MID;
         }
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // UPTAKE SERVO TIMING GETTERS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    public double getUptakePrePositionTime() { return uptakePrePositionTime; }
+    public void setUptakePrePositionTime(double uptakePrePositionTime) {
+        this.uptakePrePositionTime = uptakePrePositionTime;
+    }
+
+    public double getUptakeRetractTime() { return uptakeRetractTime; }
+    public void setUptakeRetractTime(double uptakeRetractTime) {
+        this.uptakeRetractTime = uptakeRetractTime;
+    }
+
+    public long getUptakePrePositionTimeMs() { return (long)(uptakePrePositionTime * 1000); }
+    public long getUptakeRetractTimeMs() { return (long)(uptakeRetractTime * 1000); }
 }

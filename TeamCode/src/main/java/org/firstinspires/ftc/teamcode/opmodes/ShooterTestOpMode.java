@@ -118,8 +118,8 @@ public class ShooterTestOpMode extends LinearOpMode {
             // Initialize Uptake Servos
             boolean uptakeReady = false;
             try {
-                uptakeServoL = hardwareMap.get(CRServo.class, "Uptake Transfer Left");
-                uptakeServoR = hardwareMap.get(CRServo.class, "Uptake Transfer Right");
+                uptakeServoL = hardwareMap.get(CRServo.class, "UptakeTransferLeft");
+                uptakeServoR = hardwareMap.get(CRServo.class, "UptakeTransferRight");
                 uptakeServoL.setPower(0);
                 uptakeServoR.setPower(0);
                 uptakeReady = true;

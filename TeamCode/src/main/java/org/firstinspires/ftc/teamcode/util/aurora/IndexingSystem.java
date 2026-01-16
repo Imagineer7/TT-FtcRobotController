@@ -97,7 +97,8 @@ public class IndexingSystem {
     // Shot planning
     private Artifact plannedSecondShot;
     private Artifact plannedThirdShot;
-    
+    private Artifact plannedFirstShot;  // For external access
+
     // Motif pattern for shot order (determined by limelight camera)
     private String motifPattern = "PPG"; // Default pattern: Purple, Purple, Green
     private boolean motifPatternSet = false;
@@ -112,10 +113,20 @@ public class IndexingSystem {
     private Artifact frontPendingArtifact = null;
     private Artifact backPendingArtifact = null;
 
-    // Automatic detection state
-    private boolean autoDetectionEnabled = true;
+    // Uptake servo coordination state
+    private boolean uptakeServoPrePositioned = false;
+    private long uptakeServoActionTime = 0;
+    private boolean uptakeServoPrePositionedForCurrentArtifact = false; // Tracks if we've pre-positioned for current center artifact
     private long lastSensorCheck = 0;
     private static final long SENSOR_CHECK_INTERVAL = 50; // 50ms = 20Hz
+
+    // Automatic detection state
+    private boolean autoDetectionEnabled = true;
+
+    // Debug message storage for opmode display
+    private final java.util.concurrent.ConcurrentLinkedQueue<String> debugMessages = new java.util.concurrent.ConcurrentLinkedQueue<>();
+    private static final int MAX_DEBUG_MESSAGES = 10; // Keep last 10 messages
+    private final long debugStartTime = System.currentTimeMillis(); // Reference time for relative timestamps
 
     // ═══════════════════════════════════════════════════════════════════════
     // CONSTRUCTOR
@@ -614,9 +625,17 @@ public class IndexingSystem {
         // Update color detection delays first
         updateColorDetectionDelays();
 
+        // Update uptake servo pre-positioning timeout
+        updateUptakeServoTimeout(currentTime);
+
         // Handle automatic sensor monitoring and detection
         if (autoDetectionEnabled) {
             handleAutomaticDetection(currentTime);
+        }
+
+        // Update shot planning continuously based on current context
+        if (getArtifactCount() > 0) {
+            planShotsWithMotif();
         }
 
         // State machine processing FIRST (this may reset operationStartTime during state transitions)
@@ -661,11 +680,43 @@ public class IndexingSystem {
                 break;
 
             case READY_TO_FIRE:
-                // Waiting for fire signal, nothing to update
+                // Ensure uptake servos are pre-positioned when ready to fire
+                // Only start pre-positioning if not already in progress and haven't completed for this artifact
+                if (!uptakeServoPrePositioned && !operationInProgress && artifactInCenter != null &&
+                    !uptakeServoPrePositionedForCurrentArtifact) {
+
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        String msg = "🔧 STATE: READY_TO_FIRE starting pre-position";
+                        telemetry.addLine(msg);
+                        addDebugMessage(msg);
+                    }
+                    setUptakeServoPrePosition(true);
+                    // Don't set the flag here - let timeout completion set it
+                }
                 break;
 
             case IDLE:
-                // Nothing to do
+                // Ensure uptake servos are pre-positioned if there's an artifact in center
+                // Only start pre-positioning if not already in progress and haven't completed for this artifact
+                if (!uptakeServoPrePositioned && !operationInProgress && artifactInCenter != null &&
+                    !uptakeServoPrePositionedForCurrentArtifact) {
+
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        String msg = "🔧 STATE: IDLE starting pre-position";
+                        telemetry.addLine(msg);
+                        addDebugMessage(msg);
+                    }
+                    setUptakeServoPrePosition(true);
+                    // Don't set the flag here - let timeout completion set it
+                } else if (config.isDebugTelemetry() && telemetry != null && artifactInCenter != null) {
+                    // DEBUG: Track every few seconds when IDLE state is checking pre-positioning
+                    long debugTime = System.currentTimeMillis();
+                    if (debugTime % 2000 < 50) { // Log approximately every 2 seconds
+                        String debugMsg = String.format("🔧 IDLE: checking pre-position (prePos:%s, completed:%s)",
+                            uptakeServoPrePositioned, uptakeServoPrePositionedForCurrentArtifact);
+                        addDebugMessage(debugMsg);
+                    }
+                }
                 break;
 
             case ERROR:
@@ -718,6 +769,10 @@ public class IndexingSystem {
         backArtifactFirstDetected = 0;
         frontPendingArtifact = null;
         backPendingArtifact = null;
+
+        // Reset uptake servo coordination state
+        uptakeServoPrePositioned = false;
+        uptakeServoActionTime = 0;
 
         resetToIdle();
         
@@ -886,6 +941,9 @@ public class IndexingSystem {
         artifacts.set(artifacts.size() - 1, updatedArtifact);
         artifactInCenter = updatedArtifact;
 
+        // Reset uptake pre-position flag for new center artifact
+        uptakeServoPrePositionedForCurrentArtifact = false;
+
         nextCollectionOrder++;
 
         if (config.isDebugTelemetry() && telemetry != null) {
@@ -898,6 +956,9 @@ public class IndexingSystem {
 
         // Update intake modes after artifact placement
         updateIntakeModes();
+
+        // Pre-positioning will be handled by the state machine logic in update()
+        // No need to explicitly start it here to avoid conflicts
 
         if (updatedArtifact.getCollectionOrder() == 1) {
             // First artifact in center, ready for more collection
@@ -933,6 +994,11 @@ public class IndexingSystem {
 
         // Clear any stale pending artifacts to prevent conflicts during push
         clearPendingArtifacts();
+
+        // Retract uptake servos during push operation to avoid interference
+        if (uptakeServoPrePositioned) {
+            retractUptakeServos();
+        }
 
         // Determine opposite intake from where second artifact came
         Artifact.Location oppositeIntake = (lastIntakeSource == IntakeSource.FRONT)
@@ -1016,6 +1082,9 @@ public class IndexingSystem {
         artifacts.set(artifacts.size() - 1, secondInCenter);
         artifactInCenter = secondInCenter;
 
+        // Reset uptake pre-position flag for new center artifact
+        uptakeServoPrePositionedForCurrentArtifact = false;
+
         nextCollectionOrder++;
 
         if (config.isDebugTelemetry() && telemetry != null) {
@@ -1028,6 +1097,9 @@ public class IndexingSystem {
 
         // Update intake modes (should already be correct from startSecondArtifactIndexing)
         updateIntakeModes();
+
+        // Pre-positioning will be handled by the state machine logic in update()
+        // No need to explicitly start it here to avoid conflicts
 
         // Plan shots with motif
         planShotsWithMotif();
@@ -1107,9 +1179,15 @@ public class IndexingSystem {
         }
         artifactInCenter = movedToCenter;
         
+        // Reset uptake pre-position flag for new center artifact
+        uptakeServoPrePositionedForCurrentArtifact = false;
+
         // Update intake modes
         updateIntakeModes();
         
+        // Pre-positioning will be handled by the state machine logic in update()
+        // No need to explicitly start it here to avoid conflicts
+
         // Now ready to fire the desired artifact
         changeState(SystemState.READY_TO_FIRE);
         operationInProgress = false;
@@ -1404,7 +1482,7 @@ public class IndexingSystem {
      */
     private void updateFiring(long elapsedTime) {
         if (elapsedTime >= config.getFireFeedTimeMs()) {
-            // Return uptake servos to idle
+            // Return uptake servos to idle after firing completes
             setUptakeServos(false);
             completeFiring();
         }
@@ -1419,63 +1497,87 @@ public class IndexingSystem {
             return;
         }
 
-        // Mark artifact as fired
-        Artifact fired = artifactInCenter.withLocation(Artifact.Location.FIRED);
+        // Mark artifact as fired in the artifacts list
+        Artifact firedArtifact = artifactInCenter;
         for (int i = 0; i < artifacts.size(); i++) {
-            if (artifacts.get(i).getCollectionOrder() == artifactInCenter.getCollectionOrder()) {
+            if (artifacts.get(i).getCollectionOrder() == firedArtifact.getCollectionOrder()) {
+                // Mark as FIRED and remove from system memory
+                Artifact fired = artifacts.get(i).withLocation(Artifact.Location.FIRED);
                 artifacts.set(i, fired);
                 break;
             }
         }
 
+        // Clear center slot
         artifactInCenter = null;
+
+        // Reset uptake pre-position flag since no artifact in center now
+        uptakeServoPrePositionedForCurrentArtifact = false;
+
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine(String.format("🔥 ARTIFACT FIRED: %s #%d",
+                firedArtifact.getColor(), firedArtifact.getCollectionOrder()));
+            telemetry.addLine(String.format("   Remaining artifacts: %d", getArtifactCount()));
+        }
 
         // After firing, check if we need to move another artifact to center
         int remainingCount = getArtifactCount();
         
         if (remainingCount > 0) {
-            // Move next artifact from storage to center for next shot
-            moveNextArtifactToCenter();
+            // Move next planned artifact from storage to center for next shot
+            moveNextPlannedArtifactToCenter();
         } else {
             // All artifacts fired
             changeState(SystemState.IDLE);
             operationInProgress = false;
-        }
 
-        if (config.isDebugTelemetry()) {
-            telemetry.addLine("Firing complete");
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("🎉 ALL ARTIFACTS FIRED - SEQUENCE COMPLETE");
+            }
         }
     }
 
     /**
-     * Move the next artifact from storage to center for firing
+     * Move the next planned artifact from storage to center for firing
+     * Uses shot planning to determine optimal firing order
      */
-    private void moveNextArtifactToCenter() {
-        // Priority: use planned shot order
+    private void moveNextPlannedArtifactToCenter() {
         Artifact nextArtifact = null;
         
-        if (plannedSecondShot != null && 
-            plannedSecondShot.getLocation() != Artifact.Location.FIRED) {
+        // Use planned shots in order: second shot, then third shot
+        if (plannedSecondShot != null &&
+            plannedSecondShot.getLocation() != Artifact.Location.FIRED &&
+            plannedSecondShot.getLocation() != Artifact.Location.CENTER_STORAGE) {
             nextArtifact = plannedSecondShot;
         } else if (plannedThirdShot != null && 
-                   plannedThirdShot.getLocation() != Artifact.Location.FIRED) {
+                   plannedThirdShot.getLocation() != Artifact.Location.FIRED &&
+                   plannedThirdShot.getLocation() != Artifact.Location.CENTER_STORAGE) {
             nextArtifact = plannedThirdShot;
         } else {
-            // No planned shots, take any available artifact
-            for (Artifact a : artifacts) {
-                if (a.getLocation() == Artifact.Location.FRONT_INTAKE || 
-                    a.getLocation() == Artifact.Location.BACK_INTAKE) {
-                    nextArtifact = a;
-                    break;
-                }
+            // No planned shots available, take any storage artifact
+            if (artifactInFrontIntake != null) {
+                nextArtifact = artifactInFrontIntake;
+            } else if (artifactInBackIntake != null) {
+                nextArtifact = artifactInBackIntake;
             }
         }
 
         if (nextArtifact != null) {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine(String.format("🔄 Moving next artifact to center: %s #%d from %s",
+                    nextArtifact.getColor(),
+                    nextArtifact.getCollectionOrder(),
+                    nextArtifact.getLocation()));
+            }
             startTransferFromStorageToCenter(nextArtifact);
         } else {
+            // No artifacts available
             changeState(SystemState.IDLE);
             operationInProgress = false;
+
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("🎉 NO MORE ARTIFACTS - SEQUENCE COMPLETE");
+            }
         }
     }
 
@@ -1518,8 +1620,12 @@ public class IndexingSystem {
     }
 
     /**
-     * Plan shots based on motif pattern
-     * Motif pattern determines the order: PPG, PGP, or GPP
+     * Plan shots based on motif pattern and current system state
+     * Implements the specified planning rules:
+     * - 3 artifacts: Center fires first (no planning), 2nd/3rd planned by motif
+     * - 2 artifacts + manual mode: Center fires first, 2nd planned by motif
+     * - 2 artifacts + auto mode: First shot can be planned using empty intake
+     * - Planning runs continuously every update
      */
     private void planShotsWithMotif() {
         // Get all artifacts that haven't been fired yet
@@ -1530,91 +1636,201 @@ public class IndexingSystem {
             }
         }
 
-        if (available.size() < 2) {
-            // Not enough artifacts to plan
-            return;
-        }
+        int artifactCount = available.size();
 
         // Clear previous plans
+        plannedFirstShot = null;
         plannedSecondShot = null;
         plannedThirdShot = null;
 
-        if (!motifPatternSet || motifPattern == null || motifPattern.length() != 3) {
-            // No motif set, use collection order
-            for (Artifact a : available) {
-                if (a.getLocation() == Artifact.Location.CENTER_STORAGE) {
-                    continue; // Skip center (first shot)
-                }
+        if (artifactCount == 0) {
+            return; // No artifacts to plan
+        }
 
-                if (plannedSecondShot == null) {
-                    plannedSecondShot = a;
-                } else if (plannedThirdShot == null) {
-                    plannedThirdShot = a;
-                }
+        if (artifactCount == 3) {
+            // 3 ARTIFACTS: Center fires first (no exceptions), plan 2nd/3rd by motif
+            plannedFirstShot = artifactInCenter;
+            planSecondAndThirdShotsForThreeArtifacts();
+
+        } else if (artifactCount == 2) {
+            if (config.isManualPushMode()) {
+                // MANUAL MODE: Center fires first, plan second by motif
+                plannedFirstShot = artifactInCenter;
+                planSecondShotForTwoArtifactsManualMode();
+            } else {
+                // AUTO MODE: First shot can be planned using empty intake
+                planOptimalFirstShotForTwoArtifacts();
+                planSecondShotForTwoArtifactsAutoMode();
             }
+        } else if (artifactCount == 1) {
+            // Single artifact: Must fire what's in center (no planning needed)
+            plannedFirstShot = artifactInCenter;
+        }
+
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine("🎯 Shot Planning Updated:");
+            telemetry.addLine(String.format("   Artifacts: %d, Manual Mode: %s",
+                artifactCount, config.isManualPushMode()));
+            telemetry.addLine(String.format("   Motif: %s", motifPattern));
+
+            if (plannedFirstShot != null) {
+                telemetry.addLine(String.format("   1st shot: %s #%d from %s",
+                    plannedFirstShot.getColor(),
+                    plannedFirstShot.getCollectionOrder(),
+                    plannedFirstShot.getLocation()));
+            }
+            if (plannedSecondShot != null) {
+                telemetry.addLine(String.format("   2nd shot: %s #%d from %s",
+                    plannedSecondShot.getColor(),
+                    plannedSecondShot.getCollectionOrder(),
+                    plannedSecondShot.getLocation()));
+            }
+            if (plannedThirdShot != null) {
+                telemetry.addLine(String.format("   3rd shot: %s #%d from %s",
+                    plannedThirdShot.getColor(),
+                    plannedThirdShot.getCollectionOrder(),
+                    plannedThirdShot.getLocation()));
+            }
+        }
+    }
+
+    /**
+     * Plan optimal first shot when we have 2 artifacts and auto push mode
+     * Can rearrange using empty intake if needed for motif
+     */
+    private void planOptimalFirstShotForTwoArtifacts() {
+        if (!motifPatternSet || motifPattern == null || motifPattern.length() == 0) {
+            // No motif set, fire center artifact
+            plannedFirstShot = artifactInCenter;
             return;
         }
 
-        // Parse motif pattern
-        List<Artifact.Color> desiredOrder = new ArrayList<>();
-        for (char c : motifPattern.toCharArray()) {
-            if (c == 'P') {
-                desiredOrder.add(Artifact.Color.PURPLE);
-            } else if (c == 'G') {
-                desiredOrder.add(Artifact.Color.GREEN);
+        Artifact.Color desiredFirstColor = getColorFromMotifChar(motifPattern.charAt(0));
+        Artifact centerArtifact = artifactInCenter;
+
+        if (centerArtifact != null && centerArtifact.getColor() == desiredFirstColor) {
+            // Center already has desired color
+            plannedFirstShot = centerArtifact;
+        } else {
+            // Check if storage has desired color and we can rearrange
+            Artifact storageArtifact = (artifactInFrontIntake != null) ? artifactInFrontIntake : artifactInBackIntake;
+
+            if (storageArtifact != null && storageArtifact.getColor() == desiredFirstColor) {
+                // Can rearrange - storage artifact should fire first
+                plannedFirstShot = storageArtifact;
+            } else {
+                // Can't improve, fire center
+                plannedFirstShot = centerArtifact;
             }
         }
+    }
 
-        // First shot is in center (index 0 in desired order)
-        // Plan shots 2 and 3 (indices 1 and 2)
+    /**
+     * Plan second shot for 2-artifact scenario in auto push mode
+     */
+    private void planSecondShotForTwoArtifactsAutoMode() {
+        // Find the artifact that's not planned for first shot
+        Artifact centerArtifact = artifactInCenter;
+        Artifact storageArtifact = (artifactInFrontIntake != null) ? artifactInFrontIntake : artifactInBackIntake;
 
-        // Get artifacts not in center
-        List<Artifact> storage = new ArrayList<>();
-        for (Artifact a : available) {
-            if (a.getLocation() != Artifact.Location.CENTER_STORAGE) {
-                storage.add(a);
-            }
+        if (plannedFirstShot == centerArtifact) {
+            plannedSecondShot = storageArtifact;
+        } else if (plannedFirstShot == storageArtifact) {
+            plannedSecondShot = centerArtifact;
+        } else {
+            // Fallback to storage artifact
+            plannedSecondShot = storageArtifact;
+        }
+    }
+
+    /**
+     * Plan 2nd and 3rd shots for 3-artifact scenario
+     * First shot is always center artifact (no planning)
+     */
+    private void planSecondAndThirdShotsForThreeArtifacts() {
+        if (!motifPatternSet || motifPattern == null || motifPattern.length() != 3) {
+            // No motif set, plan by collection order
+            planStorageArtifactsByCollectionOrder();
+            return;
         }
 
-        // Match storage artifacts to desired shot 2 and 3 colors
-        if (desiredOrder.size() >= 2) {
-            Artifact.Color desired2nd = desiredOrder.get(1);
-            for (Artifact a : storage) {
-                if (a.getColor() == desired2nd && plannedSecondShot == null) {
-                    plannedSecondShot = a;
-                    break;
-                }
-            }
+        // Get storage artifacts (not in center)
+        Artifact frontArtifact = artifactInFrontIntake;
+        Artifact backArtifact = artifactInBackIntake;
+
+        if (frontArtifact == null || backArtifact == null) {
+            // Missing storage artifacts, plan what we have
+            plannedSecondShot = (frontArtifact != null) ? frontArtifact : backArtifact;
+            return;
         }
 
-        if (desiredOrder.size() >= 3) {
-            Artifact.Color desired3rd = desiredOrder.get(2);
-            for (Artifact a : storage) {
-                if (a.getColor() == desired3rd && plannedThirdShot == null && !a.equals(plannedSecondShot)) {
-                    plannedThirdShot = a;
-                    break;
-                }
-            }
-        }
+        // Parse motif pattern for 2nd and 3rd shots (indices 1 and 2)
+        Artifact.Color desired2ndColor = getColorFromMotifChar(motifPattern.charAt(1));
+        Artifact.Color desired3rdColor = getColorFromMotifChar(motifPattern.charAt(2));
 
-        // Fill in remaining shots if not all matched
-        for (Artifact a : storage) {
-            if (plannedSecondShot == null) {
-                plannedSecondShot = a;
-            } else if (plannedThirdShot == null && !a.equals(plannedSecondShot)) {
-                plannedThirdShot = a;
-            }
+        // Try to match storage artifacts to desired colors
+        if (frontArtifact.getColor() == desired2ndColor && backArtifact.getColor() == desired3rdColor) {
+            plannedSecondShot = frontArtifact;
+            plannedThirdShot = backArtifact;
+        } else if (backArtifact.getColor() == desired2ndColor && frontArtifact.getColor() == desired3rdColor) {
+            plannedSecondShot = backArtifact;
+            plannedThirdShot = frontArtifact;
+        } else if (frontArtifact.getColor() == desired2ndColor) {
+            // Front matches 2nd, back gets 3rd
+            plannedSecondShot = frontArtifact;
+            plannedThirdShot = backArtifact;
+        } else if (backArtifact.getColor() == desired2ndColor) {
+            // Back matches 2nd, front gets 3rd
+            plannedSecondShot = backArtifact;
+            plannedThirdShot = frontArtifact;
+        } else {
+            // No perfect match, use collection order
+            planStorageArtifactsByCollectionOrder();
         }
+    }
 
-        if (config.isDebugTelemetry()) {
-            telemetry.addLine("Shot plan updated with motif: " + motifPattern);
-            if (plannedSecondShot != null) {
-                telemetry.addLine(String.format("  2nd shot: %s", plannedSecondShot));
-            }
-            if (plannedThirdShot != null) {
-                telemetry.addLine(String.format("  3rd shot: %s", plannedThirdShot));
-            }
+    /**
+     * Plan second shot for 2-artifact scenario in manual push mode
+     * First shot is always center artifact (no planning)
+     */
+    private void planSecondShotForTwoArtifactsManualMode() {
+        // Find the storage artifact (not in center)
+        Artifact storageArtifact = (artifactInFrontIntake != null) ? artifactInFrontIntake : artifactInBackIntake;
+
+        if (storageArtifact != null) {
+            plannedSecondShot = storageArtifact;
         }
+    }
+
+    /**
+     * Plan storage artifacts by collection order when motif doesn't help
+     */
+    private void planStorageArtifactsByCollectionOrder() {
+        Artifact frontArtifact = artifactInFrontIntake;
+        Artifact backArtifact = artifactInBackIntake;
+
+        if (frontArtifact != null && backArtifact != null) {
+            // Both intakes have artifacts, order by collection number
+            if (frontArtifact.getCollectionOrder() < backArtifact.getCollectionOrder()) {
+                plannedSecondShot = frontArtifact;
+                plannedThirdShot = backArtifact;
+            } else {
+                plannedSecondShot = backArtifact;
+                plannedThirdShot = frontArtifact;
+            }
+        } else {
+            // Only one storage artifact
+            plannedSecondShot = (frontArtifact != null) ? frontArtifact : backArtifact;
+        }
+    }
+
+    /**
+     * Convert motif character to artifact color
+     */
+    private Artifact.Color getColorFromMotifChar(char c) {
+        if (c == 'P') return Artifact.Color.PURPLE;
+        if (c == 'G') return Artifact.Color.GREEN;
+        return Artifact.Color.UNKNOWN;
     }
 
     /**
@@ -1769,6 +1985,9 @@ public class IndexingSystem {
         // CRITICAL: Stop all servos before going to idle
         resetAllServos();
 
+        // Explicitly reset uptake servos and their state
+        resetUptakeServos();
+
         currentState = SystemState.IDLE;
         operationInProgress = false;
         stateStartTime = System.currentTimeMillis();
@@ -1816,11 +2035,49 @@ public class IndexingSystem {
     
     public boolean isOperationInProgress() { return operationInProgress; }
     
-    public String getLastError() { return lastError; }
-    public int getErrorCount() { return errorCount; }
+    /**
+     * Get uptake servo pre-positioning status
+     * @return true if uptake servos are currently pre-positioned
+     */
+    public boolean isUptakeServoPrePositioned() { return uptakeServoPrePositioned; }
 
-    public Artifact getPlannedSecondShot() { return plannedSecondShot; }
-    public Artifact getPlannedThirdShot() { return plannedThirdShot; }
+    /**
+     * Get uptake servo action time for debug purposes
+     * @return action time in milliseconds, or 0 if not active
+     */
+    public long getUptakeServoActionTime() { return uptakeServoActionTime; }
+
+    /**
+     * Get uptake servo completion flag for this artifact
+     * @return true if pre-positioning has been completed for current center artifact
+     */
+    public boolean isUptakeServoCompletedForCurrentArtifact() {
+        return uptakeServoPrePositionedForCurrentArtifact;
+    }
+
+    /**
+     * Get remaining time for uptake servo pre-positioning
+     * @return remaining time in milliseconds, or 0 if not active
+     */
+    public long getUptakeServoRemainingTime() {
+        if (!uptakeServoPrePositioned || uptakeServoActionTime <= 0) {
+            return 0;
+        }
+        long elapsed = System.currentTimeMillis() - uptakeServoActionTime;
+        long timeout = ShooterConfig.UPTAKE_PREPOSITION_TIMEOUT_MS;
+        return Math.max(0, timeout - elapsed);
+    }
+
+    /**
+     * Get elapsed time for uptake servo pre-positioning
+     * @return elapsed time in milliseconds, or 0 if not active
+     */
+    public long getUptakeServoElapsedTime() {
+        if (!uptakeServoPrePositioned || uptakeServoActionTime <= 0) {
+            return 0;
+        }
+        return System.currentTimeMillis() - uptakeServoActionTime;
+    }
 
     public Shooter getShooter() { return shooter; }
 
@@ -1841,6 +2098,47 @@ public class IndexingSystem {
      */
     public boolean isAutoDetectionEnabled() {
         return autoDetectionEnabled;
+    }
+
+    public double getFireFeedTime() {
+        return config.getFireFeedTime();
+    }
+
+    public String getLastError() { return lastError; }
+    public int getErrorCount() { return errorCount; }
+
+    public Artifact getPlannedSecondShot() { return plannedSecondShot; }
+    public Artifact getPlannedThirdShot() { return plannedThirdShot; }
+    public Artifact getPlannedFirstShot() { return plannedFirstShot; }
+
+    /**
+     * Add a debug message to the queue for opmode display
+     */
+    private void addDebugMessage(String message) {
+        // Add timestamp to message for precise timing analysis
+        long currentTime = System.currentTimeMillis();
+        long relativeTime = currentTime - debugStartTime;
+        String timestampedMessage = String.format("[+%dms] %s", relativeTime, message);
+        debugMessages.offer(timestampedMessage);
+        // Keep only the most recent messages
+        while (debugMessages.size() > MAX_DEBUG_MESSAGES) {
+            debugMessages.poll();
+        }
+    }
+
+    /**
+     * Get recent debug messages for opmode display
+     * @return List of recent debug messages
+     */
+    public java.util.List<String> getRecentDebugMessages() {
+        return new java.util.ArrayList<>(debugMessages);
+    }
+
+    /**
+     * Clear debug message history
+     */
+    public void clearDebugMessages() {
+        debugMessages.clear();
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1941,12 +2239,50 @@ public class IndexingSystem {
         try {
             double power = active ? config.getTransferServoPower() : config.getTransferServoIdlePower();
 
+            // DEBUG: Track ALL calls to this method, especially when setting to 0 power
+            if (config.isDebugTelemetry() && telemetry != null) {
+                StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+                String caller = "UNKNOWN";
+                if (stack.length > 2) {
+                    StackTraceElement element = stack[2];
+                    caller = element.getMethodName() + ":" + element.getLineNumber();
+                }
+
+                // Always log when setting to 0 power, and log other calls if pre-positioning is active
+                if (!active || uptakeServoPrePositioned) {
+                    String callMsg = String.format("🔧 📞 setUptakeServos(%s, power=%.2f) called by %s", active, power, caller);
+                    addDebugMessage(callMsg);
+                }
+            }
+
+            // DEBUG: Track if this method is being called when pre-positioning is active (CONFLICT)
+            if (!active && uptakeServoPrePositioned && config.isDebugTelemetry() && telemetry != null) {
+                StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+                String caller = "UNKNOWN";
+                if (stack.length > 2) {
+                    StackTraceElement element = stack[2];
+                    caller = element.getMethodName() + ":" + element.getLineNumber();
+                }
+                String message = "⚠️ CONFLICT: setUptakeServos(false) called during pre-positioning by " + caller;
+                telemetry.addLine(message);
+                addDebugMessage(message);
+            }
+
             if (hardware.getUptakeServoL() != null) {
                 hardware.getUptakeServoL().setPower(power);
+                if (config.isDebugTelemetry() && telemetry != null && (!active || uptakeServoPrePositioned)) {
+                    String msg = String.format("🔧 🎛️ LEFT SERVO (setUptakeServos): Set to %.2f power", power);
+                    addDebugMessage(msg);
+                }
             }
             if (hardware.getUptakeServoR() != null) {
                 hardware.getUptakeServoR().setPower(power);
+                if (config.isDebugTelemetry() && telemetry != null && (!active || uptakeServoPrePositioned)) {
+                    String msg = String.format("🔧 🎛️ RIGHT SERVO (setUptakeServos): Set to %.2f power", power);
+                    addDebugMessage(msg);
+                }
             }
+
         } catch (Exception e) {
             setError("Failed to set uptake servos: " + e.getMessage());
         }
@@ -1975,15 +2311,218 @@ public class IndexingSystem {
     }
 
     /**
-     * Stop all transfer servos (CRServos)
-     * Sets all transfer servo power to 0 (stopped)
-     * Note: Rollers continue running in appropriate mode (don't stop completely)
+     * Set uptake servos to pre-position mode (slightly up for quick firing)
+     * @param enable true to pre-position up, false to return to idle
+     */
+    private void setUptakeServoPrePosition(boolean enable) {
+        if (hardware == null || shooter == null) return;
+
+
+        try {
+            if (enable) {
+                // Start pre-positioning with gentle upward power
+                double power = ShooterConfig.UPTAKE_PREPOSITION_POWER; // Use config value
+
+                if (hardware.getUptakeServoL() != null) {
+                    hardware.getUptakeServoL().setPower(power);
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        String msg = String.format("🔧 ⚡ LEFT SERVO: Set to %.2f power", power);
+                        addDebugMessage(msg);
+                    }
+                }
+                if (hardware.getUptakeServoR() != null) {
+                    hardware.getUptakeServoR().setPower(power);
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        String msg = String.format("🔧 ⚡ RIGHT SERVO: Set to %.2f power", power);
+                        addDebugMessage(msg);
+                    }
+                }
+
+                uptakeServoPrePositioned = true;
+                uptakeServoActionTime = System.currentTimeMillis();
+
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    String message = String.format("🔧 ✅ UPTAKE START: Pre-positioning started (actionTime: %d)", uptakeServoActionTime);
+                    telemetry.addLine(message);
+                    addDebugMessage(message);
+                }
+            } else {
+                // Stop pre-positioning - return to idle
+                if (hardware.getUptakeServoL() != null) {
+                    hardware.getUptakeServoL().setPower(0.0);
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        String msg = "🔧 🔌 LEFT SERVO: Set to 0.0 power (STOPPED)";
+                        addDebugMessage(msg);
+                    }
+                }
+                if (hardware.getUptakeServoR() != null) {
+                    hardware.getUptakeServoR().setPower(0.0);
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        String msg = "🔧 🔌 RIGHT SERVO: Set to 0.0 power (STOPPED)";
+                        addDebugMessage(msg);
+                    }
+                }
+
+                uptakeServoPrePositioned = false;
+
+                // DEBUG: Track what's calling this to stop pre-positioning
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+                    String caller = "UNKNOWN";
+                    if (stack.length > 2) {
+                        StackTraceElement element = stack[2]; // Skip getStackTrace() and this method
+                        caller = element.getMethodName() + ":" + element.getLineNumber();
+                    }
+                    String message = "🔧 ❌ UPTAKE STOP: Pre-positioning ended by " + caller;
+                    telemetry.addLine(message);
+                    addDebugMessage(message);
+                }
+            }
+        } catch (Exception e) {
+            setError("Failed to control uptake servos: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Set uptake servos to retract mode (down, away from shooter)
+     * Used during push operations to avoid interference
+     */
+    private void retractUptakeServos() {
+        if (hardware == null) return;
+
+        try {
+            double retractPower = -0.5; // Retract downward
+
+            if (hardware.getUptakeServoL() != null) {
+                hardware.getUptakeServoL().setPower(retractPower);
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    String msg = String.format("🔧 ⬇️ LEFT SERVO (retract): Set to %.2f power (RETRACT)", retractPower);
+                    addDebugMessage(msg);
+                }
+            }
+            if (hardware.getUptakeServoR() != null) {
+                hardware.getUptakeServoR().setPower(retractPower);
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    String msg = String.format("🔧 ⬇️ RIGHT SERVO (retract): Set to %.2f power (RETRACT)", retractPower);
+                    addDebugMessage(msg);
+                }
+            }
+
+            uptakeServoPrePositioned = false;
+            // FIXED: Clear action time instead of resetting it to prevent timing interference
+            uptakeServoActionTime = 0;
+
+            if (config.isDebugTelemetry() && telemetry != null) {
+                String message = "🔧 ⚠️ UPTAKE RETRACTED: Push operation interference!";
+                telemetry.addLine(message);
+                addDebugMessage(message);
+            }
+        } catch (Exception e) {
+            setError("Failed to retract uptake servos: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Update uptake servo pre-positioning timeout
+     * Automatically stops pre-positioning after the configured time to prevent continuous running
+     */
+    private void updateUptakeServoTimeout(long currentTime) {
+        if (uptakeServoPrePositioned && uptakeServoActionTime > 0) {
+            // Check if pre-positioning timeout has elapsed
+            long elapsedTime = currentTime - uptakeServoActionTime;
+            long timeoutMs = ShooterConfig.UPTAKE_PREPOSITION_TIMEOUT_MS; // Use config value
+
+            // Enhanced debug telemetry to track timing issues
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addData("🔧 Uptake Timer", String.format("%.0f/%.0fms (%.1fs)",
+                    (double)elapsedTime, (double)timeoutMs, elapsedTime / 1000.0));
+                telemetry.addData("🔧 Times", String.format("Current: %d, Action: %d, Diff: %d",
+                    currentTime, uptakeServoActionTime, elapsedTime));
+            }
+
+            // Use >= for timeout to ensure we don't overshoot significantly
+            // The slight overshoot (590ms vs 500ms) is normal due to loop timing
+            if (elapsedTime >= timeoutMs) {
+                // Add debug info BEFORE calling setUptakeServoPrePosition
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    String debugMsg = String.format("🔧 ⏰ TIMEOUT TRIGGER: %.0fms elapsed (>= %.0fms timeout)",
+                        (double)elapsedTime, (double)timeoutMs);
+                    telemetry.addLine(debugMsg);
+                    addDebugMessage(debugMsg);
+                }
+
+                // Pre-positioning timeout reached - stop servos
+                setUptakeServoPrePosition(false);
+
+                // Mark as completed for this artifact so it won't restart
+                uptakeServoPrePositionedForCurrentArtifact = true;
+
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    String timeoutMsg = String.format("🔧 ✅ TIMEOUT COMPLETE: Pre-positioning ran for %.0fms (target: %.0fms)",
+                        (double)elapsedTime, (double)timeoutMs);
+                    telemetry.addLine(timeoutMsg);
+                    addDebugMessage(timeoutMsg);
+                }
+            }
+        } else if (config.isDebugTelemetry() && telemetry != null && uptakeServoPrePositioned) {
+            // If pre-positioned but no action time, that's suspicious
+            telemetry.addData("🔧 Uptake Warning", "Pre-positioned but no action time!");
+        }
+    }
+    /**
+     * Reset only transfer and injector servos after operations
+     * Uptake servos are managed separately by pre-positioning logic
      */
     private void resetAllServos() {
         setInjectorServos(false); // Stop (power = 0)
-        setUptakeServos(false); // Stop (power = 0)
         setIntakeTransferServo(IntakeSource.FRONT, false);
         setIntakeTransferServo(IntakeSource.BACK, false);
+
+        // Don't reset uptake servos here - let pre-positioning logic handle them
+        // This prevents interference with the 500ms pre-positioning cycle
+    }
+
+    /**
+     * Explicitly stop and reset uptake servos (for system reset, errors, etc.)
+     */
+    private void resetUptakeServos() {
+        if (hardware != null) {
+            try {
+                if (hardware.getUptakeServoL() != null) {
+                    hardware.getUptakeServoL().setPower(0.0);
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        String msg = "🔧 🔄 LEFT SERVO (resetUptakeServos): Set to 0.0 power (RESET)";
+                        addDebugMessage(msg);
+                    }
+                }
+                if (hardware.getUptakeServoR() != null) {
+                    hardware.getUptakeServoR().setPower(0.0);
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        String msg = "🔧 🔄 RIGHT SERVO (resetUptakeServos): Set to 0.0 power (RESET)";
+                        addDebugMessage(msg);
+                    }
+                }
+            } catch (Exception e) {
+                // Ignore errors during servo reset
+            }
+        }
+
+        // DEBUG: Track when this method is called
+        if (config.isDebugTelemetry() && telemetry != null) {
+            StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+            String caller = "UNKNOWN";
+            if (stack.length > 2) {
+                StackTraceElement element = stack[2];
+                caller = element.getMethodName() + ":" + element.getLineNumber();
+            }
+            String message = "🔧 🔄 UPTAKE RESET: Called by " + caller;
+            telemetry.addLine(message);
+            addDebugMessage(message);
+        }
+
+        uptakeServoPrePositioned = false;
+        uptakeServoActionTime = 0;
+        uptakeServoPrePositionedForCurrentArtifact = false;
     }
     
     /**
@@ -2201,7 +2740,7 @@ public class IndexingSystem {
 
     /**
      * Execute hardware actions for firing state
-     * Uptake servos feed artifact up into shooter
+     * Uptake servos feed artifact up into shooter for the configured fire feed time
      */
     private void executeFiringHardware() {
         // Check if shooter is ready
@@ -2217,8 +2756,17 @@ public class IndexingSystem {
             shooter.fire();
         }
 
-        // Uptake servos feed artifact up into shooter
+        // Uptake servos feed artifact up into shooter at full power
+        // This runs for the configured fireFeedTime (0.8 seconds by default)
         setUptakeServos(true);
+
+        // Mark that we're no longer pre-positioned since we're actively firing
+        uptakeServoPrePositioned = false;
+
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine(String.format("🔥 Firing: Uptake servos feeding for %.1fs",
+                config.getFireFeedTime()));
+        }
     }
 
     /**
@@ -2421,7 +2969,7 @@ public class IndexingSystem {
             getArtifactCount(), IndexingConfig.MAX_ARTIFACTS, artifacts.size()));
         telemetry.addData("Operation", operationInProgress ? "IN PROGRESS" : "IDLE");
         telemetry.addLine("");
-        
+
         // Artifact Locations with collection order
         telemetry.addLine("📦 ARTIFACT LOCATIONS:");
         telemetry.addData("  Center", artifactInCenter != null ?
@@ -2483,6 +3031,15 @@ public class IndexingSystem {
             }
         }
 
+        // Uptake servo coordination status
+        telemetry.addLine("");
+        telemetry.addLine("🔧 UPTAKE SERVO STATUS:");
+        telemetry.addData("  Pre-Positioned", uptakeServoPrePositioned ? "YES" : "NO");
+        if (uptakeServoActionTime > 0) {
+            long timeSinceAction = System.currentTimeMillis() - uptakeServoActionTime;
+            telemetry.addData("  Last Action", String.format("%.1fs ago", timeSinceAction / 1000.0));
+        }
+
         if (lastError != null && !lastError.isEmpty()) {
             telemetry.addLine("");
             telemetry.addData("⚠️ Last Error", lastError);
@@ -2493,7 +3050,7 @@ public class IndexingSystem {
      * Get a summary string of the current system state
      */
     public String getStatusSummary() {
-        return String.format("State: %s | Artifacts: %d/%d | Center: %s", 
+        return String.format("State: %s | Artifacts: %d/%d | Center: %s",
             currentState,
             getArtifactCount(),
             IndexingConfig.MAX_ARTIFACTS,

@@ -163,7 +163,7 @@ public class Turret {
     // ═══════════════════════════════════════════════════════════════════════
 
     /** Servo device name in robot configuration */
-    public static final String TURRET_SERVO_NAME = "Turret Left";
+    public static final String TURRET_SERVO_NAME = "TurretLeft";
 
     /** Gear ratio: turret teeth / servo teeth */
     private static final double GEAR_RATIO = 108.0 / 37.0; // = 2.92

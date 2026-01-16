@@ -17,6 +17,19 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  */
 public class Shooter {
 
+    /**
+     * Shooter operational states - mirrors DecodeHelper.ShooterState for convenience
+     */
+    public enum ShooterState {
+        IDLE,           // Motors off
+        WARMUP,         // Spinning at reduced speed (65% target)
+        SPINNING_UP,    // Accelerating to target RPM
+        READY,          // At target RPM and stabilized
+        FIRING,         // Currently firing
+        RECOVERY,       // Recovering RPM after shot
+        ERROR           // Safety error detected
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // FIELDS
     // ═══════════════════════════════════════════════════════════════════════
@@ -120,6 +133,16 @@ public class Shooter {
     public void stop() {
         decodeHelper.disableShooter();
         enabled = false;
+    }
+
+    /**
+     * Stop shooter motors without disabling the shooter system
+     * Use this for auto-cancel functionality where you want to stop spinning
+     * but keep the shooter available for future commands
+     */
+    public void stopMotors() {
+        decodeHelper.disableShooter();
+        // Note: Don't set enabled = false, keep shooter system enabled
     }
 
     /**
@@ -269,6 +292,31 @@ public class Shooter {
      */
     public DecodeHelper.ShooterState getState() {
         return decodeHelper.getState();
+    }
+
+    /**
+     * Get current shooter state (compatibility method)
+     * @return The shooter state
+     */
+    public ShooterState getCurrentState() {
+        return convertShooterState(decodeHelper.getState());
+    }
+
+    /**
+     * Convert DecodeHelper.ShooterState to Shooter.ShooterState
+     */
+    private ShooterState convertShooterState(DecodeHelper.ShooterState state) {
+        if (state == null) return ShooterState.IDLE;
+        switch (state) {
+            case IDLE: return ShooterState.IDLE;
+            case WARMUP: return ShooterState.WARMUP;
+            case SPINNING_UP: return ShooterState.SPINNING_UP;
+            case READY: return ShooterState.READY;
+            case FIRING: return ShooterState.FIRING;
+            case RECOVERY: return ShooterState.RECOVERY;
+            case ERROR: return ShooterState.ERROR;
+            default: return ShooterState.IDLE;
+        }
     }
 
     /**

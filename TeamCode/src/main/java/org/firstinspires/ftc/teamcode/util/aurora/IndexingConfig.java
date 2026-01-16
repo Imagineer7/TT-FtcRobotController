@@ -60,7 +60,7 @@ public class IndexingConfig {
     private double firstArtifactSettleTime = 0.5;
 
     /** Time for second artifact push operation (pushes first to opposite intake) (seconds) */
-    private double secondArtifactPushTime = 1.5;
+    private double secondArtifactPushTime = 2.5;
 
     /** Delay before starting push operation (seconds) */
     private double pushStartDelay = 0.2;
