@@ -1673,8 +1673,8 @@ public class IndexingSystem {
      * @param source Which intake to set to storage mode
      */
     private void setIntakeStorageMode(IntakeSource source) {
-        // Run rollers at reduced speed to maintain artifact in storage
-        setIntakePower(source, config.getIntakeRollerPower() * 0.5); // 50% power in storage mode
+        // Run rollers at configured storage power to maintain artifact in storage
+        setIntakePower(source, config.getIntakeStoragePower());
     }
     
     /**

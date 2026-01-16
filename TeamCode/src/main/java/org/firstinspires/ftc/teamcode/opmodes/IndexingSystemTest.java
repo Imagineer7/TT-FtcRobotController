@@ -1281,7 +1281,8 @@ public class IndexingSystemTest extends LinearOpMode {
      */
     private String getIntakeStatus(Artifact artifact) {
         if (artifact != null) {
-            return "STORING " + artifact.getColor() + " #" + artifact.getCollectionOrder() + " (50% power)";
+            int storagePowerPercent = (int)(indexingConfig.getIntakeStoragePower() * 100);
+            return "STORING " + artifact.getColor() + " #" + artifact.getCollectionOrder() + " (" + storagePowerPercent + "% power)";
         } else {
             return "Empty (100% power - ready to collect)";
         }

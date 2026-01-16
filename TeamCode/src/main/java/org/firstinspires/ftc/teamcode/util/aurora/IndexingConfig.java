@@ -22,7 +22,10 @@ public class IndexingConfig {
     private double intakeRollerTime = 0.8;
 
     /** Power level for intake rollers (0.0 to 1.0) */
-    private double intakeRollerPower = 0.8;
+    private double intakeRollerPower = 1.0;
+
+    /** Power level for intake rollers when in storage mode - holding artifacts (0.0 to 1.0) */
+    private double intakeStoragePower = 0.65;
 
     /** Time to run intake rollers in reverse to eject (seconds) */
     private double intakeEjectTime = 0.8;
@@ -115,7 +118,7 @@ public class IndexingConfig {
     private double colorDetectionMinScore = 0.6;
 
     /** Time to wait after artifact detection for stable color reading (seconds) */
-    private double colorDetectionDelay = 0.8;
+    private double colorDetectionDelay = 0.4;
 
     // ═══════════════════════════════════════════════════════════════════════
     // STATE MACHINE PARAMETERS
@@ -156,6 +159,11 @@ public class IndexingConfig {
     public double getIntakeRollerPower() { return intakeRollerPower; }
     public void setIntakeRollerPower(double intakeRollerPower) { 
         this.intakeRollerPower = intakeRollerPower; 
+    }
+
+    public double getIntakeStoragePower() { return intakeStoragePower; }
+    public void setIntakeStoragePower(double intakeStoragePower) {
+        this.intakeStoragePower = intakeStoragePower;
     }
 
     public double getIntakeEjectTime() { return intakeEjectTime; }
@@ -335,6 +343,7 @@ public class IndexingConfig {
     public void resetToDefaults() {
         intakeRollerTime = 0.5;
         intakeRollerPower = 0.8;
+        intakeStoragePower = 0.65;
         intakeEjectTime = 0.3;
         intakeEjectPower = -0.6;
         transferServoTime = 0.4;
