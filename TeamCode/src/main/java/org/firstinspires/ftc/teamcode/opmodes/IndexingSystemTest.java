@@ -106,6 +106,8 @@ public class IndexingSystemTest extends LinearOpMode {
     private boolean lastDpadDown = false;
     private boolean lastDpadLeft = false;
     private boolean lastDpadRight = false;
+    private boolean lastLeftStick = false;
+    private boolean lastRightStick = false;
 
     // Gamepad 2 state
     private boolean lastG2A = false;
@@ -541,6 +543,26 @@ public class IndexingSystemTest extends LinearOpMode {
             }
         }
 
+        // MANUAL PUSH MODE CONTROLS (available in all modes)
+        // Left stick button - Toggle manual push mode
+        if (gamepad1.left_stick_button && !lastLeftStick) {
+            boolean currentMode = indexingSystem.isManualPushMode();
+            indexingSystem.setManualPushMode(!currentMode);
+            telemetry.addLine(currentMode ? "🔄 Manual Push Mode DISABLED" : "🔄 Manual Push Mode ENABLED");
+        }
+        lastLeftStick = gamepad1.left_stick_button;
+
+        // Right stick button - Execute manual push (only if 2 artifacts)
+        if (gamepad1.right_stick_button && !lastRightStick) {
+            boolean pushed = indexingSystem.onManualPush();
+            if (pushed) {
+                telemetry.addLine("🔄 Manual push executed!");
+            } else {
+                telemetry.addLine("⚠️ Cannot manual push - check conditions");
+            }
+        }
+        lastRightStick = gamepad1.right_stick_button;
+
         // ═══════════════════════════════════════════════════════════════
         // GAMEPAD 2 - Shooter Controls & Advanced Functions
         // ═══════════════════════════════════════════════════════════════
@@ -680,6 +702,9 @@ public class IndexingSystemTest extends LinearOpMode {
         if (currentMode == TestMode.AUTO_COLLECTION) {
             telemetry.addData("  Auto-Detection", indexingSystem.isAutoDetectionEnabled() ? "ACTIVE ✓" : "PAUSED");
         }
+
+        // Manual Push Mode Status
+        telemetry.addData("  Manual Push Mode", indexingSystem.isManualPushMode() ? "ENABLED ✓" : "DISABLED");
 
         // Intake Status with explanations
         telemetry.addLine("");
@@ -1137,6 +1162,9 @@ public class IndexingSystemTest extends LinearOpMode {
         telemetry.addLine("  [R-BUMPER] Injector servos (manual)");
         telemetry.addLine("  [L-TRIGGER] Uptake servos (manual)");
         telemetry.addLine("  [R-TRIGGER] Transfer servos (manual)");
+        telemetry.addLine("");
+        telemetry.addLine("  [L-STICK] Toggle manual push mode");
+        telemetry.addLine("  [R-STICK] Execute manual push (2 artifacts)");
 
         telemetry.addLine("");
         telemetry.addLine("🎮 GAMEPAD 2 - SHOOTER & ADVANCED:");

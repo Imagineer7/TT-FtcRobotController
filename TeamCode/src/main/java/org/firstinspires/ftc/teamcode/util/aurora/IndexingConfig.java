@@ -146,6 +146,9 @@ public class IndexingConfig {
     /** Enable automatic recovery from illegal states */
     private boolean enableAutoRecovery = true;
 
+    /** Manual push mode - when enabled, second artifact stays in intake instead of auto-pushing first to storage */
+    private boolean manualPushMode = true; //Push disabled by default to match new game strategy
+
     // ═══════════════════════════════════════════════════════════════════════
     // GETTERS AND SETTERS
     // ═══════════════════════════════════════════════════════════════════════
@@ -315,6 +318,11 @@ public class IndexingConfig {
         this.enableAutoRecovery = enabled; 
     }
 
+    public boolean isManualPushMode() { return manualPushMode; }
+    public void setManualPushMode(boolean enabled) {
+        this.manualPushMode = enabled;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // UTILITY METHODS
     // ═══════════════════════════════════════════════════════════════════════
@@ -372,6 +380,7 @@ public class IndexingConfig {
         debugTelemetry = true;
         enableSafetyChecks = true;
         enableAutoRecovery = true;
+        manualPushMode = false;
     }
 
     /**

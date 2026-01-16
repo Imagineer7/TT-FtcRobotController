@@ -816,11 +816,20 @@ public class IndexingSystem {
                 break;
 
             case 2:
-                // Second artifact: goes to center, will push first to opposite intake
-                if (config.isDebugTelemetry() && telemetry != null) {
-                    telemetry.addLine("   → Taking path: startSecondArtifactIndexing (second artifact)");
+                // Second artifact: behavior depends on manual push mode
+                if (config.isManualPushMode()) {
+                    // Manual push mode: second artifact stays in intake
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        telemetry.addLine("   → Taking path: storeSecondArtifactInIntake (manual push mode)");
+                    }
+                    storeSecondArtifactInIntake(artifact);
+                } else {
+                    // Auto push mode: goes to center, will push first to opposite intake
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        telemetry.addLine("   → Taking path: startSecondArtifactIndexing (auto push mode)");
+                    }
+                    startSecondArtifactIndexing(artifact);
                 }
-                startSecondArtifactIndexing(artifact);
                 break;
 
             case 3:
@@ -1166,6 +1175,58 @@ public class IndexingSystem {
         }
     }
 
+    /**
+     * Store second artifact in its collection intake (manual push mode)
+     * Similar to storeThirdArtifact but for second artifact in manual mode
+     */
+    private void storeSecondArtifactInIntake(Artifact secondArtifact) {
+        Artifact.Location storageLocation = (lastIntakeSource == IntakeSource.FRONT)
+            ? Artifact.Location.FRONT_INTAKE
+            : Artifact.Location.BACK_INTAKE;
+
+        // Check if intake is already occupied (shouldn't happen in manual mode)
+        if ((storageLocation == Artifact.Location.FRONT_INTAKE && artifactInFrontIntake != null) ||
+            (storageLocation == Artifact.Location.BACK_INTAKE && artifactInBackIntake != null)) {
+            setError("Cannot store second artifact: intake already occupied");
+            return;
+        }
+
+        Artifact stored = secondArtifact.withLocation(storageLocation);
+        artifacts.set(artifacts.size() - 1, stored);
+
+        if (storageLocation == Artifact.Location.FRONT_INTAKE) {
+            artifactInFrontIntake = stored;
+        } else {
+            artifactInBackIntake = stored;
+        }
+
+        nextCollectionOrder++;
+
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine(String.format("🔢 nextCollectionOrder incremented to %d (after second storage - manual mode)",
+                nextCollectionOrder));
+        }
+
+        // IMPORTANT: Make sure all servos are idle since second artifact doesn't transfer in manual mode
+        resetAllServos();
+
+        // Update intake modes (this intake now in storage mode)
+        updateIntakeModes();
+
+        // Plan shots now that we have two artifacts
+        planShots();
+
+        // System goes to READY_TO_FIRE with first artifact still in center
+        changeState(SystemState.READY_TO_FIRE);
+        operationInProgress = false;
+
+        if (config.isDebugTelemetry()) {
+            telemetry.addLine(String.format("✅ Second artifact stored in %s (manual push mode)", storageLocation));
+            telemetry.addLine("   System READY_TO_FIRE with first artifact in center");
+            telemetry.addLine("   All servos reset to idle - no transfer occurred");
+        }
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // FIRING LOGIC
     // ═══════════════════════════════════════════════════════════════════════
@@ -1205,7 +1266,7 @@ public class IndexingSystem {
     /**
      * Handle firing with 2 artifacts - can rearrange using empty intake if needed
      * Example: Green in center, Purple in back, pattern wants Purple first
-     * Solution: Push green out to front intake, pull purple to center
+     * Solution: Push green to front intake, pull purple to center
      */
     private boolean handleTwoArtifactFire() {
         if (artifactInCenter == null) {
@@ -1455,7 +1516,7 @@ public class IndexingSystem {
     private void planShots() {
         planShotsWithMotif();
     }
-    
+
     /**
      * Plan shots based on motif pattern
      * Motif pattern determines the order: PPG, PGP, or GPP
@@ -1484,7 +1545,7 @@ public class IndexingSystem {
                 if (a.getLocation() == Artifact.Location.CENTER_STORAGE) {
                     continue; // Skip center (first shot)
                 }
-                
+
                 if (plannedSecondShot == null) {
                     plannedSecondShot = a;
                 } else if (plannedThirdShot == null) {
@@ -1506,7 +1567,7 @@ public class IndexingSystem {
 
         // First shot is in center (index 0 in desired order)
         // Plan shots 2 and 3 (indices 1 and 2)
-        
+
         // Get artifacts not in center
         List<Artifact> storage = new ArrayList<>();
         for (Artifact a : available) {
@@ -1552,6 +1613,145 @@ public class IndexingSystem {
             }
             if (plannedThirdShot != null) {
                 telemetry.addLine(String.format("  3rd shot: %s", plannedThirdShot));
+            }
+        }
+    }
+
+    /**
+     * ═══════════════════════════════════════════════════════════════════════
+     * Manual push functionality - only available when exactly 2 artifacts present
+     * Pushes first artifact from center to opposite intake, moves second from storage to center
+     * @return true if manual push started successfully
+     */
+    public boolean onManualPush() {
+        // Can only manual push with exactly 2 artifacts
+        if (getArtifactCount() != 2) {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine(String.format("Cannot manual push: need exactly 2 artifacts, have %d", getArtifactCount()));
+            }
+            return false;
+        }
+
+        // Must be in READY_TO_FIRE state
+        if (currentState != SystemState.READY_TO_FIRE) {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("Cannot manual push: system not ready to fire");
+            }
+            return false;
+        }
+
+        // Can't push during another operation
+        if (operationInProgress) {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("Cannot manual push: operation in progress");
+            }
+            return false;
+        }
+
+        // Must have artifact in center and one in storage
+        if (artifactInCenter == null) {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("Cannot manual push: no artifact in center");
+            }
+            return false;
+        }
+
+        // Find the artifact in storage and determine source
+        IntakeSource storageSource = IntakeSource.UNKNOWN;
+        if (artifactInFrontIntake != null && artifactInBackIntake == null) {
+            storageSource = IntakeSource.FRONT;
+        } else if (artifactInBackIntake != null && artifactInFrontIntake == null) {
+            storageSource = IntakeSource.BACK;
+        } else {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("Cannot manual push: invalid storage configuration");
+            }
+            return false;
+        }
+
+        // Start manual push operation (similar to normal second artifact indexing)
+        Artifact centerArtifact = artifactInCenter;
+        Artifact storageArtifact = (storageSource == IntakeSource.FRONT) ? artifactInFrontIntake : artifactInBackIntake;
+
+        // Determine opposite intake from storage source
+        Artifact.Location oppositeIntake = (storageSource == IntakeSource.FRONT)
+            ? Artifact.Location.BACK_INTAKE
+            : Artifact.Location.FRONT_INTAKE;
+
+        // IMMEDIATELY update storage references to prevent auto-detection conflicts
+        // The center artifact will be pushed to the opposite intake
+        Artifact movedCenter = centerArtifact.withLocation(oppositeIntake);
+
+        // Update artifact list
+        for (int i = 0; i < artifacts.size(); i++) {
+            if (artifacts.get(i).equals(centerArtifact)) {
+                artifacts.set(i, movedCenter);
+                break;
+            }
+        }
+
+        // Update storage references IMMEDIATELY
+        if (oppositeIntake == Artifact.Location.FRONT_INTAKE) {
+            artifactInFrontIntake = movedCenter;
+        } else {
+            artifactInBackIntake = movedCenter;
+        }
+
+        // Clear the old storage location (storage artifact will move to center)
+        if (storageSource == IntakeSource.FRONT) {
+            artifactInFrontIntake = null;
+        } else {
+            artifactInBackIntake = null;
+        }
+
+        // Update intake modes immediately to prevent false detection
+        updateIntakeModes();
+
+        changeState(SystemState.PUSHING);
+        operationInProgress = true;
+        operationStartTime = System.currentTimeMillis();
+
+        // Set lastIntakeSource to the storage source for proper hardware control
+        lastIntakeSource = storageSource;
+
+        // Start hardware for manual push operation
+        executePushHardware();
+
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            telemetry.addLine("🔄 MANUAL PUSH OPERATION");
+            telemetry.addLine(String.format("   Center artifact: %s → %s",
+                centerArtifact.getColor(), oppositeIntake));
+            telemetry.addLine(String.format("   Storage artifact: %s from %s → center",
+                storageArtifact.getColor(), storageSource));
+            telemetry.addLine("   Action: Manual push - center out, storage to center");
+            telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        }
+
+        return true;
+    }
+
+    /**
+     * Get manual push mode status
+     * @return true if manual push mode is enabled
+     */
+    public boolean isManualPushMode() {
+        return config.isManualPushMode();
+    }
+
+    /**
+     * Set manual push mode (can also be controlled via gamepad)
+     * @param enabled true to enable manual push mode
+     */
+    public void setManualPushMode(boolean enabled) {
+        config.setManualPushMode(enabled);
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine("Manual push mode " + (enabled ? "ENABLED" : "DISABLED"));
+            if (enabled) {
+                telemetry.addLine("   Second artifacts will stay in intake");
+                telemetry.addLine("   Use manual push when ready");
+            } else {
+                telemetry.addLine("   Second artifacts will auto-push to center");
             }
         }
     }
