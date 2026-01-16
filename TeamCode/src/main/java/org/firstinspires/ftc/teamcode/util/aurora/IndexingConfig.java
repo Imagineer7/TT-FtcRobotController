@@ -47,7 +47,7 @@ public class IndexingConfig {
     private double centerAcceptTime = 0.8;
 
     /** Power for center rollers during artifact acceptance (0.0 to 1.0) */
-    private double centerRollerPower = 0.7;
+    private double centerRollerPower = 0.8;
 
     // ═══════════════════════════════════════════════════════════════════════
     // PUSH-BASED INDEXING TIMING PARAMETERS (seconds)
@@ -57,7 +57,7 @@ public class IndexingConfig {
     private double firstArtifactSettleTime = 0.5;
 
     /** Time for second artifact push operation (pushes first to opposite intake) (seconds) */
-    private double secondArtifactPushTime = 1.0;
+    private double secondArtifactPushTime = 1.5;
 
     /** Delay before starting push operation (seconds) */
     private double pushStartDelay = 0.2;

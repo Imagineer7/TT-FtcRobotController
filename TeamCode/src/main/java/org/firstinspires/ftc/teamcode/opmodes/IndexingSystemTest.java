@@ -80,6 +80,7 @@ public class IndexingSystemTest extends LinearOpMode {
     // Telemetry Page System
     private enum TelemetryPage {
         OVERVIEW,           // Main system status
+        DEBUG,              // IndexingSystem debug output
         SUBSYSTEMS,         // Detailed subsystem status
         RAW_DATA,           // Raw sensor and motor data
         CONFIGURATION,      // Config parameters and timings
@@ -189,15 +190,39 @@ public class IndexingSystemTest extends LinearOpMode {
         while (opModeIsActive()) {
             loopStartTime = System.currentTimeMillis();
 
-            // Update all systems - IndexingSystem handles auto-detection internally
-            indexingSystem.update();
-            shooter.update();
-
-            // Handle button inputs
+            // Handle button inputs first
             handleGamepadInputs();
 
-            // Update telemetry based on current page
-            updateTelemetryPages();
+            // For DEBUG page, we need special handling to show IndexingSystem debug output
+            if (currentPage == TelemetryPage.DEBUG) {
+                // Set up DEBUG page header
+                telemetry.clear();
+                telemetry.addLine("════════════════════════════════════");
+                telemetry.addLine("🔧 INDEXING SYSTEM TEST");
+                telemetry.addData("Page", currentPage.toString() + " (" + (currentPage.ordinal() + 1) + "/7)");
+                telemetry.addData("Mode", currentMode.toString());
+                telemetry.addLine("════════════════════════════════════");
+                telemetry.addLine("");
+                telemetry.addLine("🔍 INDEXING SYSTEM DEBUG OUTPUT:");
+                telemetry.addLine("────────────────────────────────────");
+
+                // Update systems - IndexingSystem will add debug info to telemetry
+                indexingSystem.update();
+                shooter.update();
+
+                // Add navigation footer
+                telemetry.addLine("────────────────────────────────────");
+                telemetry.addLine("Navigation: DPAD ↑↓ | DPAD ← Overview | DPAD → Raw Data");
+                telemetry.update();
+            } else {
+                // Normal processing for other pages
+                // Update all systems - IndexingSystem handles auto-detection internally
+                indexingSystem.update();
+                shooter.update();
+
+                // Update telemetry based on current page
+                updateTelemetryPages();
+            }
 
             // Performance tracking
             updatePerformanceMetrics();
@@ -604,13 +629,17 @@ public class IndexingSystemTest extends LinearOpMode {
         // Common header for all pages
         telemetry.addLine("════════════════════════════════════");
         telemetry.addLine("🔧 INDEXING SYSTEM TEST");
-        telemetry.addData("Page", currentPage.toString() + " (" + (currentPage.ordinal() + 1) + "/6)");
+        telemetry.addData("Page", currentPage.toString() + " (" + (currentPage.ordinal() + 1) + "/7)");
         telemetry.addData("Mode", currentMode.toString());
         telemetry.addLine("════════════════════════════════════");
 
         switch (currentPage) {
             case OVERVIEW:
                 displayOverviewPage();
+                break;
+            case DEBUG:
+                // DEBUG page is handled in main loop to preserve IndexingSystem debug output
+                telemetry.addLine("DEBUG page handled in main loop");
                 break;
             case SUBSYSTEMS:
                 displaySubsystemsPage();
@@ -1126,11 +1155,24 @@ public class IndexingSystemTest extends LinearOpMode {
         telemetry.addLine("");
         telemetry.addLine("📊 TELEMETRY PAGES:");
         telemetry.addLine("  OVERVIEW - Main system status");
+        telemetry.addLine("  DEBUG - IndexingSystem debug output");
         telemetry.addLine("  SUBSYSTEMS - Detailed component status");
         telemetry.addLine("  RAW_DATA - Sensor readings & motor powers");
         telemetry.addLine("  CONFIGURATION - All config parameters");
         telemetry.addLine("  DIAGNOSTICS - Performance & health data");
         telemetry.addLine("  CONTROLS - This help page");
+    }
+
+    /**
+     * Display debug page - IndexingSystem debug output
+     * This method is kept for reference but the DEBUG page is now handled directly in the main loop
+     */
+    private void displayDebugPage() {
+        // This method is no longer used - DEBUG page telemetry is handled in main loop
+        // to preserve IndexingSystem debug output
+        telemetry.addLine("🔍 Debug output is shown above this message");
+        telemetry.addLine("   Look for messages with emojis like:");
+        telemetry.addLine("   🔍 🔄 ✅ ⚠️ 🔢");
     }
 
     /**

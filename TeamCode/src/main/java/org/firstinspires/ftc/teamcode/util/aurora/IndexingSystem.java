@@ -376,8 +376,39 @@ public class IndexingSystem {
                 Artifact.Color detectedColor = frontPendingArtifact.getColor();
 
                 if (detectedColor != Artifact.Color.UNKNOWN) {
-                    Artifact finalArtifact = new Artifact(detectedColor, Artifact.Location.UNKNOWN, nextCollectionOrder);
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        telemetry.addLine("🔍 FRONT: CREATING ARTIFACT - PRE STATE:");
+                        telemetry.addLine(String.format("   NextOrder: %d, ArtifactCount: %d, ListSize: %d",
+                            nextCollectionOrder, getArtifactCount(), artifacts.size()));
+                        telemetry.addLine(String.format("   State: %s, OpInProgress: %s",
+                            currentState, operationInProgress));
+                        for (int i = 0; i < artifacts.size(); i++) {
+                            Artifact a = artifacts.get(i);
+                            telemetry.addLine(String.format("   Artifact[%d]: #%d %s at %s",
+                                i, a.getCollectionOrder(), a.getColor(), a.getLocation()));
+                        }
+                    }
+
+                    // SAFETY: For third artifact detection, explicitly ensure collection order is 3
+                    int collectionOrder = nextCollectionOrder;
+                    if (currentState == SystemState.READY_TO_FIRE && getArtifactCount() == 2 &&
+                        artifactInCenter != null && (artifactInFrontIntake != null || artifactInBackIntake != null)) {
+                        // This is definitely the third artifact - ensure it gets order 3
+                        if (collectionOrder != 3) {
+                            if (config.isDebugTelemetry() && telemetry != null) {
+                                telemetry.addLine(String.format("⚠️ FRONT: Correcting collection order from %d to 3 for third artifact", collectionOrder));
+                            }
+                            collectionOrder = 3;
+                        }
+                    }
+
+                    Artifact finalArtifact = new Artifact(detectedColor, Artifact.Location.UNKNOWN, collectionOrder);
                     lastIntakeSource = IntakeSource.FRONT;
+
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        telemetry.addLine(String.format("🔍 FRONT: Created artifact #%d (nextOrder=%d, totalCount=%d)",
+                            finalArtifact.getCollectionOrder(), nextCollectionOrder, getArtifactCount()));
+                    }
 
                     // Clear pending state BEFORE starting collection
                     frontPendingArtifact = null;
@@ -407,8 +438,39 @@ public class IndexingSystem {
                 Artifact.Color detectedColor = backPendingArtifact.getColor();
 
                 if (detectedColor != Artifact.Color.UNKNOWN) {
-                    Artifact finalArtifact = new Artifact(detectedColor, Artifact.Location.UNKNOWN, nextCollectionOrder);
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        telemetry.addLine("🔍 BACK: CREATING ARTIFACT - PRE STATE:");
+                        telemetry.addLine(String.format("   NextOrder: %d, ArtifactCount: %d, ListSize: %d",
+                            nextCollectionOrder, getArtifactCount(), artifacts.size()));
+                        telemetry.addLine(String.format("   State: %s, OpInProgress: %s",
+                            currentState, operationInProgress));
+                        for (int i = 0; i < artifacts.size(); i++) {
+                            Artifact a = artifacts.get(i);
+                            telemetry.addLine(String.format("   Artifact[%d]: #%d %s at %s",
+                                i, a.getCollectionOrder(), a.getColor(), a.getLocation()));
+                        }
+                    }
+
+                    // SAFETY: For third artifact detection, explicitly ensure collection order is 3
+                    int collectionOrder = nextCollectionOrder;
+                    if (currentState == SystemState.READY_TO_FIRE && getArtifactCount() == 2 &&
+                        artifactInCenter != null && (artifactInFrontIntake != null || artifactInBackIntake != null)) {
+                        // This is definitely the third artifact - ensure it gets order 3
+                        if (collectionOrder != 3) {
+                            if (config.isDebugTelemetry() && telemetry != null) {
+                                telemetry.addLine(String.format("⚠️ BACK: Correcting collection order from %d to 3 for third artifact", collectionOrder));
+                            }
+                            collectionOrder = 3;
+                        }
+                    }
+
+                    Artifact finalArtifact = new Artifact(detectedColor, Artifact.Location.UNKNOWN, collectionOrder);
                     lastIntakeSource = IntakeSource.BACK;
+
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        telemetry.addLine(String.format("🔍 BACK: Created artifact #%d (nextOrder=%d, totalCount=%d)",
+                            finalArtifact.getCollectionOrder(), nextCollectionOrder, getArtifactCount()));
+                    }
 
                     // Clear pending state BEFORE starting collection
                     backPendingArtifact = null;
@@ -681,8 +743,14 @@ public class IndexingSystem {
         // Add artifact to tracking
         artifacts.add(artifact);
 
-        // Start hardware for collection
-        executeCollectionHardware();
+        // Start hardware for collection - but third artifact doesn't need transfer hardware
+        if (artifact.getCollectionOrder() == 3) {
+            // Third artifact: Only keep intake rollers running, no transfer servos/injectors
+            executeThirdArtifactCollectionHardware();
+        } else {
+            // First and second artifacts: Full transfer hardware
+            executeCollectionHardware();
+        }
 
         if (config.isDebugTelemetry()) {
             telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -691,16 +759,19 @@ public class IndexingSystem {
             telemetry.addLine(String.format("   Source: %s intake", lastIntakeSource));
             telemetry.addLine(String.format("   Total Count: %d/%d", getArtifactCount(), IndexingConfig.MAX_ARTIFACTS));
 
-            // Show what will happen next
+            // Show what will happen next and hardware activation
             switch (artifact.getCollectionOrder()) {
                 case 1:
                     telemetry.addLine("   Next: Transfer to center storage");
+                    telemetry.addLine("   Hardware: Transfer servos + Injectors ON");
                     break;
                 case 2:
                     telemetry.addLine("   Next: Push first to storage, move to center");
+                    telemetry.addLine("   Hardware: Transfer servos + Injectors ON");
                     break;
                 case 3:
                     telemetry.addLine("   Next: Store in collection intake");
+                    telemetry.addLine("   Hardware: NO transfer/injector activation");
                     break;
             }
             telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -731,21 +802,32 @@ public class IndexingSystem {
 
         if (config.isDebugTelemetry() && telemetry != null) {
             telemetry.addLine("✅ Collection complete - artifact #" + artifact.getCollectionOrder());
+            telemetry.addLine(String.format("   Total artifacts: %d, Next collection order: %d",
+                getArtifactCount(), nextCollectionOrder));
         }
 
         switch (artifact.getCollectionOrder()) {
             case 1:
                 // First artifact: goes to center storage
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("   → Taking path: startTransferToCenter (first artifact)");
+                }
                 startTransferToCenter(artifact);
                 break;
 
             case 2:
                 // Second artifact: goes to center, will push first to opposite intake
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("   → Taking path: startSecondArtifactIndexing (second artifact)");
+                }
                 startSecondArtifactIndexing(artifact);
                 break;
 
             case 3:
                 // Third artifact: stays in same intake it was collected from
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("   → Taking path: storeThirdArtifact (third artifact)");
+                }
                 storeThirdArtifact(artifact);
                 break;
 
@@ -796,6 +878,11 @@ public class IndexingSystem {
         artifactInCenter = updatedArtifact;
 
         nextCollectionOrder++;
+
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine(String.format("🔢 nextCollectionOrder incremented to %d (after first transfer)",
+                nextCollectionOrder));
+        }
 
         // ENSURE all servos are turned off after transfer
         resetAllServos();
@@ -922,6 +1009,11 @@ public class IndexingSystem {
 
         nextCollectionOrder++;
 
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine(String.format("🔢 nextCollectionOrder incremented to %d (after second indexing)",
+                nextCollectionOrder));
+        }
+
         // ENSURE all servos are turned off after push operation
         resetAllServos();
 
@@ -1043,18 +1135,34 @@ public class IndexingSystem {
         }
 
         nextCollectionOrder++;
-        
+
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine(String.format("🔢 nextCollectionOrder incremented to %d (after third storage)",
+                nextCollectionOrder));
+        }
+
+        // IMPORTANT: Make sure all servos are idle since third artifact doesn't transfer
+        resetAllServos();
+
         // Update intake modes (this intake now in storage mode)
         updateIntakeModes();
 
         // Plan shots now that we have all three artifacts
         planShots();
 
-        changeState(SystemState.IDLE);
+        // Keep system in READY_TO_FIRE state since we still have an artifact in center
+        // Only go to IDLE if no artifact in center (which shouldn't happen for third artifact)
+        if (artifactInCenter != null) {
+            changeState(SystemState.READY_TO_FIRE);
+        } else {
+            changeState(SystemState.IDLE);
+        }
         operationInProgress = false;
 
         if (config.isDebugTelemetry()) {
-            telemetry.addLine(String.format("Third artifact stored in %s", storageLocation));
+            telemetry.addLine(String.format("✅ Third artifact stored in %s", storageLocation));
+            telemetry.addLine("   System remains READY_TO_FIRE with center artifact");
+            telemetry.addLine("   All servos reset to idle - no transfer occurred");
         }
     }
 
@@ -1834,6 +1942,24 @@ public class IndexingSystem {
     }
 
     /**
+     * Execute hardware actions for third artifact collection
+     * Third artifact should NOT be transferred - it stays in the intake
+     * Only keep intake rollers running to hold the artifact in place
+     */
+    private void executeThirdArtifactCollectionHardware() {
+        // Keep intake rollers running at collection speed temporarily
+        setIntakeCollectionMode(lastIntakeSource);
+
+        // DO NOT activate transfer servos or injectors for third artifact
+        // Third artifact stays in the intake where it was collected
+
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine("🔄 Third artifact: No transfer hardware activated");
+            telemetry.addLine("   Artifact will remain in collection intake");
+        }
+    }
+
+    /**
      * Execute hardware actions for transferring state
      * Continue the transfer process with servos active
      */
@@ -1918,8 +2044,30 @@ public class IndexingSystem {
         boolean systemIdle = currentState == SystemState.IDLE;
         boolean noOperationInProgress = !operationInProgress;
 
-        // Only start new detection when system is completely IDLE with no operations
-        if (artifactPresent && intakeEmpty && systemIdle && noOperationInProgress && frontPendingArtifact == null) {
+        // Allow third artifact collection when in READY_TO_FIRE state with 2 artifacts
+        // Additional safety: ensure we have one in center and one in storage, with front intake empty for third
+        boolean canCollectThirdArtifact = (currentState == SystemState.READY_TO_FIRE) &&
+                                        (getArtifactCount() == 2) &&
+                                        !operationInProgress &&
+                                        (artifactInCenter != null) &&  // Must have artifact in center
+                                        (artifactInFrontIntake == null) &&  // Front must be empty for collection
+                                        (artifactInBackIntake != null);  // Back must have the stored second artifact
+
+        if (config.isDebugTelemetry() && telemetry != null && canCollectThirdArtifact && artifactPresent && intakeEmpty) {
+            telemetry.addLine("🔍 FRONT: THIRD ARTIFACT DETECTION TRIGGER");
+            telemetry.addLine(String.format("   State: %s, Count: %d, NextOrder: %d",
+                currentState, getArtifactCount(), nextCollectionOrder));
+            telemetry.addLine(String.format("   Center: %s, Front: %s, Back: %s",
+                artifactInCenter != null ? artifactInCenter.getColor() : "Empty",
+                artifactInFrontIntake != null ? artifactInFrontIntake.getColor() : "Empty",
+                artifactInBackIntake != null ? artifactInBackIntake.getColor() : "Empty"));
+        }
+
+        // Start new detection when:
+        // 1. System is completely IDLE with no operations, OR
+        // 2. System is READY_TO_FIRE with 2 artifacts (third artifact collection)
+        if (artifactPresent && intakeEmpty && frontPendingArtifact == null &&
+            (systemIdle && noOperationInProgress || canCollectThirdArtifact)) {
             onArtifactFirstDetected(IntakeSource.FRONT);
         }
         // Do NOT cancel pending artifacts during operations - let them complete
@@ -1935,8 +2083,30 @@ public class IndexingSystem {
         boolean systemIdle = currentState == SystemState.IDLE;
         boolean noOperationInProgress = !operationInProgress;
 
-        // Only start new detection when system is completely IDLE with no operations
-        if (artifactPresent && intakeEmpty && systemIdle && noOperationInProgress && backPendingArtifact == null) {
+        // Allow third artifact collection when in READY_TO_FIRE state with 2 artifacts
+        // Additional safety: ensure we have one in center and one in storage, with back intake empty for third
+        boolean canCollectThirdArtifact = (currentState == SystemState.READY_TO_FIRE) &&
+                                        (getArtifactCount() == 2) &&
+                                        !operationInProgress &&
+                                        (artifactInCenter != null) &&  // Must have artifact in center
+                                        (artifactInBackIntake == null) &&  // Back must be empty for collection
+                                        (artifactInFrontIntake != null);  // Front must have the stored second artifact
+
+        if (config.isDebugTelemetry() && telemetry != null && canCollectThirdArtifact && artifactPresent && intakeEmpty) {
+            telemetry.addLine("🔍 BACK: THIRD ARTIFACT DETECTION TRIGGER");
+            telemetry.addLine(String.format("   State: %s, Count: %d, NextOrder: %d",
+                currentState, getArtifactCount(), nextCollectionOrder));
+            telemetry.addLine(String.format("   Center: %s, Front: %s, Back: %s",
+                artifactInCenter != null ? artifactInCenter.getColor() : "Empty",
+                artifactInFrontIntake != null ? artifactInFrontIntake.getColor() : "Empty",
+                artifactInBackIntake != null ? artifactInBackIntake.getColor() : "Empty"));
+        }
+
+        // Start new detection when:
+        // 1. System is completely IDLE with no operations, OR
+        // 2. System is READY_TO_FIRE with 2 artifacts (third artifact collection)
+        if (artifactPresent && intakeEmpty && backPendingArtifact == null &&
+            (systemIdle && noOperationInProgress || canCollectThirdArtifact)) {
             onArtifactFirstDetected(IntakeSource.BACK);
         }
         // Do NOT cancel pending artifacts during operations - let them complete
