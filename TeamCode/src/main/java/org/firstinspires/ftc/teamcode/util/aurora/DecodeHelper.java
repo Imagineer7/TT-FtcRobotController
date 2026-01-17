@@ -417,12 +417,14 @@ public class DecodeHelper {
             // Not at target - reset stabilization
             if (rpmStabilized || stabilizationStartTime > 0) {
                 if (debugLogger != null) {
+                    long elapsedBeforeReset = stabilizationStartTime > 0 ? (currentTime - stabilizationStartTime) : 0;
                     debugLogger.warningPriority("DecodeHelper",
                         "🔄 Stabilization RESET (motors out of tolerance). " +
+                        "WAS rpmStabilized=" + rpmStabilized + ", elapsed=" + elapsedBeforeReset + "ms. " +
                         "left=" + String.format("%.1f", leftRPM) + " (target=" + String.format("%.1f", target) + "), " +
                         "right=" + String.format("%.1f", rightRPM) + " (target=" + String.format("%.1f", target) + "), " +
                         "leftAtTarget=" + leftAtTarget + ", rightAtTarget=" + rightAtTarget +
-                        ", startTime=" + stabilizationStartTime);
+                        ", tolerance=" + ShooterConfig.RPM_TOLERANCE);
                 }
                 rpmStabilized = false;
             }
@@ -445,7 +447,11 @@ public class DecodeHelper {
                     rpmStabilized = true;
                     if (debugLogger != null) {
                         debugLogger.infoPriority("DecodeHelper",
-                            "✅ rpmStabilized TRUE after " + elapsedTime + "ms (threshold=" + ShooterConfig.RPM_STABILIZATION_TIME_MS + "ms)");
+                            "✅ rpmStabilized set to TRUE after " + elapsedTime + "ms (threshold=" + 
+                            ShooterConfig.RPM_STABILIZATION_TIME_MS + "ms). " +
+                            "leftRPM=" + String.format("%.1f", leftRPM) + 
+                            ", rightRPM=" + String.format("%.1f", rightRPM) +
+                            ", target=" + String.format("%.1f", target));
                     }
                 } else {
                     // Already stabilized - just maintain state
