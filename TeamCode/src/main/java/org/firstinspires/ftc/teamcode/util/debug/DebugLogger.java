@@ -68,11 +68,14 @@ public class DebugLogger {
     private final List<LogEntry> logs = new ArrayList<>();
     private final Map<String, BooleanCheck> booleanChecks = new LinkedHashMap<>();
     private final Map<String, BooleanTree> booleanTrees = new LinkedHashMap<>();
+    private final Map<String, Long> lastLogTimes = new LinkedHashMap<>(); // Rate limiting
     private final long startTime;
     private LogLevel minLevel = LogLevel.DEBUG;
     private DisplayMode displayMode = DisplayMode.FULL;
     private int maxRecentEntries = 15;
+    private int maxTotalLogs = 500; // Prevent unbounded growth
     private String categoryFilter = null;
+    private long rateLimitMs = 250; // Default rate limit: 250ms per unique message
     
     public DebugLogger() {
         this.startTime = System.currentTimeMillis();
@@ -113,10 +116,28 @@ public class DebugLogger {
     }
     
     private void log(LogLevel level, String category, String message, String details) {
+        // Rate limiting: check if this message was recently logged
+        String messageKey = category + ":" + message;
+        long currentTime = System.currentTimeMillis();
+        Long lastTime = lastLogTimes.get(messageKey);
+        
+        // For DEBUG level, apply rate limiting
+        if (level == LogLevel.DEBUG && lastTime != null && (currentTime - lastTime) < rateLimitMs) {
+            return; // Skip this message (too soon)
+        }
+        
+        // Update last log time
+        lastLogTimes.put(messageKey, currentTime);
+        
         LogEntry entry = new LogEntry(level, category, message, details);
         logs.add(entry);
         
-        // Also print to System.out for console debugging
+        // Prevent unbounded log growth - trim old entries
+        if (logs.size() > maxTotalLogs) {
+            logs.subList(0, logs.size() - maxTotalLogs).clear();
+        }
+        
+        // Also print to System.out for console debugging (but rate-limited)
         System.out.println(String.format("[%s] %s [%s] %s%s",
             entry.getFormattedTime(startTime),
             level.getIcon(),
@@ -188,6 +209,14 @@ public class DebugLogger {
     
     public void setMaxRecentEntries(int max) {
         this.maxRecentEntries = max;
+    }
+    
+    public void setMaxTotalLogs(int max) {
+        this.maxTotalLogs = max;
+    }
+    
+    public void setRateLimitMs(long ms) {
+        this.rateLimitMs = ms;
     }
     
     public void setCategoryFilter(String category) {

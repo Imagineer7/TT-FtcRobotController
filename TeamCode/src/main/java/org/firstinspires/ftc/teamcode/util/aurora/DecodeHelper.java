@@ -434,7 +434,15 @@ public class DecodeHelper {
                 rpmStabilized = true;
                 if (!wasStabilized && debugLogger != null) {
                     debugLogger.info("DecodeHelper",
-                        "rpmStabilized TRUE after " + elapsedTime + "ms");
+                        "rpmStabilized TRUE after " + elapsedTime + "ms (threshold=" + ShooterConfig.RPM_STABILIZATION_TIME_MS + "ms)");
+                }
+                // Additional logging to confirm the state
+                if (debugLogger != null && elapsedTime % 500 < 20) {
+                    debugLogger.debug("DecodeHelper",
+                        "Stabilization confirmed: elapsed=" + elapsedTime + "ms, rpmStabilized=" + rpmStabilized +
+                        ", leftRPM=" + String.format("%.1f", leftRPM) + 
+                        ", rightRPM=" + String.format("%.1f", rightRPM) +
+                        ", syncError=" + String.format("%.1f", rpmSyncError));
                 }
             } else if (debugLogger != null && elapsedTime % 100 < 20) {
                 // Log progress every ~100ms
@@ -661,11 +669,17 @@ public class DecodeHelper {
     }
     
     public boolean isStabilized() { 
+        long currentTime = System.currentTimeMillis();
+        long elapsedTime = stabilizationStartTime > 0 ? (currentTime - stabilizationStartTime) : 0;
+        
         if (debugLogger != null && System.currentTimeMillis() % 500 < 50) {
             // Log every ~500ms to avoid spam
             debugLogger.debug("DecodeHelper",
                 "isStabilized() called, returning: " + rpmStabilized +
-                " (" + getStabilizationDebugInfo() + ")");
+                " (" + getStabilizationDebugInfo() + 
+                ", elapsed=" + elapsedTime + "ms" +
+                ", threshold=" + ShooterConfig.RPM_STABILIZATION_TIME_MS + "ms" +
+                ", shouldBeStabilized=" + (elapsedTime >= ShooterConfig.RPM_STABILIZATION_TIME_MS) + ")");
         }
         return rpmStabilized; 
     }
