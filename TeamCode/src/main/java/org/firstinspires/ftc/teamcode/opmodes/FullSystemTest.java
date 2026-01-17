@@ -500,7 +500,7 @@ public class FullSystemTest extends LinearOpMode {
         return manualSpinUp || inManualMode;
     }
 
-/**
+    /**
      * Handle automatic firing when holding preset buttons
      * Only fires if shooter is ready and not already in a firing sequence
      */
