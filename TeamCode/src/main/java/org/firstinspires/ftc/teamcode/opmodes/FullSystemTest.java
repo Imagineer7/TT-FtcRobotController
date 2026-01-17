@@ -172,6 +172,10 @@ public class FullSystemTest extends LinearOpMode {
             // Update system mode based on current state
             updateSystemMode();
 
+            // Display debug telemetry
+            firingCoordinator.getDebugLogger().displayOnTelemetry(telemetry);
+            telemetry.update();
+
             // Performance tracking
             updatePerformanceMetrics();
 
@@ -255,10 +259,9 @@ public class FullSystemTest extends LinearOpMode {
         }
         lastStart1 = gamepad1.start;
 
-        // [BACK] - Toggle debug telemetry
+        // [BACK] - Cycle debug display mode
         if (gamepad1.back && !lastBack1) {
-            boolean debug = !indexingConfig.isDebugTelemetry();
-            indexingConfig.setDebugTelemetry(debug);
+            cycleDebugDisplayMode();
         }
         lastBack1 = gamepad1.back;
 
@@ -515,6 +518,28 @@ public class FullSystemTest extends LinearOpMode {
         lastDpadDown2 = gamepad2.dpad_down;
         lastDpadLeft2 = gamepad2.dpad_left;
         lastDpadRight2 = gamepad2.dpad_right;
+    }
+
+    /**
+     * Cycle through debug display modes
+     */
+    private void cycleDebugDisplayMode() {
+        org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode currentMode = 
+            firingCoordinator.getDebugLogger().getDisplayMode();
+        
+        org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode[] modes = 
+            org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode.values();
+        
+        int currentIndex = 0;
+        for (int i = 0; i < modes.length; i++) {
+            if (modes[i] == currentMode) {
+                currentIndex = i;
+                break;
+            }
+        }
+        
+        int nextIndex = (currentIndex + 1) % modes.length;
+        firingCoordinator.getDebugLogger().setDisplayMode(modes[nextIndex]);
     }
 
     /**
