@@ -44,6 +44,8 @@ public class FiringSequenceCoordinator {
         debugLogger.registerCheck("firingSequenceActive", "Firing sequence is active");
         debugLogger.registerCheck("hasArtifacts", "Has artifacts to fire");
         debugLogger.registerCheck("shooterReady", "Shooter is ready to fire");
+        debugLogger.registerCheck("shooterEnabled", "Shooter is enabled");
+        debugLogger.registerCheck("shooterAtTargetRPM", "Shooter at target RPM");
         debugLogger.registerCheck("indexingReady", "Indexing system ready");
         debugLogger.registerCheck("noOperation", "No operation in progress");
         debugLogger.registerCheck("canStartFiring", "All conditions met to start");
@@ -68,20 +70,40 @@ public class FiringSequenceCoordinator {
         boolean indexingReady = indexingSystem.isReadyToFire();
         boolean noOperation = !indexingSystem.isOperationInProgress();
 
-        // Update all boolean checks
+        // Update all boolean checks with detailed reasons
         debugLogger.updateCheck("hasArtifacts", hasArtifacts, "Count: " + indexingSystem.getArtifactCount());
-        debugLogger.updateCheck("shooterReady", shooterReady);
+        
+        // Enhanced shooter ready check with detailed breakdown
+        boolean shooterEnabled = shooter.isEnabled();
+        boolean shooterAtTargetRPM = shooter.isAtTargetRPM();
+        debugLogger.updateCheck("shooterEnabled", shooterEnabled);
+        debugLogger.updateCheck("shooterAtTargetRPM", shooterAtTargetRPM, 
+            String.format("current=%.0f, target=%.0f", shooter.getCurrentRPM(), shooter.getTargetRPM()));
+        
+        if (!shooterReady) {
+            String reason = String.format("enabled=%s, atTargetRPM=%s, currentRPM=%.0f, targetRPM=%.0f", 
+                shooterEnabled, shooterAtTargetRPM, shooter.getCurrentRPM(), shooter.getTargetRPM());
+            debugLogger.updateCheck("shooterReady", shooterReady, reason);
+        } else {
+            debugLogger.updateCheck("shooterReady", shooterReady, "Ready to fire");
+        }
+        
         debugLogger.updateCheck("indexingReady", indexingReady);
         debugLogger.updateCheck("noOperation", noOperation);
         
         boolean canStart = hasArtifacts && notFiring && shooterReady && indexingReady && noOperation;
         debugLogger.updateCheck("canStartFiring", canStart);
         
-        // Log the boolean tree
+        // Log the boolean tree with sub-conditions for shooterReady
         Map<String, Boolean> conditions = new LinkedHashMap<>();
         conditions.put("hasArtifacts", hasArtifacts);
         conditions.put("notFiring", notFiring);
         conditions.put("shooterReady", shooterReady);
+        if (!shooterReady) {
+            // Expand shooter ready into sub-conditions
+            conditions.put("  └─ shooterEnabled", shooterEnabled);
+            conditions.put("  └─ shooterAtTargetRPM", shooterAtTargetRPM);
+        }
         conditions.put("indexingReady", indexingReady);
         conditions.put("noOperation", noOperation);
         debugLogger.logBooleanTree("canStartFiring", conditions, canStart);
