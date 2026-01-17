@@ -41,6 +41,9 @@ public class Shooter {
     private boolean enabled;
     private long lastSpinupTime;
 
+    // Time conversion constant
+    private static final double SECONDS_TO_MILLISECONDS = 1000.0;
+
     // RPM Stability Tracking for Auto-Firing
     // These fields track when the shooter RPM enters and remains in the acceptable tolerance range
     // Reset to 0/false when RPM falls out of tolerance or shooter is disabled
@@ -271,7 +274,7 @@ public class Shooter {
 
         // Check if RPM has been stable for minimum required time
         // Convert stability time from seconds (config) to milliseconds for comparison
-        double requiredStabilityTime = config.getRpmStabilityTime() * 1000.0;
+        double requiredStabilityTime = config.getRpmStabilityTime() * SECONDS_TO_MILLISECONDS;
         boolean stabilityTimeReached = rpmWasStable &&
             (currentTime - rpmStableStartTime) >= requiredStabilityTime;
 

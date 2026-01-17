@@ -55,6 +55,7 @@ public class FullSystemTest extends LinearOpMode {
     private boolean firingSequenceActive = false;
     private int currentShotNumber = 1;
     private long firingSequenceStartTime = 0;
+    private static final long FIRING_SEQUENCE_TIMEOUT_MS = 30000; // 30 seconds safety timeout
 
     // Motif Pattern Management
     private String[] motifPatterns = {"PPG", "PGP", "GPP"};
@@ -264,8 +265,8 @@ public class FullSystemTest extends LinearOpMode {
             }
         }
 
-        // Safety timeout (30 seconds)
-        if (System.currentTimeMillis() - firingSequenceStartTime > 30000) {
+        // Safety timeout
+        if (System.currentTimeMillis() - firingSequenceStartTime > FIRING_SEQUENCE_TIMEOUT_MS) {
             completeFiringSequence();
         }
     }
