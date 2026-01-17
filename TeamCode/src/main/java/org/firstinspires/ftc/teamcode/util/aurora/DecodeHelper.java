@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.util.debug.DebugLogger;
 
 /**
  * DecodeHelper - DECODE Season Game-Specific Shooter Subsystem
@@ -30,6 +31,7 @@ public class DecodeHelper {
     private final DcMotor leftShooterMotor;
     private final DcMotor rightShooterMotor;
     private final Telemetry telemetry;
+    private final DebugLogger debugLogger;
 
     // ═══════════════════════════════════════════════════════════════════════
     // STATE MANAGEMENT
@@ -105,9 +107,26 @@ public class DecodeHelper {
      * @param telemetry Telemetry for status reporting
      */
     public DecodeHelper(DcMotor leftMotor, DcMotor rightMotor, Telemetry telemetry) {
+        this(leftMotor, rightMotor, telemetry, null);
+    }
+
+    /**
+     * Create a new DecodeHelper shooter subsystem with debug logger
+     *
+     * @param leftMotor Left shooter motor
+     * @param rightMotor Right shooter motor
+     * @param telemetry Telemetry for status reporting
+     * @param debugLogger Debug logger for detailed logging
+     */
+    public DecodeHelper(DcMotor leftMotor, DcMotor rightMotor, Telemetry telemetry, DebugLogger debugLogger) {
         this.leftShooterMotor = leftMotor;
         this.rightShooterMotor = rightMotor;
         this.telemetry = telemetry;
+        this.debugLogger = debugLogger;
+
+        if (debugLogger != null) {
+            debugLogger.log(DebugLogger.LogLevel.INFO, "DecodeHelper", "Constructor called");
+        }
 
         // Configure motors
         configureMotors();
@@ -131,6 +150,11 @@ public class DecodeHelper {
         lastLeftPosition = leftShooterMotor.getCurrentPosition();
         lastRightPosition = rightShooterMotor.getCurrentPosition();
         lastUpdateTime = System.currentTimeMillis();
+
+        if (debugLogger != null) {
+            debugLogger.log(DebugLogger.LogLevel.INFO, "DecodeHelper", 
+                "Initialized with left=" + lastLeftPosition + ", right=" + lastRightPosition);
+        }
     }
 
     /**
@@ -213,17 +237,29 @@ public class DecodeHelper {
                 // If transitioning from warmup, check if we've reached full RPM
                 if (transitioningFromWarmup && atTargetRPM) {
                     transitioningFromWarmup = false;  // Transition complete
+                    if (debugLogger != null) {
+                        debugLogger.log(DebugLogger.LogLevel.INFO, "DecodeHelper", 
+                            "Warmup transition complete, now at target RPM");
+                    }
                 }
 
                 // Check for spinup timeout
                 if (spinUpTimer.milliseconds() > getMaxSpinupTime()) {
                     telemetry.addLine("⚠️ WARNING: Spin-up timeout - still spinning");
+                    if (debugLogger != null) {
+                        debugLogger.log(DebugLogger.LogLevel.WARNING, "DecodeHelper", 
+                            "Spin-up timeout: " + spinUpTimer.milliseconds() + "ms > " + getMaxSpinupTime() + "ms");
+                    }
                     // Don't set ERROR state, just warn and continue
                     // currentState = ShooterState.ERROR;
                 }
 
                 // Transition to READY when at target AND stabilized
                 if (atTargetRPM && rpmStabilized) {
+                    if (debugLogger != null) {
+                        debugLogger.log(DebugLogger.LogLevel.INFO, "DecodeHelper", 
+                            "State transition: SPINNING_UP → READY (atTarget=" + atTargetRPM + ", stabilized=" + rpmStabilized + ")");
+                    }
                     currentState = ShooterState.READY;
                 }
                 break;
@@ -356,22 +392,47 @@ public class DecodeHelper {
 
         atTargetRPM = leftAtTarget && rightAtTarget && syncOk;
 
+        if (debugLogger != null && atTargetRPM != wasAtTarget) {
+            debugLogger.log(DebugLogger.LogLevel.INFO, "DecodeHelper", 
+                "atTargetRPM changed: " + wasAtTarget + " → " + atTargetRPM + 
+                " (left=" + leftAtTarget + ", right=" + rightAtTarget + ", sync=" + syncOk + ")");
+        }
+
         // Simple stabilization logic using system time
         long currentTime = System.currentTimeMillis();
 
         if (!atTargetRPM) {
             // Not at target - reset stabilization
-            rpmStabilized = false;
+            if (rpmStabilized) {
+                if (debugLogger != null) {
+                    debugLogger.log(DebugLogger.LogLevel.WARNING, "DecodeHelper", 
+                        "rpmStabilized reset (fell out of tolerance)");
+                }
+                rpmStabilized = false;
+            }
             stabilizationStartTime = 0;
         } else if (!wasAtTarget) {
             // Just reached target - start tracking stabilization time
             stabilizationStartTime = currentTime;
             rpmStabilized = false;
+            if (debugLogger != null) {
+                debugLogger.log(DebugLogger.LogLevel.INFO, "DecodeHelper", 
+                    "Started stabilization tracking at " + stabilizationStartTime);
+            }
         } else if (stabilizationStartTime > 0) {
             // Continuously at target - check elapsed time
             long elapsedTime = currentTime - stabilizationStartTime;
+            boolean wasStabilized = rpmStabilized;
             if (elapsedTime >= ShooterConfig.RPM_STABILIZATION_TIME_MS) {
                 rpmStabilized = true;
+                if (!wasStabilized && debugLogger != null) {
+                    debugLogger.log(DebugLogger.LogLevel.INFO, "DecodeHelper", 
+                        "rpmStabilized TRUE after " + elapsedTime + "ms");
+                }
+            } else if (debugLogger != null && elapsedTime % 100 < 20) {
+                // Log progress every ~100ms
+                debugLogger.log(DebugLogger.LogLevel.DEBUG, "DecodeHelper", 
+                    "Stabilization progress: " + elapsedTime + "ms/" + ShooterConfig.RPM_STABILIZATION_TIME_MS + "ms");
             }
         }
     }
@@ -387,8 +448,17 @@ public class DecodeHelper {
     public void setTargetRPM(double rpm) {
         rpm = ShooterConfig.clampRPM(rpm);
 
+        if (debugLogger != null) {
+            debugLogger.log(DebugLogger.LogLevel.INFO, "DecodeHelper", 
+                "setTargetRPM called: " + this.targetRPM + " → " + rpm);
+        }
+
         if (rpm < ShooterConfig.MIN_LAUNCH_RPM && rpm > 0) {
             telemetry.addLine("⚠️ RPM below minimum launch speed");
+            if (debugLogger != null) {
+                debugLogger.log(DebugLogger.LogLevel.WARNING, "DecodeHelper", 
+                    "RPM below minimum: " + rpm + " < " + ShooterConfig.MIN_LAUNCH_RPM);
+            }
         }
 
         this.targetRPM = rpm;
@@ -432,7 +502,16 @@ public class DecodeHelper {
     public void enableWarmup() {
         if (targetRPM == 0) {
             telemetry.addLine("⚠️ Cannot warm up: no target RPM set");
+            if (debugLogger != null) {
+                debugLogger.log(DebugLogger.LogLevel.WARNING, "DecodeHelper", 
+                    "enableWarmup failed: targetRPM is 0");
+            }
             return;
+        }
+
+        if (debugLogger != null) {
+            debugLogger.log(DebugLogger.LogLevel.INFO, "DecodeHelper", 
+                "enableWarmup: " + currentState + " → WARMUP (target=" + targetRPM + ")");
         }
 
         currentState = ShooterState.WARMUP;
@@ -446,12 +525,25 @@ public class DecodeHelper {
     public void spinUp() {
         if (targetRPM == 0) {
             telemetry.addLine("⚠️ Cannot spin up: no target RPM set");
+            if (debugLogger != null) {
+                debugLogger.log(DebugLogger.LogLevel.WARNING, "DecodeHelper", 
+                    "spinUp failed: targetRPM is 0");
+            }
             return;
         }
 
         // Check if we're transitioning from warmup
         if (currentState == ShooterState.WARMUP) {
             transitioningFromWarmup = true;
+            if (debugLogger != null) {
+                debugLogger.log(DebugLogger.LogLevel.INFO, "DecodeHelper", 
+                    "spinUp: transitioning from WARMUP to SPINNING_UP");
+            }
+        }
+
+        if (debugLogger != null) {
+            debugLogger.log(DebugLogger.LogLevel.INFO, "DecodeHelper", 
+                "spinUp: " + currentState + " → SPINNING_UP (target=" + targetRPM + ")");
         }
 
         currentState = ShooterState.SPINNING_UP;
@@ -467,6 +559,11 @@ public class DecodeHelper {
      * Disable shooter (stop motors)
      */
     public void disableShooter() {
+        if (debugLogger != null) {
+            debugLogger.log(DebugLogger.LogLevel.INFO, "DecodeHelper", 
+                "disableShooter: " + currentState + " → IDLE");
+        }
+
         currentState = ShooterState.IDLE;
         setMotorPowers(0, 0);
         leftPID.reset();
@@ -542,8 +639,28 @@ public class DecodeHelper {
     }
     public double getTargetRPM() { return targetRPM; }
 
-    public boolean isAtTargetRPM() { return atTargetRPM; }
-    public boolean isStabilized() { return rpmStabilized; }
+    public boolean isAtTargetRPM() { 
+        if (debugLogger != null && System.currentTimeMillis() % 500 < 50) {
+            // Log every ~500ms to avoid spam
+            debugLogger.log(DebugLogger.LogLevel.DEBUG, "DecodeHelper", 
+                "isAtTargetRPM() called, returning: " + atTargetRPM + 
+                " (leftRPM=" + String.format("%.0f", leftRPM) + 
+                ", rightRPM=" + String.format("%.0f", rightRPM) + 
+                ", target=" + String.format("%.0f", targetRPM) + 
+                ", syncError=" + String.format("%.0f", rpmSyncError) + ")");
+        }
+        return atTargetRPM; 
+    }
+    
+    public boolean isStabilized() { 
+        if (debugLogger != null && System.currentTimeMillis() % 500 < 50) {
+            // Log every ~500ms to avoid spam
+            debugLogger.log(DebugLogger.LogLevel.DEBUG, "DecodeHelper", 
+                "isStabilized() called, returning: " + rpmStabilized + 
+                " (" + getStabilizationDebugInfo() + ")");
+        }
+        return rpmStabilized; 
+    }
     public boolean targetReached() { return atTargetRPM; }
     public boolean isReady() { return currentState == ShooterState.READY; }
     public boolean isSpinningUp() { return currentState == ShooterState.SPINNING_UP; }
