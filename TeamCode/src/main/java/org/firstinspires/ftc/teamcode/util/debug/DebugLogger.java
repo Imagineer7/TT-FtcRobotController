@@ -67,6 +67,7 @@ public class DebugLogger {
     
     private final List<LogEntry> logs = new ArrayList<>();
     private final Map<String, BooleanCheck> booleanChecks = new LinkedHashMap<>();
+    private final Map<String, BooleanTree> booleanTrees = new LinkedHashMap<>();
     private final long startTime;
     private LogLevel minLevel = LogLevel.DEBUG;
     private DisplayMode displayMode = DisplayMode.FULL;
@@ -160,6 +161,11 @@ public class DebugLogger {
      */
     public void logBooleanTree(String treeName, Map<String, Boolean> conditions, boolean finalResult) {
         info("BOOL_TREE", treeName + " = " + finalResult);
+        
+        // Store the tree for expanded display
+        BooleanTree tree = new BooleanTree(treeName, conditions, finalResult);
+        booleanTrees.put(treeName, tree);
+        
         for (Map.Entry<String, Boolean> entry : conditions.entrySet()) {
             String symbol = entry.getValue() ? "✓" : "✗";
             debug("BOOL_TREE", "  " + symbol + " " + entry.getKey() + " = " + entry.getValue());
@@ -265,11 +271,46 @@ public class DebugLogger {
     
     private void displayBooleanTree(Telemetry telemetry) {
         telemetry.addLine("=== BOOLEAN CHECKS ===");
+        
+        // First show individual boolean checks
         for (BooleanCheck check : booleanChecks.values()) {
             String status = check.getCurrentValue() ? "✓ TRUE" : "✗ FALSE";
-            telemetry.addData(check.getDescription(), status);
-            if (check.getReason() != null) {
-                telemetry.addData("  Reason", check.getReason());
+            String icon = check.getCurrentValue() ? "✓" : "✗";
+            telemetry.addData(icon + " " + check.getDescription(), 
+                check.getCurrentValue() ? "TRUE" : "FALSE");
+            
+            // Expand false checks with reason
+            if (!check.getCurrentValue() && check.getReason() != null) {
+                telemetry.addData("  ↳ Reason", check.getReason());
+            }
+        }
+        
+        // Show boolean trees with expanded false branches
+        if (!booleanTrees.isEmpty()) {
+            telemetry.addLine("");
+            telemetry.addLine("=== CONDITION TREES ===");
+            
+            for (BooleanTree tree : booleanTrees.values()) {
+                String treeIcon = tree.getFinalResult() ? "✓" : "✗";
+                telemetry.addData(treeIcon + " " + tree.getName(), 
+                    tree.getFinalResult() ? "TRUE" : "FALSE");
+                
+                // Always expand false trees, optionally expand true trees
+                if (!tree.getFinalResult() || displayMode == DisplayMode.FULL) {
+                    for (Map.Entry<String, Boolean> condition : tree.getConditions().entrySet()) {
+                        String condIcon = condition.getValue() ? "  ✓" : "  ✗";
+                        telemetry.addData(condIcon + " " + condition.getKey(), 
+                            condition.getValue() ? "true" : "false");
+                        
+                        // For false conditions, show expanded details from BooleanCheck
+                        if (!condition.getValue()) {
+                            BooleanCheck check = booleanChecks.get(condition.getKey());
+                            if (check != null && check.getReason() != null) {
+                                telemetry.addData("    ↳", check.getReason());
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -317,6 +358,28 @@ public class DebugLogger {
     public void clear() {
         logs.clear();
         booleanChecks.clear();
+        booleanTrees.clear();
+    }
+    
+    // === Boolean Tree Class ===
+    
+    private static class BooleanTree {
+        private final String name;
+        private final Map<String, Boolean> conditions;
+        private final boolean finalResult;
+        private final long timestamp;
+        
+        BooleanTree(String name, Map<String, Boolean> conditions, boolean finalResult) {
+            this.name = name;
+            this.conditions = new LinkedHashMap<>(conditions);
+            this.finalResult = finalResult;
+            this.timestamp = System.currentTimeMillis();
+        }
+        
+        String getName() { return name; }
+        Map<String, Boolean> getConditions() { return conditions; }
+        boolean getFinalResult() { return finalResult; }
+        long getTimestamp() { return timestamp; }
     }
     
     // === Boolean Check Class ===
