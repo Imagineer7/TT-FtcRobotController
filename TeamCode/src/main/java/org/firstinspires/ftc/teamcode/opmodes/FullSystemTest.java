@@ -88,8 +88,12 @@ public class FullSystemTest extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         // Initialize hardware
-        hardware = new AuroraHardwareConfig(hardwareMap, telemetry);
-        hardware.initialize();
+        try {
+            hardware = new AuroraHardwareConfig(hardwareMap, telemetry);
+            hardware.initialize();
+        } catch (Exception e) {
+            throw new RuntimeException("Hardware initialization failed: " + e.getMessage(), e);
+        }
 
         // Initialize configurations
         indexingConfig = new IndexingConfig();

@@ -42,6 +42,8 @@ public class Shooter {
     private long lastSpinupTime;
 
     // RPM Stability Tracking for Auto-Firing
+    // These fields track when the shooter RPM enters and remains in the acceptable tolerance range
+    // Reset to 0/false when RPM falls out of tolerance or shooter is disabled
     private long rpmStableStartTime = 0;
     private boolean rpmWasStable = false;
 
