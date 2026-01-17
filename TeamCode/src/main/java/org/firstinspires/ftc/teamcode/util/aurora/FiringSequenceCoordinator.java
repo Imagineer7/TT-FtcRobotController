@@ -86,10 +86,20 @@ public class FiringSequenceCoordinator {
         debugLogger.updateCheck("hasArtifacts", hasArtifacts, "Count: " + indexingSystem.getArtifactCount());
         
         // Enhanced shooter ready check with detailed breakdown
+        // CRITICAL: Use Shooter methods, NOT DecodeHelper directly, to match isReadyToFire() logic
         boolean shooterEnabled = shooter.isEnabled();
         boolean shooterAtTargetRPM = shooter.isAtTargetRPM();
         boolean shooterStabilized = shooter.isRPMStable();
         String stabilizationInfo = shooter.getDecodeHelper().getStabilizationDebugInfo();
+        
+        // Also query DecodeHelper directly for comparison/debugging
+        boolean decodeAtTarget = shooter.getDecodeHelper().isAtTargetRPM();
+        boolean decodeStabilized = shooter.getDecodeHelper().isStabilized();
+        if (shooterAtTargetRPM != decodeAtTarget || shooterStabilized != decodeStabilized) {
+            debugLogger.warning("MISMATCH", String.format(
+                "Shooter vs DecodeHelper mismatch! Shooter(atTarget=%s, stable=%s) vs Decode(atTarget=%s, stable=%s)",
+                shooterAtTargetRPM, shooterStabilized, decodeAtTarget, decodeStabilized));
+        }
         
         debugLogger.updateCheck("shooterEnabled", shooterEnabled);
         debugLogger.updateCheck("shooterAtTargetRPM", shooterAtTargetRPM, 
