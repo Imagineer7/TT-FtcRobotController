@@ -61,6 +61,7 @@ public class DecodeHelper {
     private final ElapsedTime firingTimer = new ElapsedTime();
     private long lastShotTime = 0;
     private long stabilizationStartTime = 0;  // Manual tracking for stabilization
+    private long lastOutOfToleranceTime = 0;  // Debounce timer for tolerance violations
     private static final double FIRING_SEQUENCE_TIME = 0.2;  // 200ms for feed sequence
 
     // Status flags
@@ -398,21 +399,10 @@ public class DecodeHelper {
         // For atTargetRPM check, include sync requirement
         atTargetRPM = leftAtTarget && rightAtTarget && syncOk;
 
-        // For stabilization tracking, only check individual motor tolerances (ignore sync)
-        // This prevents sync errors from constantly resetting the stabilization timer
-        // Use hysteresis: once stabilized, use 2x tolerance to prevent resets from transient fluctuations
-        boolean bothMotorsAtTarget;
-        if (rpmStabilized) {
-            // Once stabilized, use wider tolerance (hysteresis) to avoid resets from brief excursions
-            double hysteresisTolerance = tolerance * 2.0;
-            boolean leftWithinHysteresis = Math.abs(leftRPM - target) < hysteresisTolerance;
-            boolean rightWithinHysteresis = Math.abs(rightRPM - target) < hysteresisTolerance;
-            bothMotorsAtTarget = leftWithinHysteresis && rightWithinHysteresis;
-        } else {
-            // Not yet stabilized, use normal tolerance
-            bothMotorsAtTarget = leftAtTarget && rightAtTarget;
-        }
-
+        // Simplified stabilization logic with debounce filtering
+        // Ignores brief tolerance violations to prevent transient resets
+        boolean bothMotorsAtTarget = leftAtTarget && rightAtTarget;
+        
         if (debugLogger != null && atTargetRPM != wasAtTarget) {
             debugLogger.infoPriority("DecodeHelper",
                 "atTargetRPM changed: " + wasAtTarget + " → " + atTargetRPM +
@@ -420,75 +410,79 @@ public class DecodeHelper {
                 ", syncError=" + String.format("%.1f", rpmSyncError) + " RPM)");
         }
 
-        // Simple stabilization logic using system time
-        // Uses bothMotorsAtTarget instead of atTargetRPM to avoid sync error interference
         long currentTime = System.currentTimeMillis();
+        final long DEBOUNCE_MS = 100;  // Ignore tolerance violations shorter than this
+        final double UNLOCK_TOLERANCE_MULTIPLIER = 3.0;  // Only unlock if significantly off target
 
         if (!bothMotorsAtTarget) {
-            // Not at target - reset stabilization
-            if (rpmStabilized || stabilizationStartTime > 0) {
-                if (debugLogger != null) {
-                    long elapsedBeforeReset = stabilizationStartTime > 0 ? (currentTime - stabilizationStartTime) : 0;
-                    debugLogger.warningPriority("DecodeHelper",
-                        "🔄 Stabilization RESET (motors out of " + (rpmStabilized ? "hysteresis" : "tolerance") + "). " +
-                        "WAS rpmStabilized=" + rpmStabilized + ", elapsed=" + elapsedBeforeReset + "ms. " +
-                        "left=" + String.format("%.1f", leftRPM) + " (target=" + String.format("%.1f", target) + "), " +
-                        "right=" + String.format("%.1f", rightRPM) + " (target=" + String.format("%.1f", target) + "), " +
-                        "leftAtTarget=" + leftAtTarget + ", rightAtTarget=" + rightAtTarget +
-                        ", tolerance=" + ShooterConfig.RPM_TOLERANCE +
-                        (rpmStabilized ? ", hysteresisTolerance=" + (tolerance * 2.0) : ""));
+            // Motors out of tolerance - track when this started
+            if (lastOutOfToleranceTime == 0) {
+                lastOutOfToleranceTime = currentTime;
+                if (debugLogger != null && rpmStabilized) {
+                    debugLogger.debug("DecodeHelper",
+                        "⚠️ Motors out of tolerance (debouncing). left=" + String.format("%.1f", leftRPM) + 
+                        ", right=" + String.format("%.1f", rightRPM) + ", target=" + String.format("%.1f", target));
                 }
-                rpmStabilized = false;
+            } else {
+                long outOfToleranceDuration = currentTime - lastOutOfToleranceTime;
+                
+                // If stabilized, only unlock if significantly out of tolerance for sustained period
+                if (rpmStabilized) {
+                    double unlockTolerance = tolerance * UNLOCK_TOLERANCE_MULTIPLIER;
+                    boolean significantlyOff = Math.abs(leftRPM - target) >= unlockTolerance || 
+                                               Math.abs(rightRPM - target) >= unlockTolerance;
+                    
+                    if (significantlyOff && outOfToleranceDuration >= DEBOUNCE_MS) {
+                        // Significantly off for sustained period - unlock
+                        if (debugLogger != null) {
+                            debugLogger.warningPriority("DecodeHelper",
+                                "🔓 UNLOCKED stabilization (significantly off for " + outOfToleranceDuration + "ms). " +
+                                "left=" + String.format("%.1f", leftRPM) + ", right=" + String.format("%.1f", rightRPM) + 
+                                ", target=" + String.format("%.1f", target) + ", unlockTolerance=" + String.format("%.1f", unlockTolerance));
+                        }
+                        rpmStabilized = false;
+                        stabilizationStartTime = 0;
+                    }
+                } else {
+                    // Not yet stabilized, reset immediately after debounce period
+                    if (outOfToleranceDuration >= DEBOUNCE_MS) {
+                        if (debugLogger != null && stabilizationStartTime > 0) {
+                            long elapsedBeforeReset = currentTime - stabilizationStartTime;
+                            debugLogger.debug("DecodeHelper",
+                                "🔄 Reset stabilization timer (out of tolerance for " + outOfToleranceDuration + "ms). " +
+                                "elapsed=" + elapsedBeforeReset + "ms");
+                        }
+                        stabilizationStartTime = 0;
+                    }
+                }
             }
-            stabilizationStartTime = 0;
-        } else if (stabilizationStartTime == 0) {
-            // Just reached target - start tracking stabilization time
-            stabilizationStartTime = currentTime;
-            rpmStabilized = false;
-            if (debugLogger != null) {
-                debugLogger.infoPriority("DecodeHelper",
-                    "⏱️ Started stabilization tracking at " + stabilizationStartTime + 
-                    " (syncError=" + String.format("%.1f", rpmSyncError) + " RPM ignored for stabilization)");
-            }
-        } else if (stabilizationStartTime > 0) {
-            // Continuously at target - check elapsed time
-            long elapsedTime = currentTime - stabilizationStartTime;
-            boolean wasStabilized = rpmStabilized;
-            if (elapsedTime >= ShooterConfig.RPM_STABILIZATION_TIME_MS) {
-                if (!wasStabilized) {
+        } else {
+            // Motors at target - clear debounce timer
+            lastOutOfToleranceTime = 0;
+            
+            if (stabilizationStartTime == 0 && !rpmStabilized) {
+                // Start tracking stabilization
+                stabilizationStartTime = currentTime;
+                if (debugLogger != null) {
+                    debugLogger.infoPriority("DecodeHelper",
+                        "⏱️ Started stabilization tracking");
+                }
+            } else if (stabilizationStartTime > 0 && !rpmStabilized) {
+                // Check if stabilization period complete
+                long elapsedTime = currentTime - stabilizationStartTime;
+                if (elapsedTime >= ShooterConfig.RPM_STABILIZATION_TIME_MS) {
                     rpmStabilized = true;
                     if (debugLogger != null) {
                         debugLogger.infoPriority("DecodeHelper",
-                            "✅ rpmStabilized set to TRUE after " + elapsedTime + "ms (threshold=" + 
-                            ShooterConfig.RPM_STABILIZATION_TIME_MS + "ms). " +
+                            "🔒 LOCKED stabilization after " + elapsedTime + "ms. " +
                             "leftRPM=" + String.format("%.1f", leftRPM) + 
                             ", rightRPM=" + String.format("%.1f", rightRPM) +
                             ", target=" + String.format("%.1f", target));
                     }
-                } else {
-                    // Already stabilized - just maintain state
-                    rpmStabilized = true;
-                }
-                // Additional logging to confirm the state
-                if (debugLogger != null && elapsedTime % 500 < 20) {
+                } else if (debugLogger != null && elapsedTime % 100 < 20) {
                     debugLogger.debug("DecodeHelper",
-                        "Stabilization confirmed: elapsed=" + elapsedTime + "ms, rpmStabilized=" + rpmStabilized +
-                        ", leftRPM=" + String.format("%.1f", leftRPM) + 
-                        ", rightRPM=" + String.format("%.1f", rightRPM) +
-                        ", syncError=" + String.format("%.1f", rpmSyncError));
+                        "Stabilization progress: " + elapsedTime + "ms/" + ShooterConfig.RPM_STABILIZATION_TIME_MS + "ms");
                 }
-            } else if (debugLogger != null && elapsedTime % 100 < 20) {
-                // Log progress every ~100ms
-                debugLogger.debug("DecodeHelper",
-                    "Stabilization progress: " + elapsedTime + "ms/" + ShooterConfig.RPM_STABILIZATION_TIME_MS + "ms" +
-                    " (syncError=" + String.format("%.1f", rpmSyncError) + " RPM ignored)");
-            }
-        } else {
-            // This should never happen, but log it if it does
-            if (debugLogger != null) {
-                debugLogger.errorPriority("DecodeHelper",
-                    "❌ UNEXPECTED: stabilizationStartTime=" + stabilizationStartTime + 
-                    ", bothMotorsAtTarget=" + bothMotorsAtTarget);
             }
         }
     }
