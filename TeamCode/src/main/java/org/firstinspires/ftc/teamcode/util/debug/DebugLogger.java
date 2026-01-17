@@ -132,12 +132,28 @@ public class DebugLogger {
         log(LogLevel.WARNING, category, message, details, false);
     }
     
+    public void warningPriority(String category, String message) {
+        log(LogLevel.WARNING, category, message, null, true);
+    }
+    
+    public void warningPriority(String category, String message, String details) {
+        log(LogLevel.WARNING, category, message, details, true);
+    }
+    
     public void error(String category, String message) {
         log(LogLevel.ERROR, category, message, null, false);
     }
     
     public void error(String category, String message, String details) {
         log(LogLevel.ERROR, category, message, details, false);
+    }
+    
+    public void errorPriority(String category, String message) {
+        log(LogLevel.ERROR, category, message, null, true);
+    }
+    
+    public void errorPriority(String category, String message, String details) {
+        log(LogLevel.ERROR, category, message, details, true);
     }
     
     private void log(LogLevel level, String category, String message, String details, boolean priority) {

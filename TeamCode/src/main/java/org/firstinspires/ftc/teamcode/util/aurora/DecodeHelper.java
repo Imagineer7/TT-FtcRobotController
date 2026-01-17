@@ -415,11 +415,14 @@ public class DecodeHelper {
 
         if (!bothMotorsAtTarget) {
             // Not at target - reset stabilization
-            if (rpmStabilized) {
+            if (rpmStabilized || stabilizationStartTime > 0) {
                 if (debugLogger != null) {
-                    debugLogger.warning("DecodeHelper",
-                        "rpmStabilized reset (motors fell out of tolerance). left=" + String.format("%.1f", leftRPM) + 
-                        ", right=" + String.format("%.1f", rightRPM) + ", target=" + String.format("%.1f", target));
+                    debugLogger.warningPriority("DecodeHelper",
+                        "🔄 Stabilization RESET (motors out of tolerance). " +
+                        "left=" + String.format("%.1f", leftRPM) + " (target=" + String.format("%.1f", target) + "), " +
+                        "right=" + String.format("%.1f", rightRPM) + " (target=" + String.format("%.1f", target) + "), " +
+                        "leftAtTarget=" + leftAtTarget + ", rightAtTarget=" + rightAtTarget +
+                        ", startTime=" + stabilizationStartTime);
                 }
                 rpmStabilized = false;
             }
@@ -429,8 +432,8 @@ public class DecodeHelper {
             stabilizationStartTime = currentTime;
             rpmStabilized = false;
             if (debugLogger != null) {
-                debugLogger.info("DecodeHelper",
-                    "Started stabilization tracking at " + stabilizationStartTime + 
+                debugLogger.infoPriority("DecodeHelper",
+                    "⏱️ Started stabilization tracking at " + stabilizationStartTime + 
                     " (syncError=" + String.format("%.1f", rpmSyncError) + " RPM ignored for stabilization)");
             }
         } else if (stabilizationStartTime > 0) {
@@ -438,10 +441,15 @@ public class DecodeHelper {
             long elapsedTime = currentTime - stabilizationStartTime;
             boolean wasStabilized = rpmStabilized;
             if (elapsedTime >= ShooterConfig.RPM_STABILIZATION_TIME_MS) {
-                rpmStabilized = true;
-                if (!wasStabilized && debugLogger != null) {
-                    debugLogger.info("DecodeHelper",
-                        "rpmStabilized TRUE after " + elapsedTime + "ms (threshold=" + ShooterConfig.RPM_STABILIZATION_TIME_MS + "ms)");
+                if (!wasStabilized) {
+                    rpmStabilized = true;
+                    if (debugLogger != null) {
+                        debugLogger.infoPriority("DecodeHelper",
+                            "✅ rpmStabilized TRUE after " + elapsedTime + "ms (threshold=" + ShooterConfig.RPM_STABILIZATION_TIME_MS + "ms)");
+                    }
+                } else {
+                    // Already stabilized - just maintain state
+                    rpmStabilized = true;
                 }
                 // Additional logging to confirm the state
                 if (debugLogger != null && elapsedTime % 500 < 20) {
@@ -456,6 +464,13 @@ public class DecodeHelper {
                 debugLogger.debug("DecodeHelper",
                     "Stabilization progress: " + elapsedTime + "ms/" + ShooterConfig.RPM_STABILIZATION_TIME_MS + "ms" +
                     " (syncError=" + String.format("%.1f", rpmSyncError) + " RPM ignored)");
+            }
+        } else {
+            // This should never happen, but log it if it does
+            if (debugLogger != null) {
+                debugLogger.errorPriority("DecodeHelper",
+                    "❌ UNEXPECTED: stabilizationStartTime=" + stabilizationStartTime + 
+                    ", bothMotorsAtTarget=" + bothMotorsAtTarget);
             }
         }
     }
@@ -678,15 +693,22 @@ public class DecodeHelper {
     public boolean isStabilized() { 
         long currentTime = System.currentTimeMillis();
         long elapsedTime = stabilizationStartTime > 0 ? (currentTime - stabilizationStartTime) : 0;
+        boolean shouldBeStabilized = elapsedTime >= ShooterConfig.RPM_STABILIZATION_TIME_MS && stabilizationStartTime > 0;
         
-        if (debugLogger != null && System.currentTimeMillis() % 500 < 50) {
+        // If there's a mismatch between what SHOULD be true and what IS true, log with priority
+        if (debugLogger != null && shouldBeStabilized && !rpmStabilized) {
+            debugLogger.warningPriority("DecodeHelper",
+                "⚠️ MISMATCH: isStabilized() returning FALSE but shouldBeStabilized=TRUE! " +
+                "elapsed=" + elapsedTime + "ms, threshold=" + ShooterConfig.RPM_STABILIZATION_TIME_MS + "ms, " +
+                "startTime=" + stabilizationStartTime + ", rpmStabilized=" + rpmStabilized);
+        } else if (debugLogger != null && System.currentTimeMillis() % 500 < 50) {
             // Log every ~500ms to avoid spam
             debugLogger.debug("DecodeHelper",
                 "isStabilized() called, returning: " + rpmStabilized +
                 " (" + getStabilizationDebugInfo() + 
                 ", elapsed=" + elapsedTime + "ms" +
                 ", threshold=" + ShooterConfig.RPM_STABILIZATION_TIME_MS + "ms" +
-                ", shouldBeStabilized=" + (elapsedTime >= ShooterConfig.RPM_STABILIZATION_TIME_MS) + ")");
+                ", shouldBeStabilized=" + shouldBeStabilized + ")");
         }
         return rpmStabilized; 
     }
