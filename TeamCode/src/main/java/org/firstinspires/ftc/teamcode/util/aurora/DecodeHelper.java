@@ -60,6 +60,7 @@ public class DecodeHelper {
     private final ElapsedTime stabilizationTimer = new ElapsedTime();
     private final ElapsedTime firingTimer = new ElapsedTime();
     private long lastShotTime = 0;
+    private long stabilizationStartTime = 0;  // Manual tracking for stabilization
     private static final double FIRING_SEQUENCE_TIME = 0.2;  // 200ms for feed sequence
 
     // Status flags
@@ -210,7 +211,7 @@ public class DecodeHelper {
                 checkIfAtTarget(targetRPM, getRPMTolerance());
 
                 // If transitioning from warmup, check if we've reached full RPM
-                if (transitioningFromWarmup && atTargetRPM && rpmStabilized) {
+                if (transitioningFromWarmup && atTargetRPM) {
                     transitioningFromWarmup = false;  // Transition complete
                 }
 
@@ -221,8 +222,8 @@ public class DecodeHelper {
                     // currentState = ShooterState.ERROR;
                 }
 
-                // Transition to READY when stable
-                if (atTargetRPM && rpmStabilized) {
+                // Transition to READY when at target (temporarily removed rpmStabilized check)
+                if (atTargetRPM) {
                     currentState = ShooterState.READY;
                 }
                 break;
@@ -255,7 +256,7 @@ public class DecodeHelper {
                 applyPIDControl(targetRPM);
                 checkIfAtTarget(targetRPM, getRPMTolerance());
 
-                if (atTargetRPM && rpmStabilized) {
+                if (atTargetRPM) {
                     currentState = ShooterState.READY;
                 }
                 break;
@@ -355,18 +356,23 @@ public class DecodeHelper {
 
         atTargetRPM = leftAtTarget && rightAtTarget && syncOk;
 
-        // Track stabilization time
-        if (atTargetRPM && !wasAtTarget) {
-            stabilizationTimer.reset();
-            rpmStabilized = false;
-        }
-
-        if (atTargetRPM && stabilizationTimer.milliseconds() > ShooterConfig.RPM_STABILIZATION_TIME_MS) {
-            rpmStabilized = true;
-        }
+        // Simple stabilization logic using system time
+        long currentTime = System.currentTimeMillis();
 
         if (!atTargetRPM) {
+            // Not at target - reset stabilization
             rpmStabilized = false;
+            stabilizationStartTime = 0;
+        } else if (!wasAtTarget) {
+            // Just reached target - start tracking stabilization time
+            stabilizationStartTime = currentTime;
+            rpmStabilized = false;
+        } else if (stabilizationStartTime > 0) {
+            // Continuously at target - check elapsed time
+            long elapsedTime = currentTime - stabilizationStartTime;
+            if (elapsedTime >= ShooterConfig.RPM_STABILIZATION_TIME_MS) {
+                rpmStabilized = true;
+            }
         }
     }
 
@@ -536,7 +542,9 @@ public class DecodeHelper {
     }
     public double getTargetRPM() { return targetRPM; }
 
-    public boolean isAtTargetRPM() { return atTargetRPM && rpmStabilized; }
+    public boolean isAtTargetRPM() { return atTargetRPM; }
+    public boolean isStabilized() { return rpmStabilized; }
+    public boolean targetReached() { return atTargetRPM; }
     public boolean isReady() { return currentState == ShooterState.READY; }
     public boolean isSpinningUp() { return currentState == ShooterState.SPINNING_UP; }
     public boolean isWarmedUp() { return currentState == ShooterState.WARMUP; }

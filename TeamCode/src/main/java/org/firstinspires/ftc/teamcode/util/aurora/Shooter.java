@@ -207,23 +207,17 @@ public class Shooter {
      * @return true if at target RPM and stable
      */
     public boolean isReadyToFire() {
-        if (!enabled) {
-            return false;
-        }
+        // TEMPORARY: Bypass all checks for debugging
+        // Just check if we're enabled and at target RPM
+        boolean simpleReady = enabled && decodeHelper.isAtTargetRPM();
 
-        // Check if shooter is at target RPM
-        if (!decodeHelper.isAtTargetRPM()) {
-            return false;
-        }
+        telemetry.addLine("🔍 SIMPLIFIED isReadyToFire():");
+        telemetry.addData("  enabled", enabled);
+        telemetry.addData("  atTargetRPM", decodeHelper.isAtTargetRPM());
+        telemetry.addData("  decodeState", decodeHelper.getState());
+        telemetry.addData("  SIMPLE RESULT", simpleReady);
 
-        // Check if minimum spinup time has elapsed
-        long timeSinceSpinup = System.currentTimeMillis() - lastSpinupTime;
-        if (timeSinceSpinup < config.getPreset().getSpinupTimeMs()) {
-            return false;
-        }
-
-        // Check shooter state
-        return decodeHelper.isReady();
+        return simpleReady;
     }
 
     /**
@@ -240,6 +234,14 @@ public class Shooter {
      */
     public boolean isAtTargetRPM() {
         return decodeHelper.isAtTargetRPM();
+    }
+
+    public boolean isRPMStable() {
+        return decodeHelper.isStabilized();
+    }
+
+    public boolean targetRPMReached() {
+        return decodeHelper.targetReached();
     }
 
     /**

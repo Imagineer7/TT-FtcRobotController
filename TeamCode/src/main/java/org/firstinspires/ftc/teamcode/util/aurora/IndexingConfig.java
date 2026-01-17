@@ -73,13 +73,13 @@ public class IndexingConfig {
     // ═══════════════════════════════════════════════════════════════════════
 
     /** Time to run feed system to fire an artifact (seconds) */
-    private double fireFeedTime = 0.8;
+    private double fireFeedTime = 1.0;
 
     /** Power for feed system during firing (0.0 to 1.0) */
     private double fireFeedPower = 1.0;
 
     /** Delay after firing before next operation can start (seconds) */
-    private double postFireDelay = 0.3;
+    private double postFireDelay = 0.5;
 
     /** Minimum time shooter must be running before firing (seconds) */
     private double minShooterSpinupTime = 0.5;

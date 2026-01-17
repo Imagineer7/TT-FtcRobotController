@@ -197,7 +197,7 @@ public class ShooterConfig {
     // ═══════════════════════════════════════════════════════════════════════
 
     /** Maximum acceptable RPM difference between motors */
-    public static final double MAX_RPM_SYNC_ERROR = 100.0;
+    public static final double MAX_RPM_SYNC_ERROR = 150.0;
 
     /** Sync correction factor (how aggressively to correct differences) */
     public static final double SYNC_CORRECTION_FACTOR = 0.5;
@@ -222,7 +222,7 @@ public class ShooterConfig {
     public static final long RPM_STABILIZATION_TIME_MS = 250;
 
     /** Default RPM tolerance for "at target" status */
-    public static final double RPM_TOLERANCE = 50.0;
+    public static final double RPM_TOLERANCE = 75.0;
 
     /** Warm-up mode spin-up percentage (65% of target) */
     public static final double WARMUP_PERCENTAGE = 0.65;
