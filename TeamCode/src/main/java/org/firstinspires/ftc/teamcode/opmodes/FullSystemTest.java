@@ -8,6 +8,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.Artifact;
+import org.firstinspires.ftc.teamcode.util.aurora.FiringSequenceCoordinator;
 
 /**
  * FullSystemTest - Comprehensive test OpMode for complete indexing and shooting system
@@ -83,6 +84,7 @@ public class FullSystemTest extends LinearOpMode {
     private IndexingConfig indexingConfig;
     private Shooter shooter;
     private ShooterConfig shooterConfig;
+    private FiringSequenceCoordinator firingCoordinator;
 
     // System State Tracking
     private enum SystemMode {
@@ -96,10 +98,6 @@ public class FullSystemTest extends LinearOpMode {
     private SystemMode currentMode = SystemMode.IDLE;
 
     // Shot Planning and Firing State
-    private boolean firingSequenceActive = false;
-    private int currentShotNumber = 1;
-    private long firingSequenceStartTime = 0;
-
     // Motif Pattern Management
     private String[] motifPatterns = {"PPG", "PGP", "GPP"};
     private int currentMotifIndex = 0;
@@ -149,6 +147,7 @@ public class FullSystemTest extends LinearOpMode {
         // Initialize systems
         shooter = new Shooter(hardware, shooterConfig, telemetry);
         indexingSystem = new IndexingSystem(hardware, indexingConfig, shooter, telemetry);
+        firingCoordinator = new FiringSequenceCoordinator(indexingSystem, shooter);
 
         waitForStart();
 
@@ -168,14 +167,10 @@ public class FullSystemTest extends LinearOpMode {
             // Update all systems
             indexingSystem.update();
             shooter.update();
+            firingCoordinator.update();
 
             // Update system mode based on current state
             updateSystemMode();
-
-            // Handle active firing sequence
-            if (firingSequenceActive) {
-                handleFiringSequence();
-            }
 
             // Performance tracking
             updatePerformanceMetrics();
@@ -184,7 +179,7 @@ public class FullSystemTest extends LinearOpMode {
         }
 
         // Cleanup
-        firingSequenceActive = false;
+        firingCoordinator.reset();
         shooter.disable();
         indexingSystem.disable();
         hardware.stopAllMotors();
@@ -232,17 +227,15 @@ public class FullSystemTest extends LinearOpMode {
                 shooter.spinUp();
 
                 // Auto-start firing sequence if shooter ready and artifacts available
-                if (!firingSequenceActive &&
-                    isShooterReadyForAutoFiring() &&
-                    indexingSystem.isReadyToFire() &&
-                    !indexingSystem.isOperationInProgress()) {
-                    startFiringSequence();
+                if (!firingCoordinator.isFiringActive() &&
+                    firingCoordinator.canStartFiring()) {
+                    firingCoordinator.startFiring();
                 }
             }
         } else if (lastX1) {
             // X button released after being held - cancel firing and stop shooter
-            if (firingSequenceActive) {
-                completeFiringSequence();
+            if (firingCoordinator.isFiringActive()) {
+                firingCoordinator.completeFiring();
             }
 
             // Stop shooter
@@ -300,7 +293,7 @@ public class FullSystemTest extends LinearOpMode {
      * Update system mode based on current state of both systems
      */
     private void updateSystemMode() {
-        if (firingSequenceActive) {
+        if (firingCoordinator.isFiringActive()) {
             currentMode = SystemMode.FIRING_SEQUENCE;
         } else if (indexingSystem.getCurrentState() == IndexingSystem.SystemState.ERROR ||
                    shooter.isError()) {
@@ -317,73 +310,10 @@ public class FullSystemTest extends LinearOpMode {
     }
 
     /**
-     * Start the automated firing sequence
-     */
-    private void startFiringSequence() {
-        if (indexingSystem.getArtifactCount() == 0) {
-            return;
-        }
-
-        firingSequenceActive = true;
-        firingSequenceStartTime = System.currentTimeMillis();
-        currentShotNumber = 1;
-
-        // Ensure shooter is spinning up
-        if (!shooter.isAtTargetRPM()) {
-            shooter.spinUp();
-        }
-    }
-
-    /**
-     * Handle the active firing sequence
-     */
-    private void handleFiringSequence() {
-        if (!firingSequenceActive) {
-            return;
-        }
-
-        // Check if we still have artifacts to fire
-        if (indexingSystem.getArtifactCount() == 0) {
-            completeFiringSequence();
-            return;
-        }
-
-        // Wait for shooter to be ready
-        if (!shooter.isAtTargetRPM()) {
-            return; // Wait for shooter to spin up
-        }
-
-        // Check if indexing system is ready to fire
-        if (indexingSystem.isReadyToFire() && !indexingSystem.isOperationInProgress()) {
-            // Fire the current shot
-            boolean fired = indexingSystem.onFireSignal();
-            if (fired) {
-                currentShotNumber++;
-            }
-        }
-
-        // Safety timeout (30 seconds)
-        long elapsed = System.currentTimeMillis() - firingSequenceStartTime;
-        if (elapsed > 30000) {
-            completeFiringSequence();
-        }
-    }
-
-    /**
-     * Complete the firing sequence
-     */
-    private void completeFiringSequence() {
-        firingSequenceActive = false;
-        currentShotNumber = 1;
-    }
-
-    /**
      * Emergency stop all systems
      */
     private void emergencyStop() {
-        firingSequenceActive = false;
-        shooter.stop();
-        indexingSystem.reset();
+        firingCoordinator.emergencyStop();
         hardware.stopAllMotors();
     }
 
@@ -391,8 +321,7 @@ public class FullSystemTest extends LinearOpMode {
      * Reset both systems to initial state
      */
     private void resetSystems() {
-        firingSequenceActive = false;
-        currentShotNumber = 1;
+        firingCoordinator.reset();
         indexingSystem.reset();
         shooter.stop();
     }
@@ -442,8 +371,8 @@ public class FullSystemTest extends LinearOpMode {
         // Check if preset buttons were released - cancel auto-firing and stop shooter
         if (!anyPresetActive && controlMode == ControlMode.PRESET && presetButtonsWereActive) {
             // Preset button released after being held - cancel auto-firing and stop shooter
-            if (firingSequenceActive) {
-                completeFiringSequence();
+            if (firingCoordinator.isFiringActive()) {
+                firingCoordinator.completeFiring();
             }
 
             // Stop shooter unless it was activated by manual controls
@@ -502,29 +431,12 @@ public class FullSystemTest extends LinearOpMode {
 
     /**
      * Handle automatic firing when holding preset buttons
-     * Only fires if shooter is ready and not already in a firing sequence
+     * Delegates to FiringSequenceCoordinator for condition checking and execution
      */
     private void handleAutoFiring() {
-        boolean hasArtifacts = indexingSystem.getArtifactCount() > 0;
-        boolean notFiring = !firingSequenceActive;
-        boolean shooterReady = isShooterReadyForAutoFiring();
-        boolean indexingReady = indexingSystem.isReadyToFire();
-        boolean noOperation = !indexingSystem.isOperationInProgress();
-
-        // Complete firing conditions including IndexingSystem
-        if (hasArtifacts && notFiring && shooterReady && indexingReady && noOperation) {
-            // Start the automated firing sequence
-            startFiringSequence();
+        if (firingCoordinator.canStartFiring()) {
+            firingCoordinator.startFiring();
         }
-    }
-
-     /**
-      * Check if shooter is ready for auto-firing
-      * Now uses the corrected shooter.isReadyToFire() method with fixed tolerances
-      */
-    private boolean isShooterReadyForAutoFiring() {
-        // Use the shooter's built-in readiness check with corrected tolerances
-        return shooter.isReadyToFire();
     }
 
 
