@@ -232,7 +232,11 @@ public class Shooter {
 
     /**
      * Check if shooter is ready for auto-firing with more tolerant RPM requirements
-     * Uses configurable tolerance and requires stability for minimum time
+     * Uses configurable tolerance (config.getRpmTolerance()) and requires stability
+     * for minimum time (config.getRpmStabilityTime()).
+     * 
+     * This method is more lenient than isReadyToFire() to enable smoother auto-firing.
+     * 
      * @return true if shooter is ready for automated firing
      */
     public boolean isReadyForAutoFiring() {
@@ -264,7 +268,8 @@ public class Shooter {
         }
 
         // Check if RPM has been stable for minimum required time
-        double requiredStabilityTime = config.getRpmStabilityTime() * 1000; // Convert to milliseconds
+        // Convert stability time from seconds (config) to milliseconds for comparison
+        double requiredStabilityTime = config.getRpmStabilityTime() * 1000.0;
         boolean stabilityTimeReached = rpmWasStable &&
             (currentTime - rpmStableStartTime) >= requiredStabilityTime;
 
