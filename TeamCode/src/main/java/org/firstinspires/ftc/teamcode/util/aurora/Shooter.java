@@ -41,6 +41,15 @@ public class Shooter {
     private boolean enabled;
     private long lastSpinupTime;
 
+    // Time conversion constant
+    private static final double SECONDS_TO_MILLISECONDS = 1000.0;
+
+    // RPM Stability Tracking for Auto-Firing
+    // These fields track when the shooter RPM enters and remains in the acceptable tolerance range
+    // Reset to 0/false when RPM falls out of tolerance or shooter is disabled
+    private long rpmStableStartTime = 0;
+    private boolean rpmWasStable = false;
+
     // ═══════════════════════════════════════════════════════════════════════
     // CONSTRUCTOR
     // ═══════════════════════════════════════════════════════════════════════
@@ -224,6 +233,52 @@ public class Shooter {
 
         // Check shooter state
         return decodeHelper.isReady();
+    }
+
+    /**
+     * Check if shooter is ready for auto-firing with more tolerant RPM requirements
+     * Uses configurable tolerance (config.getRpmTolerance()) and requires stability
+     * for minimum time (config.getRpmStabilityTime()).
+     * 
+     * This method is more lenient than isReadyToFire() to enable smoother auto-firing.
+     * 
+     * @return true if shooter is ready for automated firing
+     */
+    public boolean isReadyForAutoFiring() {
+        if (!enabled || !isRunning()) {
+            rpmWasStable = false;
+            rpmStableStartTime = 0;
+            return false;
+        }
+
+        // Check if shooter RPM is within acceptable tolerance of target
+        double currentRPM = getCurrentRPM();
+        double targetRPM = getTargetRPM();
+        double tolerance = config.getRpmTolerance();
+
+        boolean rpmInRange = Math.abs(currentRPM - targetRPM) <= tolerance;
+
+        // Track stability time
+        long currentTime = System.currentTimeMillis();
+        if (rpmInRange) {
+            if (!rpmWasStable) {
+                // RPM just entered stable range
+                rpmStableStartTime = currentTime;
+                rpmWasStable = true;
+            }
+        } else {
+            // RPM out of range, reset stability tracking
+            rpmWasStable = false;
+            rpmStableStartTime = 0;
+        }
+
+        // Check if RPM has been stable for minimum required time
+        // Convert stability time from seconds (config) to milliseconds for comparison
+        double requiredStabilityTime = config.getRpmStabilityTime() * SECONDS_TO_MILLISECONDS;
+        boolean stabilityTimeReached = rpmWasStable &&
+            (currentTime - rpmStableStartTime) >= requiredStabilityTime;
+
+        return rpmInRange && stabilityTimeReached;
     }
 
     /**
