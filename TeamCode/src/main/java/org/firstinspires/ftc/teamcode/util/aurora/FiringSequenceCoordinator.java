@@ -47,6 +47,15 @@ public class FiringSequenceCoordinator {
         boolean indexingReady = indexingSystem.isReadyToFire();
         boolean noOperation = !indexingSystem.isOperationInProgress();
 
+        // Debug logging to trace the issue
+        System.out.println("=== canStartFiring Check ===");
+        System.out.println("  hasArtifacts: " + hasArtifacts + " (count: " + indexingSystem.getArtifactCount() + ")");
+        System.out.println("  notFiring: " + notFiring);
+        System.out.println("  shooterReady: " + shooterReady);
+        System.out.println("  indexingReady: " + indexingReady + " (state: " + indexingSystem.getCurrentState() + ")");
+        System.out.println("  noOperation: " + noOperation);
+        System.out.println("  RESULT: " + (hasArtifacts && notFiring && shooterReady && indexingReady && noOperation));
+
         return hasArtifacts && notFiring && shooterReady && indexingReady && noOperation;
     }
 
@@ -56,7 +65,10 @@ public class FiringSequenceCoordinator {
      * @return true if firing sequence started successfully
      */
     public boolean startFiring() {
+        System.out.println("=== startFiring() called ===");
+        
         if (indexingSystem.getArtifactCount() == 0) {
+            System.out.println("  FAILED: No artifacts");
             return false;
         }
 
@@ -64,8 +76,12 @@ public class FiringSequenceCoordinator {
         firingSequenceStartTime = System.currentTimeMillis();
         currentShotNumber = 1;
 
+        System.out.println("  SUCCESS: Firing sequence started!");
+        System.out.println("  firingSequenceActive = true");
+
         // Ensure shooter is spinning up
         if (!shooter.isAtTargetRPM()) {
+            System.out.println("  Calling shooter.spinUp()");
             shooter.spinUp();
         }
 
@@ -81,29 +97,42 @@ public class FiringSequenceCoordinator {
             return;
         }
 
+        System.out.println("=== FiringCoordinator.update() - ACTIVE ===");
+
         // Check if we still have artifacts to fire
         if (indexingSystem.getArtifactCount() == 0) {
+            System.out.println("  No more artifacts - completing");
             completeFiring();
             return;
         }
 
         // Wait for shooter to be ready
         if (!shooter.isAtTargetRPM()) {
+            System.out.println("  Waiting for shooter (current RPM: " + shooter.getCurrentRPM() + " / target: " + shooter.getTargetRPM() + ")");
             return; // Wait for shooter to spin up
         }
 
+        System.out.println("  Shooter ready! Checking indexing system...");
+        System.out.println("  indexingSystem.isReadyToFire(): " + indexingSystem.isReadyToFire());
+        System.out.println("  indexingSystem.isOperationInProgress(): " + indexingSystem.isOperationInProgress());
+
         // Check if indexing system is ready to fire
         if (indexingSystem.isReadyToFire() && !indexingSystem.isOperationInProgress()) {
+            System.out.println("  FIRING NOW!");
             // Fire the current shot
             boolean fired = indexingSystem.onFireSignal();
+            System.out.println("  onFireSignal() returned: " + fired);
             if (fired) {
                 currentShotNumber++;
             }
+        } else {
+            System.out.println("  Indexing system not ready");
         }
 
         // Safety timeout
         long elapsed = System.currentTimeMillis() - firingSequenceStartTime;
         if (elapsed > firingTimeoutMs) {
+            System.out.println("  TIMEOUT - completing firing");
             completeFiring();
         }
     }

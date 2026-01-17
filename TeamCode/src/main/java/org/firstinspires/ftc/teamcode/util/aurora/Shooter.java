@@ -207,17 +207,8 @@ public class Shooter {
      * @return true if at target RPM and stable
      */
     public boolean isReadyToFire() {
-        // TEMPORARY: Bypass all checks for debugging
-        // Just check if we're enabled and at target RPM
-        boolean simpleReady = enabled && decodeHelper.isAtTargetRPM();
-
-        telemetry.addLine("🔍 SIMPLIFIED isReadyToFire():");
-        telemetry.addData("  enabled", enabled);
-        telemetry.addData("  atTargetRPM", decodeHelper.isAtTargetRPM());
-        telemetry.addData("  decodeState", decodeHelper.getState());
-        telemetry.addData("  SIMPLE RESULT", simpleReady);
-
-        return simpleReady;
+        // Check if we're enabled and at target RPM
+        return enabled && decodeHelper.isAtTargetRPM();
     }
 
     /**
