@@ -400,7 +400,18 @@ public class DecodeHelper {
 
         // For stabilization tracking, only check individual motor tolerances (ignore sync)
         // This prevents sync errors from constantly resetting the stabilization timer
-        boolean bothMotorsAtTarget = leftAtTarget && rightAtTarget;
+        // Use hysteresis: once stabilized, use 2x tolerance to prevent resets from transient fluctuations
+        boolean bothMotorsAtTarget;
+        if (rpmStabilized) {
+            // Once stabilized, use wider tolerance (hysteresis) to avoid resets from brief excursions
+            double hysteresisTolerance = tolerance * 2.0;
+            boolean leftWithinHysteresis = Math.abs(leftRPM - target) < hysteresisTolerance;
+            boolean rightWithinHysteresis = Math.abs(rightRPM - target) < hysteresisTolerance;
+            bothMotorsAtTarget = leftWithinHysteresis && rightWithinHysteresis;
+        } else {
+            // Not yet stabilized, use normal tolerance
+            bothMotorsAtTarget = leftAtTarget && rightAtTarget;
+        }
 
         if (debugLogger != null && atTargetRPM != wasAtTarget) {
             debugLogger.infoPriority("DecodeHelper",
@@ -419,12 +430,13 @@ public class DecodeHelper {
                 if (debugLogger != null) {
                     long elapsedBeforeReset = stabilizationStartTime > 0 ? (currentTime - stabilizationStartTime) : 0;
                     debugLogger.warningPriority("DecodeHelper",
-                        "🔄 Stabilization RESET (motors out of tolerance). " +
+                        "🔄 Stabilization RESET (motors out of " + (rpmStabilized ? "hysteresis" : "tolerance") + "). " +
                         "WAS rpmStabilized=" + rpmStabilized + ", elapsed=" + elapsedBeforeReset + "ms. " +
                         "left=" + String.format("%.1f", leftRPM) + " (target=" + String.format("%.1f", target) + "), " +
                         "right=" + String.format("%.1f", rightRPM) + " (target=" + String.format("%.1f", target) + "), " +
                         "leftAtTarget=" + leftAtTarget + ", rightAtTarget=" + rightAtTarget +
-                        ", tolerance=" + ShooterConfig.RPM_TOLERANCE);
+                        ", tolerance=" + ShooterConfig.RPM_TOLERANCE +
+                        (rpmStabilized ? ", hysteresisTolerance=" + (tolerance * 2.0) : ""));
                 }
                 rpmStabilized = false;
             }
