@@ -52,7 +52,18 @@ public class Shooter {
      * @param telemetry The telemetry system for logging
      */
     public Shooter(AuroraHardwareConfig hardware, ShooterConfig config, Telemetry telemetry) {
-        this.decodeHelper = new DecodeHelper(hardware, telemetry);
+        this(hardware, config, telemetry, null);
+    }
+
+    /**
+     * Create a new Shooter instance with debug logger
+     * @param hardware The Aurora hardware configuration
+     * @param config The shooter configuration
+     * @param telemetry The telemetry system for logging
+     * @param debugLogger Debug logger for detailed logging
+     */
+    public Shooter(AuroraHardwareConfig hardware, ShooterConfig config, Telemetry telemetry, org.firstinspires.ftc.teamcode.util.debug.DebugLogger debugLogger) {
+        this.decodeHelper = new DecodeHelper(hardware, telemetry, debugLogger);
         this.config = config;
         this.telemetry = telemetry;
         this.enabled = false;

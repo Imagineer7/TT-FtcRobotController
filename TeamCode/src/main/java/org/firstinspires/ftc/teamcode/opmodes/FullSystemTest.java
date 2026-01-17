@@ -85,6 +85,7 @@ public class FullSystemTest extends LinearOpMode {
     private Shooter shooter;
     private ShooterConfig shooterConfig;
     private FiringSequenceCoordinator firingCoordinator;
+    private org.firstinspires.ftc.teamcode.util.debug.DebugLogger debugLogger;
 
     // System State Tracking
     private enum SystemMode {
@@ -144,10 +145,13 @@ public class FullSystemTest extends LinearOpMode {
 
         shooterConfig = new ShooterConfig();
 
-        // Initialize systems
-        shooter = new Shooter(hardware, shooterConfig, telemetry);
+        // Initialize debug logger first (shared across all systems)
+        debugLogger = new org.firstinspires.ftc.teamcode.util.debug.DebugLogger();
+
+        // Initialize systems with shared debug logger
+        shooter = new Shooter(hardware, shooterConfig, telemetry, debugLogger);
         indexingSystem = new IndexingSystem(hardware, indexingConfig, shooter, telemetry);
-        firingCoordinator = new FiringSequenceCoordinator(indexingSystem, shooter);
+        firingCoordinator = new FiringSequenceCoordinator(indexingSystem, shooter, debugLogger);
 
         waitForStart();
 
@@ -174,6 +178,8 @@ public class FullSystemTest extends LinearOpMode {
 
             // Display debug telemetry
             firingCoordinator.getDebugLogger().displayOnTelemetry(telemetry);
+            // Update debug telemetry display
+            debugLogger.displayTelemetry(telemetry);
             telemetry.update();
 
             // Performance tracking
@@ -267,10 +273,7 @@ public class FullSystemTest extends LinearOpMode {
         
         // [DPAD RIGHT] - Cycle through pages in BY_CLASS mode
         if (gamepad1.dpad_right && !lastDpadRight1) {
-            if (firingCoordinator.getDebugLogger().getDisplayMode() == 
-                org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode.BY_CLASS) {
-                firingCoordinator.getDebugLogger().cycleClassPage();
-            }
+            debugLogger.cycleClassPage();
         }
         lastDpadRight1 = gamepad1.dpad_right;
 
@@ -532,22 +535,7 @@ public class FullSystemTest extends LinearOpMode {
      * Cycle through debug display modes
      */
     private void cycleDebugDisplayMode() {
-        org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode currentMode = 
-            firingCoordinator.getDebugLogger().getDisplayMode();
-        
-        org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode[] modes = 
-            org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode.values();
-        
-        int currentIndex = 0;
-        for (int i = 0; i < modes.length; i++) {
-            if (modes[i] == currentMode) {
-                currentIndex = i;
-                break;
-            }
-        }
-        
-        int nextIndex = (currentIndex + 1) % modes.length;
-        firingCoordinator.getDebugLogger().setDisplayMode(modes[nextIndex]);
+        debugLogger.cycleDisplayMode();
     }
 
     /**

@@ -159,7 +159,14 @@ public class DecodeHelper {
      * Simplified constructor using AuroraHardwareConfig
      */
     public DecodeHelper(AuroraHardwareConfig hardware, Telemetry telemetry) {
-        this(hardware.getLeftShooterMotor(), hardware.getRightShooterMotor(), telemetry);
+        this(hardware.getLeftShooterMotor(), hardware.getRightShooterMotor(), telemetry, null);
+    }
+
+    /**
+     * Simplified constructor using AuroraHardwareConfig with debug logger
+     */
+    public DecodeHelper(AuroraHardwareConfig hardware, Telemetry telemetry, DebugLogger debugLogger) {
+        this(hardware.getLeftShooterMotor(), hardware.getRightShooterMotor(), telemetry, debugLogger);
     }
 
     /**

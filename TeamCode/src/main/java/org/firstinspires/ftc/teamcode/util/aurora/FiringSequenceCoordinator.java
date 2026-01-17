@@ -36,9 +36,20 @@ public class FiringSequenceCoordinator {
      * @param shooter The shooter to coordinate
      */
     public FiringSequenceCoordinator(IndexingSystem indexingSystem, Shooter shooter) {
+        this(indexingSystem, shooter, null);
+    }
+
+    /**
+     * Create a new FiringSequenceCoordinator with shared debug logger
+     *
+     * @param indexingSystem The indexing system to coordinate
+     * @param shooter The shooter to coordinate
+     * @param debugLogger Shared debug logger instance (or null to create new)
+     */
+    public FiringSequenceCoordinator(IndexingSystem indexingSystem, Shooter shooter, DebugLogger debugLogger) {
         this.indexingSystem = indexingSystem;
         this.shooter = shooter;
-        this.debugLogger = new DebugLogger();
+        this.debugLogger = debugLogger != null ? debugLogger : new DebugLogger();
         
         // Register all boolean checks for tracking
         debugLogger.registerCheck("firingSequenceActive", "Firing sequence is active");
