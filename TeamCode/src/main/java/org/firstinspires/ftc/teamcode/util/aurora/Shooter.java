@@ -207,8 +207,8 @@ public class Shooter {
      * @return true if at target RPM and stable
      */
     public boolean isReadyToFire() {
-        // Check if we're enabled and at target RPM
-        return enabled && decodeHelper.isAtTargetRPM();
+        // Check if we're enabled, at target RPM, and stabilized
+        return enabled && decodeHelper.isAtTargetRPM() && decodeHelper.isStabilized();
     }
 
     /**

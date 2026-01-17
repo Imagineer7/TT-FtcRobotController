@@ -46,6 +46,7 @@ public class FiringSequenceCoordinator {
         debugLogger.registerCheck("shooterReady", "Shooter is ready to fire");
         debugLogger.registerCheck("shooterEnabled", "Shooter is enabled");
         debugLogger.registerCheck("shooterAtTargetRPM", "Shooter at target RPM");
+        debugLogger.registerCheck("shooterStabilized", "Shooter RPM stabilized");
         debugLogger.registerCheck("indexingReady", "Indexing system ready");
         debugLogger.registerCheck("noOperation", "No operation in progress");
         debugLogger.registerCheck("canStartFiring", "All conditions met to start");
@@ -76,13 +77,15 @@ public class FiringSequenceCoordinator {
         // Enhanced shooter ready check with detailed breakdown
         boolean shooterEnabled = shooter.isEnabled();
         boolean shooterAtTargetRPM = shooter.isAtTargetRPM();
+        boolean shooterStabilized = shooter.isRPMStable();
         debugLogger.updateCheck("shooterEnabled", shooterEnabled);
         debugLogger.updateCheck("shooterAtTargetRPM", shooterAtTargetRPM, 
             String.format("current=%.0f, target=%.0f", shooter.getCurrentRPM(), shooter.getTargetRPM()));
+        debugLogger.updateCheck("shooterStabilized", shooterStabilized);
         
         if (!shooterReady) {
-            String reason = String.format("enabled=%s, atTargetRPM=%s, currentRPM=%.0f, targetRPM=%.0f", 
-                shooterEnabled, shooterAtTargetRPM, shooter.getCurrentRPM(), shooter.getTargetRPM());
+            String reason = String.format("enabled=%s, atTargetRPM=%s, stabilized=%s, currentRPM=%.0f, targetRPM=%.0f", 
+                shooterEnabled, shooterAtTargetRPM, shooterStabilized, shooter.getCurrentRPM(), shooter.getTargetRPM());
             debugLogger.updateCheck("shooterReady", shooterReady, reason);
         } else {
             debugLogger.updateCheck("shooterReady", shooterReady, "Ready to fire");
@@ -103,6 +106,7 @@ public class FiringSequenceCoordinator {
             // Expand shooter ready into sub-conditions
             conditions.put("  └─ shooterEnabled", shooterEnabled);
             conditions.put("  └─ shooterAtTargetRPM", shooterAtTargetRPM);
+            conditions.put("  └─ shooterStabilized", shooterStabilized);
         }
         conditions.put("indexingReady", indexingReady);
         conditions.put("noOperation", noOperation);
