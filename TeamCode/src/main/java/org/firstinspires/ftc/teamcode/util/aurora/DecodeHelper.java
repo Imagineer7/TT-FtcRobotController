@@ -754,6 +754,20 @@ public class DecodeHelper {
     }
 
     /**
+     * Get detailed stabilization debug information
+     */
+    public String getStabilizationDebugInfo() {
+        long currentTime = System.currentTimeMillis();
+        if (stabilizationStartTime == 0) {
+            return "not tracking (not at target)";
+        } else {
+            long elapsedTime = currentTime - stabilizationStartTime;
+            long requiredTime = ShooterConfig.RPM_STABILIZATION_TIME_MS;
+            return String.format("tracking: %dms/%dms", elapsedTime, requiredTime);
+        }
+    }
+
+    /**
      * Get detailed status string for telemetry
      */
     public String getStatusString() {

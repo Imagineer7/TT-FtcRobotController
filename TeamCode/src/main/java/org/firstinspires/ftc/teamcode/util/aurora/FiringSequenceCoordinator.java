@@ -78,14 +78,16 @@ public class FiringSequenceCoordinator {
         boolean shooterEnabled = shooter.isEnabled();
         boolean shooterAtTargetRPM = shooter.isAtTargetRPM();
         boolean shooterStabilized = shooter.isRPMStable();
+        String stabilizationInfo = shooter.getDecodeHelper().getStabilizationDebugInfo();
+        
         debugLogger.updateCheck("shooterEnabled", shooterEnabled);
         debugLogger.updateCheck("shooterAtTargetRPM", shooterAtTargetRPM, 
-            String.format("current=%.0f, target=%.0f", shooter.getCurrentRPM(), shooter.getTargetRPM()));
-        debugLogger.updateCheck("shooterStabilized", shooterStabilized);
+            String.format("current=%.0f, target=%.0f, %s", shooter.getCurrentRPM(), shooter.getTargetRPM(), stabilizationInfo));
+        debugLogger.updateCheck("shooterStabilized", shooterStabilized, stabilizationInfo);
         
         if (!shooterReady) {
-            String reason = String.format("enabled=%s, atTargetRPM=%s, stabilized=%s, currentRPM=%.0f, targetRPM=%.0f", 
-                shooterEnabled, shooterAtTargetRPM, shooterStabilized, shooter.getCurrentRPM(), shooter.getTargetRPM());
+            String reason = String.format("enabled=%s, atTargetRPM=%s, stabilized=%s, currentRPM=%.0f, targetRPM=%.0f, %s", 
+                shooterEnabled, shooterAtTargetRPM, shooterStabilized, shooter.getCurrentRPM(), shooter.getTargetRPM(), stabilizationInfo);
             debugLogger.updateCheck("shooterReady", shooterReady, reason);
         } else {
             debugLogger.updateCheck("shooterReady", shooterReady, "Ready to fire");
