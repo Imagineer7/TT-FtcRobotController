@@ -179,7 +179,7 @@ public class FullSystemTest extends LinearOpMode {
             // Display debug telemetry
             firingCoordinator.getDebugLogger().displayOnTelemetry(telemetry);
             // Update debug telemetry display
-            debugLogger.displayTelemetry(telemetry);
+            debugLogger.displayOnTelemetry(telemetry);
             telemetry.update();
 
             // Performance tracking
@@ -535,7 +535,16 @@ public class FullSystemTest extends LinearOpMode {
      * Cycle through debug display modes
      */
     private void cycleDebugDisplayMode() {
-        debugLogger.cycleDisplayMode();
+        org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode currentMode = debugLogger.getDisplayMode();
+
+        // Get the next display mode by cycling through the enum
+        org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode[] modes =
+            org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode.values();
+
+        int currentIndex = currentMode.ordinal();
+        int nextIndex = (currentIndex + 1) % modes.length;
+
+        debugLogger.setDisplayMode(modes[nextIndex]);
     }
 
     /**
