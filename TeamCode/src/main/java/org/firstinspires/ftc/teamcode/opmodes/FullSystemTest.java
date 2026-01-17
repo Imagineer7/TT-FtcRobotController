@@ -397,10 +397,11 @@ public class FullSystemTest extends LinearOpMode {
         boolean lastWarmupActive = lastLeftTrigger2 > 0.3;
 
         if (warmupActive) {
-            // Enable warmup at 65% of current target RPM
+            // Enable warmup mode
             if (!shooter.isRunning() || !shooter.isAtTargetRPM()) {
                 double targetRPM = (controlMode == ControlMode.MANUAL) ? manualTargetRPM : shooter.getTargetRPM();
-                shooter.setTargetRPM(targetRPM * 0.65);
+                double warmupRPM = ShooterConfig.getWarmupRPM(targetRPM);
+                shooter.setTargetRPM(warmupRPM);
                 shooter.spinUp();
             }
         } else if (lastWarmupActive && !warmupActive) {
