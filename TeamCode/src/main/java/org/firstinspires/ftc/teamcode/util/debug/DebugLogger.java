@@ -301,6 +301,14 @@ public class DebugLogger {
     public void displayOnTelemetry(Telemetry telemetry) {
         telemetry.addLine("=== DEBUG LOG ===");
         telemetry.addData("Mode", displayMode.toString());
+        
+        // Show navigation hints based on current mode
+        if (displayMode == DisplayMode.BY_CLASS) {
+            telemetry.addLine("BACK=Switch Mode | DPAD→=Next Class");
+        } else {
+            telemetry.addLine("BACK=Switch Mode");
+        }
+        
         telemetry.addData("Entries", logs.size());
         telemetry.addLine("");
         
@@ -436,9 +444,9 @@ public class DebugLogger {
             currentClassPage = classes.get(0);
         }
         
+        int pageNum = classes.indexOf(currentClassPage) + 1;
         telemetry.addLine("=== CLASS: " + currentClassPage + " ===");
-        telemetry.addData("Page", (classes.indexOf(currentClassPage) + 1) + "/" + classes.size());
-        telemetry.addLine("Press gamepad1.back to cycle");
+        telemetry.addData("Page", pageNum + "/" + classes.size());
         telemetry.addLine("");
         
         // Filter logs for current class

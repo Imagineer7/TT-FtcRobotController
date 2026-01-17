@@ -49,10 +49,10 @@ import org.firstinspires.ftc.teamcode.util.aurora.FiringSequenceCoordinator;
  *   [X] - Start firing sequence
  *   [Y] - Emergency stop
  *   [START] - Reset systems
- *   [BACK] - Toggle debug telemetry
+ *   [BACK] - Cycle debug display modes (FULL/SUMMARY/BOOLEAN_TREE/RECENT/BY_CLASS/PRIORITY)
+ *   [DPAD-RIGHT] - Cycle through class pages (when in BY_CLASS mode)
  *   [L-STICK] - Toggle manual push mode
  *   [R-STICK] - Execute manual push
- *   [DPAD] - Navigate telemetry pages
  *
  * Gamepad 2 - Shooter & Advanced:
  *   [A] - Short Range Shooting (2000 RPM) + AUTO-FIRE
@@ -264,6 +264,15 @@ public class FullSystemTest extends LinearOpMode {
             cycleDebugDisplayMode();
         }
         lastBack1 = gamepad1.back;
+        
+        // [DPAD RIGHT] - Cycle through pages in BY_CLASS mode
+        if (gamepad1.dpad_right && !lastDpadRight1) {
+            if (firingCoordinator.getDebugLogger().getDisplayMode() == 
+                org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode.BY_CLASS) {
+                firingCoordinator.getDebugLogger().cycleClassPage();
+            }
+        }
+        lastDpadRight1 = gamepad1.dpad_right;
 
         // [L-STICK] - Toggle manual push mode
         if (gamepad1.left_stick_button && !lastLeftStick1) {
@@ -278,11 +287,10 @@ public class FullSystemTest extends LinearOpMode {
         }
         lastRightStick1 = gamepad1.right_stick_button;
 
-        // DPAD - Navigate telemetry pages (removed)
+        // DPAD - Other directions unused
         lastDpadUp1 = gamepad1.dpad_up;
         lastDpadDown1 = gamepad1.dpad_down;
         lastDpadLeft1 = gamepad1.dpad_left;
-        lastDpadRight1 = gamepad1.dpad_right;
 
         // ═══════════════════════════════════════════════════════════════
         // GAMEPAD 2 - Shooter & Advanced Controls
@@ -526,12 +534,6 @@ public class FullSystemTest extends LinearOpMode {
     private void cycleDebugDisplayMode() {
         org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode currentMode = 
             firingCoordinator.getDebugLogger().getDisplayMode();
-        
-        // If in BY_CLASS mode, cycle through class pages instead of display modes
-        if (currentMode == org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode.BY_CLASS) {
-            firingCoordinator.getDebugLogger().cycleClassPage();
-            return;
-        }
         
         org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode[] modes = 
             org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode.values();
