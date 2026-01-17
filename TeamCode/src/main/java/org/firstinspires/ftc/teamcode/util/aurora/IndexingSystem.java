@@ -1342,10 +1342,15 @@ public class IndexingSystem {
      * Solution: Push green to front intake, pull purple to center
      */
     private boolean handleTwoArtifactFire() {
+        System.out.println("=== handleTwoArtifactFire() called ===");
+        
         if (artifactInCenter == null) {
+            System.out.println("  ERROR: artifactInCenter is null");
             setError("Two artifacts but none in center");
             return false;
         }
+        
+        System.out.println("  artifactInCenter: " + artifactInCenter.getColor() + " #" + artifactInCenter.getCollectionOrder());
         
         // Find the artifact in storage
         Artifact storageArtifact = null;
@@ -1360,24 +1365,33 @@ public class IndexingSystem {
         }
         
         if (storageArtifact == null) {
+            System.out.println("  ERROR: No storage artifact found");
             setError("Two artifacts but can't find storage artifact");
             return false;
         }
         
+        System.out.println("  storageArtifact: " + storageArtifact.getColor() + " #" + storageArtifact.getCollectionOrder() + " at " + storageSource);
+        
         // Determine which artifact should fire first based on motif pattern
         Artifact.Color desiredFirstColor = getDesiredFirstShotColor();
+        System.out.println("  desiredFirstColor: " + desiredFirstColor);
+        System.out.println("  motifPattern: " + motifPattern + ", motifPatternSet: " + motifPatternSet);
         
         // If center artifact matches desired color, fire it
         if (artifactInCenter.getColor() == desiredFirstColor) {
+            System.out.println("  Center artifact matches desired color - calling startFiring()");
             return startFiring();
         }
         
         // If storage artifact matches desired color, need to rearrange
         if (storageArtifact.getColor() == desiredFirstColor) {
+            System.out.println("  Storage artifact matches desired color - checking for rearrangement");
             // Check if we have an empty intake for rearrangement
             IntakeSource emptyIntake = getEmptyIntakeSource();
+            System.out.println("  emptyIntake: " + emptyIntake);
             if (emptyIntake == IntakeSource.UNKNOWN) {
                 // No empty intake - can't rearrange, fire what's in center
+                System.out.println("  No empty intake - firing center artifact anyway");
                 if (config.isDebugTelemetry()) {
                     telemetry.addLine("Cannot rearrange - no empty intake, firing center artifact");
                 }
@@ -1385,10 +1399,12 @@ public class IndexingSystem {
             }
             
             // Trigger rearrangement: push center out to empty, pull storage to center
+            System.out.println("  Starting rearrangement: " + storageSource + " -> center, center -> " + emptyIntake);
             return startTwoArtifactRearrangement(storageSource, emptyIntake);
         }
         
         // Neither matches desired color or colors are UNKNOWN - fire center
+        System.out.println("  No color match or UNKNOWN - firing center artifact");
         return startFiring();
     }
     
@@ -1454,14 +1470,21 @@ public class IndexingSystem {
      * Start firing the artifact in center storage
      */
     private boolean startFiring() {
+        System.out.println("=== startFiring() called ===");
+        
         if (artifactInCenter == null) {
+            System.out.println("  ERROR: artifactInCenter is null");
             return false;
         }
 
+        System.out.println("  artifactInCenter: " + artifactInCenter.getColor() + " #" + artifactInCenter.getCollectionOrder());
+        System.out.println("  Changing state to FIRING");
+        
         changeState(SystemState.FIRING);
         operationInProgress = true;
         operationStartTime = System.currentTimeMillis();
 
+        System.out.println("  Calling executeFiringHardware()");
         // Start hardware for firing
         executeFiringHardware();
 
@@ -1469,6 +1492,7 @@ public class IndexingSystem {
             telemetry.addLine(String.format("Firing artifact: %s", artifactInCenter));
         }
 
+        System.out.println("  startFiring() returning true");
         return true;
     }
 
@@ -2738,19 +2762,29 @@ public class IndexingSystem {
      * Uptake servos feed artifact up into shooter for the configured fire feed time
      */
     private void executeFiringHardware() {
+        System.out.println("  === executeFiringHardware() called ===");
+        
         // Check if shooter is ready
         if (shooter != null && !shooter.isReadyToFire()) {
+            System.out.println("    Shooter not ready to fire!");
+            System.out.println("    shooter.isReadyToFire() = false");
+            System.out.println("    shooter.enabled = " + shooter.isEnabled());
+            System.out.println("    shooter.isAtTargetRPM() = " + shooter.isAtTargetRPM());
             if (config.isDebugTelemetry()) {
                 telemetry.addLine("Waiting for shooter to be ready...");
             }
             return;
         }
 
+        System.out.println("    Shooter is ready!");
+        
         // Trigger shooter fire
         if (shooter != null) {
+            System.out.println("    Calling shooter.fire()");
             shooter.fire();
         }
 
+        System.out.println("    Setting uptake servos to true (feeding)");
         // Uptake servos feed artifact up into shooter at full power
         // This runs for the configured fireFeedTime (0.8 seconds by default)
         setUptakeServos(true);
@@ -2762,6 +2796,8 @@ public class IndexingSystem {
             telemetry.addLine(String.format("🔥 Firing: Uptake servos feeding for %.1fs",
                 config.getFireFeedTime()));
         }
+        
+        System.out.println("    executeFiringHardware() complete");
     }
 
     /**
