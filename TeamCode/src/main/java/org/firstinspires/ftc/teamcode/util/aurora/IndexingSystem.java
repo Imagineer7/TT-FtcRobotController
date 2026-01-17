@@ -960,22 +960,17 @@ public class IndexingSystem {
         // Pre-positioning will be handled by the state machine logic in update()
         // No need to explicitly start it here to avoid conflicts
 
-        if (updatedArtifact.getCollectionOrder() == 1) {
-            // First artifact in center, ready for more collection
-            changeState(SystemState.IDLE);
-            operationInProgress = false;
+        // Always transition to READY_TO_FIRE when artifact is in center
+        // This allows firing even with a single artifact
+        changeState(SystemState.READY_TO_FIRE);
+        operationInProgress = false;
 
-            if (config.isDebugTelemetry()) {
-                telemetry.addLine("✅ First artifact transfer complete - servos stopped");
-                telemetry.addLine(String.format("   Center: %s #%d - ready for collection",
+        if (config.isDebugTelemetry()) {
+            if (updatedArtifact.getCollectionOrder() == 1) {
+                telemetry.addLine("✅ First artifact transfer complete - ready to fire or collect more");
+                telemetry.addLine(String.format("   Center: %s #%d",
                     updatedArtifact.getColor(), updatedArtifact.getCollectionOrder()));
-            }
-        } else {
-            // Ready to fire
-            changeState(SystemState.READY_TO_FIRE);
-            operationInProgress = false;
-
-            if (config.isDebugTelemetry()) {
+            } else {
                 telemetry.addLine("✅ Artifact transfer complete - ready to fire");
                 telemetry.addLine(String.format("   Center: %s #%d",
                     updatedArtifact.getColor(), updatedArtifact.getCollectionOrder()));
