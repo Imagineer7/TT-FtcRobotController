@@ -19,7 +19,10 @@ public class FiringSequenceCoordinator {
     private boolean firingSequenceActive = false;
     private long firingSequenceStartTime = 0;
     private int currentShotNumber = 1;
-    private static final long FIRING_TIMEOUT_MS = 30000; // 30 seconds
+    
+    // Configuration
+    private static final long DEFAULT_FIRING_TIMEOUT_MS = 30000; // 30 seconds
+    private long firingTimeoutMs = DEFAULT_FIRING_TIMEOUT_MS;
 
     /**
      * Create a new FiringSequenceCoordinator
@@ -100,9 +103,27 @@ public class FiringSequenceCoordinator {
 
         // Safety timeout
         long elapsed = System.currentTimeMillis() - firingSequenceStartTime;
-        if (elapsed > FIRING_TIMEOUT_MS) {
+        if (elapsed > firingTimeoutMs) {
             completeFiring();
         }
+    }
+
+    /**
+     * Set the firing timeout
+     *
+     * @param timeoutMs Timeout in milliseconds
+     */
+    public void setFiringTimeout(long timeoutMs) {
+        this.firingTimeoutMs = timeoutMs;
+    }
+
+    /**
+     * Get the current firing timeout
+     *
+     * @return Timeout in milliseconds
+     */
+    public long getFiringTimeout() {
+        return firingTimeoutMs;
     }
 
     /**
@@ -152,10 +173,10 @@ public class FiringSequenceCoordinator {
 
     /**
      * Emergency stop - stops firing and resets both systems
+     * Uses existing state management methods to maintain consistency
      */
     public void emergencyStop() {
-        firingSequenceActive = false;
-        currentShotNumber = 1;
+        completeFiring();
         shooter.stop();
         indexingSystem.reset();
     }
