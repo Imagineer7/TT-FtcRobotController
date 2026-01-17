@@ -380,7 +380,7 @@ public class DecodeHelper {
     /**
      * Check if shooter is at target RPM
      */
-    private void checkIfAtTarget(double target, double tolerance) {
+    private void checkIfAtTarget(double target, double tolerance) { // This method needs logic double checked as its not returning true ever.
         boolean wasAtTarget = atTargetRPM;
 
         // Check if both motors are within tolerance
