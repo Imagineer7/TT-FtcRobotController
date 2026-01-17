@@ -222,8 +222,8 @@ public class DecodeHelper {
                     // currentState = ShooterState.ERROR;
                 }
 
-                // Transition to READY when at target (temporarily removed rpmStabilized check)
-                if (atTargetRPM) {
+                // Transition to READY when at target AND stabilized
+                if (atTargetRPM && rpmStabilized) {
                     currentState = ShooterState.READY;
                 }
                 break;
