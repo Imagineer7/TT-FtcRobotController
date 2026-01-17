@@ -527,6 +527,12 @@ public class FullSystemTest extends LinearOpMode {
         org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode currentMode = 
             firingCoordinator.getDebugLogger().getDisplayMode();
         
+        // If in BY_CLASS mode, cycle through class pages instead of display modes
+        if (currentMode == org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode.BY_CLASS) {
+            firingCoordinator.getDebugLogger().cycleClassPage();
+            return;
+        }
+        
         org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode[] modes = 
             org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode.values();
         

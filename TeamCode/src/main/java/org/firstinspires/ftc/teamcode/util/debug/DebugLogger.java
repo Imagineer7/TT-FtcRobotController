@@ -41,7 +41,9 @@ public class DebugLogger {
         FULL,           // Show all logs
         SUMMARY,        // Show only warnings and errors
         BOOLEAN_TREE,   // Show only boolean condition checks
-        RECENT          // Show only last N entries
+        RECENT,         // Show only last N entries
+        BY_CLASS,       // Show logs grouped by class/category
+        PRIORITY        // Show only priority-flagged messages
     }
     
     private static class LogEntry {
@@ -50,18 +52,24 @@ public class DebugLogger {
         final String category;
         final String message;
         final String details;
+        final boolean priority;
         
-        LogEntry(LogLevel level, String category, String message, String details) {
+        LogEntry(LogLevel level, String category, String message, String details, boolean priority) {
             this.timestamp = System.currentTimeMillis();
             this.level = level;
             this.category = category;
             this.message = message;
             this.details = details;
+            this.priority = priority;
         }
         
         String getFormattedTime(long baseTime) {
             long elapsed = timestamp - baseTime;
             return String.format("%.3fs", elapsed / 1000.0);
+        }
+        
+        boolean isPriority() {
+            return priority;
         }
     }
     
@@ -76,6 +84,7 @@ public class DebugLogger {
     private int maxTotalLogs = 500; // Prevent unbounded growth
     private String categoryFilter = null;
     private long rateLimitMs = 250; // Default rate limit: 250ms per unique message
+    private String currentClassPage = null; // For BY_CLASS mode
     
     public DebugLogger() {
         this.startTime = System.currentTimeMillis();
@@ -84,52 +93,69 @@ public class DebugLogger {
     // === Logging Methods ===
     
     public void debug(String category, String message) {
-        log(LogLevel.DEBUG, category, message, null);
+        log(LogLevel.DEBUG, category, message, null, false);
     }
     
     public void debug(String category, String message, String details) {
-        log(LogLevel.DEBUG, category, message, details);
+        log(LogLevel.DEBUG, category, message, details, false);
+    }
+    
+    public void debugPriority(String category, String message) {
+        log(LogLevel.DEBUG, category, message, null, true);
+    }
+    
+    public void debugPriority(String category, String message, String details) {
+        log(LogLevel.DEBUG, category, message, details, true);
     }
     
     public void info(String category, String message) {
-        log(LogLevel.INFO, category, message, null);
+        log(LogLevel.INFO, category, message, null, false);
     }
     
     public void info(String category, String message, String details) {
-        log(LogLevel.INFO, category, message, details);
+        log(LogLevel.INFO, category, message, details, false);
+    }
+    
+    public void infoPriority(String category, String message) {
+        log(LogLevel.INFO, category, message, null, true);
+    }
+    
+    public void infoPriority(String category, String message, String details) {
+        log(LogLevel.INFO, category, message, details, true);
     }
     
     public void warning(String category, String message) {
-        log(LogLevel.WARNING, category, message, null);
+        log(LogLevel.WARNING, category, message, null, false);
     }
     
     public void warning(String category, String message, String details) {
-        log(LogLevel.WARNING, category, message, details);
+        log(LogLevel.WARNING, category, message, details, false);
     }
     
     public void error(String category, String message) {
-        log(LogLevel.ERROR, category, message, null);
+        log(LogLevel.ERROR, category, message, null, false);
     }
     
     public void error(String category, String message, String details) {
-        log(LogLevel.ERROR, category, message, details);
+        log(LogLevel.ERROR, category, message, details, false);
     }
     
-    private void log(LogLevel level, String category, String message, String details) {
+    private void log(LogLevel level, String category, String message, String details, boolean priority) {
         // Rate limiting: check if this message was recently logged
+        // Priority messages bypass rate limiting
         String messageKey = category + ":" + message;
         long currentTime = System.currentTimeMillis();
         Long lastTime = lastLogTimes.get(messageKey);
         
-        // For DEBUG level, apply rate limiting
-        if (level == LogLevel.DEBUG && lastTime != null && (currentTime - lastTime) < rateLimitMs) {
+        // For non-priority DEBUG level, apply rate limiting
+        if (!priority && level == LogLevel.DEBUG && lastTime != null && (currentTime - lastTime) < rateLimitMs) {
             return; // Skip this message (too soon)
         }
         
         // Update last log time
         lastLogTimes.put(messageKey, currentTime);
         
-        LogEntry entry = new LogEntry(level, category, message, details);
+        LogEntry entry = new LogEntry(level, category, message, details, priority);
         logs.add(entry);
         
         // Prevent unbounded log growth - trim old entries
@@ -137,9 +163,11 @@ public class DebugLogger {
             logs.subList(0, logs.size() - maxTotalLogs).clear();
         }
         
-        // Also print to System.out for console debugging (but rate-limited)
-        System.out.println(String.format("[%s] %s [%s] %s%s",
+        // Also print to System.out for console debugging (but rate-limited for non-priority)
+        String priorityFlag = priority ? "🔥 " : "";
+        System.out.println(String.format("[%s] %s%s [%s] %s%s",
             entry.getFormattedTime(startTime),
+            priorityFlag,
             level.getIcon(),
             category,
             message,
@@ -227,6 +255,44 @@ public class DebugLogger {
         this.categoryFilter = null;
     }
     
+    public void setCurrentClassPage(String className) {
+        this.currentClassPage = className;
+    }
+    
+    public String getCurrentClassPage() {
+        return this.currentClassPage;
+    }
+    
+    /**
+     * Get list of all classes that have logged messages
+     */
+    public List<String> getAvailableClasses() {
+        Map<String, Boolean> classMap = new LinkedHashMap<>();
+        for (LogEntry entry : logs) {
+            classMap.put(entry.category, true);
+        }
+        return new ArrayList<>(classMap.keySet());
+    }
+    
+    /**
+     * Cycle to next class page
+     */
+    public void cycleClassPage() {
+        List<String> classes = getAvailableClasses();
+        if (classes.isEmpty()) {
+            currentClassPage = null;
+            return;
+        }
+        
+        if (currentClassPage == null) {
+            currentClassPage = classes.get(0);
+        } else {
+            int currentIndex = classes.indexOf(currentClassPage);
+            currentIndex = (currentIndex + 1) % classes.size();
+            currentClassPage = classes.get(currentIndex);
+        }
+    }
+    
     // === Display Methods ===
     
     /**
@@ -252,6 +318,12 @@ public class DebugLogger {
                 break;
             case RECENT:
                 displayRecent(telemetry, filteredLogs);
+                break;
+            case BY_CLASS:
+                displayByClass(telemetry);
+                break;
+            case PRIORITY:
+                displayPriority(telemetry);
                 break;
         }
     }
@@ -348,6 +420,70 @@ public class DebugLogger {
         int start = Math.max(0, logs.size() - maxRecentEntries);
         for (int i = start; i < logs.size(); i++) {
             telemetry.addLine(formatLogEntry(logs.get(i)));
+        }
+    }
+    
+    private void displayByClass(Telemetry telemetry) {
+        List<String> classes = getAvailableClasses();
+        
+        if (classes.isEmpty()) {
+            telemetry.addLine("No logs yet");
+            return;
+        }
+        
+        // Show which class page we're on
+        if (currentClassPage == null && !classes.isEmpty()) {
+            currentClassPage = classes.get(0);
+        }
+        
+        telemetry.addLine("=== CLASS: " + currentClassPage + " ===");
+        telemetry.addData("Page", (classes.indexOf(currentClassPage) + 1) + "/" + classes.size());
+        telemetry.addLine("Press gamepad1.back to cycle");
+        telemetry.addLine("");
+        
+        // Filter logs for current class
+        List<LogEntry> classLogs = new ArrayList<>();
+        for (LogEntry entry : logs) {
+            if (entry.category.equals(currentClassPage)) {
+                classLogs.add(entry);
+            }
+        }
+        
+        // Show recent logs from this class
+        int start = Math.max(0, classLogs.size() - maxRecentEntries);
+        for (int i = start; i < classLogs.size(); i++) {
+            LogEntry entry = classLogs.get(i);
+            String priorityFlag = entry.isPriority() ? "🔥 " : "";
+            telemetry.addLine(priorityFlag + formatLogEntry(entry));
+        }
+        
+        telemetry.addLine("");
+        telemetry.addData("Total logs for class", classLogs.size());
+    }
+    
+    private void displayPriority(Telemetry telemetry) {
+        telemetry.addLine("=== PRIORITY MESSAGES ===");
+        
+        // Filter only priority messages
+        List<LogEntry> priorityLogs = new ArrayList<>();
+        for (LogEntry entry : logs) {
+            if (entry.isPriority()) {
+                priorityLogs.add(entry);
+            }
+        }
+        
+        if (priorityLogs.isEmpty()) {
+            telemetry.addLine("No priority messages");
+            return;
+        }
+        
+        telemetry.addData("Priority Count", priorityLogs.size());
+        telemetry.addLine("");
+        
+        // Show all priority logs (or recent if too many)
+        int start = Math.max(0, priorityLogs.size() - maxRecentEntries);
+        for (int i = start; i < priorityLogs.size(); i++) {
+            telemetry.addLine("🔥 " + formatLogEntry(priorityLogs.get(i)));
         }
     }
     

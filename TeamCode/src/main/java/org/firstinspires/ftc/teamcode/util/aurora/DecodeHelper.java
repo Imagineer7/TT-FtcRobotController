@@ -396,7 +396,7 @@ public class DecodeHelper {
         boolean bothMotorsAtTarget = leftAtTarget && rightAtTarget;
 
         if (debugLogger != null && atTargetRPM != wasAtTarget) {
-            debugLogger.info("DecodeHelper",
+            debugLogger.infoPriority("DecodeHelper",
                 "atTargetRPM changed: " + wasAtTarget + " → " + atTargetRPM +
                 " (left=" + leftAtTarget + ", right=" + rightAtTarget + ", sync=" + syncOk + 
                 ", syncError=" + String.format("%.1f", rpmSyncError) + " RPM)");
