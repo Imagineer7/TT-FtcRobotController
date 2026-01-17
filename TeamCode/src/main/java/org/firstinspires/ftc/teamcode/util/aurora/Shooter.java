@@ -41,6 +41,10 @@ public class Shooter {
     private boolean enabled;
     private long lastSpinupTime;
 
+    // RPM Stability Tracking for Auto-Firing
+    private long rpmStableStartTime = 0;
+    private boolean rpmWasStable = false;
+
     // ═══════════════════════════════════════════════════════════════════════
     // CONSTRUCTOR
     // ═══════════════════════════════════════════════════════════════════════
@@ -224,6 +228,47 @@ public class Shooter {
 
         // Check shooter state
         return decodeHelper.isReady();
+    }
+
+    /**
+     * Check if shooter is ready for auto-firing with more tolerant RPM requirements
+     * Uses configurable tolerance and requires stability for minimum time
+     * @return true if shooter is ready for automated firing
+     */
+    public boolean isReadyForAutoFiring() {
+        if (!enabled || !isRunning()) {
+            rpmWasStable = false;
+            rpmStableStartTime = 0;
+            return false;
+        }
+
+        // Check if shooter RPM is within acceptable tolerance of target
+        double currentRPM = getCurrentRPM();
+        double targetRPM = getTargetRPM();
+        double tolerance = config.getRpmTolerance();
+
+        boolean rpmInRange = Math.abs(currentRPM - targetRPM) <= tolerance;
+
+        // Track stability time
+        long currentTime = System.currentTimeMillis();
+        if (rpmInRange) {
+            if (!rpmWasStable) {
+                // RPM just entered stable range
+                rpmStableStartTime = currentTime;
+                rpmWasStable = true;
+            }
+        } else {
+            // RPM out of range, reset stability tracking
+            rpmWasStable = false;
+            rpmStableStartTime = 0;
+        }
+
+        // Check if RPM has been stable for minimum required time
+        double requiredStabilityTime = config.getRpmStabilityTime() * 1000; // Convert to milliseconds
+        boolean stabilityTimeReached = rpmWasStable &&
+            (currentTime - rpmStableStartTime) >= requiredStabilityTime;
+
+        return rpmInRange && stabilityTimeReached;
     }
 
     /**
