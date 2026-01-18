@@ -411,29 +411,6 @@ public class DecodeHelper {
         boolean wasAtTarget = atTargetRPM;
         atTargetRPM = bothMotorsInTolerance;
         
-        // Update live variables for monitoring AFTER updating atTargetRPM (LIVE_VARS mode)
-        if (debugLogger != null) {
-            Map<String, Object> vars = new LinkedHashMap<>();
-            vars.put("currentTime", currentTime);
-            vars.put("target", target);
-            vars.put("tolerance", tolerance);
-            vars.put("leftRPM", leftRPM);
-            vars.put("leftError", leftError);
-            vars.put("leftInTolerance", leftInTolerance);
-            vars.put("rightRPM", rightRPM);
-            vars.put("rightError", rightError);
-            vars.put("rightInTolerance", rightInTolerance);
-            vars.put("bothMotorsInTolerance", bothMotorsInTolerance);
-            vars.put("atTargetRPM_FLAG", atTargetRPM);  // The internal flag
-            vars.put("isAtTargetRPM_METHOD", isAtTargetRPM());  // What the public method returns
-            vars.put("stabilizationStartTime", stabilizationStartTime);
-            vars.put("elapsed_ms", elapsed);
-            vars.put("threshold_ms", (long) ShooterConfig.RPM_STABILIZATION_TIME_MS);
-            vars.put("rpmStabilized_FLAG", rpmStabilized);  // The internal flag
-            vars.put("isStabilized_METHOD", isStabilized());  // What the public method returns
-            debugLogger.updateLiveVars(vars);
-        }
-        
         // Debug logging for atTargetRPM changes
         if (debugLogger != null && atTargetRPM != wasAtTarget) {
             debugLogger.infoPriority("DecodeHelper",
@@ -473,6 +450,30 @@ public class DecodeHelper {
                 stabilizationStartTime = 0;
                 rpmStabilized = false;
             }
+        }
+        
+        // STEP 4: Update live variables for monitoring AFTER all state updates (LIVE_VARS mode)
+        // Must be at the end so all flags show their final updated values
+        if (debugLogger != null) {
+            Map<String, Object> vars = new LinkedHashMap<>();
+            vars.put("currentTime", currentTime);
+            vars.put("target", target);
+            vars.put("tolerance", tolerance);
+            vars.put("leftRPM", leftRPM);
+            vars.put("leftError", leftError);
+            vars.put("leftInTolerance", leftInTolerance);
+            vars.put("rightRPM", rightRPM);
+            vars.put("rightError", rightError);
+            vars.put("rightInTolerance", rightInTolerance);
+            vars.put("bothMotorsInTolerance", bothMotorsInTolerance);
+            vars.put("atTargetRPM_FLAG", atTargetRPM);  // The internal flag
+            vars.put("isAtTargetRPM_METHOD", isAtTargetRPM());  // What the public method returns
+            vars.put("stabilizationStartTime", stabilizationStartTime);
+            vars.put("elapsed_ms", elapsed);
+            vars.put("threshold_ms", (long) ShooterConfig.RPM_STABILIZATION_TIME_MS);
+            vars.put("rpmStabilized_FLAG", rpmStabilized);  // The internal flag (NOW UPDATED!)
+            vars.put("isStabilized_METHOD", isStabilized());  // What the public method returns
+            debugLogger.updateLiveVars(vars);
         }
     }
 
