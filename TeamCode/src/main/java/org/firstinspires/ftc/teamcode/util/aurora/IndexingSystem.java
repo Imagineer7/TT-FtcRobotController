@@ -555,25 +555,14 @@ public class IndexingSystem {
     /**
      * Called when fire signal is issued
      * @return true if firing started successfully
+     * TODO: Implement firing logic
      */
     public boolean onFireSignal() {
-        // Can only fire if we have artifacts
-        if (getArtifactCount() == 0) {
-            if (config.isDebugTelemetry()) {
-                telemetry.addLine("Cannot fire: no artifacts");
-            }
-            return false;
+        // Stub: Firing logic removed - needs to be reimplemented
+        if (config.isDebugTelemetry()) {
+            telemetry.addLine("Fire signal received - firing logic not implemented");
         }
-
-        // Can't fire during another operation
-        if (operationInProgress && currentState != SystemState.READY_TO_FIRE) {
-            if (config.isDebugTelemetry()) {
-                telemetry.addLine("Cannot fire: operation in progress");
-            }
-            return false;
-        }
-
-        return handleEarlyFire();
+        return false;
     }
     
     /**
@@ -581,6 +570,7 @@ public class IndexingSystem {
      * This should be called by the limelight camera system to determine shot order.
      * @param pattern One of "PPG", "PGP", or "GPP" where P=Purple, G=Green
      * @return true if pattern is valid and set
+     * TODO: Implement shot planning logic
      */
     public boolean setMotifPattern(String pattern) {
         if (pattern == null) {
@@ -596,10 +586,7 @@ public class IndexingSystem {
                 telemetry.addLine("Motif pattern set: " + normalized);
             }
             
-            // Replan shots with new pattern
-            if (getArtifactCount() >= 2) {
-                planShotsWithMotif();
-            }
+            // Shot planning removed - needs to be reimplemented
             
             return true;
         }
@@ -645,10 +632,7 @@ public class IndexingSystem {
             handleAutomaticDetection(currentTime);
         }
 
-        // Update shot planning continuously based on current context
-        if (getArtifactCount() > 0) {
-            planShotsWithMotif();
-        }
+        // Shot planning removed - needs to be reimplemented
 
         // Update live variables for real-time monitoring
         updateLiveVariables();
@@ -690,8 +674,12 @@ public class IndexingSystem {
                 break;
 
             case FIRING:
-                long firingElapsed = System.currentTimeMillis() - operationStartTime;
-                updateFiring(firingElapsed);
+                // Firing logic removed - needs to be reimplemented
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("⚠️ FIRING state encountered - not implemented");
+                }
+                // Reset to idle to prevent system from getting stuck
+                resetToIdle();
                 break;
 
             case READY_TO_FIRE:
@@ -1116,8 +1104,7 @@ public class IndexingSystem {
         // Pre-positioning will be handled by the state machine logic in update()
         // No need to explicitly start it here to avoid conflicts
 
-        // Plan shots with motif
-        planShotsWithMotif();
+        // Shot planning removed - needs to be reimplemented
 
         changeState(SystemState.READY_TO_FIRE);
         operationInProgress = false;
@@ -1136,81 +1123,7 @@ public class IndexingSystem {
         }
     }
     
-    /**
-     * Complete two-artifact rearrangement
-     * Center artifact pushed to empty intake, storage artifact pulled to center
-     */
-    private void completeTwoArtifactRearrangement() {
-        // Find the artifact that was in storage (now being pulled to center)
-        Artifact storageArtifact = null;
-        Artifact centerArtifact = artifactInCenter;
-        
-        if (lastIntakeSource == IntakeSource.FRONT) {
-            storageArtifact = artifactInFrontIntake;
-        } else if (lastIntakeSource == IntakeSource.BACK) {
-            storageArtifact = artifactInBackIntake;
-        }
-        
-        if (storageArtifact == null || centerArtifact == null) {
-            setError("Rearrangement failed: missing artifacts");
-            return;
-        }
-        
-        // Determine empty intake (opposite of storage source)
-        Artifact.Location emptyIntake = (lastIntakeSource == IntakeSource.FRONT) 
-            ? Artifact.Location.BACK_INTAKE 
-            : Artifact.Location.FRONT_INTAKE;
-        
-        // Move center artifact to empty intake
-        Artifact movedToEmpty = centerArtifact.withLocation(emptyIntake);
-        for (int i = 0; i < artifacts.size(); i++) {
-            if (artifacts.get(i).equals(centerArtifact)) {
-                artifacts.set(i, movedToEmpty);
-                break;
-            }
-        }
-        
-        // Update storage references for moved artifact
-        if (emptyIntake == Artifact.Location.FRONT_INTAKE) {
-            artifactInFrontIntake = movedToEmpty;
-        } else {
-            artifactInBackIntake = movedToEmpty;
-        }
-        
-        // Clear the old storage location
-        if (lastIntakeSource == IntakeSource.FRONT) {
-            artifactInFrontIntake = null;
-        } else {
-            artifactInBackIntake = null;
-        }
-        
-        // Move storage artifact to center
-        Artifact movedToCenter = storageArtifact.withLocation(Artifact.Location.CENTER_STORAGE);
-        for (int i = 0; i < artifacts.size(); i++) {
-            if (artifacts.get(i).equals(storageArtifact)) {
-                artifacts.set(i, movedToCenter);
-                break;
-            }
-        }
-        artifactInCenter = movedToCenter;
-        
-        // Reset uptake pre-position flag for new center artifact
-        uptakeServoPrePositionedForCurrentArtifact = false;
-
-        // Update intake modes
-        updateIntakeModes();
-        
-        // Pre-positioning will be handled by the state machine logic in update()
-        // No need to explicitly start it here to avoid conflicts
-
-        // Now ready to fire the desired artifact
-        changeState(SystemState.READY_TO_FIRE);
-        operationInProgress = false;
-        
-        if (config.isDebugTelemetry()) {
-            telemetry.addLine("Rearrangement complete: storage->center, center->empty");
-        }
-    }
+    // completeTwoArtifactRearrangement() method removed - was part of firing logic
 
     /**
      * Store third artifact in its collection intake
@@ -1249,8 +1162,7 @@ public class IndexingSystem {
         // Update intake modes (this intake now in storage mode)
         updateIntakeModes();
 
-        // Plan shots now that we have all three artifacts
-        planShots();
+        // Shot planning removed - needs to be reimplemented
 
         // Keep system in READY_TO_FIRE state since we still have an artifact in center
         // Only go to IDLE if no artifact in center (which shouldn't happen for third artifact)
@@ -1306,8 +1218,7 @@ public class IndexingSystem {
         // Update intake modes (this intake now in storage mode)
         updateIntakeModes();
 
-        // Plan shots now that we have two artifacts
-        planShots();
+        // Shot planning removed - needs to be reimplemented
 
         // System goes to READY_TO_FIRE with first artifact still in center
         changeState(SystemState.READY_TO_FIRE);
@@ -1321,572 +1232,10 @@ public class IndexingSystem {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // FIRING LOGIC
+    // FIRING LOGIC - REMOVED
     // ═══════════════════════════════════════════════════════════════════════
-
-    /**
-     * Handle early fire scenarios
-     * With 2 artifacts, can rearrange using empty intake if motif requires different order
-     */
-    private boolean handleEarlyFire() {
-        int count = getArtifactCount();
-
-        debugLogger.info("EARLY_FIRE", String.format("handleEarlyFire called with %d artifacts", count));
-
-        if (count == 1) {
-            // One artifact: should be in center already or transfer it
-            if (artifactInCenter != null) {
-                debugLogger.info("EARLY_FIRE", "Single artifact - starting firing");
-                return startFiring();
-            } else {
-                // This shouldn't happen in normal operation
-                debugLogger.error("EARLY_FIRE", "Single artifact but none in center!");
-                setError("Early fire with 1 artifact but none in center");
-                return false;
-            }
-        } else if (count == 2) {
-            // Two artifacts: can rearrange if needed based on motif pattern
-            debugLogger.info("EARLY_FIRE", "Two artifacts - checking if rearrangement needed");
-            return handleTwoArtifactFire();
-        } else if (count == 3) {
-            // Full robot: fire the one in center (no rearrangement possible)
-            if (artifactInCenter != null) {
-                debugLogger.info("EARLY_FIRE", "Three artifacts - firing center artifact");
-                return startFiring();
-            } else {
-                debugLogger.error("EARLY_FIRE", "Fire signal but no artifact in center!");
-                setError("Fire signal but no artifact in center");
-                return false;
-            }
-        }
-
-        debugLogger.warning("EARLY_FIRE", "No artifacts to fire");
-        return false;
-    }
-    
-    /**
-     * Handle firing with 2 artifacts - can rearrange using empty intake if needed
-     * Example: Green in center, Purple in back, pattern wants Purple first
-     * Solution: Push green to front intake, pull purple to center
-     */
-    private boolean handleTwoArtifactFire() {
-        if (artifactInCenter == null) {
-            setError("Two artifacts but none in center");
-            return false;
-        }
-        
-        // Find the artifact in storage
-        Artifact storageArtifact = null;
-        IntakeSource storageSource = IntakeSource.UNKNOWN;
-        
-        if (artifactInFrontIntake != null) {
-            storageArtifact = artifactInFrontIntake;
-            storageSource = IntakeSource.FRONT;
-        } else if (artifactInBackIntake != null) {
-            storageArtifact = artifactInBackIntake;
-            storageSource = IntakeSource.BACK;
-        }
-        
-        if (storageArtifact == null) {
-            setError("Two artifacts but can't find storage artifact");
-            return false;
-        }
-        
-        // Determine which artifact should fire first based on motif pattern
-        Artifact.Color desiredFirstColor = getDesiredFirstShotColor();
-        
-        // If center artifact matches desired color, fire it
-        if (artifactInCenter.getColor() == desiredFirstColor) {
-            return startFiring();
-        }
-        
-        // If storage artifact matches desired color, need to rearrange
-        if (storageArtifact.getColor() == desiredFirstColor) {
-            // Check if we have an empty intake for rearrangement
-            IntakeSource emptyIntake = getEmptyIntakeSource();
-            if (emptyIntake == IntakeSource.UNKNOWN) {
-                // No empty intake - can't rearrange, fire what's in center
-                if (config.isDebugTelemetry()) {
-                    telemetry.addLine("Cannot rearrange - no empty intake, firing center artifact");
-                }
-                return startFiring();
-            }
-            
-            // Trigger rearrangement: push center out to empty, pull storage to center
-            return startTwoArtifactRearrangement(storageSource, emptyIntake);
-        }
-        
-        // Neither matches desired color or colors are UNKNOWN - fire center
-        return startFiring();
-    }
-    
-    /**
-     * Get the desired color for the first shot based on motif pattern
-     * @return The color that should fire first
-     */
-    private Artifact.Color getDesiredFirstShotColor() {
-        if (!motifPatternSet || motifPattern == null || motifPattern.length() < 1) {
-            return Artifact.Color.UNKNOWN; // No preference
-        }
-        
-        char firstChar = motifPattern.charAt(0);
-        if (firstChar == 'P') {
-            return Artifact.Color.PURPLE;
-        } else if (firstChar == 'G') {
-            return Artifact.Color.GREEN;
-        }
-        
-        return Artifact.Color.UNKNOWN;
-    }
-    
-    /**
-     * Find which intake is empty (only works with 2 artifacts)
-     * @return The empty intake source, or UNKNOWN if none
-     */
-    private IntakeSource getEmptyIntakeSource() {
-        if (artifactInFrontIntake == null) {
-            return IntakeSource.FRONT;
-        } else if (artifactInBackIntake == null) {
-            return IntakeSource.BACK;
-        }
-        return IntakeSource.UNKNOWN;
-    }
-    
-    /**
-     * Start rearrangement of 2 artifacts: push center to empty intake, pull storage to center
-     * @param storageSource The intake holding the artifact we want in center
-     * @param emptyIntake The empty intake to push center artifact to
-     * @return true if rearrangement started
-     */
-    private boolean startTwoArtifactRearrangement(IntakeSource storageSource, IntakeSource emptyIntake) {
-        if (config.isDebugTelemetry()) {
-            telemetry.addLine(String.format("Rearranging: %s->center, center->%s", 
-                storageSource, emptyIntake));
-        }
-        
-        // Change to pushing state to handle rearrangement
-        changeState(SystemState.PUSHING);
-        operationInProgress = true;
-        operationStartTime = System.currentTimeMillis();
-        
-        // Set lastIntakeSource to the storage source (collecting from there)
-        lastIntakeSource = storageSource;
-        
-        // Execute hardware for rearrangement push
-        executePushHardware();
-        
-        return true;
-    }
-
-    /**
-     * Start firing the artifact in center storage
-     */
-    private boolean startFiring() {
-        if (artifactInCenter == null) {
-            debugLogger.warning("FIRING", "Cannot start firing - no artifact in center");
-            return false;
-        }
-
-        debugLogger.info("FIRING", "🔥 Starting firing sequence",
-            String.format("Artifact: %s #%d", artifactInCenter.getColor(), artifactInCenter.getCollectionOrder()));
-
-        changeState(SystemState.FIRING);
-        operationInProgress = true;
-        operationStartTime = System.currentTimeMillis();
-
-        // Start hardware for firing
-        executeFiringHardware();
-
-        if (config.isDebugTelemetry()) {
-            telemetry.addLine(String.format("Firing artifact: %s", artifactInCenter));
-        }
-
-        return true;
-    }
-
-    /**
-     * Update firing state
-     */
-    private void updateFiring(long elapsedTime) {
-        if (elapsedTime >= config.getFireFeedTimeMs()) {
-            // Return uptake servos to idle after firing completes
-            setUptakeServos(false);
-            completeFiring();
-        }
-    }
-
-    /**
-     * Complete firing operation
-     */
-    private void completeFiring() {
-        if (artifactInCenter == null) {
-            setError("Completed firing but no artifact was in center");
-            return;
-        }
-
-        // Mark artifact as fired in the artifacts list
-        Artifact firedArtifact = artifactInCenter;
-        for (int i = 0; i < artifacts.size(); i++) {
-            if (artifacts.get(i).getCollectionOrder() == firedArtifact.getCollectionOrder()) {
-                // Mark as FIRED and remove from system memory
-                Artifact fired = artifacts.get(i).withLocation(Artifact.Location.FIRED);
-                artifacts.set(i, fired);
-                break;
-            }
-        }
-
-        // Clear center slot
-        artifactInCenter = null;
-
-        // Reset uptake pre-position flag since no artifact in center now
-        uptakeServoPrePositionedForCurrentArtifact = false;
-
-        if (config.isDebugTelemetry() && telemetry != null) {
-            telemetry.addLine(String.format("🔥 ARTIFACT FIRED: %s #%d",
-                firedArtifact.getColor(), firedArtifact.getCollectionOrder()));
-            telemetry.addLine(String.format("   Remaining artifacts: %d", getArtifactCount()));
-        }
-
-        // After firing, check if we need to move another artifact to center
-        int remainingCount = getArtifactCount();
-        
-        if (remainingCount > 0) {
-            // Move next planned artifact from storage to center for next shot
-            moveNextPlannedArtifactToCenter();
-        } else {
-            // All artifacts fired
-            changeState(SystemState.IDLE);
-            operationInProgress = false;
-
-            if (config.isDebugTelemetry() && telemetry != null) {
-                telemetry.addLine("🎉 ALL ARTIFACTS FIRED - SEQUENCE COMPLETE");
-            }
-        }
-    }
-
-    /**
-     * Move the next planned artifact from storage to center for firing
-     * Uses shot planning to determine optimal firing order
-     */
-    private void moveNextPlannedArtifactToCenter() {
-        Artifact nextArtifact = null;
-        
-        // Use planned shots in order: second shot, then third shot
-        if (plannedSecondShot != null &&
-            plannedSecondShot.getLocation() != Artifact.Location.FIRED &&
-            plannedSecondShot.getLocation() != Artifact.Location.CENTER_STORAGE) {
-            nextArtifact = plannedSecondShot;
-        } else if (plannedThirdShot != null && 
-                   plannedThirdShot.getLocation() != Artifact.Location.FIRED &&
-                   plannedThirdShot.getLocation() != Artifact.Location.CENTER_STORAGE) {
-            nextArtifact = plannedThirdShot;
-        } else {
-            // No planned shots available, take any storage artifact
-            if (artifactInFrontIntake != null) {
-                nextArtifact = artifactInFrontIntake;
-            } else if (artifactInBackIntake != null) {
-                nextArtifact = artifactInBackIntake;
-            }
-        }
-
-        if (nextArtifact != null) {
-            if (config.isDebugTelemetry() && telemetry != null) {
-                telemetry.addLine(String.format("🔄 Moving next artifact to center: %s #%d from %s",
-                    nextArtifact.getColor(),
-                    nextArtifact.getCollectionOrder(),
-                    nextArtifact.getLocation()));
-            }
-            startTransferFromStorageToCenter(nextArtifact);
-        } else {
-            // No artifacts available
-            changeState(SystemState.IDLE);
-            operationInProgress = false;
-
-            if (config.isDebugTelemetry() && telemetry != null) {
-                telemetry.addLine("🎉 NO MORE ARTIFACTS - SEQUENCE COMPLETE");
-            }
-        }
-    }
-
-    /**
-     * Start transfer from storage intake to center
-     */
-    private void startTransferFromStorageToCenter(Artifact artifact) {
-        changeState(SystemState.TRANSFERRING);
-        operationStartTime = System.currentTimeMillis();
-
-        // Clear storage reference
-        if (artifact.getLocation() == Artifact.Location.FRONT_INTAKE) {
-            artifactInFrontIntake = null;
-            lastIntakeSource = IntakeSource.FRONT;
-        } else if (artifact.getLocation() == Artifact.Location.BACK_INTAKE) {
-            artifactInBackIntake = null;
-            lastIntakeSource = IntakeSource.BACK;
-        }
-
-        // Start hardware for transfer
-        executeTransferHardware();
-
-        if (config.isDebugTelemetry()) {
-            telemetry.addLine(String.format("Transferring artifact from %s to center", 
-                artifact.getLocation()));
-        }
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // SHOT PLANNING LOGIC
-    // ═══════════════════════════════════════════════════════════════════════
-
-    /**
-     * Plan the second and third shots based on artifact colors and strategy
-     * First shot is forced by the push-based system (second artifact collected)
-     * This is the legacy method - now uses planShotsWithMotif
-     */
-    private void planShots() {
-        planShotsWithMotif();
-    }
-
-    /**
-     * Plan shots based on motif pattern and current system state
-     * Implements the specified planning rules:
-     * - 3 artifacts: Center fires first (no planning), 2nd/3rd planned by motif
-     * - 2 artifacts + manual mode: Center fires first, 2nd planned by motif
-     * - 2 artifacts + auto mode: First shot can be planned using empty intake
-     * - Planning runs continuously every update
-     */
-    private void planShotsWithMotif() {
-        // Get all artifacts that haven't been fired yet
-        List<Artifact> available = new ArrayList<>();
-        for (Artifact a : artifacts) {
-            if (a.getLocation() != Artifact.Location.FIRED) {
-                available.add(a);
-            }
-        }
-
-        int artifactCount = available.size();
-
-        // Clear previous plans
-        plannedFirstShot = null;
-        plannedSecondShot = null;
-        plannedThirdShot = null;
-
-        if (artifactCount == 0) {
-            debugLogger.debug("SHOT_PLAN", "No artifacts to plan");
-            return; // No artifacts to plan
-        }
-
-        debugLogger.debug("SHOT_PLAN", String.format("Planning shots for %d artifacts (mode: %s, motif: %s)",
-            artifactCount, config.isManualPushMode() ? "MANUAL" : "AUTO", motifPattern));
-
-        if (artifactCount == 3) {
-            // 3 ARTIFACTS: Center fires first (no exceptions), plan 2nd/3rd by motif
-            plannedFirstShot = artifactInCenter;
-            debugLogger.info("SHOT_PLAN", "3 artifacts: Center fires first (forced)");
-            planSecondAndThirdShotsForThreeArtifacts();
-
-        } else if (artifactCount == 2) {
-            if (config.isManualPushMode()) {
-                // MANUAL MODE: Center fires first, plan second by motif
-                plannedFirstShot = artifactInCenter;
-                debugLogger.info("SHOT_PLAN", "2 artifacts (MANUAL): Center fires first");
-                planSecondShotForTwoArtifactsManualMode();
-            } else {
-                // AUTO MODE: First shot can be planned using empty intake
-                debugLogger.info("SHOT_PLAN", "2 artifacts (AUTO): Checking if rearrangement needed");
-                planOptimalFirstShotForTwoArtifacts();
-                planSecondShotForTwoArtifactsAutoMode();
-            }
-        } else if (artifactCount == 1) {
-            // Single artifact: Must fire what's in center (no planning needed)
-            plannedFirstShot = artifactInCenter;
-            debugLogger.info("SHOT_PLAN", "1 artifact: Fire center artifact");
-        }
-
-        // Log final plan
-        if (plannedFirstShot != null) {
-            debugLogger.info("SHOT_PLAN", String.format("1st shot: %s #%d from %s",
-                plannedFirstShot.getColor(),
-                plannedFirstShot.getCollectionOrder(),
-                plannedFirstShot.getLocation()));
-        }
-        if (plannedSecondShot != null) {
-            debugLogger.info("SHOT_PLAN", String.format("2nd shot: %s #%d from %s",
-                plannedSecondShot.getColor(),
-                plannedSecondShot.getCollectionOrder(),
-                plannedSecondShot.getLocation()));
-        }
-        if (plannedThirdShot != null) {
-            debugLogger.info("SHOT_PLAN", String.format("3rd shot: %s #%d from %s",
-                plannedThirdShot.getColor(),
-                plannedThirdShot.getCollectionOrder(),
-                plannedThirdShot.getLocation()));
-        }
-
-        if (config.isDebugTelemetry() && telemetry != null) {
-            telemetry.addLine("🎯 Shot Planning Updated:");
-            telemetry.addLine(String.format("   Artifacts: %d, Manual Mode: %s",
-                artifactCount, config.isManualPushMode()));
-            telemetry.addLine(String.format("   Motif: %s", motifPattern));
-
-            if (plannedFirstShot != null) {
-                telemetry.addLine(String.format("   1st shot: %s #%d from %s",
-                    plannedFirstShot.getColor(),
-                    plannedFirstShot.getCollectionOrder(),
-                    plannedFirstShot.getLocation()));
-            }
-            if (plannedSecondShot != null) {
-                telemetry.addLine(String.format("   2nd shot: %s #%d from %s",
-                    plannedSecondShot.getColor(),
-                    plannedSecondShot.getCollectionOrder(),
-                    plannedSecondShot.getLocation()));
-            }
-            if (plannedThirdShot != null) {
-                telemetry.addLine(String.format("   3rd shot: %s #%d from %s",
-                    plannedThirdShot.getColor(),
-                    plannedThirdShot.getCollectionOrder(),
-                    plannedThirdShot.getLocation()));
-            }
-        }
-    }
-
-    /**
-     * Plan optimal first shot when we have 2 artifacts and auto push mode
-     * Can rearrange using empty intake if needed for motif
-     */
-    private void planOptimalFirstShotForTwoArtifacts() {
-        if (!motifPatternSet || motifPattern == null || motifPattern.length() == 0) {
-            // No motif set, fire center artifact
-            plannedFirstShot = artifactInCenter;
-            return;
-        }
-
-        Artifact.Color desiredFirstColor = getColorFromMotifChar(motifPattern.charAt(0));
-        Artifact centerArtifact = artifactInCenter;
-
-        if (centerArtifact != null && centerArtifact.getColor() == desiredFirstColor) {
-            // Center already has desired color
-            plannedFirstShot = centerArtifact;
-        } else {
-            // Check if storage has desired color and we can rearrange
-            Artifact storageArtifact = (artifactInFrontIntake != null) ? artifactInFrontIntake : artifactInBackIntake;
-
-            if (storageArtifact != null && storageArtifact.getColor() == desiredFirstColor) {
-                // Can rearrange - storage artifact should fire first
-                plannedFirstShot = storageArtifact;
-            } else {
-                // Can't improve, fire center
-                plannedFirstShot = centerArtifact;
-            }
-        }
-    }
-
-    /**
-     * Plan second shot for 2-artifact scenario in auto push mode
-     */
-    private void planSecondShotForTwoArtifactsAutoMode() {
-        // Find the artifact that's not planned for first shot
-        Artifact centerArtifact = artifactInCenter;
-        Artifact storageArtifact = (artifactInFrontIntake != null) ? artifactInFrontIntake : artifactInBackIntake;
-
-        if (plannedFirstShot == centerArtifact) {
-            plannedSecondShot = storageArtifact;
-        } else if (plannedFirstShot == storageArtifact) {
-            plannedSecondShot = centerArtifact;
-        } else {
-            // Fallback to storage artifact
-            plannedSecondShot = storageArtifact;
-        }
-    }
-
-    /**
-     * Plan 2nd and 3rd shots for 3-artifact scenario
-     * First shot is always center artifact (no planning)
-     */
-    private void planSecondAndThirdShotsForThreeArtifacts() {
-        if (!motifPatternSet || motifPattern == null || motifPattern.length() != 3) {
-            // No motif set, plan by collection order
-            planStorageArtifactsByCollectionOrder();
-            return;
-        }
-
-        // Get storage artifacts (not in center)
-        Artifact frontArtifact = artifactInFrontIntake;
-        Artifact backArtifact = artifactInBackIntake;
-
-        if (frontArtifact == null || backArtifact == null) {
-            // Missing storage artifacts, plan what we have
-            plannedSecondShot = (frontArtifact != null) ? frontArtifact : backArtifact;
-            return;
-        }
-
-        // Parse motif pattern for 2nd and 3rd shots (indices 1 and 2)
-        Artifact.Color desired2ndColor = getColorFromMotifChar(motifPattern.charAt(1));
-        Artifact.Color desired3rdColor = getColorFromMotifChar(motifPattern.charAt(2));
-
-        // Try to match storage artifacts to desired colors
-        if (frontArtifact.getColor() == desired2ndColor && backArtifact.getColor() == desired3rdColor) {
-            plannedSecondShot = frontArtifact;
-            plannedThirdShot = backArtifact;
-        } else if (backArtifact.getColor() == desired2ndColor && frontArtifact.getColor() == desired3rdColor) {
-            plannedSecondShot = backArtifact;
-            plannedThirdShot = frontArtifact;
-        } else if (frontArtifact.getColor() == desired2ndColor) {
-            // Front matches 2nd, back gets 3rd
-            plannedSecondShot = frontArtifact;
-            plannedThirdShot = backArtifact;
-        } else if (backArtifact.getColor() == desired2ndColor) {
-            // Back matches 2nd, front gets 3rd
-            plannedSecondShot = backArtifact;
-            plannedThirdShot = frontArtifact;
-        } else {
-            // No perfect match, use collection order
-            planStorageArtifactsByCollectionOrder();
-        }
-    }
-
-    /**
-     * Plan second shot for 2-artifact scenario in manual push mode
-     * First shot is always center artifact (no planning)
-     */
-    private void planSecondShotForTwoArtifactsManualMode() {
-        // Find the storage artifact (not in center)
-        Artifact storageArtifact = (artifactInFrontIntake != null) ? artifactInFrontIntake : artifactInBackIntake;
-
-        if (storageArtifact != null) {
-            plannedSecondShot = storageArtifact;
-        }
-    }
-
-    /**
-     * Plan storage artifacts by collection order when motif doesn't help
-     */
-    private void planStorageArtifactsByCollectionOrder() {
-        Artifact frontArtifact = artifactInFrontIntake;
-        Artifact backArtifact = artifactInBackIntake;
-
-        if (frontArtifact != null && backArtifact != null) {
-            // Both intakes have artifacts, order by collection number
-            if (frontArtifact.getCollectionOrder() < backArtifact.getCollectionOrder()) {
-                plannedSecondShot = frontArtifact;
-                plannedThirdShot = backArtifact;
-            } else {
-                plannedSecondShot = backArtifact;
-                plannedThirdShot = frontArtifact;
-            }
-        } else {
-            // Only one storage artifact
-            plannedSecondShot = (frontArtifact != null) ? frontArtifact : backArtifact;
-        }
-    }
-
-    /**
-     * Convert motif character to artifact color
-     */
-    private Artifact.Color getColorFromMotifChar(char c) {
-        if (c == 'P') return Artifact.Color.PURPLE;
-        if (c == 'G') return Artifact.Color.GREEN;
-        return Artifact.Color.UNKNOWN;
-    }
+    // All firing logic has been removed and needs to be reimplemented
+    // The following stubs are placeholders for future implementation
 
     /**
      * ═══════════════════════════════════════════════════════════════════════
@@ -2891,48 +2240,7 @@ public class IndexingSystem {
         setInjectorServos(true, lastIntakeSource);
     }
 
-    /**
-     * Execute hardware actions for firing state
-     * Uptake servos feed artifact up into shooter for the configured fire feed time
-     */
-    private void executeFiringHardware() {
-        debugLogger.info("FIRING_HW", "executeFiringHardware() called");
-
-        // Check if shooter is ready
-        if (shooter != null && !shooter.isReadyToFire()) {
-            debugLogger.warning("FIRING_HW", "Shooter not ready!",
-                String.format("enabled=%s, atTarget=%s, stable=%s",
-                    shooter.isEnabled(), shooter.isAtTargetRPM(), shooter.isRPMStable()));
-            if (config.isDebugTelemetry()) {
-                telemetry.addLine("Waiting for shooter to be ready...");
-            }
-            return;
-        }
-
-        debugLogger.info("FIRING_HW", "Shooter is ready - initiating firing hardware");
-
-        // Trigger shooter fire
-        if (shooter != null) {
-            debugLogger.debug("FIRING_HW", "Calling shooter.fire()");
-            shooter.fire();
-        }
-
-        // Uptake servos feed artifact up into shooter at full power
-        // This runs for the configured fireFeedTime (0.8 seconds by default)
-        debugLogger.info("FIRING_HW", "⬆️ ACTIVATING UPTAKE SERVOS",
-            String.format("Duration: %.1fs, Artifact in center: %s",
-                config.getFireFeedTime(),
-                artifactInCenter != null ? artifactInCenter.getColor().toString() : "NONE"));
-        setUptakeServos(true);
-
-        // Mark that we're no longer pre-positioned since we're actively firing
-        uptakeServoPrePositioned = false;
-
-        if (config.isDebugTelemetry() && telemetry != null) {
-            telemetry.addLine(String.format("🔥 Firing: Uptake servos feeding for %.1fs",
-                config.getFireFeedTime()));
-        }
-    }
+    // executeFiringHardware() method removed - needs to be reimplemented
 
     /**
      * Handle automatic artifact detection - monitors sensors and triggers collection
