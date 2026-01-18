@@ -1531,6 +1531,16 @@ public class IndexingSystem {
             return;
         }
 
+        // Clear any stale pending artifacts to prevent conflicts during push
+        clearPendingArtifacts();
+
+        // CRITICAL: Retract uptake servos during push operation to avoid interference
+        // If uptake servos are pre-positioned (pushing artifact UP into shooter),
+        // we need to retract them DOWN so the artifact can be pushed OUT horizontally
+        if (uptakeServoPrePositioned) {
+            retractUptakeServos();
+        }
+
         // Get artifacts
         Artifact centerArtifact = artifactInCenter;
         Artifact storageArtifact = desiredCenter;
