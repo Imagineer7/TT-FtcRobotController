@@ -5,6 +5,8 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.util.debug.DebugLogger;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * DecodeHelper - DECODE Season Game-Specific Shooter Subsystem
@@ -60,8 +62,7 @@ public class DecodeHelper {
     private final ElapsedTime stabilizationTimer = new ElapsedTime();
     private final ElapsedTime firingTimer = new ElapsedTime();
     private long lastShotTime = 0;
-    private long stabilizationStartTime = 0;  // Manual tracking for stabilization
-    private long lastOutOfToleranceTime = 0;  // Debounce timer for tolerance violations
+    private long stabilizationStartTime = 0;  // Tracking when motors reached target
     private static final double FIRING_SEQUENCE_TIME = 0.2;  // 200ms for feed sequence
 
     // Status flags
@@ -386,104 +387,93 @@ public class DecodeHelper {
     }
 
     /**
-     * Check if shooter is at target RPM
+     * Check if shooter is at target RPM and update stabilization state.
+     * 
+     * COMPLETELY REWRITTEN - Ultra-simple logic:
+     * 1. Both motors must be within tolerance (no sync error check)
+     * 2. Must stay in tolerance for stabilization duration
+     * 3. No complex state machines or debouncing
      */
-    private void checkIfAtTarget(double target, double tolerance) { // This method needs logic double-checked as it's not returning true ever.
-        boolean wasAtTarget = atTargetRPM;
-
-        // Check if both motors are within tolerance
-        boolean leftAtTarget = Math.abs(leftRPM - target) < tolerance;
-        boolean rightAtTarget = Math.abs(rightRPM - target) < tolerance;
-        boolean syncOk = rpmSyncError < ShooterConfig.MAX_RPM_SYNC_ERROR;
-
-        // For atTargetRPM check, include sync requirement
-        atTargetRPM = leftAtTarget && rightAtTarget && syncOk;
-
-        // Simplified stabilization logic with debounce filtering
-        // Ignores brief tolerance violations to prevent transient resets
-        boolean bothMotorsAtTarget = leftAtTarget && rightAtTarget;
+    private void checkIfAtTarget(double target, double tolerance) {
+        long currentTime = System.currentTimeMillis();
         
+        // STEP 1: Check if BOTH motors are within tolerance (ignore sync for now)
+        boolean leftInTolerance = Math.abs(leftRPM - target) <= tolerance;
+        boolean rightInTolerance = Math.abs(rightRPM - target) <= tolerance;
+        boolean bothMotorsInTolerance = leftInTolerance && rightInTolerance;
+        
+        // Calculate errors and elapsed time
+        double leftError = Math.abs(leftRPM - target);
+        double rightError = Math.abs(rightRPM - target);
+        long elapsed = stabilizationStartTime > 0 ? Math.max(0, currentTime - stabilizationStartTime) : 0;
+        
+        // STEP 2: Update atTargetRPM based on ONLY motor tolerance (removed sync check)
+        boolean wasAtTarget = atTargetRPM;
+        atTargetRPM = bothMotorsInTolerance;
+        
+        // Debug logging for atTargetRPM changes
         if (debugLogger != null && atTargetRPM != wasAtTarget) {
             debugLogger.infoPriority("DecodeHelper",
-                "atTargetRPM changed: " + wasAtTarget + " → " + atTargetRPM +
-                " (left=" + leftAtTarget + ", right=" + rightAtTarget + ", sync=" + syncOk + 
-                ", syncError=" + String.format("%.1f", rpmSyncError) + " RPM)");
+                String.format("atTargetRPM: %s → %s | leftRPM=%.0f (err=%.0f), rightRPM=%.0f (err=%.0f), target=%.0f, tol=%.0f",
+                    wasAtTarget, atTargetRPM, leftRPM, leftError, 
+                    rightRPM, rightError, target, tolerance));
         }
-
-        long currentTime = System.currentTimeMillis();
-        final long DEBOUNCE_MS = 100;  // Ignore tolerance violations shorter than this
-        final double UNLOCK_TOLERANCE_MULTIPLIER = 3.0;  // Only unlock if significantly off target
-
-        if (!bothMotorsAtTarget) {
-            // Motors out of tolerance - track when this started
-            if (lastOutOfToleranceTime == 0) {
-                lastOutOfToleranceTime = currentTime;
-                if (debugLogger != null && rpmStabilized) {
-                    debugLogger.debug("DecodeHelper",
-                        "⚠️ Motors out of tolerance (debouncing). left=" + String.format("%.1f", leftRPM) + 
-                        ", right=" + String.format("%.1f", rightRPM) + ", target=" + String.format("%.1f", target));
+        
+        // STEP 3: Handle stabilization timing
+        if (bothMotorsInTolerance) {
+            // Motors in tolerance - start timer if not started
+            if (stabilizationStartTime == 0) {
+                stabilizationStartTime = currentTime;
+                rpmStabilized = false;
+                if (debugLogger != null) {
+                    debugLogger.infoPriority("DecodeHelper", "Started stabilization timer");
                 }
             } else {
-                long outOfToleranceDuration = currentTime - lastOutOfToleranceTime;
-                
-                // If stabilized, only unlock if significantly out of tolerance for sustained period
-                if (rpmStabilized) {
-                    double unlockTolerance = tolerance * UNLOCK_TOLERANCE_MULTIPLIER;
-                    boolean significantlyOff = Math.abs(leftRPM - target) >= unlockTolerance || 
-                                               Math.abs(rightRPM - target) >= unlockTolerance;
-                    
-                    if (significantlyOff && outOfToleranceDuration >= DEBOUNCE_MS) {
-                        // Significantly off for sustained period - unlock
-                        if (debugLogger != null) {
-                            debugLogger.warningPriority("DecodeHelper",
-                                "🔓 UNLOCKED stabilization (significantly off for " + outOfToleranceDuration + "ms). " +
-                                "left=" + String.format("%.1f", leftRPM) + ", right=" + String.format("%.1f", rightRPM) + 
-                                ", target=" + String.format("%.1f", target) + ", unlockTolerance=" + String.format("%.1f", unlockTolerance));
-                        }
-                        rpmStabilized = false;
-                        stabilizationStartTime = 0;
-                    }
-                } else {
-                    // Not yet stabilized, reset immediately after debounce period
-                    if (outOfToleranceDuration >= DEBOUNCE_MS) {
-                        if (debugLogger != null && stabilizationStartTime > 0) {
-                            long elapsedBeforeReset = currentTime - stabilizationStartTime;
-                            debugLogger.debug("DecodeHelper",
-                                "🔄 Reset stabilization timer (out of tolerance for " + outOfToleranceDuration + "ms). " +
-                                "elapsed=" + elapsedBeforeReset + "ms");
-                        }
-                        stabilizationStartTime = 0;
+                // Timer running - check if enough time has passed
+                if (!rpmStabilized && elapsed >= ShooterConfig.RPM_STABILIZATION_TIME_MS) {
+                    rpmStabilized = true;
+                    if (debugLogger != null) {
+                        debugLogger.infoPriority("DecodeHelper",
+                            String.format("STABILIZED after %dms | leftRPM=%.0f, rightRPM=%.0f, target=%.0f",
+                                elapsed, leftRPM, rightRPM, target));
                     }
                 }
             }
         } else {
-            // Motors at target - clear debounce timer
-            lastOutOfToleranceTime = 0;
-            
-            if (stabilizationStartTime == 0 && !rpmStabilized) {
-                // Start tracking stabilization
-                stabilizationStartTime = currentTime;
+            // Motors out of tolerance - reset everything
+            if (stabilizationStartTime > 0 || rpmStabilized) {
                 if (debugLogger != null) {
-                    debugLogger.infoPriority("DecodeHelper",
-                        "⏱️ Started stabilization tracking");
+                    debugLogger.warningPriority("DecodeHelper",
+                        String.format("Lost target | leftRPM=%.0f (err=%.0f), rightRPM=%.0f (err=%.0f), target=%.0f, tol=%.0f",
+                            leftRPM, leftError, rightRPM, rightError, target, tolerance));
                 }
-            } else if (stabilizationStartTime > 0 && !rpmStabilized) {
-                // Check if stabilization period complete
-                long elapsedTime = currentTime - stabilizationStartTime;
-                if (elapsedTime >= ShooterConfig.RPM_STABILIZATION_TIME_MS) {
-                    rpmStabilized = true;
-                    if (debugLogger != null) {
-                        debugLogger.infoPriority("DecodeHelper",
-                            "🔒 LOCKED stabilization after " + elapsedTime + "ms. " +
-                            "leftRPM=" + String.format("%.1f", leftRPM) + 
-                            ", rightRPM=" + String.format("%.1f", rightRPM) +
-                            ", target=" + String.format("%.1f", target));
-                    }
-                } else if (debugLogger != null && elapsedTime % 100 < 20) {
-                    debugLogger.debug("DecodeHelper",
-                        "Stabilization progress: " + elapsedTime + "ms/" + ShooterConfig.RPM_STABILIZATION_TIME_MS + "ms");
-                }
+                stabilizationStartTime = 0;
+                rpmStabilized = false;
             }
+        }
+        
+        // STEP 4: Update live variables for monitoring AFTER all state updates (LIVE_VARS mode)
+        // Must be at the end so all flags show their final updated values
+        if (debugLogger != null) {
+            Map<String, Object> vars = new LinkedHashMap<>();
+            vars.put("currentTime", currentTime);
+            vars.put("target", target);
+            vars.put("tolerance", tolerance);
+            vars.put("leftRPM", leftRPM);
+            vars.put("leftError", leftError);
+            vars.put("leftInTolerance", leftInTolerance);
+            vars.put("rightRPM", rightRPM);
+            vars.put("rightError", rightError);
+            vars.put("rightInTolerance", rightInTolerance);
+            vars.put("bothMotorsInTolerance", bothMotorsInTolerance);
+            vars.put("atTargetRPM_FLAG", atTargetRPM);  // The internal flag
+            vars.put("isAtTargetRPM_METHOD", isAtTargetRPM());  // What the public method returns
+            vars.put("stabilizationStartTime", stabilizationStartTime);
+            vars.put("elapsed_ms", elapsed);
+            vars.put("threshold_ms", (long) ShooterConfig.RPM_STABILIZATION_TIME_MS);
+            vars.put("rpmStabilized_FLAG", rpmStabilized);  // The internal flag (NOW UPDATED!)
+            vars.put("isStabilized_METHOD", isStabilized());  // What the public method returns
+            debugLogger.updateLiveVars(vars);
         }
     }
 
@@ -689,40 +679,66 @@ public class DecodeHelper {
     }
     public double getTargetRPM() { return targetRPM; }
 
+    /**
+     * Check if shooter RPM is at target.
+     * Returns true when both motors are within tolerance.
+     * 
+     * @return true if at target RPM
+     */
     public boolean isAtTargetRPM() { 
-        if (debugLogger != null && System.currentTimeMillis() % 500 < 50) {
-            // Log every ~500ms to avoid spam
-            debugLogger.debug("DecodeHelper",
-                "isAtTargetRPM() called, returning: " + atTargetRPM +
-                " (leftRPM=" + String.format("%.0f", leftRPM) + 
-                ", rightRPM=" + String.format("%.0f", rightRPM) + 
-                ", target=" + String.format("%.0f", targetRPM) + 
-                ", syncError=" + String.format("%.0f", rpmSyncError) + ")");
+        // Simple direct calculation - no complex logic
+        if (targetRPM == 0) {
+            return false;
         }
-        return atTargetRPM; 
+        
+        double tolerance = getRPMTolerance();
+        boolean leftOk = Math.abs(leftRPM - targetRPM) <= tolerance;
+        boolean rightOk = Math.abs(rightRPM - targetRPM) <= tolerance;
+        boolean result = leftOk && rightOk;
+        
+        // Periodic debug logging
+        if (debugLogger != null && System.currentTimeMillis() % 1000 < 50) {
+            debugLogger.debug("DecodeHelper",
+                String.format("isAtTargetRPM=%s | L=%.0f(±%.0f) R=%.0f(±%.0f) T=%.0f tol=%.0f",
+                    result, leftRPM, Math.abs(leftRPM - targetRPM), 
+                    rightRPM, Math.abs(rightRPM - targetRPM), targetRPM, tolerance));
+        }
+        
+        return result;
     }
     
+    /**
+     * Check if RPM is stabilized (has been at target for required duration).
+     * Returns true when motors have been at target continuously for stabilization time.
+     * 
+     * @return true if RPM has been stable at target for the required time
+     */
     public boolean isStabilized() { 
-        long currentTime = System.currentTimeMillis();
-        long elapsedTime = stabilizationStartTime > 0 ? (currentTime - stabilizationStartTime) : 0;
-        boolean shouldBeStabilized = elapsedTime >= ShooterConfig.RPM_STABILIZATION_TIME_MS && stabilizationStartTime > 0;
-        
-        // If there's a mismatch between what SHOULD be true and what IS true, log with priority
-        if (debugLogger != null && shouldBeStabilized && !rpmStabilized) {
-            debugLogger.warningPriority("DecodeHelper",
-                "⚠️ MISMATCH: isStabilized() returning FALSE but shouldBeStabilized=TRUE! " +
-                "elapsed=" + elapsedTime + "ms, threshold=" + ShooterConfig.RPM_STABILIZATION_TIME_MS + "ms, " +
-                "startTime=" + stabilizationStartTime + ", rpmStabilized=" + rpmStabilized);
-        } else if (debugLogger != null && System.currentTimeMillis() % 500 < 50) {
-            // Log every ~500ms to avoid spam
-            debugLogger.debug("DecodeHelper",
-                "isStabilized() called, returning: " + rpmStabilized +
-                " (" + getStabilizationDebugInfo() + 
-                ", elapsed=" + elapsedTime + "ms" +
-                ", threshold=" + ShooterConfig.RPM_STABILIZATION_TIME_MS + "ms" +
-                ", shouldBeStabilized=" + shouldBeStabilized + ")");
+        // Simple check: do we have a valid stabilization time AND is flag set?
+        if (targetRPM == 0) {
+            return false;
         }
-        return rpmStabilized; 
+        
+        long currentTime = System.currentTimeMillis();
+        long elapsed = stabilizationStartTime > 0 ? (currentTime - stabilizationStartTime) : 0;
+        
+        // Direct calculation: both motors in tolerance AND enough time has passed
+        double tolerance = getRPMTolerance();
+        boolean leftOk = Math.abs(leftRPM - targetRPM) <= tolerance;
+        boolean rightOk = Math.abs(rightRPM - targetRPM) <= tolerance;
+        boolean atTarget = leftOk && rightOk;
+        boolean timeElapsed = elapsed >= ShooterConfig.RPM_STABILIZATION_TIME_MS;
+        boolean result = atTarget && timeElapsed && stabilizationStartTime > 0;
+        
+        // Periodic debug logging
+        if (debugLogger != null && System.currentTimeMillis() % 1000 < 50) {
+            debugLogger.debug("DecodeHelper",
+                String.format("isStabilized=%s | atTarget=%s time=%dms/%dms L=%.0f R=%.0f T=%.0f",
+                    result, atTarget, elapsed, ShooterConfig.RPM_STABILIZATION_TIME_MS,
+                    leftRPM, rightRPM, targetRPM));
+        }
+        
+        return result;
     }
     public boolean targetReached() { return atTargetRPM; }
     public boolean isReady() { return currentState == ShooterState.READY; }
