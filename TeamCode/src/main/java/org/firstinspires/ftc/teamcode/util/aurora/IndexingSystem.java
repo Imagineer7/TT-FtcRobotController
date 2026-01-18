@@ -1086,19 +1086,39 @@ public class IndexingSystem {
             long retractionTimeMs = ShooterConfig.UPTAKE_RETRACT_TIME_MS;
             
             if (retractionElapsed < retractionTimeMs) {
-                // Still retracting - wait
+                // Still retracting - maintain retraction power continuously
+                // Continuous servos need continuous power commands to keep running
+                if (hardware != null) {
+                    double retractPower = -0.5; // Retract downward
+                    if (hardware.getUptakeServoL() != null) {
+                        hardware.getUptakeServoL().setPower(retractPower);
+                    }
+                    if (hardware.getUptakeServoR() != null) {
+                        hardware.getUptakeServoR().setPower(retractPower);
+                    }
+                }
+                
                 if (config.isDebugTelemetry() && telemetry != null) {
-                    telemetry.addData("🔧 Uptake Retraction", String.format("%.0f/%.0fms", 
+                    telemetry.addData("🔧 Uptake Retraction", String.format("%.0f/%.0fms (maintaining -0.5 power)", 
                         (double)retractionElapsed, (double)retractionTimeMs));
                 }
                 return;
             } else {
-                // Retraction complete - start the push hardware now
+                // Retraction complete - stop uptake servos, then start the push hardware
+                if (hardware != null) {
+                    if (hardware.getUptakeServoL() != null) {
+                        hardware.getUptakeServoL().setPower(0.0);
+                    }
+                    if (hardware.getUptakeServoR() != null) {
+                        hardware.getUptakeServoR().setPower(0.0);
+                    }
+                }
+                
                 uptakeServoRetractionStartTime = 0; // Clear the flag
                 executePushHardware();
                 
                 if (config.isDebugTelemetry() && telemetry != null) {
-                    telemetry.addLine("✅ Uptake retraction complete - starting push hardware");
+                    telemetry.addLine("✅ Uptake retraction complete (400ms) - stopped servos and starting push hardware");
                 }
                 
                 // Reset operation start time now that hardware is actually starting
