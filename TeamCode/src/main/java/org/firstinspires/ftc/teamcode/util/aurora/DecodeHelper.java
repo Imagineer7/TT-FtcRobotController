@@ -405,7 +405,7 @@ public class DecodeHelper {
         // Calculate errors and elapsed time
         double leftError = Math.abs(leftRPM - target);
         double rightError = Math.abs(rightRPM - target);
-        long elapsed = stabilizationStartTime > 0 ? (currentTime - stabilizationStartTime) : 0;
+        long elapsed = stabilizationStartTime > 0 ? Math.max(0, currentTime - stabilizationStartTime) : 0;
         
         // Update live variables for monitoring (LIVE_VARS mode)
         if (debugLogger != null) {
