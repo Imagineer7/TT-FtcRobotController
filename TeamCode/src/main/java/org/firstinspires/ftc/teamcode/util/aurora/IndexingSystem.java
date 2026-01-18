@@ -1020,10 +1020,12 @@ public class IndexingSystem {
         // Clear any stale pending artifacts to prevent conflicts during push
         clearPendingArtifacts();
 
-        // Retract uptake servos during push operation to avoid interference
-        if (uptakeServoPrePositioned) {
-            retractUptakeServos();
-        }
+        // CRITICAL: Retract uptake servos during push operation to avoid interference
+        // The uptake servos must ALWAYS be retracted before a push operation, regardless
+        // of the pre-positioning flag state. Even after pre-positioning completes (500ms),
+        // the servos remain in the UP position holding the artifact. We must actively
+        // retract them DOWN so the artifact can be pushed OUT horizontally to the intake.
+        retractUptakeServos();
 
         // Determine opposite intake from where second artifact came
         Artifact.Location oppositeIntake = (lastIntakeSource == IntakeSource.FRONT)
@@ -1535,11 +1537,11 @@ public class IndexingSystem {
         clearPendingArtifacts();
 
         // CRITICAL: Retract uptake servos during push operation to avoid interference
-        // If uptake servos are pre-positioned (pushing artifact UP into shooter),
-        // we need to retract them DOWN so the artifact can be pushed OUT horizontally
-        if (uptakeServoPrePositioned) {
-            retractUptakeServos();
-        }
+        // The uptake servos must ALWAYS be retracted before a push operation, regardless
+        // of the pre-positioning flag state. Even after pre-positioning completes (500ms),
+        // the servos remain in the UP position holding the artifact. We must actively
+        // retract them DOWN so the artifact can be pushed OUT horizontally to the intake.
+        retractUptakeServos();
 
         // Get artifacts
         Artifact centerArtifact = artifactInCenter;
