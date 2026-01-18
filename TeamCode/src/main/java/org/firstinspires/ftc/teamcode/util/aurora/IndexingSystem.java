@@ -19,14 +19,14 @@ import java.util.List;
  *
  * 2. Second Artifact:
  *    - Enters center storage
- *    - Pushes first artifact into the opposite intake for storage
- *    - Remains in center storage (becomes forced first shot)
+ *    - Pushes first artifact into the opposite intake for storage unless in manual push mode
+ *    - If not in manual push mode: Remains in center storage (becomes forced first shot)
  *
  * 3. Third Artifact:
  *    - Stored in the same intake it was collected from
  *    - Does not push any other artifact
  *
- * EARLY FIRE HANDLING:
+ * EARLY FIRE HANDLING(when firing before 3 artifacts collected):
  * - One artifact: Transfer to center and fire
  * - Two artifacts: Can rearrange based on motif pattern using empty intake
  *   Example: Green in center, Purple in back, pattern wants Purple first
@@ -1236,6 +1236,9 @@ public class IndexingSystem {
     // ═══════════════════════════════════════════════════════════════════════
     // All firing logic has been removed and needs to be reimplemented
     // The following stubs are placeholders for future implementation
+
+
+    //No stubs???
 
     /**
      * ═══════════════════════════════════════════════════════════════════════
