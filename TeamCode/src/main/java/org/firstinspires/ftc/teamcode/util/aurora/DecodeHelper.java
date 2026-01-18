@@ -407,7 +407,11 @@ public class DecodeHelper {
         double rightError = Math.abs(rightRPM - target);
         long elapsed = stabilizationStartTime > 0 ? Math.max(0, currentTime - stabilizationStartTime) : 0;
         
-        // Update live variables for monitoring (LIVE_VARS mode)
+        // STEP 2: Update atTargetRPM based on ONLY motor tolerance (removed sync check)
+        boolean wasAtTarget = atTargetRPM;
+        atTargetRPM = bothMotorsInTolerance;
+        
+        // Update live variables for monitoring AFTER updating atTargetRPM (LIVE_VARS mode)
         if (debugLogger != null) {
             Map<String, Object> vars = new LinkedHashMap<>();
             vars.put("currentTime", currentTime);
@@ -420,17 +424,15 @@ public class DecodeHelper {
             vars.put("rightError", rightError);
             vars.put("rightInTolerance", rightInTolerance);
             vars.put("bothMotorsInTolerance", bothMotorsInTolerance);
-            vars.put("atTargetRPM", atTargetRPM);
+            vars.put("atTargetRPM_FLAG", atTargetRPM);  // The internal flag
+            vars.put("isAtTargetRPM_METHOD", isAtTargetRPM());  // What the public method returns
             vars.put("stabilizationStartTime", stabilizationStartTime);
             vars.put("elapsed_ms", elapsed);
             vars.put("threshold_ms", (long) ShooterConfig.RPM_STABILIZATION_TIME_MS);
-            vars.put("rpmStabilized", rpmStabilized);
+            vars.put("rpmStabilized_FLAG", rpmStabilized);  // The internal flag
+            vars.put("isStabilized_METHOD", isStabilized());  // What the public method returns
             debugLogger.updateLiveVars(vars);
         }
-        
-        // STEP 2: Update atTargetRPM based on ONLY motor tolerance (removed sync check)
-        boolean wasAtTarget = atTargetRPM;
-        atTargetRPM = bothMotorsInTolerance;
         
         // Debug logging for atTargetRPM changes
         if (debugLogger != null && atTargetRPM != wasAtTarget) {
