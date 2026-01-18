@@ -75,6 +75,7 @@ public class IndexingSystem {
     private final IndexingConfig config;
     private final Telemetry telemetry;
     private final Shooter shooter;
+    private final org.firstinspires.ftc.teamcode.util.debug.DebugLogger debugLogger;
 
     // System state
     private SystemState currentState;
@@ -145,6 +146,7 @@ public class IndexingSystem {
             this.config = config;
             this.shooter = shooter;
             this.telemetry = telemetry;
+            this.debugLogger = new org.firstinspires.ftc.teamcode.util.debug.DebugLogger();
 
             this.currentState = SystemState.IDLE;
             this.stateStartTime = System.currentTimeMillis();
@@ -166,6 +168,15 @@ public class IndexingSystem {
             this.lastError = "";
             this.errorCount = 0;
 
+            // Register debug checks for state tracking
+            debugLogger.registerCheck("readyToFire", "IndexingSystem is ready to fire");
+            debugLogger.registerCheck("artifactInCenter", "Has artifact in center slot");
+            debugLogger.registerCheck("operationInProgress", "Operation currently in progress");
+            debugLogger.registerCheck("systemIdle", "System in IDLE or READY_TO_FIRE state");
+
+            // Initialize live variables with default values so they're visible immediately
+            initializeLiveVariables();
+
             // Don't initialize hardware automatically - wait for enable() call
             // This prevents motors from running during initialization phase
 
@@ -173,6 +184,7 @@ public class IndexingSystem {
             if (telemetry != null && config != null && config.isDebugTelemetry()) {
                 telemetry.addLine("✅ IndexingSystem initialized successfully");
             }
+            debugLogger.info("IndexingSystem", "Initialized successfully");
         } catch (Exception e) {
             // Log initialization error
             if (telemetry != null) {
@@ -637,6 +649,9 @@ public class IndexingSystem {
         if (getArtifactCount() > 0) {
             planShotsWithMotif();
         }
+
+        // Update live variables for real-time monitoring
+        updateLiveVariables();
 
         // State machine processing FIRST (this may reset operationStartTime during state transitions)
         switch (currentState) {
@@ -1316,28 +1331,36 @@ public class IndexingSystem {
     private boolean handleEarlyFire() {
         int count = getArtifactCount();
 
+        debugLogger.info("EARLY_FIRE", String.format("handleEarlyFire called with %d artifacts", count));
+
         if (count == 1) {
             // One artifact: should be in center already or transfer it
             if (artifactInCenter != null) {
+                debugLogger.info("EARLY_FIRE", "Single artifact - starting firing");
                 return startFiring();
             } else {
                 // This shouldn't happen in normal operation
+                debugLogger.error("EARLY_FIRE", "Single artifact but none in center!");
                 setError("Early fire with 1 artifact but none in center");
                 return false;
             }
         } else if (count == 2) {
             // Two artifacts: can rearrange if needed based on motif pattern
+            debugLogger.info("EARLY_FIRE", "Two artifacts - checking if rearrangement needed");
             return handleTwoArtifactFire();
         } else if (count == 3) {
             // Full robot: fire the one in center (no rearrangement possible)
             if (artifactInCenter != null) {
+                debugLogger.info("EARLY_FIRE", "Three artifacts - firing center artifact");
                 return startFiring();
             } else {
+                debugLogger.error("EARLY_FIRE", "Fire signal but no artifact in center!");
                 setError("Fire signal but no artifact in center");
                 return false;
             }
         }
 
+        debugLogger.warning("EARLY_FIRE", "No artifacts to fire");
         return false;
     }
     
@@ -1460,8 +1483,12 @@ public class IndexingSystem {
      */
     private boolean startFiring() {
         if (artifactInCenter == null) {
+            debugLogger.warning("FIRING", "Cannot start firing - no artifact in center");
             return false;
         }
+
+        debugLogger.info("FIRING", "🔥 Starting firing sequence",
+            String.format("Artifact: %s #%d", artifactInCenter.getColor(), artifactInCenter.getCollectionOrder()));
 
         changeState(SystemState.FIRING);
         operationInProgress = true;
@@ -1644,27 +1671,55 @@ public class IndexingSystem {
         plannedThirdShot = null;
 
         if (artifactCount == 0) {
+            debugLogger.debug("SHOT_PLAN", "No artifacts to plan");
             return; // No artifacts to plan
         }
+
+        debugLogger.debug("SHOT_PLAN", String.format("Planning shots for %d artifacts (mode: %s, motif: %s)",
+            artifactCount, config.isManualPushMode() ? "MANUAL" : "AUTO", motifPattern));
 
         if (artifactCount == 3) {
             // 3 ARTIFACTS: Center fires first (no exceptions), plan 2nd/3rd by motif
             plannedFirstShot = artifactInCenter;
+            debugLogger.info("SHOT_PLAN", "3 artifacts: Center fires first (forced)");
             planSecondAndThirdShotsForThreeArtifacts();
 
         } else if (artifactCount == 2) {
             if (config.isManualPushMode()) {
                 // MANUAL MODE: Center fires first, plan second by motif
                 plannedFirstShot = artifactInCenter;
+                debugLogger.info("SHOT_PLAN", "2 artifacts (MANUAL): Center fires first");
                 planSecondShotForTwoArtifactsManualMode();
             } else {
                 // AUTO MODE: First shot can be planned using empty intake
+                debugLogger.info("SHOT_PLAN", "2 artifacts (AUTO): Checking if rearrangement needed");
                 planOptimalFirstShotForTwoArtifacts();
                 planSecondShotForTwoArtifactsAutoMode();
             }
         } else if (artifactCount == 1) {
             // Single artifact: Must fire what's in center (no planning needed)
             plannedFirstShot = artifactInCenter;
+            debugLogger.info("SHOT_PLAN", "1 artifact: Fire center artifact");
+        }
+
+        // Log final plan
+        if (plannedFirstShot != null) {
+            debugLogger.info("SHOT_PLAN", String.format("1st shot: %s #%d from %s",
+                plannedFirstShot.getColor(),
+                plannedFirstShot.getCollectionOrder(),
+                plannedFirstShot.getLocation()));
+        }
+        if (plannedSecondShot != null) {
+            debugLogger.info("SHOT_PLAN", String.format("2nd shot: %s #%d from %s",
+                plannedSecondShot.getColor(),
+                plannedSecondShot.getCollectionOrder(),
+                plannedSecondShot.getLocation()));
+        }
+        if (plannedThirdShot != null) {
+            debugLogger.info("SHOT_PLAN", String.format("3rd shot: %s #%d from %s",
+                plannedThirdShot.getColor(),
+                plannedThirdShot.getCollectionOrder(),
+                plannedThirdShot.getLocation()));
         }
 
         if (config.isDebugTelemetry() && telemetry != null) {
@@ -1977,8 +2032,20 @@ public class IndexingSystem {
     // ═══════════════════════════════════════════════════════════════════════
 
     private void changeState(SystemState newState) {
+        SystemState oldState = currentState;
         currentState = newState;
         stateStartTime = System.currentTimeMillis();
+
+        // Log all state transitions
+        debugLogger.info("STATE", String.format("State transition: %s → %s", oldState, newState));
+
+        // Update debug checks
+        debugLogger.updateCheck("systemIdle",
+            newState == SystemState.IDLE || newState == SystemState.READY_TO_FIRE,
+            "State: " + newState);
+        debugLogger.updateCheck("readyToFire",
+            (newState == SystemState.IDLE || newState == SystemState.READY_TO_FIRE) && artifactInCenter != null,
+            String.format("State: %s, Center: %s", newState, artifactInCenter != null ? "Has artifact" : "Empty"));
     }
 
     private void resetToIdle() {
@@ -2145,6 +2212,104 @@ public class IndexingSystem {
         debugMessages.clear();
     }
 
+    /**
+     * Get the debug logger for this indexing system
+     * @return Debug logger instance
+     */
+    public org.firstinspires.ftc.teamcode.util.debug.DebugLogger getDebugLogger() {
+        return debugLogger;
+    }
+
+    /**
+     * Initialize live variables with default values
+     * Called during construction so variables are visible immediately
+     */
+    private void initializeLiveVariables() {
+        java.util.Map<String, Object> vars = new java.util.LinkedHashMap<>();
+
+        // System state
+        vars.put("state", "IDLE");
+        vars.put("operationInProgress", false);
+        vars.put("artifactCount", 0);
+
+        // Artifact positions
+        vars.put("center", "EMPTY");
+        vars.put("frontIntake", "EMPTY");
+        vars.put("backIntake", "EMPTY");
+
+        // Shot planning
+        vars.put("motifPattern", "PPG (default)");
+        vars.put("plannedShot1", "none");
+        vars.put("plannedShot2", "none");
+        vars.put("plannedShot3", "none");
+
+        // Uptake servo status
+        vars.put("uptakePrePositioned", false);
+        vars.put("uptakeCompletedForArtifact", false);
+
+        // Ready to fire checks
+        vars.put("readyToFire", false);
+        vars.put("hasArtifactInCenter", false);
+
+        // Pending detection
+        vars.put("frontPending", "none");
+        vars.put("backPending", "none");
+
+        // Initialize with defaults
+        debugLogger.updateLiveVars(vars);
+    }
+
+    /**
+     * Update live variables for real-time monitoring in debugLogger
+     * Called every update cycle to provide current state information
+     */
+    private void updateLiveVariables() {
+        java.util.Map<String, Object> vars = new java.util.LinkedHashMap<>();
+
+        // System state
+        vars.put("state", currentState.toString());
+        vars.put("operationInProgress", operationInProgress);
+        vars.put("artifactCount", getArtifactCount());
+
+        // Artifact positions
+        vars.put("center", artifactInCenter != null ?
+            String.format("%s #%d", artifactInCenter.getColor(), artifactInCenter.getCollectionOrder()) : "EMPTY");
+        vars.put("frontIntake", artifactInFrontIntake != null ?
+            String.format("%s #%d", artifactInFrontIntake.getColor(), artifactInFrontIntake.getCollectionOrder()) : "EMPTY");
+        vars.put("backIntake", artifactInBackIntake != null ?
+            String.format("%s #%d", artifactInBackIntake.getColor(), artifactInBackIntake.getCollectionOrder()) : "EMPTY");
+
+        // Shot planning
+        vars.put("motifPattern", motifPattern + (motifPatternSet ? "" : " (default)"));
+        vars.put("plannedShot1", plannedFirstShot != null ?
+            String.format("%s #%d", plannedFirstShot.getColor(), plannedFirstShot.getCollectionOrder()) : "none");
+        vars.put("plannedShot2", plannedSecondShot != null ?
+            String.format("%s #%d", plannedSecondShot.getColor(), plannedSecondShot.getCollectionOrder()) : "none");
+        vars.put("plannedShot3", plannedThirdShot != null ?
+            String.format("%s #%d", plannedThirdShot.getColor(), plannedThirdShot.getCollectionOrder()) : "none");
+
+        // Uptake servo status
+        vars.put("uptakePrePositioned", uptakeServoPrePositioned);
+        vars.put("uptakeCompletedForArtifact", uptakeServoPrePositionedForCurrentArtifact);
+        if (uptakeServoActionTime > 0) {
+            long elapsed = System.currentTimeMillis() - uptakeServoActionTime;
+            vars.put("uptakeElapsedMs", elapsed);
+        }
+
+        // Ready to fire checks
+        vars.put("readyToFire", isReadyToFire());
+        vars.put("hasArtifactInCenter", artifactInCenter != null);
+
+        // Pending detection
+        vars.put("frontPending", frontPendingArtifact != null ?
+            String.format("%s (%.1fs)", frontPendingArtifact.getColor(), getRemainingColorDelay(IntakeSource.FRONT) / 1000.0) : "none");
+        vars.put("backPending", backPendingArtifact != null ?
+            String.format("%s (%.1fs)", backPendingArtifact.getColor(), getRemainingColorDelay(IntakeSource.BACK) / 1000.0) : "none");
+
+        // Update the logger with these variables
+        debugLogger.updateLiveVars(vars);
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // HARDWARE CONTROL METHODS
     // ═══════════════════════════════════════════════════════════════════════
@@ -2243,52 +2408,36 @@ public class IndexingSystem {
         try {
             double power = active ? config.getTransferServoPower() : config.getTransferServoIdlePower();
 
-            // DEBUG: Track ALL calls to this method, especially when setting to 0 power
-            if (config.isDebugTelemetry() && telemetry != null) {
-                StackTraceElement[] stack = Thread.currentThread().getStackTrace();
-                String caller = "UNKNOWN";
-                if (stack.length > 2) {
-                    StackTraceElement element = stack[2];
-                    caller = element.getMethodName() + ":" + element.getLineNumber();
-                }
-
-                // Always log when setting to 0 power, and log other calls if pre-positioning is active
-                if (!active || uptakeServoPrePositioned) {
-                    String callMsg = String.format("🔧 📞 setUptakeServos(%s, power=%.2f) called by %s", active, power, caller);
-                    addDebugMessage(callMsg);
-                }
+            // Get caller information for debugging
+            StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+            String caller = "UNKNOWN";
+            if (stack.length > 2) {
+                StackTraceElement element = stack[2];
+                caller = element.getMethodName() + ":" + element.getLineNumber();
             }
 
-            // DEBUG: Track if this method is being called when pre-positioning is active (CONFLICT)
-            if (!active && uptakeServoPrePositioned && config.isDebugTelemetry() && telemetry != null) {
-                StackTraceElement[] stack = Thread.currentThread().getStackTrace();
-                String caller = "UNKNOWN";
-                if (stack.length > 2) {
-                    StackTraceElement element = stack[2];
-                    caller = element.getMethodName() + ":" + element.getLineNumber();
-                }
-                String message = "⚠️ CONFLICT: setUptakeServos(false) called during pre-positioning by " + caller;
-                telemetry.addLine(message);
-                addDebugMessage(message);
+            // Log ALL calls to this critical method
+            debugLogger.info("UPTAKE_SERVO", String.format("setUptakeServos(%s, power=%.2f) called by %s",
+                active, power, caller));
+
+            // CRITICAL: Detect conflicting calls
+            if (!active && uptakeServoPrePositioned) {
+                debugLogger.warning("UPTAKE_SERVO", "⚠️ CONFLICT: Setting servos to STOP during pre-positioning!",
+                    "Called by: " + caller);
             }
 
             if (hardware.getUptakeServoL() != null) {
                 hardware.getUptakeServoL().setPower(power);
-                if (config.isDebugTelemetry() && telemetry != null && (!active || uptakeServoPrePositioned)) {
-                    String msg = String.format("🔧 🎛️ LEFT SERVO (setUptakeServos): Set to %.2f power", power);
-                    addDebugMessage(msg);
-                }
+                debugLogger.debug("UPTAKE_SERVO", String.format("Left servo set to %.2f", power));
             }
             if (hardware.getUptakeServoR() != null) {
                 hardware.getUptakeServoR().setPower(power);
-                if (config.isDebugTelemetry() && telemetry != null && (!active || uptakeServoPrePositioned)) {
-                    String msg = String.format("🔧 🎛️ RIGHT SERVO (setUptakeServos): Set to %.2f power", power);
-                    addDebugMessage(msg);
-                }
+                debugLogger.debug("UPTAKE_SERVO", String.format("Right servo set to %.2f", power));
             }
 
         } catch (Exception e) {
             setError("Failed to set uptake servos: " + e.getMessage());
+            debugLogger.error("UPTAKE_SERVO", "Exception in setUptakeServos", e.getMessage());
         }
     }
 
@@ -2747,21 +2896,33 @@ public class IndexingSystem {
      * Uptake servos feed artifact up into shooter for the configured fire feed time
      */
     private void executeFiringHardware() {
+        debugLogger.info("FIRING_HW", "executeFiringHardware() called");
+
         // Check if shooter is ready
         if (shooter != null && !shooter.isReadyToFire()) {
+            debugLogger.warning("FIRING_HW", "Shooter not ready!",
+                String.format("enabled=%s, atTarget=%s, stable=%s",
+                    shooter.isEnabled(), shooter.isAtTargetRPM(), shooter.isRPMStable()));
             if (config.isDebugTelemetry()) {
                 telemetry.addLine("Waiting for shooter to be ready...");
             }
             return;
         }
 
+        debugLogger.info("FIRING_HW", "Shooter is ready - initiating firing hardware");
+
         // Trigger shooter fire
         if (shooter != null) {
+            debugLogger.debug("FIRING_HW", "Calling shooter.fire()");
             shooter.fire();
         }
 
         // Uptake servos feed artifact up into shooter at full power
         // This runs for the configured fireFeedTime (0.8 seconds by default)
+        debugLogger.info("FIRING_HW", "⬆️ ACTIVATING UPTAKE SERVOS",
+            String.format("Duration: %.1fs, Artifact in center: %s",
+                config.getFireFeedTime(),
+                artifactInCenter != null ? artifactInCenter.getColor().toString() : "NONE"));
         setUptakeServos(true);
 
         // Mark that we're no longer pre-positioned since we're actively firing

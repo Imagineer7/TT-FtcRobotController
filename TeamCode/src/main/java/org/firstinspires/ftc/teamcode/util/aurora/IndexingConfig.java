@@ -38,7 +38,7 @@ public class IndexingConfig {
     // ═══════════════════════════════════════════════════════════════════════
 
     /** Time for transfer servo operation to move artifact to center (seconds) */
-    private double transferServoTime = 2.0;
+    private double transferServoTime = 1.2;
 
     /** Power for transfer servo when active - CRServo runs at this power (-1.0 to 1.0) */
     private double transferServoPower = -1.0;  // Negative to reverse direction
@@ -79,7 +79,7 @@ public class IndexingConfig {
     private double fireFeedPower = 1.0;
 
     /** Delay after firing before next operation can start (seconds) */
-    private double postFireDelay = 0.5;
+    private double postFireDelay = 2.0;
 
     /** Minimum time shooter must be running before firing (seconds) */
     private double minShooterSpinupTime = 0.5;
@@ -99,10 +99,10 @@ public class IndexingConfig {
     private double revSensorBaselineDistance = 25.0;
 
     /** Threshold below baseline that indicates artifact presence (centimeters) */
-    private double revSensorDetectionThreshold = 15.0;  // Artifact detected when < 15cm
+    private double revSensorDetectionThreshold = 18.0;  // Artifact detected when < 15cm
 
     /** Weight given to REV sensors vs original laser sensors (0.0 to 1.0) */
-    private double revSensorWeight = 0.3;  // 30% REV sensors, 70% laser sensors
+    private double revSensorWeight = 0.4;  // 30% REV sensors, 70% laser sensors
 
     /** Minimum time sensor must detect artifact before confirming (seconds) */
     private double sensorDebounceTime = 0.1;
@@ -118,7 +118,7 @@ public class IndexingConfig {
     private double colorDetectionMinScore = 0.6;
 
     /** Time to wait after artifact detection for stable color reading (seconds) */
-    private double colorDetectionDelay = 0.4;
+    private double colorDetectionDelay = 0.1;
 
     // ═══════════════════════════════════════════════════════════════════════
     // STATE MACHINE PARAMETERS
