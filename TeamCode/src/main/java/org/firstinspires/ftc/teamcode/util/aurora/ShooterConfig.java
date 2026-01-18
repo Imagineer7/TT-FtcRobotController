@@ -222,7 +222,7 @@ public class ShooterConfig {
     public static final long RPM_STABILIZATION_TIME_MS = 250;
 
     /** Default RPM tolerance for "at target" status */
-    public static final double RPM_TOLERANCE = 75.0;
+    public static final double RPM_TOLERANCE = 100.0;
 
     /** Warm-up mode spin-up percentage (65% of target) */
     public static final double WARMUP_PERCENTAGE = 0.65;

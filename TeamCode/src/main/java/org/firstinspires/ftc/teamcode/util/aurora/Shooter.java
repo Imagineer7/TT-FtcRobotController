@@ -52,7 +52,18 @@ public class Shooter {
      * @param telemetry The telemetry system for logging
      */
     public Shooter(AuroraHardwareConfig hardware, ShooterConfig config, Telemetry telemetry) {
-        this.decodeHelper = new DecodeHelper(hardware, telemetry);
+        this(hardware, config, telemetry, null);
+    }
+
+    /**
+     * Create a new Shooter instance with debug logger
+     * @param hardware The Aurora hardware configuration
+     * @param config The shooter configuration
+     * @param telemetry The telemetry system for logging
+     * @param debugLogger Debug logger for detailed logging
+     */
+    public Shooter(AuroraHardwareConfig hardware, ShooterConfig config, Telemetry telemetry, org.firstinspires.ftc.teamcode.util.debug.DebugLogger debugLogger) {
+        this.decodeHelper = new DecodeHelper(hardware, telemetry, debugLogger);
         this.config = config;
         this.telemetry = telemetry;
         this.enabled = false;
@@ -207,17 +218,8 @@ public class Shooter {
      * @return true if at target RPM and stable
      */
     public boolean isReadyToFire() {
-        // TEMPORARY: Bypass all checks for debugging
-        // Just check if we're enabled and at target RPM
-        boolean simpleReady = enabled && decodeHelper.isAtTargetRPM();
-
-        telemetry.addLine("🔍 SIMPLIFIED isReadyToFire():");
-        telemetry.addData("  enabled", enabled);
-        telemetry.addData("  atTargetRPM", decodeHelper.isAtTargetRPM());
-        telemetry.addData("  decodeState", decodeHelper.getState());
-        telemetry.addData("  SIMPLE RESULT", simpleReady);
-
-        return simpleReady;
+        // Check if we're enabled, at target RPM, and stabilized
+        return enabled && decodeHelper.isAtTargetRPM() && decodeHelper.isStabilized();
     }
 
     /**

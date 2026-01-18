@@ -2029,8 +2029,12 @@ public class IndexingSystem {
     
     public List<Artifact> getAllArtifacts() { return new ArrayList<>(artifacts); }
     
-    public boolean isReadyToFire() { 
-        return currentState == SystemState.READY_TO_FIRE && artifactInCenter != null; 
+    public boolean isReadyToFire() {
+        // Ready to fire if we have an artifact in center and are in IDLE or READY_TO_FIRE state
+        // IDLE state allows continued artifact collection while still being able to fire
+        // READY_TO_FIRE state is the traditional ready state
+        return (currentState == SystemState.IDLE || currentState == SystemState.READY_TO_FIRE) 
+               && artifactInCenter != null;
     }
     
     public boolean isOperationInProgress() { return operationInProgress; }
