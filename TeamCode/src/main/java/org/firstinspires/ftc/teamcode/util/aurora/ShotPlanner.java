@@ -320,10 +320,12 @@ public class ShotPlanner {
             orders.add(swappedOrder);
         } else if (count == 3) {
             // Only current physical order is possible (no rearrangement)
+            // Physical order: center, front intake, back intake
             List<Artifact> currentOrder = new ArrayList<>();
             if (artifactInCenter != null) {
                 currentOrder.add(artifactInCenter);
             }
+            // Add artifacts in physical position order (front then back)
             if (artifactInFrontIntake != null) {
                 currentOrder.add(artifactInFrontIntake);
             }
@@ -390,24 +392,39 @@ public class ShotPlanner {
     }
 
     /**
-     * Build default order (collection order) when planning is skipped
-     * Default order: center artifact, then by collection order
+     * Build default order when planning is skipped
+     * Default order: respects physical positions (center, front intake, back intake)
+     * This ensures the physical firing order is used when no rearrangement is possible
      */
     private List<Artifact> buildDefaultOrder(List<Artifact> artifacts) {
         List<Artifact> defaultOrder = new ArrayList<>();
 
-        // Get active artifacts
-        List<Artifact> activeArtifacts = new ArrayList<>();
+        // Get active artifacts and group by location
+        Artifact centerArtifact = null;
+        Artifact frontArtifact = null;
+        Artifact backArtifact = null;
+
         for (Artifact a : artifacts) {
-            if (a.getLocation() != Artifact.Location.FIRED) {
-                activeArtifacts.add(a);
+            if (a.getLocation() == Artifact.Location.CENTER_STORAGE) {
+                centerArtifact = a;
+            } else if (a.getLocation() == Artifact.Location.FRONT_INTAKE) {
+                frontArtifact = a;
+            } else if (a.getLocation() == Artifact.Location.BACK_INTAKE) {
+                backArtifact = a;
             }
         }
 
-        // Sort by collection order
-        activeArtifacts.sort((a1, a2) -> Integer.compare(a1.getCollectionOrder(), a2.getCollectionOrder()));
+        // Build order: center first, then front intake, then back intake
+        if (centerArtifact != null) {
+            defaultOrder.add(centerArtifact);
+        }
+        if (frontArtifact != null) {
+            defaultOrder.add(frontArtifact);
+        }
+        if (backArtifact != null) {
+            defaultOrder.add(backArtifact);
+        }
 
-        defaultOrder.addAll(activeArtifacts);
         return defaultOrder;
     }
 }
