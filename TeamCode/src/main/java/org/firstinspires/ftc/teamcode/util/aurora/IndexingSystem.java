@@ -120,6 +120,7 @@ public class IndexingSystem {
     private boolean uptakeServoPrePositioned = false;
     private long uptakeServoActionTime = 0;
     private boolean uptakeServoPrePositionedForCurrentArtifact = false; // Tracks if we've pre-positioned for current center artifact
+    private long uptakeServoRetractionStartTime = 0; // Tracks when retraction started for timing
     private long lastSensorCheck = 0;
     private static final long SENSOR_CHECK_INTERVAL = 50; // 50ms = 20Hz
 
@@ -1061,8 +1062,7 @@ public class IndexingSystem {
         // Update intake modes immediately to prevent false detection
         updateIntakeModes();
 
-        // Start hardware for push operation
-        executePushHardware();
+        // NOTE: Hardware start deferred - will be triggered by updatePushing() once retraction completes
 
         if (config.isDebugTelemetry()) {
             telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -1080,6 +1080,34 @@ public class IndexingSystem {
      * Update pushing state
      */
     private void updatePushing(long elapsedTime) {
+        // Check if we need to wait for uptake servo retraction to complete
+        if (uptakeServoRetractionStartTime > 0) {
+            long retractionElapsed = System.currentTimeMillis() - uptakeServoRetractionStartTime;
+            long retractionTimeMs = ShooterConfig.UPTAKE_RETRACT_TIME_MS;
+            
+            if (retractionElapsed < retractionTimeMs) {
+                // Still retracting - wait
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addData("🔧 Uptake Retraction", String.format("%.0f/%.0fms", 
+                        (double)retractionElapsed, (double)retractionTimeMs));
+                }
+                return;
+            } else {
+                // Retraction complete - start the push hardware now
+                uptakeServoRetractionStartTime = 0; // Clear the flag
+                executePushHardware();
+                
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("✅ Uptake retraction complete - starting push hardware");
+                }
+                
+                // Reset operation start time now that hardware is actually starting
+                operationStartTime = System.currentTimeMillis();
+                return;
+            }
+        }
+        
+        // Normal push operation timing
         long totalPushTime = config.getPushStartDelayMs() + 
                             config.getSecondArtifactPushTimeMs() + 
                             config.getStorageIntakeAcceptTimeMs();
@@ -1592,8 +1620,7 @@ public class IndexingSystem {
         // Set lastIntakeSource for hardware control
         lastIntakeSource = storageSource;
 
-        // Start hardware for rearrangement push operation
-        executePushHardware();
+        // NOTE: Hardware start deferred - will be triggered by updatePushing() once retraction completes
 
         if (config.isDebugTelemetry() && telemetry != null) {
             telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -2185,9 +2212,13 @@ public class IndexingSystem {
             uptakeServoPrePositioned = false;
             // FIXED: Clear action time instead of resetting it to prevent timing interference
             uptakeServoActionTime = 0;
+            
+            // Track retraction start time for proper timing before push operations
+            uptakeServoRetractionStartTime = System.currentTimeMillis();
 
             if (config.isDebugTelemetry() && telemetry != null) {
-                String message = "🔧 ⚠️ UPTAKE RETRACTED: Push operation interference!";
+                String message = String.format("🔧 ⚠️ UPTAKE RETRACTED: Push operation interference! (wait %dms)", 
+                    ShooterConfig.UPTAKE_RETRACT_TIME_MS);
                 telemetry.addLine(message);
                 addDebugMessage(message);
             }
