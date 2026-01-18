@@ -79,6 +79,8 @@ public class DebugLogger {
     private final Map<String, BooleanTree> booleanTrees = new LinkedHashMap<>();
     private final Map<String, Long> lastLogTimes = new LinkedHashMap<>(); // Rate limiting
     private final Map<String, Object> liveVariables = new LinkedHashMap<>(); // Live variable monitoring
+    private final Map<String, Object> lastDisplayedLiveVars = new LinkedHashMap<>(); // Cache for display throttling
+    private final Map<String, List<VariableHistory>> liveVariableHistory = new LinkedHashMap<>(); // History tracking
     private final long startTime;
     private LogLevel minLevel = LogLevel.DEBUG;
     private DisplayMode displayMode = DisplayMode.FULL;
@@ -87,11 +89,30 @@ public class DebugLogger {
     private String categoryFilter = null;
     private long rateLimitMs = 250; // Default rate limit: 250ms per unique message
     private String currentClassPage = null; // For BY_CLASS mode
-    
+    private long liveVarsUpdateRateMs = 500; // Update live vars display every 500ms (default)
+    private long lastLiveVarsDisplayTime = 0; // Track last display update
+
     public DebugLogger() {
         this.startTime = System.currentTimeMillis();
     }
     
+    /**
+     * Set the update rate for live variables display (in milliseconds)
+     * Default is 500ms. Higher values = slower updates, easier to read
+     * @param rateMs Update rate in milliseconds (e.g., 500 = update 2x per second)
+     */
+    public void setLiveVarsUpdateRate(long rateMs) {
+        this.liveVarsUpdateRateMs = Math.max(100, rateMs); // Minimum 100ms
+    }
+
+    /**
+     * Get the current live variables update rate
+     * @return Update rate in milliseconds
+     */
+    public long getLiveVarsUpdateRate() {
+        return liveVarsUpdateRateMs;
+    }
+
     // === Logging Methods ===
     
     public void debug(String category, String message) {
@@ -242,17 +263,57 @@ public class DebugLogger {
     // === Live Variable Monitoring ===
     
     /**
+     * Inner class to track variable history
+     */
+    private static class VariableHistory {
+        final Object value;
+        final long timestamp;
+
+        VariableHistory(Object value, long timestamp) {
+            this.value = value;
+            this.timestamp = timestamp;
+        }
+    }
+
+    /**
      * Update a live variable for monitoring (no log entry created)
      */
     public void updateLiveVar(String varName, Object value) {
+        Object oldValue = liveVariables.get(varName);
         liveVariables.put(varName, value);
+
+        // Track history if value changed
+        if (oldValue == null || !oldValue.equals(value)) {
+            addToHistory(varName, value);
+        }
     }
     
     /**
      * Update multiple live variables at once
      */
     public void updateLiveVars(Map<String, Object> vars) {
-        liveVariables.putAll(vars);
+        for (Map.Entry<String, Object> entry : vars.entrySet()) {
+            updateLiveVar(entry.getKey(), entry.getValue());
+        }
+    }
+
+    /**
+     * Add a value to variable history
+     */
+    private void addToHistory(String varName, Object value) {
+        List<VariableHistory> history = liveVariableHistory.get(varName);
+        if (history == null) {
+            history = new ArrayList<>();
+            liveVariableHistory.put(varName, history);
+        }
+
+        // Add new entry
+        history.add(new VariableHistory(value, System.currentTimeMillis()));
+
+        // Keep only last 5 entries
+        while (history.size() > 5) {
+            history.remove(0);
+        }
     }
     
     /**
@@ -548,7 +609,8 @@ public class DebugLogger {
     
     private void displayLiveVars(Telemetry telemetry) {
         telemetry.addLine("=== LIVE VARIABLES ===");
-        telemetry.addLine("Real-time monitoring (no scroll)");
+        telemetry.addLine(String.format("Update Rate: %.1f/sec (%dms)",
+            1000.0 / liveVarsUpdateRateMs, liveVarsUpdateRateMs));
         telemetry.addLine("");
         
         if (liveVariables.isEmpty()) {
@@ -557,13 +619,43 @@ public class DebugLogger {
             return;
         }
         
-        telemetry.addData("Variables", liveVariables.size());
+        // Check if enough time has passed to update display
+        long currentTime = System.currentTimeMillis();
+        long timeSinceLastDisplay = currentTime - lastLiveVarsDisplayTime;
+
+        if (timeSinceLastDisplay >= liveVarsUpdateRateMs) {
+            // Time to update - copy live variables to display cache
+            lastDisplayedLiveVars.clear();
+            lastDisplayedLiveVars.putAll(liveVariables);
+            lastLiveVarsDisplayTime = currentTime;
+        }
+
+        telemetry.addData("Variables", lastDisplayedLiveVars.size());
+        telemetry.addData("Last Update", String.format("%.1fs ago", timeSinceLastDisplay / 1000.0));
         telemetry.addLine("");
         
-        // Display all live variables in order
-        for (Map.Entry<String, Object> entry : liveVariables.entrySet()) {
-            String value = formatValue(entry.getValue());
-            telemetry.addData(entry.getKey(), value);
+        // Display cached live variables with history
+        for (Map.Entry<String, Object> entry : lastDisplayedLiveVars.entrySet()) {
+            String varName = entry.getKey();
+            String currentValue = formatValue(entry.getValue());
+
+            // Display current value
+            telemetry.addData(varName, currentValue);
+
+            // Show history if available (last 5 changes)
+            List<VariableHistory> history = liveVariableHistory.get(varName);
+            if (history != null && history.size() > 1) {
+                // Show previous states (skip the most recent as it's shown as current)
+                int count = Math.min(4, history.size() - 1);
+                for (int i = history.size() - 2; i >= history.size() - 2 - count + 1 && i >= 0; i--) {
+                    VariableHistory vh = history.get(i);
+                    long elapsed = currentTime - vh.timestamp;
+                    String timeStr = elapsed < 1000 ?
+                        String.format("%dms ago", elapsed) :
+                        String.format("%.1fs ago", elapsed / 1000.0);
+                    telemetry.addData("  " + timeStr, formatValue(vh.value));
+                }
+            }
         }
     }
     
