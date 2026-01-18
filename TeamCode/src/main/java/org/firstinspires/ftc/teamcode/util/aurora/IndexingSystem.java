@@ -1020,6 +1020,12 @@ public class IndexingSystem {
         // Clear any stale pending artifacts to prevent conflicts during push
         clearPendingArtifacts();
 
+        // IMPORTANT: Set operation in progress and change state BEFORE retracting to prevent
+        // state machine from re-enabling pre-positioning in IDLE/READY_TO_FIRE states
+        operationInProgress = true;
+        changeState(SystemState.PUSHING);
+        operationStartTime = System.currentTimeMillis();
+
         // CRITICAL: Retract uptake servos during push operation to avoid interference
         // The uptake servos must ALWAYS be retracted before a push operation, regardless
         // of the pre-positioning flag state. Even after pre-positioning completes (500ms),
@@ -1054,9 +1060,6 @@ public class IndexingSystem {
 
         // Update intake modes immediately to prevent false detection
         updateIntakeModes();
-
-        changeState(SystemState.PUSHING);
-        operationStartTime = System.currentTimeMillis();
 
         // Start hardware for push operation
         executePushHardware();
@@ -1536,6 +1539,12 @@ public class IndexingSystem {
         // Clear any stale pending artifacts to prevent conflicts during push
         clearPendingArtifacts();
 
+        // IMPORTANT: Set operation in progress and change state BEFORE retracting to prevent
+        // state machine from re-enabling pre-positioning in IDLE/READY_TO_FIRE states
+        operationInProgress = true;
+        changeState(SystemState.PUSHING);
+        operationStartTime = System.currentTimeMillis();
+
         // CRITICAL: Retract uptake servos during push operation to avoid interference
         // The uptake servos must ALWAYS be retracted before a push operation, regardless
         // of the pre-positioning flag state. Even after pre-positioning completes (500ms),
@@ -1579,10 +1588,6 @@ public class IndexingSystem {
 
         // Update intake modes immediately
         updateIntakeModes();
-
-        changeState(SystemState.PUSHING);
-        operationInProgress = true;
-        operationStartTime = System.currentTimeMillis();
 
         // Set lastIntakeSource for hardware control
         lastIntakeSource = storageSource;
