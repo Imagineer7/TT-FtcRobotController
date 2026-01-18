@@ -43,7 +43,8 @@ public class DebugLogger {
         BOOLEAN_TREE,   // Show only boolean condition checks
         RECENT,         // Show only last N entries
         BY_CLASS,       // Show logs grouped by class/category
-        PRIORITY        // Show only priority-flagged messages
+        PRIORITY,       // Show only priority-flagged messages
+        LIVE_VARS       // Show live variable values (no scrolling)
     }
     
     private static class LogEntry {
@@ -77,6 +78,7 @@ public class DebugLogger {
     private final Map<String, BooleanCheck> booleanChecks = new LinkedHashMap<>();
     private final Map<String, BooleanTree> booleanTrees = new LinkedHashMap<>();
     private final Map<String, Long> lastLogTimes = new LinkedHashMap<>(); // Rate limiting
+    private final Map<String, Object> liveVariables = new LinkedHashMap<>(); // Live variable monitoring
     private final long startTime;
     private LogLevel minLevel = LogLevel.DEBUG;
     private DisplayMode displayMode = DisplayMode.FULL;
@@ -237,6 +239,36 @@ public class DebugLogger {
         }
     }
     
+    // === Live Variable Monitoring ===
+    
+    /**
+     * Update a live variable for monitoring (no log entry created)
+     */
+    public void updateLiveVar(String varName, Object value) {
+        liveVariables.put(varName, value);
+    }
+    
+    /**
+     * Update multiple live variables at once
+     */
+    public void updateLiveVars(Map<String, Object> vars) {
+        liveVariables.putAll(vars);
+    }
+    
+    /**
+     * Clear all live variables
+     */
+    public void clearLiveVars() {
+        liveVariables.clear();
+    }
+    
+    /**
+     * Get current live variables
+     */
+    public Map<String, Object> getLiveVariables() {
+        return new LinkedHashMap<>(liveVariables);
+    }
+    
     // === Configuration ===
     
     public void setMinLevel(LogLevel level) {
@@ -348,6 +380,9 @@ public class DebugLogger {
                 break;
             case PRIORITY:
                 displayPriority(telemetry);
+                break;
+            case LIVE_VARS:
+                displayLiveVars(telemetry);
                 break;
         }
     }
@@ -508,6 +543,47 @@ public class DebugLogger {
         int start = Math.max(0, priorityLogs.size() - maxRecentEntries);
         for (int i = start; i < priorityLogs.size(); i++) {
             telemetry.addLine("🔥 " + formatLogEntry(priorityLogs.get(i)));
+        }
+    }
+    
+    private void displayLiveVars(Telemetry telemetry) {
+        telemetry.addLine("=== LIVE VARIABLES ===");
+        telemetry.addLine("Real-time monitoring (no scroll)");
+        telemetry.addLine("");
+        
+        if (liveVariables.isEmpty()) {
+            telemetry.addLine("No live variables registered");
+            telemetry.addLine("Use updateLiveVar() to add");
+            return;
+        }
+        
+        telemetry.addData("Variables", liveVariables.size());
+        telemetry.addLine("");
+        
+        // Display all live variables in order
+        for (Map.Entry<String, Object> entry : liveVariables.entrySet()) {
+            String value = formatValue(entry.getValue());
+            telemetry.addData(entry.getKey(), value);
+        }
+    }
+    
+    /**
+     * Format a value for display based on its type
+     */
+    private String formatValue(Object value) {
+        if (value == null) {
+            return "null";
+        } else if (value instanceof Double) {
+            return String.format("%.1f", (Double) value);
+        } else if (value instanceof Float) {
+            return String.format("%.1f", (Float) value);
+        } else if (value instanceof Long) {
+            return String.format("%d", (Long) value);
+        } else if (value instanceof Boolean) {
+            Boolean b = (Boolean) value;
+            return b ? "✓ TRUE" : "✗ FALSE";
+        } else {
+            return value.toString();
         }
     }
     

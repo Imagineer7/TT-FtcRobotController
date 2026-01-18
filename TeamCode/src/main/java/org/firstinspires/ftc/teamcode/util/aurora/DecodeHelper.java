@@ -5,6 +5,8 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.util.debug.DebugLogger;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * DecodeHelper - DECODE Season Game-Specific Shooter Subsystem
@@ -400,6 +402,32 @@ public class DecodeHelper {
         boolean rightInTolerance = Math.abs(rightRPM - target) <= tolerance;
         boolean bothMotorsInTolerance = leftInTolerance && rightInTolerance;
         
+        // Calculate errors and elapsed time
+        double leftError = Math.abs(leftRPM - target);
+        double rightError = Math.abs(rightRPM - target);
+        long elapsed = stabilizationStartTime > 0 ? (currentTime - stabilizationStartTime) : 0;
+        
+        // Update live variables for monitoring (LIVE_VARS mode)
+        if (debugLogger != null) {
+            Map<String, Object> vars = new LinkedHashMap<>();
+            vars.put("currentTime", currentTime);
+            vars.put("target", target);
+            vars.put("tolerance", tolerance);
+            vars.put("leftRPM", leftRPM);
+            vars.put("leftError", leftError);
+            vars.put("leftInTolerance", leftInTolerance);
+            vars.put("rightRPM", rightRPM);
+            vars.put("rightError", rightError);
+            vars.put("rightInTolerance", rightInTolerance);
+            vars.put("bothMotorsInTolerance", bothMotorsInTolerance);
+            vars.put("atTargetRPM", atTargetRPM);
+            vars.put("stabilizationStartTime", stabilizationStartTime);
+            vars.put("elapsed_ms", elapsed);
+            vars.put("threshold_ms", (long) ShooterConfig.RPM_STABILIZATION_TIME_MS);
+            vars.put("rpmStabilized", rpmStabilized);
+            debugLogger.updateLiveVars(vars);
+        }
+        
         // STEP 2: Update atTargetRPM based on ONLY motor tolerance (removed sync check)
         boolean wasAtTarget = atTargetRPM;
         atTargetRPM = bothMotorsInTolerance;
@@ -408,8 +436,8 @@ public class DecodeHelper {
         if (debugLogger != null && atTargetRPM != wasAtTarget) {
             debugLogger.infoPriority("DecodeHelper",
                 String.format("atTargetRPM: %s → %s | leftRPM=%.0f (err=%.0f), rightRPM=%.0f (err=%.0f), target=%.0f, tol=%.0f",
-                    wasAtTarget, atTargetRPM, leftRPM, Math.abs(leftRPM - target), 
-                    rightRPM, Math.abs(rightRPM - target), target, tolerance));
+                    wasAtTarget, atTargetRPM, leftRPM, leftError, 
+                    rightRPM, rightError, target, tolerance));
         }
         
         // STEP 3: Handle stabilization timing
@@ -423,7 +451,6 @@ public class DecodeHelper {
                 }
             } else {
                 // Timer running - check if enough time has passed
-                long elapsed = currentTime - stabilizationStartTime;
                 if (!rpmStabilized && elapsed >= ShooterConfig.RPM_STABILIZATION_TIME_MS) {
                     rpmStabilized = true;
                     if (debugLogger != null) {
@@ -439,7 +466,7 @@ public class DecodeHelper {
                 if (debugLogger != null) {
                     debugLogger.warningPriority("DecodeHelper",
                         String.format("Lost target | leftRPM=%.0f (err=%.0f), rightRPM=%.0f (err=%.0f), target=%.0f, tol=%.0f",
-                            leftRPM, Math.abs(leftRPM - target), rightRPM, Math.abs(rightRPM - target), target, tolerance));
+                            leftRPM, leftError, rightRPM, rightError, target, tolerance));
                 }
                 stabilizationStartTime = 0;
                 rpmStabilized = false;
