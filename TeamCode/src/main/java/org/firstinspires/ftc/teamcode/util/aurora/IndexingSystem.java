@@ -1614,17 +1614,30 @@ public class IndexingSystem {
      * Consume the fired artifact - remove from shot plan and update state
      */
     private void consumeFiredArtifact(Artifact firedArtifact) {
+        System.out.println(String.format("[IndexingSystem] consumeFiredArtifact: Removing %s #%d from list (current size: %d)", 
+            firedArtifact.getColor(), firedArtifact.getCollectionOrder(), artifacts.size()));
+        
         // Update artifact location to FIRED
         Artifact consumedArtifact = firedArtifact.withLocation(Artifact.Location.FIRED);
         
         // Remove the FIRED artifact from the artifacts list
+        boolean found = false;
         for (int i = 0; i < artifacts.size(); i++) {
             if (artifacts.get(i).equals(firedArtifact)) {
-                artifacts.set(i, consumedArtifact);
-                artifacts.remove(i);  // Actually remove from list to prevent phantom counts
+                System.out.println(String.format("[IndexingSystem] Found artifact at index %d, removing it", i));
+                artifacts.remove(i);  // Just remove it - no need to set it first
+                found = true;
                 break;
             }
         }
+        
+        if (!found) {
+            System.out.println(String.format("[IndexingSystem] WARNING: Could not find artifact %s #%d to remove!", 
+                firedArtifact.getColor(), firedArtifact.getCollectionOrder()));
+        }
+        
+        System.out.println(String.format("[IndexingSystem] After removal: artifact list size = %d, getArtifactCount() = %d", 
+            artifacts.size(), getArtifactCount()));
 
         // Clear center slot
         artifactInCenter = null;
@@ -1668,6 +1681,8 @@ public class IndexingSystem {
 
         // Check if more artifacts remain
         if (getArtifactCount() == 0) {
+            System.out.println(String.format("[IndexingSystem] No more artifacts to fire (list size=%d, count=%d)", 
+                artifacts.size(), getArtifactCount()));
             if (config.isDebugTelemetry() && telemetry != null) {
                 telemetry.addLine("✅ All artifacts fired - sequence complete");
             }
@@ -1771,7 +1786,8 @@ public class IndexingSystem {
      * Prepares for new collection cycle
      */
     private void resetAfterFiringComplete() {
-        System.out.println("[IndexingSystem] Performing full system reset after firing complete");
+        System.out.println(String.format("[IndexingSystem] Performing full system reset after firing complete (current artifacts: %d, count: %d)", 
+            artifacts.size(), getArtifactCount()));
         
         // Clear all artifact data (including any FIRED artifacts still in list)
         artifacts.clear();
