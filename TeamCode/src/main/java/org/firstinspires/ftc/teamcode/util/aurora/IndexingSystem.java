@@ -1617,10 +1617,11 @@ public class IndexingSystem {
         // Update artifact location to FIRED
         Artifact consumedArtifact = firedArtifact.withLocation(Artifact.Location.FIRED);
         
-        // Update in artifacts list
+        // Remove the FIRED artifact from the artifacts list
         for (int i = 0; i < artifacts.size(); i++) {
             if (artifacts.get(i).equals(firedArtifact)) {
                 artifacts.set(i, consumedArtifact);
+                artifacts.remove(i);  // Actually remove from list to prevent phantom counts
                 break;
             }
         }
@@ -1689,12 +1690,25 @@ public class IndexingSystem {
             }
             
             if (shotPlan.isEmpty()) {
-                if (config.isDebugTelemetry() && telemetry != null) {
-                    telemetry.addLine("⚠️ Shot plan empty after firing");
+                // No more artifacts in shot plan
+                if (firingSequenceActive) {
+                    // Last artifact scenario - firing still active, allow collection of new artifacts
+                    System.out.println("[IndexingSystem] Last artifact fired - system ready for new collections");
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        telemetry.addLine("✅ Last artifact fired - ready for new collections");
+                    }
+                    changeState(SystemState.IDLE);
+                    operationInProgress = false;
+                    return; // Don't block - allow normal operation
+                } else {
+                    // Firing completed entirely - reset to fresh state
+                    System.out.println("[IndexingSystem] All artifacts fired and firing stopped - resetting system");
+                    if (config.isDebugTelemetry() && telemetry != null) {
+                        telemetry.addLine("✅ All artifacts fired - resetting system");
+                    }
+                    resetAfterFiringComplete();
+                    return;
                 }
-                changeState(SystemState.IDLE);
-                operationInProgress = false;
-                return;
             }
 
             Artifact nextArtifact = shotPlan.get(0);
@@ -1749,6 +1763,43 @@ public class IndexingSystem {
         } else {
             changeState(SystemState.IDLE);
             operationInProgress = false;
+        }
+    }
+
+    /**
+     * Reset system to fresh state after firing completes with no artifacts
+     * Prepares for new collection cycle
+     */
+    private void resetAfterFiringComplete() {
+        System.out.println("[IndexingSystem] Performing full system reset after firing complete");
+        
+        // Clear all artifact data (including any FIRED artifacts still in list)
+        artifacts.clear();
+        artifactInCenter = null;
+        artifactInFrontIntake = null;
+        artifactInBackIntake = null;
+        artifactBeingTransferred = null;
+        
+        // Update shot planner with empty state
+        if (shotPlanner != null) {
+            shotPlanner.updateShotPlan(artifacts, artifactInCenter, 
+                artifactInFrontIntake, artifactInBackIntake);
+        }
+        
+        // Reset all servos to idle position
+        resetAllServos();
+        
+        // Clear uptake pre-position flag
+        uptakeServoPrePositionedForCurrentArtifact = false;
+        
+        // Reset state to IDLE
+        changeState(SystemState.IDLE);
+        operationInProgress = false;
+        
+        System.out.println("[IndexingSystem] System reset complete - ready for fresh collection");
+        
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine("✅ System reset - ready for new collections");
         }
     }
 
@@ -2050,6 +2101,14 @@ public class IndexingSystem {
         // If executor is idle and has a pending request, try to execute it
         if (plannerExecutor.isIdle() && plannerExecutor.getPendingDesiredCenter() != null) {
             Artifact desiredCenter = plannerExecutor.getPendingDesiredCenter();
+            
+            // Don't execute rearrangements during active firing sequence
+            // The planner can still PLAN (important for new collections),
+            // but executor won't EXECUTE until firing completes
+            if (firingSequenceActive) {
+                // Wait patiently - don't abort, firing will complete soon
+                return;
+            }
 
             // Check if the operation is still valid (artifact exists and count is correct)
             boolean operationStillValid = getArtifactCount() == 2 && 
@@ -2058,13 +2117,13 @@ public class IndexingSystem {
             if (!operationStillValid) {
                 // Operation is no longer valid - abort it
                 // This happens when artifacts are collected/fired, making the rearrangement irrelevant
-                SystemMonitor.logNow("[PlannerExecutor] Aborting - operation no longer valid (count or artifact changed)");
+                System.out.println("[PlannerExecutor] Aborting - operation no longer valid (count or artifact changed)");
                 plannerExecutor.abortOperation();
             } else if (canExecuteRearrangement(desiredCenter)) {
                 // Conditions are right - execute the rearrangement
                 executeRearrangement(desiredCenter);
             }
-            // If operation is valid but can't execute yet (e.g., during FIRING state),
+            // If operation is valid but can't execute yet (e.g., wrong state),
             // just wait - don't abort. The operation will execute when conditions allow.
         }
     }
