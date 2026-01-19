@@ -491,6 +491,12 @@ public class IndexingSystemTest extends LinearOpMode {
 
         // Manual servo control when in manual mode
         if (manualMode) {
+            // Check if IndexingSystem is controlling servos
+            boolean indexingSystemControlling = indexingSystem.isUptakeServoPrePositioned() ||
+                                              indexingSystem.isOperationInProgress() ||
+                                              indexingSystem.getCurrentState() == IndexingSystem.SystemState.FIRING ||
+                                              indexingSystem.getCurrentState() == IndexingSystem.SystemState.PUSHING;
+
             // Right bumper - Injector servos
             if (gamepad1.right_bumper) {
                 if (hardware.getInjectorServoLeft() != null) {
@@ -508,20 +514,22 @@ public class IndexingSystemTest extends LinearOpMode {
                 }
             }
 
-            // Left trigger - Uptake servos
-            if (gamepad1.left_trigger > 0.1) {
-                if (hardware.getUptakeServoL() != null) {
-                    hardware.getUptakeServoL().setPower(gamepad1.left_trigger);
-                }
-                if (hardware.getUptakeServoR() != null) {
-                    hardware.getUptakeServoR().setPower(gamepad1.left_trigger);
-                }
-            } else {
-                if (hardware.getUptakeServoL() != null) {
-                    hardware.getUptakeServoL().setPower(0.0);
-                }
-                if (hardware.getUptakeServoR() != null) {
-                    hardware.getUptakeServoR().setPower(0.0);
+            // Left trigger - Uptake servos (only if IndexingSystem is not controlling them)
+            if (!indexingSystemControlling) {
+                if (gamepad1.left_trigger > 0.1) {
+                    if (hardware.getUptakeServoL() != null) {
+                        hardware.getUptakeServoL().setPower(gamepad1.left_trigger);
+                    }
+                    if (hardware.getUptakeServoR() != null) {
+                        hardware.getUptakeServoR().setPower(gamepad1.left_trigger);
+                    }
+                } else {
+                    if (hardware.getUptakeServoL() != null) {
+                        hardware.getUptakeServoL().setPower(0.0);
+                    }
+                    if (hardware.getUptakeServoR() != null) {
+                        hardware.getUptakeServoR().setPower(0.0);
+                    }
                 }
             }
 

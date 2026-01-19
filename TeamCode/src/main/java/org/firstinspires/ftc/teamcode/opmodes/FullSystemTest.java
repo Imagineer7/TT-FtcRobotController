@@ -497,11 +497,13 @@ public class FullSystemTest extends LinearOpMode {
             // IMPORTANT: Only allow manual control when IndexingSystem is not managing servos
 
             boolean indexingSystemControlling = indexingSystem.isUptakeServoPrePositioned() ||
-                                              indexingSystem.getCurrentState() == IndexingSystem.SystemState.FIRING;
+                                              indexingSystem.isOperationInProgress() ||
+                                              indexingSystem.getCurrentState() == IndexingSystem.SystemState.FIRING ||
+                                              indexingSystem.getCurrentState() == IndexingSystem.SystemState.PUSHING;
 
             if (indexingSystemControlling) {
                 // IndexingSystem is controlling servos - do not interfere
-                // This prevents manual control from overriding pre-positioning or firing
+                // This prevents manual control from overriding pre-positioning, pushing, or firing
             } else {
                 // Safe to allow manual control - IndexingSystem is not using servos
 

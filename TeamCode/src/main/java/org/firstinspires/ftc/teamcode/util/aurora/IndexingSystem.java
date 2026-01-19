@@ -95,10 +95,12 @@ public class IndexingSystem {
     private long operationStartTime;
     private boolean operationInProgress;
 
-    // Shot planning
-    private Artifact plannedSecondShot;
-    private Artifact plannedThirdShot;
-    private Artifact plannedFirstShot;  // For external access
+    // Shot planning - NEW: Planner and Executor components
+    private ShotPlanner shotPlanner;
+    private PlannerExecutor plannerExecutor;
+    private Artifact plannedSecondShot;  // Deprecated - kept for compatibility
+    private Artifact plannedThirdShot;   // Deprecated - kept for compatibility
+    private Artifact plannedFirstShot;   // Deprecated - kept for compatibility
 
     // Motif pattern for shot order (determined by limelight camera)
     private String motifPattern = "PPG"; // Default pattern: Purple, Purple, Green
@@ -118,6 +120,7 @@ public class IndexingSystem {
     private boolean uptakeServoPrePositioned = false;
     private long uptakeServoActionTime = 0;
     private boolean uptakeServoPrePositionedForCurrentArtifact = false; // Tracks if we've pre-positioned for current center artifact
+    private long uptakeServoRetractionStartTime = 0; // Tracks when retraction started for timing
     private long lastSensorCheck = 0;
     private static final long SENSOR_CHECK_INTERVAL = 50; // 50ms = 20Hz
 
@@ -162,6 +165,10 @@ public class IndexingSystem {
             this.operationStartTime = 0;
             this.operationInProgress = false;
 
+            // Initialize new shot planner and executor
+            this.shotPlanner = new ShotPlanner();
+            this.plannerExecutor = new PlannerExecutor(config);
+            
             this.plannedSecondShot = null;
             this.plannedThirdShot = null;
 
@@ -570,7 +577,6 @@ public class IndexingSystem {
      * This should be called by the limelight camera system to determine shot order.
      * @param pattern One of "PPG", "PGP", or "GPP" where P=Purple, G=Green
      * @return true if pattern is valid and set
-     * TODO: Implement shot planning logic
      */
     public boolean setMotifPattern(String pattern) {
         if (pattern == null) {
@@ -582,11 +588,14 @@ public class IndexingSystem {
             this.motifPattern = normalized;
             this.motifPatternSet = true;
             
+            // Update shot planner with new motif pattern
+            if (shotPlanner != null) {
+                shotPlanner.setMotifPattern(normalized);
+            }
+            
             if (config.isDebugTelemetry()) {
                 telemetry.addLine("Motif pattern set: " + normalized);
             }
-            
-            // Shot planning removed - needs to be reimplemented
             
             return true;
         }
@@ -632,7 +641,11 @@ public class IndexingSystem {
             handleAutomaticDetection(currentTime);
         }
 
-        // Shot planning removed - needs to be reimplemented
+        // Update shot planner (runs every loop cycle)
+        updateShotPlanner();
+
+        // Update planner executor (executes rearrangements when idle)
+        updatePlannerExecutor();
 
         // Update live variables for real-time monitoring
         updateLiveVariables();
@@ -777,6 +790,16 @@ public class IndexingSystem {
         uptakeServoPrePositioned = false;
         uptakeServoActionTime = 0;
 
+        // Reset shot planner and executor
+        if (shotPlanner != null) {
+            shotPlanner = new ShotPlanner();
+            shotPlanner.setMotifPattern(motifPattern);
+            shotPlanner.setManualPushMode(config.isManualPushMode());
+        }
+        if (plannerExecutor != null) {
+            plannerExecutor.reset();
+        }
+
         resetToIdle();
         
         // Reinitialize hardware to restart rollers
@@ -801,12 +824,15 @@ public class IndexingSystem {
         // Add artifact to tracking
         artifacts.add(artifact);
 
-        // Start hardware for collection - but third artifact doesn't need transfer hardware
-        if (artifact.getCollectionOrder() == 3) {
-            // Third artifact: Only keep intake rollers running, no transfer servos/injectors
+        // Start hardware for collection
+        // Third artifact and second artifact in manual push mode don't need transfer hardware
+        if (artifact.getCollectionOrder() == 3 || 
+            (artifact.getCollectionOrder() == 2 && config.isManualPushMode())) {
+            // Third artifact OR second artifact in manual push mode:
+            // Only keep intake rollers running, no transfer servos/injectors
             executeThirdArtifactCollectionHardware();
         } else {
-            // First and second artifacts: Full transfer hardware
+            // First artifact and second artifact in auto push mode: Full transfer hardware
             executeCollectionHardware();
         }
 
@@ -824,8 +850,13 @@ public class IndexingSystem {
                     telemetry.addLine("   Hardware: Transfer servos + Injectors ON");
                     break;
                 case 2:
-                    telemetry.addLine("   Next: Push first to storage, move to center");
-                    telemetry.addLine("   Hardware: Transfer servos + Injectors ON");
+                    if (config.isManualPushMode()) {
+                        telemetry.addLine("   Next: Store in intake (manual push mode)");
+                        telemetry.addLine("   Hardware: NO transfer/injector activation");
+                    } else {
+                        telemetry.addLine("   Next: Push first to storage, move to center");
+                        telemetry.addLine("   Hardware: Transfer servos + Injectors ON");
+                    }
                     break;
                 case 3:
                     telemetry.addLine("   Next: Store in collection intake");
@@ -998,10 +1029,18 @@ public class IndexingSystem {
         // Clear any stale pending artifacts to prevent conflicts during push
         clearPendingArtifacts();
 
-        // Retract uptake servos during push operation to avoid interference
-        if (uptakeServoPrePositioned) {
-            retractUptakeServos();
-        }
+        // IMPORTANT: Set operation in progress and change state BEFORE retracting to prevent
+        // state machine from re-enabling pre-positioning in IDLE/READY_TO_FIRE states
+        operationInProgress = true;
+        changeState(SystemState.PUSHING);
+        operationStartTime = System.currentTimeMillis();
+
+        // CRITICAL: Retract uptake servos during push operation to avoid interference
+        // The uptake servos must ALWAYS be retracted before a push operation, regardless
+        // of the pre-positioning flag state. Even after pre-positioning completes (500ms),
+        // the servos remain in the UP position holding the artifact. We must actively
+        // retract them DOWN so the artifact can be pushed OUT horizontally to the intake.
+        retractUptakeServos();
 
         // Determine opposite intake from where second artifact came
         Artifact.Location oppositeIntake = (lastIntakeSource == IntakeSource.FRONT)
@@ -1031,11 +1070,7 @@ public class IndexingSystem {
         // Update intake modes immediately to prevent false detection
         updateIntakeModes();
 
-        changeState(SystemState.PUSHING);
-        operationStartTime = System.currentTimeMillis();
-
-        // Start hardware for push operation
-        executePushHardware();
+        // NOTE: Hardware start deferred - will be triggered by updatePushing() once retraction completes
 
         if (config.isDebugTelemetry()) {
             telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -1053,6 +1088,54 @@ public class IndexingSystem {
      * Update pushing state
      */
     private void updatePushing(long elapsedTime) {
+        // Check if we need to wait for uptake servo retraction to complete
+        if (uptakeServoRetractionStartTime > 0) {
+            long retractionElapsed = System.currentTimeMillis() - uptakeServoRetractionStartTime;
+            long retractionTimeMs = ShooterConfig.UPTAKE_RETRACT_TIME_MS;
+            
+            if (retractionElapsed < retractionTimeMs) {
+                // Still retracting - maintain retraction power continuously
+                // Continuous servos need continuous power commands to keep running
+                if (hardware != null) {
+                    double retractPower = -0.5; // Retract downward
+                    if (hardware.getUptakeServoL() != null) {
+                        hardware.getUptakeServoL().setPower(retractPower);
+                    }
+                    if (hardware.getUptakeServoR() != null) {
+                        hardware.getUptakeServoR().setPower(retractPower);
+                    }
+                }
+                
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addData("🔧 Uptake Retraction", String.format("%.0f/%.0fms (maintaining -0.5 power)", 
+                        (double)retractionElapsed, (double)retractionTimeMs));
+                }
+                return;
+            } else {
+                // Retraction complete - stop uptake servos, then start the push hardware
+                if (hardware != null) {
+                    if (hardware.getUptakeServoL() != null) {
+                        hardware.getUptakeServoL().setPower(0.0);
+                    }
+                    if (hardware.getUptakeServoR() != null) {
+                        hardware.getUptakeServoR().setPower(0.0);
+                    }
+                }
+                
+                uptakeServoRetractionStartTime = 0; // Clear the flag
+                executePushHardware();
+                
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("✅ Uptake retraction complete (400ms) - stopped servos and starting push hardware");
+                }
+                
+                // Reset operation start time now that hardware is actually starting
+                operationStartTime = System.currentTimeMillis();
+                return;
+            }
+        }
+        
+        // Normal push operation timing
         long totalPushTime = config.getPushStartDelayMs() + 
                             config.getSecondArtifactPushTimeMs() + 
                             config.getStorageIntakeAcceptTimeMs();
@@ -1069,9 +1152,20 @@ public class IndexingSystem {
      * Handles normal second artifact indexing (first artifact pushed to storage, second to center)
      */
     private void completePushOperation() {
+        // Check if this was a planner-driven rearrangement
+        boolean wasPlannedRearrangement = (plannerExecutor != null && plannerExecutor.isBusy());
+
         // For normal second artifact collection, always complete second artifact indexing
         // The first artifact was already moved to storage in startSecondArtifactIndexing
         completeSecondArtifactIndexing();
+
+        // If this was a planner-driven rearrangement, notify the executor
+        if (wasPlannedRearrangement) {
+            plannerExecutor.completeRearrangement();
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("✅ Planner rearrangement complete");
+            }
+        }
     }
     
     /**
@@ -1368,6 +1462,9 @@ public class IndexingSystem {
      */
     public void setManualPushMode(boolean enabled) {
         config.setManualPushMode(enabled);
+        if (shotPlanner != null) {
+            shotPlanner.setManualPushMode(enabled);
+        }
         if (config.isDebugTelemetry() && telemetry != null) {
             telemetry.addLine("Manual push mode " + (enabled ? "ENABLED" : "DISABLED"));
             if (enabled) {
@@ -1377,6 +1474,211 @@ public class IndexingSystem {
                 telemetry.addLine("   Second artifacts will auto-push to center");
             }
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // SHOT PLANNER AND EXECUTOR INTEGRATION
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Update shot planner - runs every loop cycle
+     * Determines optimal shot order and requests rearrangement if needed
+     */
+    private void updateShotPlanner() {
+        if (shotPlanner == null) {
+            return;
+        }
+
+        // Update planner with current artifact state
+        shotPlanner.updateShotPlan(artifacts, artifactInCenter, artifactInFrontIntake, artifactInBackIntake);
+
+        // Get desired center artifact from planner
+        Artifact desiredCenter = shotPlanner.getDesiredCenterArtifact();
+
+        // If planner wants rearrangement and executor is idle, request it
+        if (desiredCenter != null && plannerExecutor != null && plannerExecutor.isIdle()) {
+            boolean accepted = plannerExecutor.requestRearrangement(desiredCenter);
+            if (config.isDebugTelemetry() && telemetry != null && accepted) {
+                telemetry.addLine(String.format("🎯 Planner requests: %s #%d to center",
+                    desiredCenter.getColor(), desiredCenter.getCollectionOrder()));
+            }
+        }
+
+        // Update legacy planned shot fields for compatibility
+        List<Artifact> shotPlan = shotPlanner.getShotPlan();
+        plannedFirstShot = shotPlan.size() > 0 ? shotPlan.get(0) : null;
+        plannedSecondShot = shotPlan.size() > 1 ? shotPlan.get(1) : null;
+        plannedThirdShot = shotPlan.size() > 2 ? shotPlan.get(2) : null;
+    }
+
+    /**
+     * Update planner executor - executes rearrangement when idle
+     * Handles push operations and timeout enforcement
+     */
+    private void updatePlannerExecutor() {
+        if (plannerExecutor == null) {
+            return;
+        }
+
+        // Update executor state (checks timeouts)
+        plannerExecutor.update(getArtifactCount());
+
+        // If executor is idle and has a pending request, try to execute it
+        if (plannerExecutor.isIdle() && plannerExecutor.getPendingDesiredCenter() != null) {
+            Artifact desiredCenter = plannerExecutor.getPendingDesiredCenter();
+
+            // Validate rearrangement is possible
+            if (canExecuteRearrangement(desiredCenter)) {
+                // Execute the rearrangement using existing manual push logic
+                executeRearrangement(desiredCenter);
+            } else {
+                // Can't execute - abort the request
+                plannerExecutor.abortOperation();
+            }
+        }
+    }
+
+    /**
+     * Check if rearrangement can be executed
+     */
+    private boolean canExecuteRearrangement(Artifact desiredCenter) {
+        // Must have exactly 2 artifacts
+        if (getArtifactCount() != 2) {
+            return false;
+        }
+
+        // Must be in READY_TO_FIRE state
+        if (currentState != SystemState.READY_TO_FIRE) {
+            return false;
+        }
+
+        // Can't execute during another operation
+        if (operationInProgress) {
+            return false;
+        }
+
+        // Must have artifact in center
+        if (artifactInCenter == null) {
+            return false;
+        }
+
+        // Desired center must be in storage (not already in center)
+        if (desiredCenter == artifactInCenter) {
+            return false;
+        }
+
+        // Desired center must be in one of the intakes
+        if (desiredCenter != artifactInFrontIntake && desiredCenter != artifactInBackIntake) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Execute rearrangement operation
+     * Uses the existing push operation logic
+     */
+    private void executeRearrangement(Artifact desiredCenter) {
+        if (!plannerExecutor.startRearrangement()) {
+            return;
+        }
+
+        // Determine which intake has the desired artifact
+        IndexingSystem.IntakeSource storageSource;
+        if (desiredCenter == artifactInFrontIntake) {
+            storageSource = IntakeSource.FRONT;
+        } else if (desiredCenter == artifactInBackIntake) {
+            storageSource = IntakeSource.BACK;
+        } else {
+            plannerExecutor.abortOperation();
+            return;
+        }
+
+        // Clear any stale pending artifacts to prevent conflicts during push
+        clearPendingArtifacts();
+
+        // IMPORTANT: Set operation in progress and change state BEFORE retracting to prevent
+        // state machine from re-enabling pre-positioning in IDLE/READY_TO_FIRE states
+        operationInProgress = true;
+        changeState(SystemState.PUSHING);
+        operationStartTime = System.currentTimeMillis();
+
+        // CRITICAL: Retract uptake servos during push operation to avoid interference
+        // The uptake servos must ALWAYS be retracted before a push operation, regardless
+        // of the pre-positioning flag state. Even after pre-positioning completes (500ms),
+        // the servos remain in the UP position holding the artifact. We must actively
+        // retract them DOWN so the artifact can be pushed OUT horizontally to the intake.
+        retractUptakeServos();
+
+        // Get artifacts
+        Artifact centerArtifact = artifactInCenter;
+        Artifact storageArtifact = desiredCenter;
+
+        // Determine opposite intake from storage source
+        Artifact.Location oppositeIntake = (storageSource == IntakeSource.FRONT)
+            ? Artifact.Location.BACK_INTAKE
+            : Artifact.Location.FRONT_INTAKE;
+
+        // IMMEDIATELY update storage references to prevent auto-detection conflicts
+        Artifact movedCenter = centerArtifact.withLocation(oppositeIntake);
+
+        // Update artifact list
+        for (int i = 0; i < artifacts.size(); i++) {
+            if (artifacts.get(i).equals(centerArtifact)) {
+                artifacts.set(i, movedCenter);
+                break;
+            }
+        }
+
+        // Update storage references IMMEDIATELY
+        if (oppositeIntake == Artifact.Location.FRONT_INTAKE) {
+            artifactInFrontIntake = movedCenter;
+        } else {
+            artifactInBackIntake = movedCenter;
+        }
+
+        // Clear the old storage location
+        if (storageSource == IntakeSource.FRONT) {
+            artifactInFrontIntake = null;
+        } else {
+            artifactInBackIntake = null;
+        }
+
+        // Update intake modes immediately
+        updateIntakeModes();
+
+        // Set lastIntakeSource for hardware control
+        lastIntakeSource = storageSource;
+
+        // NOTE: Hardware start deferred - will be triggered by updatePushing() once retraction completes
+
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            telemetry.addLine("🎯 PLANNER REARRANGEMENT");
+            telemetry.addLine(String.format("   Center: %s #%d → %s",
+                centerArtifact.getColor(), centerArtifact.getCollectionOrder(), oppositeIntake));
+            telemetry.addLine(String.format("   Storage: %s #%d from %s → center",
+                storageArtifact.getColor(), storageArtifact.getCollectionOrder(), storageSource));
+            telemetry.addLine("   Action: Planner-driven rearrangement");
+            telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        }
+    }
+
+    /**
+     * Get the shot planner instance
+     * @return Shot planner
+     */
+    public ShotPlanner getShotPlanner() {
+        return shotPlanner;
+    }
+
+    /**
+     * Get the planner executor instance
+     * @return Planner executor
+     */
+    public PlannerExecutor getPlannerExecutor() {
+        return plannerExecutor;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -1633,12 +1935,37 @@ public class IndexingSystem {
 
         // Shot planning
         vars.put("motifPattern", motifPattern + (motifPatternSet ? "" : " (default)"));
-        vars.put("plannedShot1", plannedFirstShot != null ?
-            String.format("%s #%d", plannedFirstShot.getColor(), plannedFirstShot.getCollectionOrder()) : "none");
-        vars.put("plannedShot2", plannedSecondShot != null ?
-            String.format("%s #%d", plannedSecondShot.getColor(), plannedSecondShot.getCollectionOrder()) : "none");
-        vars.put("plannedShot3", plannedThirdShot != null ?
-            String.format("%s #%d", plannedThirdShot.getColor(), plannedThirdShot.getCollectionOrder()) : "none");
+        
+        // Get shot plan from planner if available
+        if (shotPlanner != null) {
+            List<Artifact> shotPlan = shotPlanner.getShotPlan();
+            vars.put("plannedShot1", shotPlan.size() > 0 ?
+                String.format("%s #%d", shotPlan.get(0).getColor(), shotPlan.get(0).getCollectionOrder()) : "none");
+            vars.put("plannedShot2", shotPlan.size() > 1 ?
+                String.format("%s #%d", shotPlan.get(1).getColor(), shotPlan.get(1).getCollectionOrder()) : "none");
+            vars.put("plannedShot3", shotPlan.size() > 2 ?
+                String.format("%s #%d", shotPlan.get(2).getColor(), shotPlan.get(2).getCollectionOrder()) : "none");
+            
+            Artifact desiredCenter = shotPlanner.getDesiredCenterArtifact();
+            vars.put("desiredCenter", desiredCenter != null ?
+                String.format("%s #%d", desiredCenter.getColor(), desiredCenter.getCollectionOrder()) : "none");
+        } else {
+            vars.put("plannedShot1", plannedFirstShot != null ?
+                String.format("%s #%d", plannedFirstShot.getColor(), plannedFirstShot.getCollectionOrder()) : "none");
+            vars.put("plannedShot2", plannedSecondShot != null ?
+                String.format("%s #%d", plannedSecondShot.getColor(), plannedSecondShot.getCollectionOrder()) : "none");
+            vars.put("plannedShot3", plannedThirdShot != null ?
+                String.format("%s #%d", plannedThirdShot.getColor(), plannedThirdShot.getCollectionOrder()) : "none");
+        }
+        
+        // Executor status
+        if (plannerExecutor != null) {
+            vars.put("executorState", plannerExecutor.getState().toString());
+            vars.put("executorBusy", plannerExecutor.isBusy());
+            if (plannerExecutor.isBusy()) {
+                vars.put("executorElapsedMs", plannerExecutor.getOperationElapsedTime());
+            }
+        }
 
         // Uptake servo status
         vars.put("uptakePrePositioned", uptakeServoPrePositioned);
@@ -1795,15 +2122,20 @@ public class IndexingSystem {
 
     /**
      * Set intake transfer servo power (CRServo)
-     * These servos transfer artifacts from the intake into the center.
+     * These servos transfer artifacts from the intake into the center, or accept artifacts from center.
      * @param source Which intake transfer servo to control
      * @param active true to activate transfer (run at power), false for idle (stop)
+     * @param acceptFromCenter true if this servo should accept artifact from center (opposite direction),
+     *                         false if moving artifact from intake to center (normal direction)
      */
-    private void setIntakeTransferServo(IntakeSource source, boolean active) {
+    private void setIntakeTransferServo(IntakeSource source, boolean active, boolean acceptFromCenter) {
         if (hardware == null) return;
 
         try {
-            double power = active ? config.getTransferServoPower() : config.getTransferServoIdlePower();
+            double basePower = active ? config.getTransferServoPower() : config.getTransferServoIdlePower();
+
+            // When accepting from center, reverse the direction
+            double power = acceptFromCenter ? -basePower : basePower;
 
             if (source == IntakeSource.FRONT && hardware.getFrontTransferServo() != null) {
                 hardware.getFrontTransferServo().setPower(power);
@@ -1813,6 +2145,15 @@ public class IndexingSystem {
         } catch (Exception e) {
             setError("Failed to set intake transfer servo: " + e.getMessage());
         }
+    }
+
+    /**
+     * Set intake transfer servo power (CRServo) - convenience method for normal transfer (intake to center)
+     * @param source Which intake transfer servo to control
+     * @param active true to activate transfer (run at power), false for idle (stop)
+     */
+    private void setIntakeTransferServo(IntakeSource source, boolean active) {
+        setIntakeTransferServo(source, active, false);
     }
 
     /**
@@ -1896,7 +2237,7 @@ public class IndexingSystem {
         if (hardware == null) return;
 
         try {
-            double retractPower = -0.5; // Retract downward
+            double retractPower = -1.0; // Retract downward
 
             if (hardware.getUptakeServoL() != null) {
                 hardware.getUptakeServoL().setPower(retractPower);
@@ -1916,9 +2257,13 @@ public class IndexingSystem {
             uptakeServoPrePositioned = false;
             // FIXED: Clear action time instead of resetting it to prevent timing interference
             uptakeServoActionTime = 0;
+            
+            // Track retraction start time for proper timing before push operations
+            uptakeServoRetractionStartTime = System.currentTimeMillis();
 
             if (config.isDebugTelemetry() && telemetry != null) {
-                String message = "🔧 ⚠️ UPTAKE RETRACTED: Push operation interference!";
+                String message = String.format("🔧 ⚠️ UPTAKE RETRACTED: Push operation interference! (wait %dms)", 
+                    ShooterConfig.UPTAKE_RETRACT_TIME_MS);
                 telemetry.addLine(message);
                 addDebugMessage(message);
             }
@@ -2232,12 +2577,12 @@ public class IndexingSystem {
         // Opposite (empty) intake runs to accept pushed artifact
         setIntakeCollectionMode(oppositeIntake);
         
-        // Activate intake transfer servo on collecting side
-        setIntakeTransferServo(lastIntakeSource, true);
-        
-        // Opposite intake transfer servo ready to receive
-        setIntakeTransferServo(oppositeIntake, true);
-        
+        // Activate intake transfer servo on collecting side (normal direction: intake to center)
+        setIntakeTransferServo(lastIntakeSource, true, false);
+
+        // Opposite intake transfer servo should accept from center (reversed direction)
+        setIntakeTransferServo(oppositeIntake, true, true);
+
         // Injector servos push artifact out to opposite intake
         // Use the source intake (where second artifact came from) for servo direction
         setInjectorServos(true, lastIntakeSource);

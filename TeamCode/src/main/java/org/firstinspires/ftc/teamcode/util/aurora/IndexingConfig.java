@@ -66,7 +66,7 @@ public class IndexingConfig {
     private double pushStartDelay = 0.2;
 
     /** Time for artifact to fully enter storage intake (seconds) */
-    private double storageIntakeAcceptTime = 0.8;
+    private double storageIntakeAcceptTime = 1.0;
 
     // ═══════════════════════════════════════════════════════════════════════
     // FIRING SYSTEM TIMING PARAMETERS (seconds)
