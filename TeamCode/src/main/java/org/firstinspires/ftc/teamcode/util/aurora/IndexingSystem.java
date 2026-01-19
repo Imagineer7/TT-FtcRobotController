@@ -131,6 +131,7 @@ public class IndexingSystem {
     private boolean firingSequenceActive = false;
     private long firingOperationStartTime = 0;
     private java.util.function.Supplier<Boolean> manualInputDetector = null; // Pluggable manual input detection
+    private Artifact artifactBeingTransferred = null; // Track which artifact is being transferred
 
     // Debug message storage for opmode display
     private final java.util.concurrent.ConcurrentLinkedQueue<String> debugMessages = new java.util.concurrent.ConcurrentLinkedQueue<>();
@@ -1006,6 +1007,9 @@ public class IndexingSystem {
     private void startTransferToCenter(Artifact artifact) {
         changeState(SystemState.TRANSFERRING);
         operationStartTime = System.currentTimeMillis();
+        
+        // Track which artifact is being transferred (for collection)
+        artifactBeingTransferred = artifact;
 
         // Start hardware for transfer
         executeTransferHardware();
@@ -1033,11 +1037,34 @@ public class IndexingSystem {
      * Complete transfer to center
      */
     private void completeTransferToCenter() {
-        Artifact artifact = artifacts.get(artifacts.size() - 1);
+        // Use tracked artifact if available (for post-fire transfers), otherwise use last artifact
+        Artifact artifact;
+        int artifactIndex = -1;
+        
+        if (artifactBeingTransferred != null) {
+            // Post-fire transfer - find the specific artifact being transferred
+            artifact = artifactBeingTransferred;
+            for (int i = 0; i < artifacts.size(); i++) {
+                if (artifacts.get(i).equals(artifactBeingTransferred)) {
+                    artifactIndex = i;
+                    break;
+                }
+            }
+            artifactBeingTransferred = null; // Clear tracking
+        } else {
+            // Normal collection transfer - last artifact in list
+            artifact = artifacts.get(artifacts.size() - 1);
+            artifactIndex = artifacts.size() - 1;
+        }
+        
+        if (artifactIndex == -1) {
+            setError("Could not find artifact being transferred in artifacts list");
+            return;
+        }
         
         // Update artifact location
         Artifact updatedArtifact = artifact.withLocation(Artifact.Location.CENTER_STORAGE);
-        artifacts.set(artifacts.size() - 1, updatedArtifact);
+        artifacts.set(artifactIndex, updatedArtifact);
         artifactInCenter = updatedArtifact;
 
         // Clear intake storage reference
@@ -1690,6 +1717,9 @@ public class IndexingSystem {
     private void startPostFireTransfer(Artifact artifact) {
         changeState(SystemState.TRANSFERRING);
         operationStartTime = System.currentTimeMillis();
+        
+        // Track which artifact is being transferred
+        artifactBeingTransferred = artifact;
 
         // Start hardware for transfer
         executeTransferHardware();
