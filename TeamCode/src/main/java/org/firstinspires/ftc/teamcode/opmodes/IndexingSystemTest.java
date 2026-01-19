@@ -570,6 +570,28 @@ public class IndexingSystemTest extends LinearOpMode {
             }
         }
         lastRightStick = gamepad1.right_stick_button;
+        
+        // ═══════════════════════════════════════════════════════════════
+        // MANUAL INPUT DETECTION - Report to IndexingSystem
+        // ═══════════════════════════════════════════════════════════════
+        // Detect if driver is manually controlling indexing/uptake systems
+        // This allows the firing system to safely yield control to manual operators
+        boolean manualIndexingControl = false;
+        
+        if (manualMode) {
+            // In manual servo mode, check if operator is actively using servo controls
+            manualIndexingControl = gamepad1.right_bumper ||      // Injector servos
+                                   gamepad1.left_trigger > 0.1 || // Uptake servos
+                                   gamepad1.right_trigger > 0.1;  // Transfer servos
+        }
+        
+        // Also check for manual collection/firing commands
+        // (These are discrete actions, not continuous override, so we don't block automation)
+        // boolean manualCommands = gamepad1.a || gamepad1.b || gamepad1.x;
+        // DO NOT include manual commands - they're discrete, not continuous overrides
+        
+        // Report manual input state to IndexingSystem
+        indexingSystem.setManualInputActive(manualIndexingControl);
 
         // ═══════════════════════════════════════════════════════════════
         // GAMEPAD 2 - Shooter Controls & Advanced Functions
