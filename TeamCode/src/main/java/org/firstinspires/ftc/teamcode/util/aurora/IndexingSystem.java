@@ -562,6 +562,7 @@ public class IndexingSystem {
     public boolean onFireSignal() {
         // GATING RULE 1: firingSequenceActive must be true
         if (!firingSequenceActive) {
+            System.out.println("[IndexingSystem] Fire REJECTED: firing sequence not active");
             if (config.isDebugTelemetry() && telemetry != null) {
                 telemetry.addLine("🔫 Fire rejected: firing sequence not active");
             }
@@ -570,6 +571,7 @@ public class IndexingSystem {
 
         // GATING RULE 2: Check for manual opmode input (intelligent detection)
         if (isManualInputActive()) {
+            System.out.println("[IndexingSystem] Fire REJECTED: manual input active");
             if (config.isDebugTelemetry() && telemetry != null) {
                 telemetry.addLine("🔫 Fire rejected: manual input active");
             }
@@ -578,6 +580,7 @@ public class IndexingSystem {
 
         // GATING RULE 3: Must have artifact in center
         if (artifactInCenter == null) {
+            System.out.println("[IndexingSystem] Fire REJECTED: no center artifact");
             if (config.isDebugTelemetry() && telemetry != null) {
                 telemetry.addLine("🔫 Fire rejected: no center artifact");
             }
@@ -586,6 +589,8 @@ public class IndexingSystem {
 
         // GATING RULE 4: Center artifact must be pre-positioned
         if (!uptakeServoPrePositionedForCurrentArtifact) {
+            System.out.println(String.format("[IndexingSystem] Fire REJECTED: %s #%d not pre-positioned", 
+                artifactInCenter.getColor(), artifactInCenter.getCollectionOrder()));
             if (config.isDebugTelemetry() && telemetry != null) {
                 telemetry.addLine("🔫 Fire rejected: artifact not pre-positioned");
             }
@@ -594,6 +599,7 @@ public class IndexingSystem {
 
         // GATING RULE 5: Indexing system must not be busy
         if (operationInProgress) {
+            System.out.println("[IndexingSystem] Fire REJECTED: operation in progress");
             if (config.isDebugTelemetry() && telemetry != null) {
                 telemetry.addLine("🔫 Fire rejected: operation in progress");
             }
@@ -602,10 +608,11 @@ public class IndexingSystem {
 
         // GATING RULE 6: Shooter must be at target RPM and stable
         if (shooter == null || !shooter.isReadyToFire()) {
+            String reason = shooter == null ? "shooter null" : 
+                String.format("shooter not ready (enabled=%s, atTarget=%s, stable=%s)",
+                    shooter.isEnabled(), shooter.isAtTargetRPM(), shooter.isRPMStable());
+            System.out.println("[IndexingSystem] Fire REJECTED: " + reason);
             if (config.isDebugTelemetry() && telemetry != null) {
-                String reason = shooter == null ? "shooter null" : 
-                    String.format("shooter not ready (enabled=%s, atTarget=%s, stable=%s)",
-                        shooter.isEnabled(), shooter.isAtTargetRPM(), shooter.isRPMStable());
                 telemetry.addLine("🔫 Fire rejected: " + reason);
             }
             return false;
@@ -613,6 +620,7 @@ public class IndexingSystem {
 
         // GATING RULE 7: PlannerExecutor must not be busy with rearrangement
         if (plannerExecutor != null && plannerExecutor.isBusy()) {
+            System.out.println("[IndexingSystem] Fire REJECTED: planner executor busy");
             if (config.isDebugTelemetry() && telemetry != null) {
                 telemetry.addLine("🔫 Fire rejected: planner executor busy");
             }
@@ -620,6 +628,8 @@ public class IndexingSystem {
         }
 
         // All gating rules passed - start firing operation
+        System.out.println(String.format("[IndexingSystem] Fire ACCEPTED: All gating rules passed for %s #%d", 
+            artifactInCenter.getColor(), artifactInCenter.getCollectionOrder()));
         startFiringOperation();
         return true;
     }
@@ -995,6 +1005,10 @@ public class IndexingSystem {
      * Transfer artifact to center storage
      */
     private void startTransferToCenter(Artifact artifact) {
+        System.out.println(String.format("[IndexingSystem] STARTING TRANSFER: %s #%d from %s → center", 
+            artifact.getColor(), artifact.getCollectionOrder(), 
+            artifact.getLocation()));
+        
         changeState(SystemState.TRANSFERRING);
         operationStartTime = System.currentTimeMillis();
         
@@ -1517,6 +1531,9 @@ public class IndexingSystem {
      * Start the firing operation - activate uptake servos to feed artifact into shooter
      */
     private void startFiringOperation() {
+        System.out.println(String.format("[IndexingSystem] STARTING FIRING: %s #%d from center", 
+            artifactInCenter.getColor(), artifactInCenter.getCollectionOrder()));
+        
         changeState(SystemState.FIRING);
         operationInProgress = true;
         firingOperationStartTime = System.currentTimeMillis();
@@ -1565,6 +1582,10 @@ public class IndexingSystem {
      * Complete the firing operation - stop uptake servos and consume artifact
      */
     private void completeFiringOperation() {
+        Artifact firedArtifact = artifactInCenter;
+        System.out.println(String.format("[IndexingSystem] FIRING COMPLETE: %s #%d fired", 
+            firedArtifact.getColor(), firedArtifact.getCollectionOrder()));
+        
         // Stop uptake servos
         if (hardware != null) {
             if (hardware.getUptakeServoL() != null) {
@@ -1576,7 +1597,6 @@ public class IndexingSystem {
         }
 
         // Consume the fired artifact
-        Artifact firedArtifact = artifactInCenter;
         consumeFiredArtifact(firedArtifact);
 
         if (config.isDebugTelemetry() && telemetry != null) {
@@ -2200,10 +2220,12 @@ public class IndexingSystem {
         currentState = newState;
         stateStartTime = System.currentTimeMillis();
 
-        // Log all state transitions
+        // Log all state transitions to System.out for remote debugging
+        System.out.println(String.format("[IndexingSystem] STATE CHANGE: %s → %s (artifacts=%d, center=%s)", 
+            oldState, newState, getArtifactCount(), 
+            artifactInCenter != null ? artifactInCenter.getColor() + " #" + artifactInCenter.getCollectionOrder() : "EMPTY"));
 
-        // Update SystemMonitor state
-        SystemMonitor.set("currentState", newState.toString());
+        // Update SystemMonitor state (note: 'state' variable is set in updateLiveVariables())
         SystemMonitor.set("systemIdle", newState == SystemState.IDLE || newState == SystemState.READY_TO_FIRE);
         SystemMonitor.set("hasArtifactInCenter", artifactInCenter != null);
     }
