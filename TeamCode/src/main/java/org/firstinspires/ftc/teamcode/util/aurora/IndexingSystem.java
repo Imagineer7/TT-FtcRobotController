@@ -1056,6 +1056,12 @@ public class IndexingSystem {
         Artifact updatedArtifact = artifact.withLocation(Artifact.Location.CENTER_STORAGE);
         artifacts.set(artifactIndex, updatedArtifact);
         artifactInCenter = updatedArtifact;
+        
+        // Log immediately when artifact reaches center
+        SystemMonitor.logNow(String.format("TRANSFER COMPLETE: %s #%d now in CENTER", 
+            updatedArtifact.getColor(), updatedArtifact.getCollectionOrder()));
+        SystemMonitor.set("center", String.format("%s #%d @ %s", 
+            updatedArtifact.getColor(), updatedArtifact.getCollectionOrder(), updatedArtifact.getLocation()));
 
         // Clear intake storage reference
         if (lastIntakeSource == IntakeSource.FRONT) {
@@ -1600,6 +1606,13 @@ public class IndexingSystem {
 
         // Clear center slot
         artifactInCenter = null;
+        
+        // IMMEDIATELY update SystemMonitor to reflect cleared center
+        SystemMonitor.set("center", "EMPTY");
+        SystemMonitor.set("artifactJustFired", String.format("%s #%d → FIRED", 
+            consumedArtifact.getColor(), consumedArtifact.getCollectionOrder()));
+        SystemMonitor.logNow(String.format("FIRED & CLEARED: %s #%d - center now EMPTY", 
+            consumedArtifact.getColor(), consumedArtifact.getCollectionOrder()));
 
         // Clear uptake pre-position flags
         uptakeServoPrePositionedForCurrentArtifact = false;
@@ -1727,6 +1740,10 @@ public class IndexingSystem {
         
         // Track which artifact is being transferred
         artifactBeingTransferred = artifact;
+        
+        // Log immediately to console
+        SystemMonitor.logNow(String.format("POST-FIRE TRANSFER STARTING: %s #%d from %s → center", 
+            artifact.getColor(), artifact.getCollectionOrder(), artifact.getLocation()));
 
         // Start hardware for transfer
         executeTransferHardware();

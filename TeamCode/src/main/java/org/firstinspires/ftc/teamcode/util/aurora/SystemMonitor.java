@@ -15,7 +15,7 @@ public class SystemMonitor {
     private static boolean enabled = true;
     private static boolean consoleLoggingEnabled = true;
     private static long lastConsoleLogTime = 0;
-    private static final long CONSOLE_LOG_INTERVAL_MS = 1000; // Log to console every 1 second
+    private static final long CONSOLE_LOG_INTERVAL_MS = 250; // Log to console every 250ms for better analysis
     
     /**
      * Update a live variable value
