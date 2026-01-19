@@ -1796,37 +1796,85 @@ public class IndexingSystem {
     /**
      * Reset system to fresh state after firing completes with no artifacts
      * Prepares for new collection cycle
+     * FORCES ALL variables and states back to startup values
      */
     private void resetAfterFiringComplete() {
-        System.out.println(String.format("[IndexingSystem] Performing full system reset after firing complete (current artifacts: %d, count: %d, firingSequenceActive: %b)", 
-            artifacts.size(), getArtifactCount(), firingSequenceActive));
+        System.out.println(String.format("[IndexingSystem] ========== FORCED SYSTEM RESET START =========="));
+        System.out.println(String.format("[IndexingSystem] Before reset - artifacts: %d, count: %d, firingSequenceActive: %b, state: %s", 
+            artifacts.size(), getArtifactCount(), firingSequenceActive, currentState));
         
-        // Clear all artifact data (including any FIRED artifacts still in list)
+        // === ARTIFACT DATA - Clear all artifact tracking ===
         artifacts.clear();
         artifactInCenter = null;
         artifactInFrontIntake = null;
         artifactInBackIntake = null;
         artifactBeingTransferred = null;
+        System.out.println("[IndexingSystem] Cleared all artifact data");
         
-        // Clear shot plan
+        // === SHOT PLANNER - Clear shot plan ===
         if (shotPlanner != null) {
             shotPlanner.clearShotPlan();
         }
+        if (plannerExecutor != null) {
+            plannerExecutor.abortOperation();
+        }
+        System.out.println("[IndexingSystem] Cleared shot planner and executor");
         
-        // Reset all servos to idle position
+        // === SERVOS - Reset all to idle ===
         resetAllServos();
+        System.out.println("[IndexingSystem] Reset all servos to idle");
         
-        // Clear uptake pre-position flag
+        // === UPTAKE STATE - Clear all uptake flags ===
+        uptakeServoPrePositioned = false;
         uptakeServoPrePositionedForCurrentArtifact = false;
+        uptakeServoActionTime = 0;
+        uptakeServoRetractionStartTime = 0;
+        System.out.println("[IndexingSystem] Cleared uptake servo state");
         
-        // Reset state to IDLE
-        changeState(SystemState.IDLE);
+        // === DETECTION STATE - Reset artifact detection ===
+        frontArtifactFirstDetected = 0;
+        backArtifactFirstDetected = 0;
+        frontPendingArtifact = null;
+        backPendingArtifact = null;
+        lastSensorCheck = 0;
+        autoDetectionEnabled = true;
+        System.out.println("[IndexingSystem] Reset artifact detection state");
+        
+        // === OPERATION STATE - Clear all operation tracking ===
         operationInProgress = false;
+        operationStartTime = 0;
+        lastIntakeSource = IntakeSource.UNKNOWN;
+        System.out.println("[IndexingSystem] Cleared operation state");
         
-        System.out.println("[IndexingSystem] System reset complete - ready for fresh collection");
+        // === FIRING STATE - Reset firing flags ===
+        firingSequenceActive = false;
+        firingOperationStartTime = 0;
+        System.out.println("[IndexingSystem] Cleared firing state");
+        
+        // === STATE MACHINE - Force to IDLE ===
+        currentState = SystemState.IDLE;
+        System.out.println("[IndexingSystem] Forced state to IDLE");
+        
+        // === COLLECTION NUMBER - Do NOT reset artifactCollectionNumber ===
+        // This should persist across firing cycles
+        
+        // === SYSTEM MONITOR - Update immediately ===
+        SystemMonitor.set("state", "IDLE");
+        SystemMonitor.set("center", "EMPTY");
+        SystemMonitor.set("frontIntake", "EMPTY");
+        SystemMonitor.set("backIntake", "EMPTY");
+        SystemMonitor.set("artifactCount", "0");
+        SystemMonitor.set("firingSequenceActive", "false");
+        SystemMonitor.set("operationInProgress", "false");
+        SystemMonitor.set("shotPlan", "empty");
+        System.out.println("[IndexingSystem] Updated SystemMonitor");
+        
+        System.out.println("[IndexingSystem] ========== FORCED SYSTEM RESET COMPLETE ==========");
+        System.out.println("[IndexingSystem] System ready for fresh artifact collection");
         
         if (config.isDebugTelemetry() && telemetry != null) {
-            telemetry.addLine("✅ System reset - ready for new collections");
+            telemetry.addLine("✅ FORCED SYSTEM RESET COMPLETE");
+            telemetry.addLine("   Ready for new artifact collection");
         }
     }
 
