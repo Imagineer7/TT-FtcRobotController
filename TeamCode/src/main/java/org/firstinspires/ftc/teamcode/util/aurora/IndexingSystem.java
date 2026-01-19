@@ -802,6 +802,16 @@ public class IndexingSystem {
                 break;
 
             case IDLE:
+                // Check if firing sequence stopped but artifacts remain (desync scenario)
+                // This can happen if coordinator's shot plan and indexing system artifact list become desynchronized
+                if (!firingSequenceActive && getArtifactCount() > 0 && !operationInProgress) {
+                    System.out.println(String.format("[IndexingSystem] IDLE: Firing stopped but %d artifacts remain - forcing reset", 
+                        getArtifactCount()));
+                    System.out.println(String.format("[IndexingSystem] This indicates coordinator shot plan completed but artifacts not consumed"));
+                    resetAfterFiringComplete();
+                    break;
+                }
+                
                 // Ensure uptake servos are pre-positioned if there's an artifact in center
                 // Only start pre-positioning if not already in progress and haven't completed for this artifact
                 if (!uptakeServoPrePositioned && !operationInProgress && artifactInCenter != null &&
