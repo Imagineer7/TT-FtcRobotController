@@ -1614,18 +1614,22 @@ public class IndexingSystem {
      * Consume the fired artifact - remove from shot plan and update state
      */
     private void consumeFiredArtifact(Artifact firedArtifact) {
-        System.out.println(String.format("[IndexingSystem] consumeFiredArtifact: Removing %s #%d from list (current size: %d)", 
-            firedArtifact.getColor(), firedArtifact.getCollectionOrder(), artifacts.size()));
+        System.out.println(String.format("[IndexingSystem] consumeFiredArtifact: Removing %s #%d from list (current size: %d, current count: %d)", 
+            firedArtifact.getColor(), firedArtifact.getCollectionOrder(), artifacts.size(), getArtifactCount()));
         
         // Update artifact location to FIRED
         Artifact consumedArtifact = firedArtifact.withLocation(Artifact.Location.FIRED);
         
-        // Remove the FIRED artifact from the artifacts list
+        // Find and remove the artifact from the list by matching collection order
+        // (more reliable than .equals() which may fail if artifact has been modified)
         boolean found = false;
         for (int i = 0; i < artifacts.size(); i++) {
-            if (artifacts.get(i).equals(firedArtifact)) {
-                System.out.println(String.format("[IndexingSystem] Found artifact at index %d, removing it", i));
-                artifacts.remove(i);  // Just remove it - no need to set it first
+            Artifact a = artifacts.get(i);
+            if (a.getCollectionOrder() == firedArtifact.getCollectionOrder() &&
+                a.getColor() == firedArtifact.getColor()) {
+                System.out.println(String.format("[IndexingSystem] Found artifact at index %d (location: %s), removing it", 
+                    i, a.getLocation()));
+                artifacts.remove(i);
                 found = true;
                 break;
             }
@@ -1634,6 +1638,12 @@ public class IndexingSystem {
         if (!found) {
             System.out.println(String.format("[IndexingSystem] WARNING: Could not find artifact %s #%d to remove!", 
                 firedArtifact.getColor(), firedArtifact.getCollectionOrder()));
+            System.out.println("[IndexingSystem] Current artifacts in list:");
+            for (int i = 0; i < artifacts.size(); i++) {
+                Artifact a = artifacts.get(i);
+                System.out.println(String.format("  [%d] %s #%d @ %s", 
+                    i, a.getColor(), a.getCollectionOrder(), a.getLocation()));
+            }
         }
         
         System.out.println(String.format("[IndexingSystem] After removal: artifact list size = %d, getArtifactCount() = %d", 
@@ -1681,14 +1691,27 @@ public class IndexingSystem {
 
         // Check if more artifacts remain
         if (getArtifactCount() == 0) {
-            System.out.println(String.format("[IndexingSystem] No more artifacts to fire (list size=%d, count=%d)", 
-                artifacts.size(), getArtifactCount()));
-            if (config.isDebugTelemetry() && telemetry != null) {
-                telemetry.addLine("✅ All artifacts fired - sequence complete");
+            System.out.println(String.format("[IndexingSystem] No more artifacts to fire (list size=%d, count=%d, firingSequenceActive=%b)", 
+                artifacts.size(), getArtifactCount(), firingSequenceActive));
+            
+            // If firing is still active, allow new collections (last artifact scenario)
+            if (firingSequenceActive) {
+                System.out.println("[IndexingSystem] Last artifact fired - system ready for new collections");
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("✅ Last artifact fired - ready for new collections");
+                }
+                changeState(SystemState.IDLE);
+                operationInProgress = false;
+                return;
+            } else {
+                // Firing stopped with no artifacts - reset system
+                System.out.println("[IndexingSystem] All artifacts fired and firing stopped - resetting system");
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("✅ All artifacts fired - resetting system");
+                }
+                resetAfterFiringComplete();
+                return;
             }
-            changeState(SystemState.IDLE);
-            operationInProgress = false;
-            return;
         }
 
         // Get next artifact from shot plan
