@@ -1664,6 +1664,16 @@ public class IndexingSystem {
         // Get next artifact from shot plan
         if (shotPlanner != null) {
             List<Artifact> shotPlan = shotPlanner.getShotPlan();
+            
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine(String.format("📋 Shot plan has %d artifacts", shotPlan.size()));
+                for (int i = 0; i < shotPlan.size(); i++) {
+                    Artifact a = shotPlan.get(i);
+                    telemetry.addLine(String.format("   [%d] %s #%d @ %s", 
+                        i, a.getColor(), a.getCollectionOrder(), a.getLocation()));
+                }
+            }
+            
             if (shotPlan.isEmpty()) {
                 if (config.isDebugTelemetry() && telemetry != null) {
                     telemetry.addLine("⚠️ Shot plan empty after firing");
@@ -1674,6 +1684,23 @@ public class IndexingSystem {
             }
 
             Artifact nextArtifact = shotPlan.get(0);
+            
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine(String.format("🎯 Next artifact: %s #%d @ %s", 
+                    nextArtifact.getColor(), nextArtifact.getCollectionOrder(), nextArtifact.getLocation()));
+            }
+            
+            // Check if next artifact was already fired (shouldn't happen but be defensive)
+            if (nextArtifact.getLocation() == Artifact.Location.FIRED) {
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("❌ ERROR: Next artifact in shot plan is already FIRED!");
+                    telemetry.addLine("   This indicates shot plan wasn't updated correctly");
+                }
+                debugLogger.error("FIRING", "Shot plan contains FIRED artifact", "Next artifact is FIRED");
+                changeState(SystemState.IDLE);
+                operationInProgress = false;
+                return;
+            }
             
             // Check if next artifact is already in center (shouldn't happen, but be safe)
             if (nextArtifact.getLocation() == Artifact.Location.CENTER_STORAGE) {
@@ -1695,7 +1722,8 @@ public class IndexingSystem {
 
             if (sourceIntake == IntakeSource.UNKNOWN) {
                 if (config.isDebugTelemetry() && telemetry != null) {
-                    telemetry.addLine("⚠️ Next artifact not in intake storage");
+                    telemetry.addLine(String.format("⚠️ Next artifact not in intake storage (location: %s)", 
+                        nextArtifact.getLocation()));
                 }
                 changeState(SystemState.IDLE);
                 operationInProgress = false;
@@ -2410,27 +2438,51 @@ public class IndexingSystem {
         vars.put("state", currentState.toString());
         vars.put("operationInProgress", operationInProgress);
         vars.put("artifactCount", getArtifactCount());
+        vars.put("firingSequenceActive", firingSequenceActive);
 
-        // Artifact positions
+        // Artifact positions with enhanced display
         vars.put("center", artifactInCenter != null ?
-            String.format("%s #%d", artifactInCenter.getColor(), artifactInCenter.getCollectionOrder()) : "EMPTY");
+            String.format("%s #%d @ %s", artifactInCenter.getColor(), artifactInCenter.getCollectionOrder(), artifactInCenter.getLocation()) : "EMPTY");
         vars.put("frontIntake", artifactInFrontIntake != null ?
-            String.format("%s #%d", artifactInFrontIntake.getColor(), artifactInFrontIntake.getCollectionOrder()) : "EMPTY");
+            String.format("%s #%d @ %s", artifactInFrontIntake.getColor(), artifactInFrontIntake.getCollectionOrder(), artifactInFrontIntake.getLocation()) : "EMPTY");
         vars.put("backIntake", artifactInBackIntake != null ?
-            String.format("%s #%d", artifactInBackIntake.getColor(), artifactInBackIntake.getCollectionOrder()) : "EMPTY");
+            String.format("%s #%d @ %s", artifactInBackIntake.getColor(), artifactInBackIntake.getCollectionOrder(), artifactInBackIntake.getLocation()) : "EMPTY");
+
+        // Show all artifacts including FIRED ones
+        StringBuilder allArtifacts = new StringBuilder();
+        int firedCount = 0;
+        for (int i = 0; i < artifacts.size(); i++) {
+            Artifact a = artifacts.get(i);
+            if (a.getLocation() == Artifact.Location.FIRED) {
+                firedCount++;
+                allArtifacts.append(String.format("[%d:FIRED] ", a.getCollectionOrder()));
+            }
+        }
+        vars.put("firedArtifacts", firedCount > 0 ? allArtifacts.toString().trim() : "none");
+        vars.put("firedCount", firedCount);
 
         // Shot planning
         vars.put("motifPattern", motifPattern + (motifPatternSet ? "" : " (default)"));
         
-        // Get shot plan from planner if available
+        // Get shot plan from planner if available - show full plan
         if (shotPlanner != null) {
             List<Artifact> shotPlan = shotPlanner.getShotPlan();
+            vars.put("shotPlanSize", shotPlan.size());
+            
+            StringBuilder planStr = new StringBuilder();
+            for (int i = 0; i < shotPlan.size(); i++) {
+                Artifact a = shotPlan.get(i);
+                planStr.append(String.format("[%d]%s#%d@%s ", i, a.getColor().toString().substring(0,1), 
+                    a.getCollectionOrder(), a.getLocation().toString().substring(0,1)));
+            }
+            vars.put("shotPlan", shotPlan.isEmpty() ? "empty" : planStr.toString().trim());
+            
             vars.put("plannedShot1", shotPlan.size() > 0 ?
-                String.format("%s #%d", shotPlan.get(0).getColor(), shotPlan.get(0).getCollectionOrder()) : "none");
+                String.format("%s #%d @ %s", shotPlan.get(0).getColor(), shotPlan.get(0).getCollectionOrder(), shotPlan.get(0).getLocation()) : "none");
             vars.put("plannedShot2", shotPlan.size() > 1 ?
-                String.format("%s #%d", shotPlan.get(1).getColor(), shotPlan.get(1).getCollectionOrder()) : "none");
+                String.format("%s #%d @ %s", shotPlan.get(1).getColor(), shotPlan.get(1).getCollectionOrder(), shotPlan.get(1).getLocation()) : "none");
             vars.put("plannedShot3", shotPlan.size() > 2 ?
-                String.format("%s #%d", shotPlan.get(2).getColor(), shotPlan.get(2).getCollectionOrder()) : "none");
+                String.format("%s #%d @ %s", shotPlan.get(2).getColor(), shotPlan.get(2).getCollectionOrder(), shotPlan.get(2).getLocation()) : "none");
             
             Artifact desiredCenter = shotPlanner.getDesiredCenterArtifact();
             vars.put("desiredCenter", desiredCenter != null ?
