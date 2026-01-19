@@ -130,6 +130,7 @@ public class IndexingSystem {
     // Firing sequence coordination
     private boolean firingSequenceActive = false;
     private long firingOperationStartTime = 0;
+    private java.util.function.Supplier<Boolean> manualInputDetector = null; // Pluggable manual input detection
 
     // Debug message storage for opmode display
     private final java.util.concurrent.ConcurrentLinkedQueue<String> debugMessages = new java.util.concurrent.ConcurrentLinkedQueue<>();
@@ -1698,14 +1699,58 @@ public class IndexingSystem {
      * Does NOT detect general robot movement
      */
     private boolean isManualInputActive() {
-        // This is a placeholder - actual implementation would check gamepad state
-        // For now, return false to allow automated operation
-        // In a real opmode, this would check for:
-        // - Manual uptake servo control (DPAD up/down on gamepad2)
-        // - Manual index system controls
-        // - Manual artifact manipulation buttons
-        // But NOT robot movement (joysticks, triggers for driving)
+        // Use pluggable detector if provided
+        if (manualInputDetector != null) {
+            try {
+                return manualInputDetector.get();
+            } catch (Exception e) {
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("⚠️ Manual input detector error: " + e.getMessage());
+                }
+                // Default to false on error
+                return false;
+            }
+        }
+        
+        // Default implementation: no manual input detection
+        // For automated operation without manual override capability
         return false;
+    }
+
+    /**
+     * Set the manual input detector function
+     * This allows the opmode to provide custom manual input detection logic
+     * 
+     * Example usage in opmode:
+     * <pre>
+     * indexingSystem.setManualInputDetector(() -> {
+     *     // Return true if any relevant manual controls are active
+     *     // Gamepad2: Uptake servo controls (DPAD up/down)
+     *     // Gamepad1: Index system manual controls
+     *     return gamepad2.dpad_up || gamepad2.dpad_down || 
+     *            gamepad1.left_bumper || gamepad1.right_bumper;
+     * });
+     * </pre>
+     * 
+     * @param detector Function that returns true if manual input is active
+     */
+    public void setManualInputDetector(java.util.function.Supplier<Boolean> detector) {
+        this.manualInputDetector = detector;
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine("✅ Manual input detector configured");
+        }
+        debugLogger.info("MANUAL_INPUT", "Manual input detector configured");
+    }
+
+    /**
+     * Clear the manual input detector (disable manual override detection)
+     */
+    public void clearManualInputDetector() {
+        this.manualInputDetector = null;
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine("🔌 Manual input detector cleared");
+        }
+        debugLogger.info("MANUAL_INPUT", "Manual input detector cleared");
     }
 
     /**
