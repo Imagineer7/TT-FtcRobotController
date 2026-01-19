@@ -244,7 +244,7 @@ public class ShooterConfig {
     public static final long UPTAKE_PREPOSITION_TIMEOUT_MS = 500;
     
     /** Time to wait for uptake servo retraction before starting push operations (milliseconds) */
-    public static final long UPTAKE_RETRACT_TIME_MS = 400;
+    public static final long UPTAKE_RETRACT_TIME_MS = 500;
 
     // ═══════════════════════════════════════════════════════════════════════
     // SAFETY PARAMETERS

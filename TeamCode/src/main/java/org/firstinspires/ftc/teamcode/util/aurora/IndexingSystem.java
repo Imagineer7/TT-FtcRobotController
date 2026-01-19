@@ -2220,7 +2220,7 @@ public class IndexingSystem {
         if (hardware == null) return;
 
         try {
-            double retractPower = -0.5; // Retract downward
+            double retractPower = -1.0; // Retract downward
 
             if (hardware.getUptakeServoL() != null) {
                 hardware.getUptakeServoL().setPower(retractPower);
