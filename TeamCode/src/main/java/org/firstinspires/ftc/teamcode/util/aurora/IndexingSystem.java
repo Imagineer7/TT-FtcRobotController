@@ -824,12 +824,15 @@ public class IndexingSystem {
         // Add artifact to tracking
         artifacts.add(artifact);
 
-        // Start hardware for collection - but third artifact doesn't need transfer hardware
-        if (artifact.getCollectionOrder() == 3) {
-            // Third artifact: Only keep intake rollers running, no transfer servos/injectors
+        // Start hardware for collection
+        // Third artifact and second artifact in manual push mode don't need transfer hardware
+        if (artifact.getCollectionOrder() == 3 || 
+            (artifact.getCollectionOrder() == 2 && config.isManualPushMode())) {
+            // Third artifact OR second artifact in manual push mode:
+            // Only keep intake rollers running, no transfer servos/injectors
             executeThirdArtifactCollectionHardware();
         } else {
-            // First and second artifacts: Full transfer hardware
+            // First artifact and second artifact in auto push mode: Full transfer hardware
             executeCollectionHardware();
         }
 
@@ -847,8 +850,13 @@ public class IndexingSystem {
                     telemetry.addLine("   Hardware: Transfer servos + Injectors ON");
                     break;
                 case 2:
-                    telemetry.addLine("   Next: Push first to storage, move to center");
-                    telemetry.addLine("   Hardware: Transfer servos + Injectors ON");
+                    if (config.isManualPushMode()) {
+                        telemetry.addLine("   Next: Store in intake (manual push mode)");
+                        telemetry.addLine("   Hardware: NO transfer/injector activation");
+                    } else {
+                        telemetry.addLine("   Next: Push first to storage, move to center");
+                        telemetry.addLine("   Hardware: Transfer servos + Injectors ON");
+                    }
                     break;
                 case 3:
                     telemetry.addLine("   Next: Store in collection intake");
