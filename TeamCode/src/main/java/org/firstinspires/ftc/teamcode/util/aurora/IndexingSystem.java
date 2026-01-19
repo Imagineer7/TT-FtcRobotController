@@ -1045,6 +1045,13 @@ public class IndexingSystem {
             artifactInFrontIntake = null;
         } else if (lastIntakeSource == IntakeSource.BACK) {
             artifactInBackIntake = null;
+        } else if (lastIntakeSource == IntakeSource.UNKNOWN) {
+            // UNKNOWN source - this shouldn't happen during normal operation
+            // Log warning but don't clear any intake references
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("⚠️ Transfer completed with UNKNOWN source - no intake cleared");
+            }
+            debugLogger.warning("TRANSFER", "Transfer completed with UNKNOWN lastIntakeSource");
         }
 
         // Reset uptake pre-position flag for new center artifact
@@ -1052,14 +1059,20 @@ public class IndexingSystem {
 
         // Only increment nextCollectionOrder if this is a new collection (not post-fire transfer)
         // Post-fire transfers are moving already-collected artifacts
+        // We track this by checking if we're in the TRANSFERRING state and the artifact came from storage
         boolean isPostFireTransfer = (currentState == SystemState.TRANSFERRING && 
-                                     updatedArtifact.getCollectionOrder() > 1);
+                                     updatedArtifact.getCollectionOrder() > 1 &&
+                                     (lastIntakeSource == IntakeSource.FRONT || lastIntakeSource == IntakeSource.BACK));
         
         if (!isPostFireTransfer) {
             nextCollectionOrder++;
             if (config.isDebugTelemetry() && telemetry != null) {
                 telemetry.addLine(String.format("🔢 nextCollectionOrder incremented to %d (after first transfer)",
                     nextCollectionOrder));
+            }
+        } else {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("🔄 Post-fire transfer - nextCollectionOrder unchanged");
             }
         }
 
@@ -1704,11 +1717,15 @@ public class IndexingSystem {
             try {
                 return manualInputDetector.get();
             } catch (Exception e) {
+                // CRITICAL: If detector fails, assume manual input IS active (fail-safe)
+                // This prevents automated operations when we can't determine manual state
                 if (config.isDebugTelemetry() && telemetry != null) {
-                    telemetry.addLine("⚠️ Manual input detector error: " + e.getMessage());
+                    telemetry.addLine("❌ CRITICAL: Manual input detector ERROR - assuming MANUAL ACTIVE");
+                    telemetry.addLine("   Error: " + e.getMessage());
                 }
-                // Default to false on error
-                return false;
+                debugLogger.error("MANUAL_INPUT", "Detector failed - failing safe to manual active", e.getMessage());
+                // Return TRUE (manual active) to prevent automated operations during error
+                return true;
             }
         }
         
