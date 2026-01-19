@@ -1728,25 +1728,14 @@ public class IndexingSystem {
             }
             
             if (shotPlan.isEmpty()) {
-                // No more artifacts in shot plan
-                if (firingSequenceActive) {
-                    // Last artifact scenario - firing still active, allow collection of new artifacts
-                    System.out.println("[IndexingSystem] Last artifact fired - system ready for new collections");
-                    if (config.isDebugTelemetry() && telemetry != null) {
-                        telemetry.addLine("✅ Last artifact fired - ready for new collections");
-                    }
-                    changeState(SystemState.IDLE);
-                    operationInProgress = false;
-                    return; // Don't block - allow normal operation
-                } else {
-                    // Firing completed entirely - reset to fresh state
-                    System.out.println("[IndexingSystem] All artifacts fired and firing stopped - resetting system");
-                    if (config.isDebugTelemetry() && telemetry != null) {
-                        telemetry.addLine("✅ All artifacts fired - resetting system");
-                    }
-                    resetAfterFiringComplete();
-                    return;
+                // No more artifacts in shot plan - always reset to allow fresh collections
+                System.out.println(String.format("[IndexingSystem] All artifacts fired (firingSequenceActive=%b) - resetting system", 
+                    firingSequenceActive));
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("✅ All artifacts fired - resetting system");
                 }
+                resetAfterFiringComplete();
+                return;
             }
 
             Artifact nextArtifact = shotPlan.get(0);
@@ -1809,8 +1798,8 @@ public class IndexingSystem {
      * Prepares for new collection cycle
      */
     private void resetAfterFiringComplete() {
-        System.out.println(String.format("[IndexingSystem] Performing full system reset after firing complete (current artifacts: %d, count: %d)", 
-            artifacts.size(), getArtifactCount()));
+        System.out.println(String.format("[IndexingSystem] Performing full system reset after firing complete (current artifacts: %d, count: %d, firingSequenceActive: %b)", 
+            artifacts.size(), getArtifactCount(), firingSequenceActive));
         
         // Clear all artifact data (including any FIRED artifacts still in list)
         artifacts.clear();
@@ -1819,10 +1808,9 @@ public class IndexingSystem {
         artifactInBackIntake = null;
         artifactBeingTransferred = null;
         
-        // Update shot planner with empty state
+        // Clear shot plan
         if (shotPlanner != null) {
-            shotPlanner.updateShotPlan(artifacts, artifactInCenter, 
-                artifactInFrontIntake, artifactInBackIntake);
+            shotPlanner.clearShotPlan();
         }
         
         // Reset all servos to idle position

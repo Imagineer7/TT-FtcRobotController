@@ -170,6 +170,14 @@ public class ShotPlanner {
     }
 
     /**
+     * Clear the shot plan (used when resetting system)
+     */
+    public void clearShotPlan() {
+        shotPlan.clear();
+        desiredCenterArtifact = null;
+    }
+
+    /**
      * Get the desired center artifact for rearrangement
      * @return Desired artifact, or null if no rearrangement needed
      */
