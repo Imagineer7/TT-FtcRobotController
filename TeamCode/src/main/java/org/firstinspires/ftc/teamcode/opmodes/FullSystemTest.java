@@ -9,6 +9,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.Artifact;
 import org.firstinspires.ftc.teamcode.util.aurora.FiringSequenceCoordinator;
+import org.firstinspires.ftc.teamcode.util.aurora.SystemMonitor;
 
 /**
  * FullSystemTest - Comprehensive test OpMode for complete indexing and shooting system
@@ -85,7 +86,6 @@ public class FullSystemTest extends LinearOpMode {
     private Shooter shooter;
     private ShooterConfig shooterConfig;
     private FiringSequenceCoordinator firingCoordinator;
-    private org.firstinspires.ftc.teamcode.util.debug.DebugLogger debugLogger;
 
     // System State Tracking
     private enum SystemMode {
@@ -145,13 +145,10 @@ public class FullSystemTest extends LinearOpMode {
 
         shooterConfig = new ShooterConfig();
 
-        // Initialize debug logger first (shared across all systems)
-        debugLogger = new org.firstinspires.ftc.teamcode.util.debug.DebugLogger();
-
         // Initialize systems with shared debug logger
-        shooter = new Shooter(hardware, shooterConfig, telemetry, debugLogger);
+        shooter = new Shooter(hardware, shooterConfig, telemetry);
         indexingSystem = new IndexingSystem(hardware, indexingConfig, shooter, telemetry);
-        firingCoordinator = new FiringSequenceCoordinator(indexingSystem, shooter, debugLogger);
+        firingCoordinator = new FiringSequenceCoordinator(indexingSystem, shooter);
 
         waitForStart();
 
@@ -176,10 +173,8 @@ public class FullSystemTest extends LinearOpMode {
             // Update system mode based on current state
             updateSystemMode();
 
-            // Display debug telemetry
-            firingCoordinator.getDebugLogger().displayOnTelemetry(telemetry);
-            // Update debug telemetry display
-            debugLogger.displayOnTelemetry(telemetry);
+            // Display SystemMonitor on telemetry
+            SystemMonitor.displayOnTelemetry(telemetry);
             telemetry.update();
 
             // Performance tracking
@@ -265,16 +260,10 @@ public class FullSystemTest extends LinearOpMode {
         }
         lastStart1 = gamepad1.start;
 
-        // [BACK] - Cycle debug display mode
-        if (gamepad1.back && !lastBack1) {
-            cycleDebugDisplayMode();
-        }
+        // [BACK] - No longer used (was for cycling debug display modes)
         lastBack1 = gamepad1.back;
         
-        // [DPAD RIGHT] - Cycle through pages in BY_CLASS mode
-        if (gamepad1.dpad_right && !lastDpadRight1) {
-            debugLogger.cycleClassPage();
-        }
+        // [DPAD RIGHT] - No longer used (was for cycling debug pages)
         lastDpadRight1 = gamepad1.dpad_right;
 
         // [L-STICK] - Toggle manual push mode
@@ -533,21 +522,6 @@ public class FullSystemTest extends LinearOpMode {
         lastDpadRight2 = gamepad2.dpad_right;
     }
 
-    /**
-     * Cycle through debug display modes
-     */
-    private void cycleDebugDisplayMode() {
-        org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode currentMode = debugLogger.getDisplayMode();
-
-        // Get the next display mode by cycling through the enum
-        org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode[] modes =
-            org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode.values();
-
-        int currentIndex = currentMode.ordinal();
-        int nextIndex = (currentIndex + 1) % modes.length;
-
-        debugLogger.setDisplayMode(modes[nextIndex]);
-    }
 
     /**
      * Update performance metrics

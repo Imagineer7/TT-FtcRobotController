@@ -75,8 +75,6 @@ public class IndexingSystem {
     private final IndexingConfig config;
     private final Telemetry telemetry;
     private final Shooter shooter;
-    private final org.firstinspires.ftc.teamcode.util.debug.DebugLogger debugLogger;
-
     // System state
     private SystemState currentState;
     private long stateStartTime;
@@ -155,7 +153,6 @@ public class IndexingSystem {
             this.config = config;
             this.shooter = shooter;
             this.telemetry = telemetry;
-            this.debugLogger = new org.firstinspires.ftc.teamcode.util.debug.DebugLogger();
 
             this.currentState = SystemState.IDLE;
             this.stateStartTime = System.currentTimeMillis();
@@ -181,13 +178,7 @@ public class IndexingSystem {
             this.lastError = "";
             this.errorCount = 0;
 
-            // Register debug checks for state tracking
-            debugLogger.registerCheck("readyToFire", "IndexingSystem is ready to fire");
-            debugLogger.registerCheck("artifactInCenter", "Has artifact in center slot");
-            debugLogger.registerCheck("operationInProgress", "Operation currently in progress");
-            debugLogger.registerCheck("systemIdle", "System in IDLE or READY_TO_FIRE state");
-
-            // Initialize live variables with default values so they're visible immediately
+            // Initialize live variables with default values
             initializeLiveVariables();
 
             // Don't initialize hardware automatically - wait for enable() call
@@ -197,7 +188,6 @@ public class IndexingSystem {
             if (telemetry != null && config != null && config.isDebugTelemetry()) {
                 telemetry.addLine("✅ IndexingSystem initialized successfully");
             }
-            debugLogger.info("IndexingSystem", "Initialized successfully");
         } catch (Exception e) {
             // Log initialization error
             if (telemetry != null) {
@@ -1078,7 +1068,6 @@ public class IndexingSystem {
             if (config.isDebugTelemetry() && telemetry != null) {
                 telemetry.addLine("⚠️ Transfer completed with UNKNOWN source - no intake cleared");
             }
-            debugLogger.warning("TRANSFER", "Transfer completed with UNKNOWN lastIntakeSource");
         }
 
         // Reset uptake pre-position flag for new center artifact
@@ -1466,7 +1455,6 @@ public class IndexingSystem {
                 if (config.isDebugTelemetry() && telemetry != null) {
                     telemetry.addLine("⚠️ Firing cancelled - completing transfer safely");
                 }
-                debugLogger.warning("FIRING", "Firing cancelled during transfer - will complete transfer");
             }
         }
 
@@ -1483,7 +1471,6 @@ public class IndexingSystem {
                 if (config.isDebugTelemetry() && telemetry != null) {
                     telemetry.addLine("⚠️ Manual input - will complete transfer safely");
                 }
-                debugLogger.warning("FIRING", "Manual input during transfer - will complete transfer");
             }
         }
     }
@@ -1510,7 +1497,6 @@ public class IndexingSystem {
             telemetry.addLine("   Artifact remains in center");
         }
         
-        debugLogger.warning("FIRING", "Firing operation cancelled - artifact preserved");
 
         // Return to ready state
         changeState(SystemState.READY_TO_FIRE);
@@ -1553,9 +1539,6 @@ public class IndexingSystem {
                 ShooterConfig.UPTAKE_FEED_TIME_MS / 1000.0));
             telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         }
-        
-        debugLogger.info("FIRING", String.format("Started firing %s #%d", 
-            artifactInCenter.getColor(), artifactInCenter.getCollectionOrder()));
     }
 
     /**
@@ -1595,9 +1578,6 @@ public class IndexingSystem {
             telemetry.addLine(String.format("   Fired: %s #%d", 
                 firedArtifact.getColor(), firedArtifact.getCollectionOrder()));
         }
-        
-        debugLogger.info("FIRING", String.format("Completed firing %s #%d", 
-            firedArtifact.getColor(), firedArtifact.getCollectionOrder()));
 
         // Attempt post-fire advancement if conditions allow
         attemptPostFireAdvancement();
@@ -1696,7 +1676,6 @@ public class IndexingSystem {
                     telemetry.addLine("❌ ERROR: Next artifact in shot plan is already FIRED!");
                     telemetry.addLine("   This indicates shot plan wasn't updated correctly");
                 }
-                debugLogger.error("FIRING", "Shot plan contains FIRED artifact", "Next artifact is FIRED");
                 changeState(SystemState.IDLE);
                 operationInProgress = false;
                 return;
@@ -1759,9 +1738,6 @@ public class IndexingSystem {
                 artifact.getColor(), artifact.getCollectionOrder()));
             telemetry.addLine(String.format("   Duration: %.1fs", totalTime / 1000.0));
         }
-        
-        debugLogger.info("FIRING", String.format("Post-fire transfer started: %s #%d", 
-            artifact.getColor(), artifact.getCollectionOrder()));
     }
 
     /**
@@ -1781,7 +1757,6 @@ public class IndexingSystem {
                     telemetry.addLine("❌ CRITICAL: Manual input detector ERROR - assuming MANUAL ACTIVE");
                     telemetry.addLine("   Error: " + e.getMessage());
                 }
-                debugLogger.error("MANUAL_INPUT", "Detector failed - failing safe to manual active", e.getMessage());
                 // Return TRUE (manual active) to prevent automated operations during error
                 return true;
             }
@@ -1814,7 +1789,6 @@ public class IndexingSystem {
         if (config.isDebugTelemetry() && telemetry != null) {
             telemetry.addLine("✅ Manual input detector configured");
         }
-        debugLogger.info("MANUAL_INPUT", "Manual input detector configured");
     }
 
     /**
@@ -1825,7 +1799,6 @@ public class IndexingSystem {
         if (config.isDebugTelemetry() && telemetry != null) {
             telemetry.addLine("🔌 Manual input detector cleared");
         }
-        debugLogger.info("MANUAL_INPUT", "Manual input detector cleared");
     }
 
     /**
@@ -1837,7 +1810,6 @@ public class IndexingSystem {
         if (config.isDebugTelemetry() && telemetry != null) {
             telemetry.addLine(String.format("🔥 Firing sequence: %s", active ? "ACTIVE" : "INACTIVE"));
         }
-        debugLogger.info("FIRING", String.format("Firing sequence set to: %s", active));
     }
 
     /**
@@ -2205,15 +2177,11 @@ public class IndexingSystem {
         stateStartTime = System.currentTimeMillis();
 
         // Log all state transitions
-        debugLogger.info("STATE", String.format("State transition: %s → %s", oldState, newState));
 
-        // Update debug checks
-        debugLogger.updateCheck("systemIdle",
-            newState == SystemState.IDLE || newState == SystemState.READY_TO_FIRE,
-            "State: " + newState);
-        debugLogger.updateCheck("readyToFire",
-            (newState == SystemState.IDLE || newState == SystemState.READY_TO_FIRE) && artifactInCenter != null,
-            String.format("State: %s, Center: %s", newState, artifactInCenter != null ? "Has artifact" : "Empty"));
+        // Update SystemMonitor state
+        SystemMonitor.set("currentState", newState.toString());
+        SystemMonitor.set("systemIdle", newState == SystemState.IDLE || newState == SystemState.READY_TO_FIRE);
+        SystemMonitor.set("hasArtifactInCenter", artifactInCenter != null);
     }
 
     private void resetToIdle() {
@@ -2381,14 +2349,6 @@ public class IndexingSystem {
     }
 
     /**
-     * Get the debug logger for this indexing system
-     * @return Debug logger instance
-     */
-    public org.firstinspires.ftc.teamcode.util.debug.DebugLogger getDebugLogger() {
-        return debugLogger;
-    }
-
-    /**
      * Initialize live variables with default values
      * Called during construction so variables are visible immediately
      */
@@ -2424,11 +2384,10 @@ public class IndexingSystem {
         vars.put("backPending", "none");
 
         // Initialize with defaults
-        debugLogger.updateLiveVars(vars);
     }
 
     /**
-     * Update live variables for real-time monitoring in debugLogger
+     * Update live variables for real-time monitoring
      * Called every update cycle to provide current state information
      */
     private void updateLiveVariables() {
@@ -2523,8 +2482,8 @@ public class IndexingSystem {
         vars.put("backPending", backPendingArtifact != null ?
             String.format("%s (%.1fs)", backPendingArtifact.getColor(), getRemainingColorDelay(IntakeSource.BACK) / 1000.0) : "none");
 
-        // Update the logger with these variables
-        debugLogger.updateLiveVars(vars);
+        // Update SystemMonitor with all variables
+        SystemMonitor.setAll(vars);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -2633,28 +2592,22 @@ public class IndexingSystem {
                 caller = element.getMethodName() + ":" + element.getLineNumber();
             }
 
-            // Log ALL calls to this critical method
-            debugLogger.info("UPTAKE_SERVO", String.format("setUptakeServos(%s, power=%.2f) called by %s",
-                active, power, caller));
+            // Log ALL calls to this critical method for debugging
 
             // CRITICAL: Detect conflicting calls
             if (!active && uptakeServoPrePositioned) {
-                debugLogger.warning("UPTAKE_SERVO", "⚠️ CONFLICT: Setting servos to STOP during pre-positioning!",
-                    "Called by: " + caller);
+                // Warning: trying to stop servos during pre-positioning
             }
 
             if (hardware.getUptakeServoL() != null) {
                 hardware.getUptakeServoL().setPower(power);
-                debugLogger.debug("UPTAKE_SERVO", String.format("Left servo set to %.2f", power));
             }
             if (hardware.getUptakeServoR() != null) {
                 hardware.getUptakeServoR().setPower(power);
-                debugLogger.debug("UPTAKE_SERVO", String.format("Right servo set to %.2f", power));
             }
 
         } catch (Exception e) {
             setError("Failed to set uptake servos: " + e.getMessage());
-            debugLogger.error("UPTAKE_SERVO", "Exception in setUptakeServos", e.getMessage());
         }
     }
 
