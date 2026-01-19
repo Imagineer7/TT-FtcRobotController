@@ -2030,14 +2030,21 @@ public class IndexingSystem {
         if (plannerExecutor.isIdle() && plannerExecutor.getPendingDesiredCenter() != null) {
             Artifact desiredCenter = plannerExecutor.getPendingDesiredCenter();
 
-            // Validate rearrangement is possible
-            if (canExecuteRearrangement(desiredCenter)) {
-                // Execute the rearrangement using existing manual push logic
-                executeRearrangement(desiredCenter);
-            } else {
-                // Can't execute - abort the request
+            // Check if the operation is still valid (artifact exists and count is correct)
+            boolean operationStillValid = getArtifactCount() == 2 && 
+                (desiredCenter == artifactInFrontIntake || desiredCenter == artifactInBackIntake);
+            
+            if (!operationStillValid) {
+                // Operation is no longer valid - abort it
+                // This happens when artifacts are collected/fired, making the rearrangement irrelevant
+                SystemMonitor.logNow("[PlannerExecutor] Aborting - operation no longer valid (count or artifact changed)");
                 plannerExecutor.abortOperation();
+            } else if (canExecuteRearrangement(desiredCenter)) {
+                // Conditions are right - execute the rearrangement
+                executeRearrangement(desiredCenter);
             }
+            // If operation is valid but can't execute yet (e.g., during FIRING state),
+            // just wait - don't abort. The operation will execute when conditions allow.
         }
     }
 
