@@ -127,6 +127,10 @@ public class IndexingSystem {
     // Automatic detection state
     private boolean autoDetectionEnabled = true;
 
+    // Firing sequence coordination
+    private boolean firingSequenceActive = false;
+    private long firingOperationStartTime = 0;
+
     // Debug message storage for opmode display
     private final java.util.concurrent.ConcurrentLinkedQueue<String> debugMessages = new java.util.concurrent.ConcurrentLinkedQueue<>();
     private static final int MAX_DEBUG_MESSAGES = 10; // Keep last 10 messages
@@ -562,14 +566,70 @@ public class IndexingSystem {
     /**
      * Called when fire signal is issued
      * @return true if firing started successfully
-     * TODO: Implement firing logic
      */
     public boolean onFireSignal() {
-        // Stub: Firing logic removed - needs to be reimplemented
-        if (config.isDebugTelemetry()) {
-            telemetry.addLine("Fire signal received - firing logic not implemented");
+        // GATING RULE 1: firingSequenceActive must be true
+        if (!firingSequenceActive) {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("🔫 Fire rejected: firing sequence not active");
+            }
+            return false;
         }
-        return false;
+
+        // GATING RULE 2: Check for manual opmode input (intelligent detection)
+        if (isManualInputActive()) {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("🔫 Fire rejected: manual input active");
+            }
+            return false;
+        }
+
+        // GATING RULE 3: Must have artifact in center
+        if (artifactInCenter == null) {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("🔫 Fire rejected: no center artifact");
+            }
+            return false;
+        }
+
+        // GATING RULE 4: Center artifact must be pre-positioned
+        if (!uptakeServoPrePositionedForCurrentArtifact) {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("🔫 Fire rejected: artifact not pre-positioned");
+            }
+            return false;
+        }
+
+        // GATING RULE 5: Indexing system must not be busy
+        if (operationInProgress) {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("🔫 Fire rejected: operation in progress");
+            }
+            return false;
+        }
+
+        // GATING RULE 6: Shooter must be at target RPM and stable
+        if (shooter == null || !shooter.isReadyToFire()) {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                String reason = shooter == null ? "shooter null" : 
+                    String.format("shooter not ready (enabled=%s, atTarget=%s, stable=%s)",
+                        shooter.isEnabled(), shooter.isAtTargetRPM(), shooter.isRPMStable());
+                telemetry.addLine("🔫 Fire rejected: " + reason);
+            }
+            return false;
+        }
+
+        // GATING RULE 7: PlannerExecutor must not be busy with rearrangement
+        if (plannerExecutor != null && plannerExecutor.isBusy()) {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("🔫 Fire rejected: planner executor busy");
+            }
+            return false;
+        }
+
+        // All gating rules passed - start firing operation
+        startFiringOperation();
+        return true;
     }
     
     /**
@@ -647,6 +707,9 @@ public class IndexingSystem {
         // Update planner executor (executes rearrangements when idle)
         updatePlannerExecutor();
 
+        // Check for firing sequence cancellation (must happen before state machine)
+        checkFiringCancellation();
+
         // Update live variables for real-time monitoring
         updateLiveVariables();
 
@@ -687,12 +750,13 @@ public class IndexingSystem {
                 break;
 
             case FIRING:
-                // Firing logic removed - needs to be reimplemented
+                // Recalculate elapsed time for this specific state
+                long firingElapsed = System.currentTimeMillis() - firingOperationStartTime;
                 if (config.isDebugTelemetry() && telemetry != null) {
-                    telemetry.addLine("⚠️ FIRING state encountered - not implemented");
+                    telemetry.addData("⏱️ FIRING", String.format("%.1fs / %.1fs",
+                        firingElapsed / 1000.0, ShooterConfig.UPTAKE_FEED_TIME_MS / 1000.0));
                 }
-                // Reset to idle to prevent system from getting stuck
-                resetToIdle();
+                updateFiring(firingElapsed);
                 break;
 
             case READY_TO_FIRE:
@@ -975,14 +1039,27 @@ public class IndexingSystem {
         artifacts.set(artifacts.size() - 1, updatedArtifact);
         artifactInCenter = updatedArtifact;
 
+        // Clear intake storage reference
+        if (lastIntakeSource == IntakeSource.FRONT) {
+            artifactInFrontIntake = null;
+        } else if (lastIntakeSource == IntakeSource.BACK) {
+            artifactInBackIntake = null;
+        }
+
         // Reset uptake pre-position flag for new center artifact
         uptakeServoPrePositionedForCurrentArtifact = false;
 
-        nextCollectionOrder++;
-
-        if (config.isDebugTelemetry() && telemetry != null) {
-            telemetry.addLine(String.format("🔢 nextCollectionOrder incremented to %d (after first transfer)",
-                nextCollectionOrder));
+        // Only increment nextCollectionOrder if this is a new collection (not post-fire transfer)
+        // Post-fire transfers are moving already-collected artifacts
+        boolean isPostFireTransfer = (currentState == SystemState.TRANSFERRING && 
+                                     updatedArtifact.getCollectionOrder() > 1);
+        
+        if (!isPostFireTransfer) {
+            nextCollectionOrder++;
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine(String.format("🔢 nextCollectionOrder incremented to %d (after first transfer)",
+                    nextCollectionOrder));
+            }
         }
 
         // ENSURE all servos are turned off after transfer
@@ -994,7 +1071,7 @@ public class IndexingSystem {
         // Pre-positioning will be handled by the state machine logic in update()
         // No need to explicitly start it here to avoid conflicts
 
-        if (updatedArtifact.getCollectionOrder() == 1) {
+        if (updatedArtifact.getCollectionOrder() == 1 && !isPostFireTransfer) {
             // First artifact in center, ready for more collection
             changeState(SystemState.IDLE);
             operationInProgress = false;
@@ -1325,14 +1402,331 @@ public class IndexingSystem {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // FIRING LOGIC - REMOVED
-    // ═══════════════════════════════════════════════════════════════════════
-    // All firing logic has been removed and needs to be reimplemented
-    // The following stubs are placeholders for future implementation
+    /**
+     * Check for firing sequence cancellation and handle mid-transfer scenarios
+     * This must be called before the state machine in update()
+     */
+    private void checkFiringCancellation() {
+        // Only check if we were previously in a firing-related operation
+        if (currentState != SystemState.TRANSFERRING && currentState != SystemState.FIRING) {
+            return;
+        }
 
+        // Check if firing sequence was deactivated
+        if (!firingSequenceActive) {
+            // Handle cancellation based on current state
+            if (currentState == SystemState.FIRING) {
+                // Mid-fire cancellation - stop immediately
+                cancelFiringOperation();
+            } else if (currentState == SystemState.TRANSFERRING) {
+                // Mid-transfer cancellation - complete the transfer safely
+                // Don't cancel mid-transfer - let it complete normally
+                // The artifact needs to reach its destination for consistent state
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("⚠️ Firing cancelled - completing transfer safely");
+                }
+                debugLogger.warning("FIRING", "Firing cancelled during transfer - will complete transfer");
+            }
+        }
 
-    //No stubs???
+        // Check for manual input during firing operations
+        if (firingSequenceActive && isManualInputActive()) {
+            if (currentState == SystemState.FIRING) {
+                // Manual input during firing - stop immediately
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("⚠️ Manual input detected - stopping firing");
+                }
+                cancelFiringOperation();
+            } else if (currentState == SystemState.TRANSFERRING) {
+                // Manual input during post-fire transfer - complete safely
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("⚠️ Manual input - will complete transfer safely");
+                }
+                debugLogger.warning("FIRING", "Manual input during transfer - will complete transfer");
+            }
+        }
+    }
+
+    /**
+     * Cancel an ongoing firing operation
+     */
+    private void cancelFiringOperation() {
+        // Stop uptake servos immediately
+        if (hardware != null) {
+            if (hardware.getUptakeServoL() != null) {
+                hardware.getUptakeServoL().setPower(0.0);
+            }
+            if (hardware.getUptakeServoR() != null) {
+                hardware.getUptakeServoR().setPower(0.0);
+            }
+        }
+
+        // DO NOT consume the artifact - it remains in center
+        // DO NOT update shot plan
+
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine("🛑 FIRING CANCELLED");
+            telemetry.addLine("   Artifact remains in center");
+        }
+        
+        debugLogger.warning("FIRING", "Firing operation cancelled - artifact preserved");
+
+        // Return to ready state
+        changeState(SystemState.READY_TO_FIRE);
+        operationInProgress = false;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // FIRING LOGIC
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Start the firing operation - activate uptake servos to feed artifact into shooter
+     */
+    private void startFiringOperation() {
+        changeState(SystemState.FIRING);
+        operationInProgress = true;
+        firingOperationStartTime = System.currentTimeMillis();
+
+        // Start uptake servos at full feed power to push artifact into shooter
+        if (hardware != null) {
+            double feedPower = ShooterConfig.UPTAKE_FEED_POWER;
+            if (hardware.getUptakeServoL() != null) {
+                hardware.getUptakeServoL().setPower(feedPower);
+            }
+            if (hardware.getUptakeServoR() != null) {
+                hardware.getUptakeServoR().setPower(feedPower);
+            }
+        }
+
+        // Clear pre-position flags since we're now actively feeding
+        uptakeServoPrePositioned = false;
+        uptakeServoActionTime = 0;
+
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            telemetry.addLine("🔫 FIRING STARTED");
+            telemetry.addLine(String.format("   Artifact: %s #%d", 
+                artifactInCenter.getColor(), artifactInCenter.getCollectionOrder()));
+            telemetry.addLine(String.format("   Feed time: %.1fs", 
+                ShooterConfig.UPTAKE_FEED_TIME_MS / 1000.0));
+            telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        }
+        
+        debugLogger.info("FIRING", String.format("Started firing %s #%d", 
+            artifactInCenter.getColor(), artifactInCenter.getCollectionOrder()));
+    }
+
+    /**
+     * Update firing state - called from main update loop
+     */
+    private void updateFiring(long elapsedTime) {
+        // Check if firing operation has completed
+        if (elapsedTime >= ShooterConfig.UPTAKE_FEED_TIME_MS) {
+            completeFiringOperation();
+        } else if (config.isDebugTelemetry() && telemetry != null) {
+            // Show progress
+            telemetry.addData("⏱️ FIRING", String.format("%.1fs / %.1fs",
+                elapsedTime / 1000.0, ShooterConfig.UPTAKE_FEED_TIME_MS / 1000.0));
+        }
+    }
+
+    /**
+     * Complete the firing operation - stop uptake servos and consume artifact
+     */
+    private void completeFiringOperation() {
+        // Stop uptake servos
+        if (hardware != null) {
+            if (hardware.getUptakeServoL() != null) {
+                hardware.getUptakeServoL().setPower(0.0);
+            }
+            if (hardware.getUptakeServoR() != null) {
+                hardware.getUptakeServoR().setPower(0.0);
+            }
+        }
+
+        // Consume the fired artifact
+        Artifact firedArtifact = artifactInCenter;
+        consumeFiredArtifact(firedArtifact);
+
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine("✅ FIRING COMPLETE");
+            telemetry.addLine(String.format("   Fired: %s #%d", 
+                firedArtifact.getColor(), firedArtifact.getCollectionOrder()));
+        }
+        
+        debugLogger.info("FIRING", String.format("Completed firing %s #%d", 
+            firedArtifact.getColor(), firedArtifact.getCollectionOrder()));
+
+        // Attempt post-fire advancement if conditions allow
+        attemptPostFireAdvancement();
+    }
+
+    /**
+     * Consume the fired artifact - remove from shot plan and update state
+     */
+    private void consumeFiredArtifact(Artifact firedArtifact) {
+        // Update artifact location to FIRED
+        Artifact consumedArtifact = firedArtifact.withLocation(Artifact.Location.FIRED);
+        
+        // Update in artifacts list
+        for (int i = 0; i < artifacts.size(); i++) {
+            if (artifacts.get(i).equals(firedArtifact)) {
+                artifacts.set(i, consumedArtifact);
+                break;
+            }
+        }
+
+        // Clear center slot
+        artifactInCenter = null;
+
+        // Clear uptake pre-position flags
+        uptakeServoPrePositionedForCurrentArtifact = false;
+
+        // Notify shot planner to re-evaluate
+        if (shotPlanner != null) {
+            shotPlanner.updateShotPlan(artifacts, artifactInCenter, 
+                artifactInFrontIntake, artifactInBackIntake);
+        }
+
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine(String.format("   Consumed: %s #%d → FIRED", 
+                consumedArtifact.getColor(), consumedArtifact.getCollectionOrder()));
+            telemetry.addLine(String.format("   Remaining artifacts: %d", getArtifactCount()));
+        }
+    }
+
+    /**
+     * Attempt to advance next artifact to center after firing
+     */
+    private void attemptPostFireAdvancement() {
+        // Check if manual input is active - if so, abort advancement
+        if (isManualInputActive()) {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("⚠️ Post-fire advancement aborted: manual input detected");
+            }
+            changeState(SystemState.IDLE);
+            operationInProgress = false;
+            return;
+        }
+
+        // Check if more artifacts remain
+        if (getArtifactCount() == 0) {
+            if (config.isDebugTelemetry() && telemetry != null) {
+                telemetry.addLine("✅ All artifacts fired - sequence complete");
+            }
+            changeState(SystemState.IDLE);
+            operationInProgress = false;
+            return;
+        }
+
+        // Get next artifact from shot plan
+        if (shotPlanner != null) {
+            List<Artifact> shotPlan = shotPlanner.getShotPlan();
+            if (shotPlan.isEmpty()) {
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("⚠️ Shot plan empty after firing");
+                }
+                changeState(SystemState.IDLE);
+                operationInProgress = false;
+                return;
+            }
+
+            Artifact nextArtifact = shotPlan.get(0);
+            
+            // Check if next artifact is already in center (shouldn't happen, but be safe)
+            if (nextArtifact.getLocation() == Artifact.Location.CENTER_STORAGE) {
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("⚠️ Next artifact already in center?");
+                }
+                changeState(SystemState.READY_TO_FIRE);
+                operationInProgress = false;
+                return;
+            }
+
+            // Determine source intake
+            IntakeSource sourceIntake = IntakeSource.UNKNOWN;
+            if (nextArtifact.getLocation() == Artifact.Location.FRONT_INTAKE) {
+                sourceIntake = IntakeSource.FRONT;
+            } else if (nextArtifact.getLocation() == Artifact.Location.BACK_INTAKE) {
+                sourceIntake = IntakeSource.BACK;
+            }
+
+            if (sourceIntake == IntakeSource.UNKNOWN) {
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    telemetry.addLine("⚠️ Next artifact not in intake storage");
+                }
+                changeState(SystemState.IDLE);
+                operationInProgress = false;
+                return;
+            }
+
+            // Start transferring next artifact to center
+            lastIntakeSource = sourceIntake;
+            startPostFireTransfer(nextArtifact);
+        } else {
+            changeState(SystemState.IDLE);
+            operationInProgress = false;
+        }
+    }
+
+    /**
+     * Start transferring next artifact to center after firing
+     */
+    private void startPostFireTransfer(Artifact artifact) {
+        changeState(SystemState.TRANSFERRING);
+        operationStartTime = System.currentTimeMillis();
+
+        // Start hardware for transfer
+        executeTransferHardware();
+
+        if (config.isDebugTelemetry() && telemetry != null) {
+            long totalTime = config.getTransferServoTimeMs() + config.getCenterAcceptTimeMs();
+            telemetry.addLine("🔄 POST-FIRE TRANSFER");
+            telemetry.addLine(String.format("   Moving: %s #%d → center", 
+                artifact.getColor(), artifact.getCollectionOrder()));
+            telemetry.addLine(String.format("   Duration: %.1fs", totalTime / 1000.0));
+        }
+        
+        debugLogger.info("FIRING", String.format("Post-fire transfer started: %s #%d", 
+            artifact.getColor(), artifact.getCollectionOrder()));
+    }
+
+    /**
+     * Detect if manual opmode input is active (intelligent detection)
+     * Only detects manual input relevant to indexing/uptake systems
+     * Does NOT detect general robot movement
+     */
+    private boolean isManualInputActive() {
+        // This is a placeholder - actual implementation would check gamepad state
+        // For now, return false to allow automated operation
+        // In a real opmode, this would check for:
+        // - Manual uptake servo control (DPAD up/down on gamepad2)
+        // - Manual index system controls
+        // - Manual artifact manipulation buttons
+        // But NOT robot movement (joysticks, triggers for driving)
+        return false;
+    }
+
+    /**
+     * Set the firing sequence active flag from FiringSequenceCoordinator
+     * @param active true if firing sequence is active
+     */
+    public void setFiringSequenceActive(boolean active) {
+        this.firingSequenceActive = active;
+        if (config.isDebugTelemetry() && telemetry != null) {
+            telemetry.addLine(String.format("🔥 Firing sequence: %s", active ? "ACTIVE" : "INACTIVE"));
+        }
+        debugLogger.info("FIRING", String.format("Firing sequence set to: %s", active));
+    }
+
+    /**
+     * Check if firing sequence is currently active
+     * @return true if firing sequence is active
+     */
+    public boolean isFiringSequenceActive() {
+        return firingSequenceActive;
+    }
 
     /**
      * ═══════════════════════════════════════════════════════════════════════

@@ -183,6 +183,9 @@ public class FiringSequenceCoordinator {
         firingSequenceActive = true;
         debugLogger.updateCheck("firingSequenceActive", true, "Set by startFiring()");
         
+        // Notify indexing system that firing sequence is active
+        indexingSystem.setFiringSequenceActive(true);
+        
         firingSequenceStartTime = System.currentTimeMillis();
         currentShotNumber = 1;
 
@@ -301,6 +304,10 @@ public class FiringSequenceCoordinator {
         debugLogger.info("FIRING", "🛑 SETTING firingSequenceActive = FALSE");
         firingSequenceActive = false;
         debugLogger.updateCheck("firingSequenceActive", false, "Set by completeFiring()");
+        
+        // Notify indexing system that firing sequence is inactive
+        indexingSystem.setFiringSequenceActive(false);
+        
         currentShotNumber = 1;
     }
 
@@ -357,6 +364,8 @@ public class FiringSequenceCoordinator {
      */
     public void reset() {
         firingSequenceActive = false;
+        // Notify indexing system
+        indexingSystem.setFiringSequenceActive(false);
         currentShotNumber = 1;
     }
 }
