@@ -573,12 +573,9 @@ public class IndexingSystem {
      */
     public boolean onFireSignal() {
         // GATING RULE 1: Check if firing sequence is active
-        // The FiringSequenceCoordinator must have enabled firing
-        if (shooter != null) {
-            // We can't directly access FiringSequenceCoordinator from here,
-            // so we rely on the coordinator only calling this method when firingSequenceActive == true
-            // This is enforced by FiringSequenceCoordinator.update() logic
-        }
+        // NOTE: The FiringSequenceCoordinator controls firingSequenceActive and only calls
+        // this method when it is true. We trust the coordinator to enforce this rule.
+        // This is by design - the coordinator is the authority on firing sequence state.
         
         // GATING RULE 2: Check if manual input is active
         if (manualInputActive) {
@@ -1072,27 +1069,27 @@ public class IndexingSystem {
      * Complete transfer to center
      */
     private void completeTransferToCenter() {
-        // Find the artifact being transferred (should be in TRANSFERRING or have UNKNOWN location)
+        // Find the artifact being transferred
+        // During initial collection: artifact has UNKNOWN location
+        // During advancement: artifact still has storage location (FRONT_INTAKE or BACK_INTAKE)
         Artifact artifact = null;
         int artifactIndex = -1;
         
-        // First check: Last artifact in list (normal collection case)
+        // First check: Last artifact in list with UNKNOWN location (normal collection case)
         if (!artifacts.isEmpty()) {
             Artifact lastArtifact = artifacts.get(artifacts.size() - 1);
-            if (lastArtifact.getLocation() == Artifact.Location.UNKNOWN || 
-                lastArtifact.getLocation() == Artifact.Location.CENTER_STORAGE) {
+            if (lastArtifact.getLocation() == Artifact.Location.UNKNOWN) {
                 artifact = lastArtifact;
                 artifactIndex = artifacts.size() - 1;
             }
         }
         
-        // Second check: Find artifact that was in storage (post-fire advancement case)
+        // Second check: Find artifact in storage that matches lastIntakeSource (advancement case)
         if (artifact == null) {
             for (int i = 0; i < artifacts.size(); i++) {
                 Artifact a = artifacts.get(i);
                 if (a.getLocation() == Artifact.Location.FRONT_INTAKE || 
                     a.getLocation() == Artifact.Location.BACK_INTAKE) {
-                    // This might be the artifact being transferred
                     // Check if intake matches lastIntakeSource
                     if ((lastIntakeSource == IntakeSource.FRONT && a.getLocation() == Artifact.Location.FRONT_INTAKE) ||
                         (lastIntakeSource == IntakeSource.BACK && a.getLocation() == Artifact.Location.BACK_INTAKE)) {
@@ -1110,9 +1107,10 @@ public class IndexingSystem {
             return;
         }
         
+        // Determine if this is initial collection (UNKNOWN) or advancement (from storage)
         boolean isInitialCollection = (artifact.getLocation() == Artifact.Location.UNKNOWN);
         
-        // Update artifact location
+        // Update artifact location to CENTER_STORAGE
         Artifact updatedArtifact = artifact.withLocation(Artifact.Location.CENTER_STORAGE);
         artifacts.set(artifactIndex, updatedArtifact);
         artifactInCenter = updatedArtifact;
@@ -1121,6 +1119,8 @@ public class IndexingSystem {
         uptakeServoPrePositionedForCurrentArtifact = false;
 
         // Only increment collection order for initial collection, not for advancement
+        // During initial collection, nextCollectionOrder points to the NEXT artifact to collect
+        // The artifact being transferred has collectionOrder = nextCollectionOrder - 1
         if (isInitialCollection && artifact.getCollectionOrder() == nextCollectionOrder - 1) {
             nextCollectionOrder++;
             
@@ -1510,6 +1510,7 @@ public class IndexingSystem {
         }
         
         // 2. Remove from shot plan (ShotPlanner will regenerate on next update)
+        // Pass null for artifactInCenter since we just cleared it above
         if (shotPlanner != null) {
             // Shot planner automatically filters out FIRED artifacts
             shotPlanner.updateShotPlan(artifacts, null, artifactInFrontIntake, artifactInBackIntake);
@@ -1586,6 +1587,13 @@ public class IndexingSystem {
      * This implements the post-fire advancement logic
      */
     private void advanceNextArtifact() {
+        // Safety: Check if shotPlanner is available
+        if (shotPlanner == null) {
+            debugLogger.warning("FIRING", "No shot planner available for advancement");
+            resetToIdle();
+            return;
+        }
+        
         // Get the next artifact from shot plan
         List<Artifact> currentShotPlan = shotPlanner.getShotPlan();
         if (currentShotPlan.isEmpty()) {
