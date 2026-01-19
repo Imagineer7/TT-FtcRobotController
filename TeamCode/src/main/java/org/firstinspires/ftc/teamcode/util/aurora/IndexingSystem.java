@@ -2119,15 +2119,20 @@ public class IndexingSystem {
 
     /**
      * Set intake transfer servo power (CRServo)
-     * These servos transfer artifacts from the intake into the center.
+     * These servos transfer artifacts from the intake into the center, or accept artifacts from center.
      * @param source Which intake transfer servo to control
      * @param active true to activate transfer (run at power), false for idle (stop)
+     * @param acceptFromCenter true if this servo should accept artifact from center (opposite direction),
+     *                         false if moving artifact from intake to center (normal direction)
      */
-    private void setIntakeTransferServo(IntakeSource source, boolean active) {
+    private void setIntakeTransferServo(IntakeSource source, boolean active, boolean acceptFromCenter) {
         if (hardware == null) return;
 
         try {
-            double power = active ? config.getTransferServoPower() : config.getTransferServoIdlePower();
+            double basePower = active ? config.getTransferServoPower() : config.getTransferServoIdlePower();
+
+            // When accepting from center, reverse the direction
+            double power = acceptFromCenter ? -basePower : basePower;
 
             if (source == IntakeSource.FRONT && hardware.getFrontTransferServo() != null) {
                 hardware.getFrontTransferServo().setPower(power);
@@ -2137,6 +2142,15 @@ public class IndexingSystem {
         } catch (Exception e) {
             setError("Failed to set intake transfer servo: " + e.getMessage());
         }
+    }
+
+    /**
+     * Set intake transfer servo power (CRServo) - convenience method for normal transfer (intake to center)
+     * @param source Which intake transfer servo to control
+     * @param active true to activate transfer (run at power), false for idle (stop)
+     */
+    private void setIntakeTransferServo(IntakeSource source, boolean active) {
+        setIntakeTransferServo(source, active, false);
     }
 
     /**
@@ -2560,12 +2574,12 @@ public class IndexingSystem {
         // Opposite (empty) intake runs to accept pushed artifact
         setIntakeCollectionMode(oppositeIntake);
         
-        // Activate intake transfer servo on collecting side
-        setIntakeTransferServo(lastIntakeSource, true);
-        
-        // Opposite intake transfer servo ready to receive
-        setIntakeTransferServo(oppositeIntake, true);
-        
+        // Activate intake transfer servo on collecting side (normal direction: intake to center)
+        setIntakeTransferServo(lastIntakeSource, true, false);
+
+        // Opposite intake transfer servo should accept from center (reversed direction)
+        setIntakeTransferServo(oppositeIntake, true, true);
+
         // Injector servos push artifact out to opposite intake
         // Use the source intake (where second artifact came from) for servo direction
         setInjectorServos(true, lastIntakeSource);

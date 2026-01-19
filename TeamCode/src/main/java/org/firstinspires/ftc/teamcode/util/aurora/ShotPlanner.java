@@ -38,7 +38,7 @@ public class ShotPlanner {
     // ═══════════════════════════════════════════════════════════════════════
 
     /** Current motif pattern (PPG, PGP, or GPP) */
-    private String motifPattern = "PPG";
+    private String motifPattern = "GPP";
 
     /** Current shot plan (ordered list of artifacts) */
     private List<Artifact> shotPlan = new ArrayList<>();
