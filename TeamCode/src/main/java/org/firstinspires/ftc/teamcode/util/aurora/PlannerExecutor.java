@@ -114,10 +114,19 @@ public class PlannerExecutor {
     public boolean update(int artifactCount) {
         long currentTime = System.currentTimeMillis();
 
-        // Reset lockout if artifact count changes
+        // Reset lockout and FAILED state if artifact count changes
+        // This allows the system to recover from previous failures
         if (artifactCount != lastArtifactCount) {
             rearrangementLockout = false;
             lastArtifactCount = artifactCount;
+            
+            // Auto-recover from FAILED state when artifact count changes
+            if (state == ExecutorState.FAILED) {
+                System.out.println("[PlannerExecutor] Auto-recovering from FAILED state (artifact count changed to " + artifactCount + ")");
+                state = ExecutorState.IDLE;
+                operationStartTime = 0;
+                pendingDesiredCenter = null;
+            }
         }
 
         // Check for timeout if operation in progress
@@ -125,6 +134,7 @@ public class PlannerExecutor {
             long elapsed = currentTime - operationStartTime;
             if (elapsed > config.getOperationTimeoutMs()) {
                 // Timeout - abort operation
+                System.out.println("[PlannerExecutor] Operation timeout - entering FAILED state");
                 abortOperation();
                 return false;
             }
