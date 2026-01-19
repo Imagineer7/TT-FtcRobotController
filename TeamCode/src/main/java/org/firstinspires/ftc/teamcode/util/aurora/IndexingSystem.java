@@ -1536,7 +1536,8 @@ public class IndexingSystem {
         
         changeState(SystemState.FIRING);
         operationInProgress = true;
-        firingOperationStartTime = System.currentTimeMillis();
+        operationStartTime = System.currentTimeMillis(); // For timeout detection
+        firingOperationStartTime = System.currentTimeMillis(); // For firing duration tracking
 
         // Start uptake servos at full feed power to push artifact into shooter
         if (hardware != null) {
