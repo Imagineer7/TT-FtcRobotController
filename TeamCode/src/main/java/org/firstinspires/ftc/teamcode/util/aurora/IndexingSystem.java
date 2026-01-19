@@ -689,37 +689,61 @@ public class IndexingSystem {
      * Handles state machine transitions and ongoing operations
      */
     public void update() {
+        System.out.println("═══════════════════════════════════════════════════════════");
+        System.out.println("[IndexingSystem.update] START UPDATE CYCLE");
         long currentTime = System.currentTimeMillis();
         long stateElapsedTime = currentTime - stateStartTime;
+        
+        System.out.println(String.format("[IndexingSystem.update] State: %s, elapsed: %dms, opInProgress: %b, artifactCount: %d",
+            currentState, stateElapsedTime, operationInProgress, getArtifactCount()));
+        System.out.println(String.format("[IndexingSystem.update] Center: %s, Front: %s, Back: %s",
+            artifactInCenter != null ? artifactInCenter.toString() : "EMPTY",
+            artifactInFrontIntake != null ? artifactInFrontIntake.toString() : "EMPTY",
+            artifactInBackIntake != null ? artifactInBackIntake.toString() : "EMPTY"));
+        System.out.println(String.format("[IndexingSystem.update] firingSequenceActive: %b, autoDetectionEnabled: %b",
+            firingSequenceActive, autoDetectionEnabled));
 
         // Update color detection delays first
+        System.out.println("[IndexingSystem.update] Calling updateColorDetectionDelays()...");
         updateColorDetectionDelays();
 
         // Update uptake servo pre-positioning timeout
+        System.out.println("[IndexingSystem.update] Calling updateUptakeServoTimeout()...");
         updateUptakeServoTimeout(currentTime);
 
         // Handle automatic sensor monitoring and detection
         if (autoDetectionEnabled) {
+            System.out.println("[IndexingSystem.update] Auto-detection enabled - calling handleAutomaticDetection()...");
             handleAutomaticDetection(currentTime);
+        } else {
+            System.out.println("[IndexingSystem.update] Auto-detection DISABLED");
         }
 
         // Update shot planner (runs every loop cycle)
+        System.out.println("[IndexingSystem.update] Calling updateShotPlanner()...");
         updateShotPlanner();
 
         // Update planner executor (executes rearrangements when idle)
+        System.out.println("[IndexingSystem.update] Calling updatePlannerExecutor()...");
         updatePlannerExecutor();
 
         // Check for firing sequence cancellation (must happen before state machine)
+        System.out.println("[IndexingSystem.update] Checking firing cancellation...");
         checkFiringCancellation();
 
         // Update live variables for real-time monitoring
+        System.out.println("[IndexingSystem.update] Updating live variables...");
         updateLiveVariables();
 
         // State machine processing FIRST (this may reset operationStartTime during state transitions)
+        System.out.println(String.format("[IndexingSystem.update] Processing state machine: %s", currentState));
         switch (currentState) {
             case COLLECTING:
+                System.out.println("[IndexingSystem.update] === Processing COLLECTING state ===");
                 // Recalculate elapsed time for this specific state
                 long collectingElapsed = System.currentTimeMillis() - operationStartTime;
+                System.out.println(String.format("[IndexingSystem.update] COLLECTING elapsed: %dms / %dms", 
+                    collectingElapsed, config.getIntakeRollerTimeMs()));
                 if (config.isDebugTelemetry() && telemetry != null) {
                     telemetry.addData("⏱️ COLLECTING", String.format("%.1fs / %.1fs",
                         collectingElapsed / 1000.0, config.getIntakeRollerTimeMs() / 1000.0));
@@ -802,8 +826,10 @@ public class IndexingSystem {
                 break;
 
             case ERROR:
+                System.out.println("[IndexingSystem.update] In ERROR state");
                 // Try auto-recovery if enabled
                 if (config.isEnableAutoRecovery() && stateElapsedTime > 1000) {
+                    System.out.println("[IndexingSystem.update] Auto-recovery triggered - resetting to IDLE");
                     resetToIdle();
                 }
                 break;
@@ -811,23 +837,33 @@ public class IndexingSystem {
 
         // Check for operation timeout AFTER state machine processing
         // This uses the NEW operationStartTime if a state transition occurred
+        System.out.println("[IndexingSystem.update] Checking operation timeout...");
         if (operationInProgress) {
             long newOperationElapsedTime = System.currentTimeMillis() - operationStartTime;
+            System.out.println(String.format("[IndexingSystem.update] Operation: elapsed=%dms, timeout=%dms", 
+                newOperationElapsedTime, config.getOperationTimeoutMs()));
             if (newOperationElapsedTime > config.getOperationTimeoutMs()) {
+                System.out.println("[IndexingSystem.update] *** OPERATION TIMEOUT DETECTED ***");
                 if (config.isDebugTelemetry() && telemetry != null) {
                     telemetry.addLine("⚠️ TIMEOUT in state: " + currentState +
                         " after " + (newOperationElapsedTime / 1000.0) + "s");
                 }
                 setError("Operation timeout in state: " + currentState);
                 resetToIdle();
+                System.out.println("[IndexingSystem.update] END UPDATE CYCLE (timeout)");
+                System.out.println("═══════════════════════════════════════════════════════════\n");
                 return;
             }
         }
 
         // Update telemetry if debug enabled
+        System.out.println("[IndexingSystem.update] Checking telemetry debug...");
         if (config.isDebugTelemetry()) {
+            System.out.println("[IndexingSystem.update] Updating telemetry...");
             updateTelemetry();
         }
+        System.out.println("[IndexingSystem.update] END UPDATE CYCLE (normal)");
+        System.out.println("═══════════════════════════════════════════════════════════\n");
     }
 
     /**
@@ -3267,9 +3303,12 @@ public class IndexingSystem {
      * This runs internally during update() and manages the entire detection process
      */
     private void handleAutomaticDetection(long currentTime) {
+        System.out.println(String.format("[handleAutomaticDetection] Called - currentTime: %d, lastCheck: %d, interval: %d",
+            currentTime, lastSensorCheck, SENSOR_CHECK_INTERVAL));
         // Check sensors at controlled intervals to prevent spam
         if (currentTime - lastSensorCheck > SENSOR_CHECK_INTERVAL) {
             lastSensorCheck = currentTime;
+            System.out.println("[handleAutomaticDetection] Interval passed - checking sensors");
 
             handleFrontIntakeAutoDetection();
             handleBackIntakeAutoDetection();
