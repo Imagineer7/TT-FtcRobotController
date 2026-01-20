@@ -75,6 +75,11 @@ public class IndexingSystem {
     private final IndexingConfig config;
     private final Telemetry telemetry;
     private final Shooter shooter;
+    
+    // Helper classes for hardware control
+    private final BasicIndexingHelper indexingHelper;
+    private final BasicFiringHelper firingHelper;
+    
     // System state
     private SystemState currentState;
     private long stateStartTime;
@@ -153,6 +158,10 @@ public class IndexingSystem {
             this.config = config;
             this.shooter = shooter;
             this.telemetry = telemetry;
+
+            // Initialize helper classes for hardware control
+            this.indexingHelper = new BasicIndexingHelper(hardware, telemetry);
+            this.firingHelper = new BasicFiringHelper(shooter, this.indexingHelper, hardware, telemetry);
 
             this.currentState = SystemState.IDLE;
             this.stateStartTime = System.currentTimeMillis();
@@ -702,6 +711,12 @@ public class IndexingSystem {
             artifactInBackIntake != null ? artifactInBackIntake.toString() : "EMPTY"));
         System.out.println(String.format("[IndexingSystem.update] firingSequenceActive: %b, autoDetectionEnabled: %b",
             firingSequenceActive, autoDetectionEnabled));
+
+        // Update helper classes FIRST - they handle hardware timing
+        System.out.println("[IndexingSystem.update] Updating BasicIndexingHelper...");
+        indexingHelper.update();
+        System.out.println("[IndexingSystem.update] Updating BasicFiringHelper...");
+        firingHelper.update();
 
         // Update color detection delays first
         System.out.println("[IndexingSystem.update] Calling updateColorDetectionDelays()...");
@@ -1545,15 +1560,8 @@ public class IndexingSystem {
      * Cancel an ongoing firing operation
      */
     private void cancelFiringOperation() {
-        // Stop uptake servos immediately
-        if (hardware != null) {
-            if (hardware.getUptakeServoL() != null) {
-                hardware.getUptakeServoL().setPower(0.0);
-            }
-            if (hardware.getUptakeServoR() != null) {
-                hardware.getUptakeServoR().setPower(0.0);
-            }
-        }
+        // Cancel firing helper operation
+        firingHelper.cancelFiring();
 
         // DO NOT consume the artifact - it remains in center
         // DO NOT update shot plan
@@ -1574,7 +1582,7 @@ public class IndexingSystem {
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
-     * Start the firing operation - activate uptake servos to feed artifact into shooter
+     * Start the firing operation - delegate to BasicFiringHelper
      */
     private void startFiringOperation() {
         System.out.println(String.format("[IndexingSystem] STARTING FIRING: %s #%d from center", 
@@ -1585,16 +1593,17 @@ public class IndexingSystem {
         operationStartTime = System.currentTimeMillis(); // For timeout detection
         firingOperationStartTime = System.currentTimeMillis(); // For firing duration tracking
 
-        // Start uptake servos at full feed power to push artifact into shooter
-        if (hardware != null) {
-            double feedPower = ShooterConfig.UPTAKE_FEED_POWER;
-            if (hardware.getUptakeServoL() != null) {
-                hardware.getUptakeServoL().setPower(feedPower);
-            }
-            if (hardware.getUptakeServoR() != null) {
-                hardware.getUptakeServoR().setPower(feedPower);
-            }
+        // Use BasicFiringHelper to handle the firing sequence
+        // It will:
+        // 1. Ensure shooter is at target RPM
+        // 2. Run uptake servos to feed artifact (300ms)
+        // 3. Auto-stop after feeding
+        double targetRPM = shooter.getTargetRPM();
+        if (targetRPM <= 0) {
+            // No target set, use default
+            targetRPM = ShooterConfig.ShooterPreset.LONG_RANGE.getTargetRPM();
         }
+        firingHelper.startFiring(targetRPM, "AUTO", false); // Don't use keep-alive mode
 
         // Clear pre-position flags since we're now actively feeding
         uptakeServoPrePositioned = false;
@@ -1602,46 +1611,39 @@ public class IndexingSystem {
 
         if (config.isDebugTelemetry() && telemetry != null) {
             telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            telemetry.addLine("🔫 FIRING STARTED");
+            telemetry.addLine("🔫 FIRING STARTED (BasicFiringHelper)");
             telemetry.addLine(String.format("   Artifact: %s #%d", 
                 artifactInCenter.getColor(), artifactInCenter.getCollectionOrder()));
-            telemetry.addLine(String.format("   Feed time: %.1fs", 
-                ShooterConfig.UPTAKE_FEED_TIME_MS / 1000.0));
+            telemetry.addLine(String.format("   Target RPM: %.0f", targetRPM));
             telemetry.addLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         }
     }
 
     /**
      * Update firing state - called from main update loop
+     * Checks if BasicFiringHelper has completed the firing
      */
     private void updateFiring(long elapsedTime) {
-        // Check if firing operation has completed
-        if (elapsedTime >= ShooterConfig.UPTAKE_FEED_TIME_MS) {
+        // Check if firing helper has completed (not firing anymore)
+        if (!firingHelper.isFiring()) {
             completeFiringOperation();
         } else if (config.isDebugTelemetry() && telemetry != null) {
-            // Show progress
-            telemetry.addData("⏱️ FIRING", String.format("%.1fs / %.1fs",
-                elapsedTime / 1000.0, ShooterConfig.UPTAKE_FEED_TIME_MS / 1000.0));
+            // Show progress from helper
+            telemetry.addData("⏱️ FIRING", firingHelper.getFiringState());
+            telemetry.addData("  Helper RPM", String.format("%.0f / %.0f", 
+                shooter.getCurrentRPM(), firingHelper.getTargetRPM()));
         }
     }
 
     /**
-     * Complete the firing operation - stop uptake servos and consume artifact
+     * Complete the firing operation - BasicFiringHelper has finished feeding
      */
     private void completeFiringOperation() {
         Artifact firedArtifact = artifactInCenter;
         System.out.println(String.format("[IndexingSystem] FIRING COMPLETE: %s #%d fired", 
             firedArtifact.getColor(), firedArtifact.getCollectionOrder()));
         
-        // Stop uptake servos
-        if (hardware != null) {
-            if (hardware.getUptakeServoL() != null) {
-                hardware.getUptakeServoL().setPower(0.0);
-            }
-            if (hardware.getUptakeServoR() != null) {
-                hardware.getUptakeServoR().setPower(0.0);
-            }
-        }
+        // BasicFiringHelper has already stopped uptake servos, so we just need to consume the artifact
 
         // Consume the fired artifact
         consumeFiredArtifact(firedArtifact);
@@ -2725,16 +2727,10 @@ public class IndexingSystem {
      * @param power Motor power (0.0 to 1.0, always inward/positive)
      */
     private void setIntakePower(IntakeSource source, double power) {
-        if (hardware == null) return;
-
-        try {
-            if (source == IntakeSource.FRONT && hardware.getFrontRollerMotor() != null) {
-                hardware.getFrontRollerMotor().setPower(power);
-            } else if (source == IntakeSource.BACK && hardware.getBackRollerMotor() != null) {
-                hardware.getBackRollerMotor().setPower(power);
-            }
-        } catch (Exception e) {
-            setError("Failed to set intake power: " + e.getMessage());
+        if (source == IntakeSource.FRONT) {
+            indexingHelper.setFrontRollerPower(power);
+        } else if (source == IntakeSource.BACK) {
+            indexingHelper.setBackRollerPower(power);
         }
     }
     
@@ -2766,29 +2762,18 @@ public class IndexingSystem {
      * @param source which intake is being used (affects servo direction)
      */
     private void setInjectorServos(boolean active, IntakeSource source) {
-        if (hardware == null) return;
-
-        try {
-            double basePower = active ? config.getTransferServoPower() : config.getTransferServoIdlePower();
-
-            // Reverse servo directions when collecting from back intake
-            boolean reverseDirection = (source == IntakeSource.BACK);
-
-            if (hardware.getInjectorServoLeft() != null) {
-                // Left servo base configuration: reversed (facing opposite direction)
-                // For back intake: reverse this again (double negative = positive)
-                double leftPower = reverseDirection ? basePower : -basePower;
-                hardware.getInjectorServoLeft().setPower(leftPower);
-            }
-            if (hardware.getInjectorServoRight() != null) {
-                // Right servo base configuration: normal
-                // For back intake: reverse this
-                double rightPower = reverseDirection ? -basePower : basePower;
-                hardware.getInjectorServoRight().setPower(rightPower);
-            }
-        } catch (Exception e) {
-            setError("Failed to set injector servos: " + e.getMessage());
+        if (!active) {
+            indexingHelper.stopInjector();
+            return;
         }
+
+        // Determine power direction based on source
+        double power = config.getTransferServoPower();
+        if (source == IntakeSource.BACK) {
+            power = -power; // Reverse for back intake
+        }
+        
+        indexingHelper.setInjectorPower(power);
     }
 
     /**
@@ -2806,35 +2791,10 @@ public class IndexingSystem {
      * @param active true to activate uptake (run at power), false for idle (stop)
      */
     private void setUptakeServos(boolean active) {
-        if (hardware == null) return;
-
-        try {
-            double power = active ? config.getTransferServoPower() : config.getTransferServoIdlePower();
-
-            // Get caller information for debugging
-            StackTraceElement[] stack = Thread.currentThread().getStackTrace();
-            String caller = "UNKNOWN";
-            if (stack.length > 2) {
-                StackTraceElement element = stack[2];
-                caller = element.getMethodName() + ":" + element.getLineNumber();
-            }
-
-            // Log ALL calls to this critical method for debugging
-
-            // CRITICAL: Detect conflicting calls
-            if (!active && uptakeServoPrePositioned) {
-                // Warning: trying to stop servos during pre-positioning
-            }
-
-            if (hardware.getUptakeServoL() != null) {
-                hardware.getUptakeServoL().setPower(power);
-            }
-            if (hardware.getUptakeServoR() != null) {
-                hardware.getUptakeServoR().setPower(power);
-            }
-
-        } catch (Exception e) {
-            setError("Failed to set uptake servos: " + e.getMessage());
+        if (active) {
+            indexingHelper.setUptakePower(config.getTransferServoPower());
+        } else {
+            indexingHelper.stopUptake();
         }
     }
 
@@ -2847,21 +2807,24 @@ public class IndexingSystem {
      *                         false if moving artifact from intake to center (normal direction)
      */
     private void setIntakeTransferServo(IntakeSource source, boolean active, boolean acceptFromCenter) {
-        if (hardware == null) return;
-
-        try {
-            double basePower = active ? config.getTransferServoPower() : config.getTransferServoIdlePower();
-
-            // When accepting from center, reverse the direction
-            double power = acceptFromCenter ? -basePower : basePower;
-
-            if (source == IntakeSource.FRONT && hardware.getFrontTransferServo() != null) {
-                hardware.getFrontTransferServo().setPower(power);
-            } else if (source == IntakeSource.BACK && hardware.getBackTransferServo() != null) {
-                hardware.getBackTransferServo().setPower(power);
+        if (!active) {
+            if (source == IntakeSource.FRONT) {
+                indexingHelper.stopFrontTransfer();
+            } else if (source == IntakeSource.BACK) {
+                indexingHelper.stopBackTransfer();
             }
-        } catch (Exception e) {
-            setError("Failed to set intake transfer servo: " + e.getMessage());
+            return;
+        }
+
+        double power = config.getTransferServoPower();
+        if (acceptFromCenter) {
+            power = -power; // Reverse direction when accepting from center
+        }
+
+        if (source == IntakeSource.FRONT) {
+            indexingHelper.setFrontTransferPower(power);
+        } else if (source == IntakeSource.BACK) {
+            indexingHelper.setBackTransferPower(power);
         }
     }
 
@@ -2879,71 +2842,32 @@ public class IndexingSystem {
      * @param enable true to pre-position up, false to return to idle
      */
     private void setUptakeServoPrePosition(boolean enable) {
-        if (hardware == null || shooter == null) return;
+        if (enable) {
+            indexingHelper.prePositionArtifacts();
+            uptakeServoPrePositioned = true;
+            uptakeServoActionTime = System.currentTimeMillis();
 
-
-        try {
-            if (enable) {
-                // Start pre-positioning with gentle upward power
-                double power = ShooterConfig.UPTAKE_PREPOSITION_POWER; // Use config value
-
-                if (hardware.getUptakeServoL() != null) {
-                    hardware.getUptakeServoL().setPower(power);
-                    if (config.isDebugTelemetry() && telemetry != null) {
-                        String msg = String.format("🔧 ⚡ LEFT SERVO: Set to %.2f power", power);
-                        addDebugMessage(msg);
-                    }
-                }
-                if (hardware.getUptakeServoR() != null) {
-                    hardware.getUptakeServoR().setPower(power);
-                    if (config.isDebugTelemetry() && telemetry != null) {
-                        String msg = String.format("🔧 ⚡ RIGHT SERVO: Set to %.2f power", power);
-                        addDebugMessage(msg);
-                    }
-                }
-
-                uptakeServoPrePositioned = true;
-                uptakeServoActionTime = System.currentTimeMillis();
-
-                if (config.isDebugTelemetry() && telemetry != null) {
-                    String message = String.format("🔧 ✅ UPTAKE START: Pre-positioning started (actionTime: %d)", uptakeServoActionTime);
-                    telemetry.addLine(message);
-                    addDebugMessage(message);
-                }
-            } else {
-                // Stop pre-positioning - return to idle
-                if (hardware.getUptakeServoL() != null) {
-                    hardware.getUptakeServoL().setPower(0.0);
-                    if (config.isDebugTelemetry() && telemetry != null) {
-                        String msg = "🔧 🔌 LEFT SERVO: Set to 0.0 power (STOPPED)";
-                        addDebugMessage(msg);
-                    }
-                }
-                if (hardware.getUptakeServoR() != null) {
-                    hardware.getUptakeServoR().setPower(0.0);
-                    if (config.isDebugTelemetry() && telemetry != null) {
-                        String msg = "🔧 🔌 RIGHT SERVO: Set to 0.0 power (STOPPED)";
-                        addDebugMessage(msg);
-                    }
-                }
-
-                uptakeServoPrePositioned = false;
-
-                // DEBUG: Track what's calling this to stop pre-positioning
-                if (config.isDebugTelemetry() && telemetry != null) {
-                    StackTraceElement[] stack = Thread.currentThread().getStackTrace();
-                    String caller = "UNKNOWN";
-                    if (stack.length > 2) {
-                        StackTraceElement element = stack[2]; // Skip getStackTrace() and this method
-                        caller = element.getMethodName() + ":" + element.getLineNumber();
-                    }
-                    String message = "🔧 ❌ UPTAKE STOP: Pre-positioning ended by " + caller;
-                    telemetry.addLine(message);
-                    addDebugMessage(message);
-                }
+            if (config.isDebugTelemetry() && telemetry != null) {
+                String message = String.format("🔧 ✅ UPTAKE START: Pre-positioning started (actionTime: %d)", uptakeServoActionTime);
+                telemetry.addLine(message);
+                addDebugMessage(message);
             }
-        } catch (Exception e) {
-            setError("Failed to control uptake servos: " + e.getMessage());
+        } else {
+            indexingHelper.stopUptake();
+            uptakeServoPrePositioned = false;
+
+            // DEBUG: Track what's calling this to stop pre-positioning
+            if (config.isDebugTelemetry() && telemetry != null) {
+                StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+                String caller = "UNKNOWN";
+                if (stack.length > 2) {
+                    StackTraceElement element = stack[2]; // Skip getStackTrace() and this method
+                    caller = element.getMethodName() + ":" + element.getLineNumber();
+                }
+                String message = "🔧 ❌ UPTAKE STOP: Pre-positioning ended by " + caller;
+                telemetry.addLine(message);
+                addDebugMessage(message);
+            }
         }
     }
 
@@ -2952,41 +2876,20 @@ public class IndexingSystem {
      * Used during push operations to avoid interference
      */
     private void retractUptakeServos() {
-        if (hardware == null) return;
+        indexingHelper.unPrePositionArtifacts();
+        
+        uptakeServoPrePositioned = false;
+        // FIXED: Clear action time instead of resetting it to prevent timing interference
+        uptakeServoActionTime = 0;
+        
+        // Track retraction start time for proper timing before push operations
+        uptakeServoRetractionStartTime = System.currentTimeMillis();
 
-        try {
-            double retractPower = -1.0; // Retract downward
-
-            if (hardware.getUptakeServoL() != null) {
-                hardware.getUptakeServoL().setPower(retractPower);
-                if (config.isDebugTelemetry() && telemetry != null) {
-                    String msg = String.format("🔧 ⬇️ LEFT SERVO (retract): Set to %.2f power (RETRACT)", retractPower);
-                    addDebugMessage(msg);
-                }
-            }
-            if (hardware.getUptakeServoR() != null) {
-                hardware.getUptakeServoR().setPower(retractPower);
-                if (config.isDebugTelemetry() && telemetry != null) {
-                    String msg = String.format("🔧 ⬇️ RIGHT SERVO (retract): Set to %.2f power (RETRACT)", retractPower);
-                    addDebugMessage(msg);
-                }
-            }
-
-            uptakeServoPrePositioned = false;
-            // FIXED: Clear action time instead of resetting it to prevent timing interference
-            uptakeServoActionTime = 0;
-            
-            // Track retraction start time for proper timing before push operations
-            uptakeServoRetractionStartTime = System.currentTimeMillis();
-
-            if (config.isDebugTelemetry() && telemetry != null) {
-                String message = String.format("🔧 ⚠️ UPTAKE RETRACTED: Push operation interference! (wait %dms)", 
-                    ShooterConfig.UPTAKE_RETRACT_TIME_MS);
-                telemetry.addLine(message);
-                addDebugMessage(message);
-            }
-        } catch (Exception e) {
-            setError("Failed to retract uptake servos: " + e.getMessage());
+        if (config.isDebugTelemetry() && telemetry != null) {
+            String message = String.format("🔧 ⚠️ UPTAKE RETRACTED: Push operation interference! (wait %dms)", 
+                ShooterConfig.UPTAKE_RETRACT_TIME_MS);
+            telemetry.addLine(message);
+            addDebugMessage(message);
         }
     }
 
@@ -2995,12 +2898,26 @@ public class IndexingSystem {
      * Automatically stops pre-positioning after the configured time to prevent continuous running
      */
     private void updateUptakeServoTimeout(long currentTime) {
-        if (uptakeServoPrePositioned && uptakeServoActionTime > 0) {
-            // Check if pre-positioning timeout has elapsed
-            long elapsedTime = currentTime - uptakeServoActionTime;
-            long timeoutMs = ShooterConfig.UPTAKE_PREPOSITION_TIMEOUT_MS; // Use config value
+        // Check if helper is currently pre-positioning
+        if (indexingHelper.isPrePositioning()) {
+            // The helper manages its own timeout, but we need to check when it's done
+            // to update our tracking flags
+            if (!indexingHelper.isUptakeBusy()) {
+                // Pre-positioning completed by helper
+                uptakeServoPrePositioned = false;
+                uptakeServoPrePositionedForCurrentArtifact = true;
 
-            // Enhanced debug telemetry to track timing issues
+                if (config.isDebugTelemetry() && telemetry != null) {
+                    String timeoutMsg = "🔧 ✅ TIMEOUT COMPLETE: Pre-positioning completed by helper";
+                    telemetry.addLine(timeoutMsg);
+                    addDebugMessage(timeoutMsg);
+                }
+            }
+        } else if (uptakeServoPrePositioned && uptakeServoActionTime > 0) {
+            // Manual pre-positioning still in progress, check timeout
+            long elapsedTime = currentTime - uptakeServoActionTime;
+            long timeoutMs = ShooterConfig.UPTAKE_PREPOSITION_TIMEOUT_MS;
+
             if (config.isDebugTelemetry() && telemetry != null) {
                 telemetry.addData("🔧 Uptake Timer", String.format("%.0f/%.0fms (%.1fs)",
                     (double)elapsedTime, (double)timeoutMs, elapsedTime / 1000.0));
@@ -3008,10 +2925,7 @@ public class IndexingSystem {
                     currentTime, uptakeServoActionTime, elapsedTime));
             }
 
-            // Use >= for timeout to ensure we don't overshoot significantly
-            // The slight overshoot (590ms vs 500ms) is normal due to loop timing
             if (elapsedTime >= timeoutMs) {
-                // Add debug info BEFORE calling setUptakeServoPrePosition
                 if (config.isDebugTelemetry() && telemetry != null) {
                     String debugMsg = String.format("🔧 ⏰ TIMEOUT TRIGGER: %.0fms elapsed (>= %.0fms timeout)",
                         (double)elapsedTime, (double)timeoutMs);
@@ -3042,9 +2956,9 @@ public class IndexingSystem {
      * Uptake servos are managed separately by pre-positioning logic
      */
     private void resetAllServos() {
-        setInjectorServos(false); // Stop (power = 0)
-        setIntakeTransferServo(IntakeSource.FRONT, false);
-        setIntakeTransferServo(IntakeSource.BACK, false);
+        indexingHelper.stopInjector();
+        indexingHelper.stopFrontTransfer();
+        indexingHelper.stopBackTransfer();
 
         // Don't reset uptake servos here - let pre-positioning logic handle them
         // This prevents interference with the 500ms pre-positioning cycle
@@ -3054,26 +2968,7 @@ public class IndexingSystem {
      * Explicitly stop and reset uptake servos (for system reset, errors, etc.)
      */
     private void resetUptakeServos() {
-        if (hardware != null) {
-            try {
-                if (hardware.getUptakeServoL() != null) {
-                    hardware.getUptakeServoL().setPower(0.0);
-                    if (config.isDebugTelemetry() && telemetry != null) {
-                        String msg = "🔧 🔄 LEFT SERVO (resetUptakeServos): Set to 0.0 power (RESET)";
-                        addDebugMessage(msg);
-                    }
-                }
-                if (hardware.getUptakeServoR() != null) {
-                    hardware.getUptakeServoR().setPower(0.0);
-                    if (config.isDebugTelemetry() && telemetry != null) {
-                        String msg = "🔧 🔄 RIGHT SERVO (resetUptakeServos): Set to 0.0 power (RESET)";
-                        addDebugMessage(msg);
-                    }
-                }
-            } catch (Exception e) {
-                // Ignore errors during servo reset
-            }
-        }
+        indexingHelper.stopUptake();
 
         // DEBUG: Track when this method is called
         if (config.isDebugTelemetry() && telemetry != null) {
@@ -3234,18 +3129,17 @@ public class IndexingSystem {
 
     /**
      * Execute hardware actions for collection state
-     * Rollers continue running, intake transfer servo moves artifact to center,
-     * injector servos accept and complete the transfer.
+     * Uses BasicIndexingHelper's transfer sequence for automatic un-pre-positioning,
+     * transfer, and pre-positioning
      */
     private void executeCollectionHardware() {
-        // Intake rollers already running continuously (in collection mode)
-        setIntakeCollectionMode(lastIntakeSource);
-        
-        // Activate intake transfer servo to move artifact from intake to center
-        setIntakeTransferServo(lastIntakeSource, true);
-        
-        // Activate injector servos to accept artifact from intake transfer
-        setInjectorServos(true, lastIntakeSource);
+        // Use helper's integrated transfer sequence
+        // This handles: un-pre-position → transfer (rollers + transfer servo + injectors) → pre-position
+        if (lastIntakeSource == IntakeSource.FRONT) {
+            indexingHelper.transferFrontIntakeToCenterTimed(config.getTransferServoTimeMs() + config.getCenterAcceptTimeMs());
+        } else if (lastIntakeSource == IntakeSource.BACK) {
+            indexingHelper.transferBackIntakeToCenterTimed(config.getTransferServoTimeMs() + config.getCenterAcceptTimeMs());
+        }
     }
 
     /**
@@ -3268,26 +3162,27 @@ public class IndexingSystem {
 
     /**
      * Execute hardware actions for transferring state
-     * Continue the transfer process with servos active
+     * Continue the transfer process - helper manages the sequence
      */
     private void executeTransferHardware() {
-        // Intake rollers continue running to push artifact through
+        // Transfer is already managed by executeCollectionHardware's helper call
+        // The helper runs the complete sequence non-blocking
+        // Just keep rollers running at collection speed
         setIntakeCollectionMode(lastIntakeSource);
-        
-        // Keep transfer servos active
-        setIntakeTransferServo(lastIntakeSource, true);
-        setInjectorServos(true, lastIntakeSource);
     }
 
     /**
      * Execute hardware actions for pushing state
      * Second artifact pushes first artifact from center into opposite (empty) intake.
-     * Center servos push the artifact out, opposite intake accepts it.
+     * Uses helper's timed operations for coordinated push.
      */
     private void executePushHardware() {
         IntakeSource oppositeIntake = (lastIntakeSource == IntakeSource.FRONT) 
             ? IntakeSource.BACK 
             : IntakeSource.FRONT;
+        
+        // Calculate total push time
+        long pushDuration = config.getSecondArtifactPushTimeMs();
         
         // Collecting intake continues at collection speed
         setIntakeCollectionMode(lastIntakeSource);
@@ -3295,15 +3190,25 @@ public class IndexingSystem {
         // Opposite (empty) intake runs to accept pushed artifact
         setIntakeCollectionMode(oppositeIntake);
         
-        // Activate intake transfer servo on collecting side (normal direction: intake to center)
-        setIntakeTransferServo(lastIntakeSource, true, false);
+        // Use helper's timed operations for coordinated push
+        // Collecting side: normal transfer (intake → center)
+        if (lastIntakeSource == IntakeSource.FRONT) {
+            indexingHelper.setFrontTransferTimed(config.getTransferServoPower(), pushDuration);
+        } else {
+            indexingHelper.setBackTransferTimed(config.getTransferServoPower(), pushDuration);
+        }
 
-        // Opposite intake transfer servo should accept from center (reversed direction)
-        setIntakeTransferServo(oppositeIntake, true, true);
+        // Opposite side: reversed transfer (center → intake, accepting artifact)
+        if (oppositeIntake == IntakeSource.FRONT) {
+            indexingHelper.setFrontTransferTimed(-config.getTransferServoPower(), pushDuration);
+        } else {
+            indexingHelper.setBackTransferTimed(-config.getTransferServoPower(), pushDuration);
+        }
 
         // Injector servos push artifact out to opposite intake
-        // Use the source intake (where second artifact came from) for servo direction
-        setInjectorServos(true, lastIntakeSource);
+        // Direction based on collecting intake
+        double injectorPower = (lastIntakeSource == IntakeSource.FRONT) ? 1.0 : -1.0;
+        indexingHelper.setInjectorTimed(injectorPower * config.getTransferServoPower(), pushDuration);
     }
 
     // executeFiringHardware() method removed - needs to be reimplemented
