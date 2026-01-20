@@ -8,6 +8,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * This helper class provides:
  * - Non-blocking firing sequences (spin up → feed → fire)
  * - RPM preset management (high, medium, low range)
+ * - Keep-alive mode (shooter stays spinning for rapid follow-up shots)
  * - Ejection sequences (clear artifacts from robot)
  * - State machine architecture for reliable operation
  * - Cancel operations mid-sequence
@@ -16,29 +17,51 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * 1. Spin up shooter to target RPM
  * 2. Wait for shooter ready (at target + stable)
  * 3. Feed artifact with uptake servos (300ms)
- * 4. Complete
+ * 4. Complete (or transition to READY_TO_FIRE if keep-alive mode)
+ *
+ * Keep-Alive Mode:
+ * When enabled, shooter stays spinning after first shot.
+ * Use fireShot() or startFiring() to trigger subsequent shots.
+ * Call cancelFiring() to stop the shooter.
  *
  * Ejection Sequence:
  * - Run both intakes backward (eject from intakes)
  * - Run shooter at low speed (safe ejection from center)
  * - Run uptake forward (push artifact out through shooter)
  *
- * Usage Pattern:
- *   BasicFiringHelper firingHelper = new BasicFiringHelper(shooter, indexingHelper, telemetry);
+ * Usage Pattern (Single Shot):
+ *   BasicFiringHelper firingHelper = new BasicFiringHelper(shooter, indexingHelper, hardware, telemetry);
  *
- *   // Start firing with preset
- *   firingHelper.startFiring(ShooterConfig.RPM_HIGH_BASKET);
+ *   // Start single shot (shooter stops after)
+ *   firingHelper.startFiring(ShooterConfig.RPM_HIGH_BASKET, "HIGH", false);
  *
  *   // In loop
  *   firingHelper.update();
  *
- *   // Check if you can start new firing
+ *   // Check if complete
  *   if (!firingHelper.isFiring()) {
- *       firingHelper.startFiring(rpm);
+ *       // Ready for next shot
  *   }
  *
- *   // Cancel if needed
- *   firingHelper.cancelFiring();
+ * Usage Pattern (Keep-Alive / Multiple Shots):
+ *   // Start with keep-alive enabled
+ *   firingHelper.startFiring(ShooterConfig.RPM_HIGH_BASKET, "HIGH", true);
+ *
+ *   // In loop
+ *   firingHelper.update();
+ *
+ *   // Wait for ready
+ *   if (firingHelper.isReadyForNextShot()) {
+ *       // Fire subsequent shots
+ *       if (gamepad1.a) {
+ *           firingHelper.fireShot();  // Fire another shot
+ *       }
+ *   }
+ *
+ *   // Stop when done
+ *   if (gamepad1.b) {
+ *       firingHelper.cancelFiring();
+ *   }
  */
 public class BasicFiringHelper {
 
@@ -154,17 +177,6 @@ public class BasicFiringHelper {
     private void updateFiringSequence() {
         if (!firingActive) return;
 
-        // Check for button release in keep-alive mode (ANY state)
-        if (keepAliveMode && !buttonHeld) {
-            // Button released - stop everything
-            firingState = FiringState.COMPLETE;
-            firingActive = false;
-            keepAliveMode = false;
-            shooter.stopMotors();
-            telemetry.addData("Firing", "✅ Complete - Button released");
-            return;
-        }
-
         switch (firingState) {
             case SPINNING_UP:
                 // Call spinUp() every loop to keep shooter stable
@@ -227,8 +239,9 @@ public class BasicFiringHelper {
                 // Wait for uptake to finish feeding
                 if (!indexingHelper.isUptakeBusy()) {
                     // Feeding complete
-                    if (keepAliveMode && buttonHeld) {
+                    if (keepAliveMode) {
                         // Keep-alive mode: transition to READY_TO_FIRE instead of stopping
+                        // Shooter will stay spinning, waiting for external call to fire again
                         firingState = FiringState.READY_TO_FIRE;
                         telemetry.addData("Firing", "✅ Shot complete - Ready for next");
                     } else {
@@ -356,7 +369,6 @@ public class BasicFiringHelper {
         targetRPM = rpm;
         firingPresetName = presetName;
         keepAliveMode = keepAlive;
-        buttonHeld = keepAlive; // Assume button held if keep-alive requested
 
         // Spin up shooter - MUST call both setTargetRPM and spinUp
         shooter.setTargetRPM(rpm);
@@ -366,6 +378,35 @@ public class BasicFiringHelper {
             telemetry.addData("Mode", "Keep-alive (continuous)");
         }
 
+        return true;
+    }
+
+    /**
+     * Fire a single shot (only works when in READY_TO_FIRE state)
+     * Use this method to trigger follow-up shots after the shooter is spun up
+     *
+     * This is the recommended way to fire subsequent shots in keep-alive mode:
+     * 1. Call startFiring() with keepAlive=true to spin up
+     * 2. Wait for isReadyForNextShot() to return true
+     * 3. Call fireShot() to trigger each subsequent shot
+     *
+     * @return true if shot started, false if not ready
+     */
+    public boolean fireShot() {
+        if (!enabled) {
+            telemetry.addData("⚠️ WARNING", "Firing helper disabled");
+            return false;
+        }
+
+        if (!firingActive || firingState != FiringState.READY_TO_FIRE) {
+            telemetry.addData("⚠️ WARNING", "Not in READY_TO_FIRE state");
+            return false;
+        }
+
+        // Transition to FEEDING state
+        firingState = FiringState.FEEDING;
+        indexingHelper.setUptakeTimed(FEED_POWER, FEED_DURATION_MS);
+        telemetry.addData("Firing", "✅ Firing shot (300ms)");
         return true;
     }
 
