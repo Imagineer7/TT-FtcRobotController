@@ -88,27 +88,59 @@ public class ArtifactIdentity {
     // FACTORY METHODS (Immutable updates)
     // ═══════════════════════════════════════════════════════════════════════
 
+    // Color update policy constants
+    private static final double UNKNOWN_UPGRADE_THRESHOLD = 0.6;  // Min confidence to upgrade UNKNOWN
+    private static final double SWITCH_MARGIN = 0.20;              // Additional confidence needed to switch colors
+    private static final double MIN_SWITCH_CONFIDENCE = 0.75;      // Absolute minimum to switch colors
+    
     /**
      * Create a copy with updated color classification
-     * Only updates if new confidence is significantly stronger
+     * 
+     * Policy:
+     * - OPERATOR override always wins
+     * - UNKNOWN → known: requires newConfidence >= UNKNOWN_UPGRADE_THRESHOLD
+     * - Known → different known: requires newConfidence >= currentConfidence + SWITCH_MARGIN 
+     *                            AND newConfidence >= MIN_SWITCH_CONFIDENCE
+     * - Same color: updates confidence upward only
      * 
      * @param newColor New color classification
      * @param newConfidence New confidence level
      * @param newSource New source of classification
-     * @return New ArtifactIdentity with updated color, or this instance if not significantly better
+     * @return New ArtifactIdentity with updated color, or this instance if update rejected
      */
     public ArtifactIdentity withUpdatedColor(ColorClass newColor, double newConfidence, 
                                              ClassificationSource newSource) {
-        // Don't update if confidence isn't significantly better (unless OPERATOR override)
-        if (newSource != ClassificationSource.OPERATOR) {
-            // Require at least 0.15 improvement to change from known color
-            if (this.colorClass != ColorClass.UNKNOWN && 
-                newConfidence < this.colorConfidence + 0.15) {
-                return this;  // Keep existing classification
-            }
+        // OPERATOR override always wins
+        if (newSource == ClassificationSource.OPERATOR) {
+            return new ArtifactIdentity(newColor, newConfidence, newSource, this.sequenceId);
         }
         
-        return new ArtifactIdentity(newColor, newConfidence, newSource, this.sequenceId);
+        // Case 1: Current color is UNKNOWN - allow upgrade if confidence meets threshold
+        if (this.colorClass == ColorClass.UNKNOWN) {
+            if (newColor != ColorClass.UNKNOWN && newConfidence >= UNKNOWN_UPGRADE_THRESHOLD) {
+                return new ArtifactIdentity(newColor, newConfidence, newSource, this.sequenceId);
+            }
+            // Otherwise stay UNKNOWN (don't downgrade confidence)
+            return this;
+        }
+        
+        // Case 2: Same color - update confidence upward only
+        if (newColor == this.colorClass) {
+            if (newConfidence > this.colorConfidence) {
+                return new ArtifactIdentity(newColor, newConfidence, newSource, this.sequenceId);
+            }
+            return this;  // Don't downgrade confidence
+        }
+        
+        // Case 3: Switching to different color - require high bar
+        if (newColor != ColorClass.UNKNOWN && 
+            newConfidence >= this.colorConfidence + SWITCH_MARGIN &&
+            newConfidence >= MIN_SWITCH_CONFIDENCE) {
+            return new ArtifactIdentity(newColor, newConfidence, newSource, this.sequenceId);
+        }
+        
+        // Case 4: Switching to UNKNOWN - never allow (committed color stays)
+        return this;
     }
 
     /**

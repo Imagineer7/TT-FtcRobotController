@@ -93,39 +93,43 @@ public class SlotLedger {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // SLOT MUTATORS (Only called by operations at commit time)
+    // SLOT MUTATORS (Package-private - only operations can call)
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
      * Set artifact in center slot
+     * Package-private: only operations can modify slots
      * @param artifact ArtifactIdentity or null to clear
      */
-    public void setCenter(ArtifactIdentity artifact) {
+    void setCenter(ArtifactIdentity artifact) {
         this.centerSlot = artifact;
     }
 
     /**
      * Set artifact in front slot
+     * Package-private: only operations can modify slots
      * @param artifact ArtifactIdentity or null to clear
      */
-    public void setFront(ArtifactIdentity artifact) {
+    void setFront(ArtifactIdentity artifact) {
         this.frontSlot = artifact;
     }
 
     /**
      * Set artifact in back slot
+     * Package-private: only operations can modify slots
      * @param artifact ArtifactIdentity or null to clear
      */
-    public void setBack(ArtifactIdentity artifact) {
+    void setBack(ArtifactIdentity artifact) {
         this.backSlot = artifact;
     }
 
     /**
      * Set artifact in specified slot
+     * Package-private: only operations can modify slots
      * @param slot The slot to set
      * @param artifact ArtifactIdentity or null to clear
      */
-    public void set(Slot slot, ArtifactIdentity artifact) {
+    void set(Slot slot, ArtifactIdentity artifact) {
         switch (slot) {
             case CENTER: centerSlot = artifact; break;
             case FRONT: frontSlot = artifact; break;
@@ -135,16 +139,18 @@ public class SlotLedger {
 
     /**
      * Clear a specific slot
+     * Package-private: only operations can modify slots
      * @param slot The slot to clear
      */
-    public void clear(Slot slot) {
+    void clear(Slot slot) {
         set(slot, null);
     }
 
     /**
      * Clear all slots
+     * Package-private: only operations can modify slots
      */
-    public void clearAll() {
+    void clearAll() {
         centerSlot = null;
         frontSlot = null;
         backSlot = null;
@@ -270,15 +276,16 @@ public class SlotLedger {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    // SWAP OPERATIONS (Atomic slot exchanges)
+    // SWAP OPERATIONS (Package-private atomic slot exchanges)
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
      * Swap artifacts between two slots atomically
+     * Package-private: only operations can modify slots
      * @param slot1 First slot
      * @param slot2 Second slot
      */
-    public void swap(Slot slot1, Slot slot2) {
+    void swap(Slot slot1, Slot slot2) {
         ArtifactIdentity temp = get(slot1);
         set(slot1, get(slot2));
         set(slot2, temp);
@@ -286,15 +293,17 @@ public class SlotLedger {
 
     /**
      * Swap center with front
+     * Package-private: only operations can modify slots
      */
-    public void swapCenterWithFront() {
+    void swapCenterWithFront() {
         swap(Slot.CENTER, Slot.FRONT);
     }
 
     /**
      * Swap center with back
+     * Package-private: only operations can modify slots
      */
-    public void swapCenterWithBack() {
+    void swapCenterWithBack() {
         swap(Slot.CENTER, Slot.BACK);
     }
 

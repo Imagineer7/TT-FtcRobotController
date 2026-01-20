@@ -70,19 +70,34 @@ public class IntakePerception {
     private double revSensorBaseline;          // Calibrated baseline distance
 
     // Debounce state
-    private long lastStateChangeTime;
-    private boolean debouncedArtifactHint;
+    private long lastEdgeDetectionTime;
+    private long lastStablePresenceTime;
+    private boolean edgeDetected;           // Fast edge detection for entry events
+    private boolean stablePresence;         // Slower stable presence confirmation
+    private boolean lastRawHint;
 
     // Color classification
     private ArtifactIdentity.ColorClass lastColorClass;
     private double lastColorConfidence;
+    
+    // Baseline calibration state
+    private long lastBaselineUpdateTime;
+    private int emptyReadingCount;
 
-    // Constants
+    // Constants (will be moved to config)
     private static final double LASER_THRESHOLD_CM = 10.0;  // Artifact detected when < 10cm
     private static final double REV_HYSTERESIS_HIGH_OFFSET = 7.0;  // cm above baseline = exit threshold
     private static final double REV_HYSTERESIS_LOW_OFFSET = 3.0;   // cm below baseline = enter threshold
     private static final double MAX_LASER_VOLTS = 3.3;
     private static final double MAX_LASER_DISTANCE_MM = 1000.0;
+    
+    // Debounce timing
+    private static final long EDGE_DETECTION_DEBOUNCE_MS = 30;    // Fast response for entry/exit
+    private static final long STABLE_PRESENCE_DEBOUNCE_MS = 100;  // Confirm still present
+    
+    // Baseline calibration
+    private static final long BASELINE_UPDATE_INTERVAL_MS = 500;  // Check every 500ms
+    private static final int EMPTY_READINGS_REQUIRED = 5;         // Need 5 consecutive empty readings
 
     // ═══════════════════════════════════════════════════════════════════════
     // CONSTRUCTOR
@@ -117,10 +132,15 @@ public class IntakePerception {
         this.colorSeesArtifact_outward = false;
         this.colorSeesArtifact_mouth = false;
         this.revSensorHysteresisState = false;
-        this.debouncedArtifactHint = false;
-        this.lastStateChangeTime = System.currentTimeMillis();
+        this.edgeDetected = false;
+        this.stablePresence = false;
+        this.lastRawHint = false;
+        this.lastEdgeDetectionTime = System.currentTimeMillis();
+        this.lastStablePresenceTime = System.currentTimeMillis();
         this.lastColorClass = ArtifactIdentity.ColorClass.UNKNOWN;
         this.lastColorConfidence = 0.0;
+        this.lastBaselineUpdateTime = System.currentTimeMillis();
+        this.emptyReadingCount = 0;
 
         // Calibrate REV sensor baseline
         calibrateRevSensorBaseline();
@@ -144,8 +164,11 @@ public class IntakePerception {
         // Update color sensors (colorSeesArtifact)
         updateColorSensors();
 
-        // Update debounced artifact hint
-        updateDebouncedHint();
+        // Update debounced hints (edge detection + stable presence)
+        updateDebouncedHints();
+        
+        // Update baseline calibration (continuous when confidently empty)
+        updateBaselineCalibration();
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -289,23 +312,84 @@ public class IntakePerception {
     }
 
     /**
-     * Update debounced artifact hint
-     * Signal must be stable for debounce time before changing
+     * Update debounced hints with split strategy
+     * - Edge detection: fast (30ms) for catching entry/exit events
+     * - Stable presence: slower (100ms) for confirming artifact still there
      */
-    private void updateDebouncedHint() {
-        boolean currentHint = getRawArtifactHint();
+    private void updateDebouncedHints() {
+        boolean currentRawHint = getRawArtifactHint();
         long now = System.currentTimeMillis();
 
-        if (currentHint != debouncedArtifactHint) {
-            // State wants to change - check debounce time
-            if ((now - lastStateChangeTime) >= config.getSensorDebounceTimeMs()) {
-                // Debounce time elapsed - allow change
-                debouncedArtifactHint = currentHint;
-                lastStateChangeTime = now;
+        // Edge detection: fast response for entry/exit events
+        if (currentRawHint != lastRawHint) {
+            // Edge detected (signal changed)
+            if ((now - lastEdgeDetectionTime) >= EDGE_DETECTION_DEBOUNCE_MS) {
+                // Debounce time elapsed - recognize edge
+                edgeDetected = currentRawHint;
+                lastEdgeDetectionTime = now;
             }
         } else {
-            // State stable - reset timer
-            lastStateChangeTime = now;
+            // Signal stable
+            lastEdgeDetectionTime = now;
+        }
+
+        // Stable presence: slower confirmation for "still present"
+        if (currentRawHint != stablePresence) {
+            // Presence state wants to change
+            if ((now - lastStablePresenceTime) >= STABLE_PRESENCE_DEBOUNCE_MS) {
+                // Debounce time elapsed - update stable presence
+                stablePresence = currentRawHint;
+                lastStablePresenceTime = now;
+            }
+        } else {
+            // State stable
+            lastStablePresenceTime = now;
+        }
+
+        lastRawHint = currentRawHint;
+    }
+    
+    /**
+     * Update REV sensor baseline calibration
+     * Only updates when confidently empty and rollers are off
+     */
+    private void updateBaselineCalibration() {
+        if (revSensor == null || !config.getUseRevDistanceSensors()) {
+            return;
+        }
+        
+        long now = System.currentTimeMillis();
+        if ((now - lastBaselineUpdateTime) < BASELINE_UPDATE_INTERVAL_MS) {
+            return;  // Not time to check yet
+        }
+        
+        lastBaselineUpdateTime = now;
+        
+        // Only update baseline when confidently empty
+        // (no artifact hint, and stable for a while)
+        if (!stablePresence && !edgeDetected) {
+            try {
+                double currentDistance = revSensor.getDistance(DistanceUnit.CM);
+                
+                // Valid reading in reasonable range
+                if (currentDistance > 10.0 && currentDistance < 100.0) {
+                    emptyReadingCount++;
+                    
+                    if (emptyReadingCount >= EMPTY_READINGS_REQUIRED) {
+                        // Drift baseline slowly toward current reading
+                        // Use exponential moving average with alpha = 0.1
+                        double alpha = 0.1;
+                        revSensorBaseline = alpha * currentDistance + (1 - alpha) * revSensorBaseline;
+                    }
+                } else {
+                    emptyReadingCount = 0;
+                }
+            } catch (Exception e) {
+                emptyReadingCount = 0;
+            }
+        } else {
+            // Artifact present - reset empty counter
+            emptyReadingCount = 0;
         }
     }
 
@@ -322,11 +406,27 @@ public class IntakePerception {
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
-     * Get debounced artifact hint
-     * True if any sensor indicates presence (after debounce)
+     * Get fast edge detection (for initial entry detection)
+     * Use this to trigger "first detect" events
+     */
+    public boolean getEdgeDetected() {
+        return edgeDetected;
+    }
+    
+    /**
+     * Get stable presence (for confirming artifact still there)
+     * Use this for "confirm still present" checks after delay
+     */
+    public boolean getStablePresence() {
+        return stablePresence;
+    }
+    
+    /**
+     * Get debounced artifact hint (uses stable presence)
+     * True if any sensor indicates presence (after full debounce)
      */
     public boolean getArtifactHint() {
-        return debouncedArtifactHint;
+        return stablePresence;
     }
 
     /**
@@ -467,7 +567,8 @@ public class IntakePerception {
         
         sb.append("  colorSeesArtifact: outward=").append(colorSeesArtifact_outward)
           .append(", mouth=").append(colorSeesArtifact_mouth).append("\n");
-        sb.append("  artifactHint: ").append(debouncedArtifactHint).append("\n");
+        sb.append("  edgeDetected: ").append(edgeDetected).append(" (fast, 30ms debounce)\n");
+        sb.append("  stablePresence: ").append(stablePresence).append(" (slow, 100ms debounce)\n");
         sb.append("  presenceConfidence: ").append(getPresenceConfidence()).append("\n");
         sb.append("  bestColor: ").append(lastColorClass)
           .append(" (conf=").append(String.format("%.2f", lastColorConfidence)).append(")");
