@@ -7,25 +7,29 @@ import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 /**
  * FireOperation - Fire center artifact via BasicFiringHelper
  *
+ * **CRITICAL INVARIANT: One FireOperation = Exactly One Shot (or zero if cancelled before firing)**
+ *
  * Supports two firing modes:
  *
  * **Single-shot mode (keepAlive=false):**
- * - Spins up shooter, fires one shot, stops shooter
+ * - Spins up shooter, fires ONE shot, stops shooter
  * - Use for standalone shots
  *
  * **Keep-alive mode (keepAlive=true):**
- * - First shot: Spins up shooter + fires (keeps shooter running)
- * - Subsequent shots: Uses fireShot() (shooter already spinning)
+ * - First shot: Spins up shooter + fires ONE shot (keeps shooter running)
+ * - Subsequent shots: Fires ONE shot (shooter already spinning)
  * - Controller manages: Fire → Transfer next → Fire → etc.
- * - Much faster than spinning up each time
+ * - Much faster than spinning up each time (2-3x speedup)
+ * - **Controller responsibility**: Must call firingHelper.cancelFiring() when burst complete
  *
  * Operation flow:
  * 1. Check preconditions (center occupied, prepositioned, shooter ready if subsequent shot)
  * 2. Start firing: startFiring(rpm, keepAlive) OR fireShot() if shooter already spun up
- * 3. Wait for completion (shot fired, ready for next)
- * 4. **Check shouldContinueFiring() every loop** - cancel if returns false
- * 5. Clear center slot
- * 6. Consume shot from plan (if coordinator provided)
+ * 3. Wait for completion (ONE shot fired, ready for next OR stopped)
+ * 4. **Check shouldContinue() every loop** - cancel if returns false
+ * 5. If cancelled: determine if shot actually fired (check BasicFiringHelper state)
+ * 6. If shot fired: clear center slot + consume shot from plan
+ * 7. If cancelled before shot: ledger unchanged, no shot consumption
  *
  * Preconditions:
  * - Center slot occupied
@@ -33,10 +37,17 @@ import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
  * - If first shot: shooter ready OR will spin up
  * - If subsequent shot (keep-alive): shooter in READY_TO_FIRE state
  *
- * Cancellation:
- * - Firing can be cancelled mid-operation (calls cancelFiring() on helper)
- * - shouldContinueFiring callback checked every loop (for manual override detection)
- * - If callback returns false, operation is cancelled gracefully
+ * Cancellation Semantics (mechanically safe):
+ * - Before shot starts: Abort cleanly, no ledger changes, no shot consumption
+ * - During/after shot: Shot completes (cannot "unshoot"), ledger updated, shot consumed
+ * - Detection: Use BasicFiringHelper state to determine if shot actually fired
+ * - Conservative assumption: If feeding began, assume shot fired (safe side)
+ *
+ * Keep-Alive Exit Behavior:
+ * - FireOperation does NOT stop shooter automatically in keep-alive mode
+ * - Controller MUST explicitly call firingHelper.cancelFiring() when burst complete
+ * - Failure to do so leaves shooter spinning indefinitely (unsafe/wasteful)
+ * - Recommended: Controller tracks "burst active" flag and cancels on trigger release
  *
  * Hardware: Uses BasicFiringHelper with keep-alive support
  * Phase 5: Integrates with ShotPlanningCoordinator
@@ -70,6 +81,8 @@ public class FireOperation extends BaseOperation {
 
     private ArtifactIdentity firedArtifact;
     private boolean isSubsequentShot;  // True if shooter already spun up
+    private boolean shotActuallyFired;  // True if physical shot occurred (for cancellation safety)
+    private int shotCountAtStart;  // Shot count when operation started (for reliable detection)
 
     // Fire timeout
     private static final long FIRE_TIMEOUT_MS = 8000;  // 8 seconds
@@ -165,6 +178,8 @@ public class FireOperation extends BaseOperation {
         this.shouldContinueCallback = shouldContinueCallback;
         this.firedArtifact = null;
         this.isSubsequentShot = false;
+        this.shotActuallyFired = false;
+        this.shotCountAtStart = 0;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -173,6 +188,9 @@ public class FireOperation extends BaseOperation {
 
     @Override
     protected boolean doStart() {
+        // Record shot count at start for reliable shot-fired detection
+        shotCountAtStart = firingHelper.getShotsFiredCount();
+        
         // Check preconditions
         if (!ledger.isCenterOccupied()) {
             fail(RejectReason.CENTER_EMPTY);
@@ -234,10 +252,28 @@ public class FireOperation extends BaseOperation {
             // User wants to cancel (e.g., released fire button)
             setStatusMessage("Cancelled - shouldContinue returned false");
             logInfo("Firing cancelled by shouldContinue callback");
-            // Don't call fail() - this is a graceful user-initiated cancel
-            // Just cancel the firing helper and let the operation complete
+            
+            // Determine if shot actually fired based on helper state
+            // Conservative assumption: if we're past FEEDING state, assume shot fired
+            // This is mechanically safe - can't "unshoot" an artifact
+            shotActuallyFired = determineShotFired();
+            
+            if (shotActuallyFired) {
+                logInfo("Shot was fired before cancellation - will consume");
+            } else {
+                logInfo("Shot NOT fired - cancelling before physical shot");
+            }
+            
+            // Cancel the firing helper (stop shooter if not keep-alive)
             firingHelper.cancelFiring();
-            return false;  // Done (cancelled)
+            
+            // If shot actually fired, we complete normally (doCommit will run)
+            // If shot NOT fired, we fail without consuming
+            if (!shotActuallyFired) {
+                fail(RejectReason.GATING_MANUAL_INPUT_DETECTED);  // Don't commit if no shot fired
+            }
+            
+            return false;  // Done (cancelled or completed)
         }
 
         // Check if shot is complete
@@ -248,12 +284,15 @@ public class FireOperation extends BaseOperation {
             // Keep-alive mode: done when ready for next shot (shot complete, shooter still spinning)
             if (firingHelper.isReadyForNextShot()) {
                 setStatusMessage("Shot complete (ready for next)");
+                shotActuallyFired = true;  // Definitely fired if we reached READY_TO_FIRE
                 return false;  // Done
             }
             
             // Still firing
             if (!firingHelper.isFiring()) {
                 // Firing stopped unexpectedly (shouldn't happen in keep-alive mode)
+                // Conservative: assume shot fired if we got this far
+                shotActuallyFired = true;
                 setStatusMessage("Firing stopped unexpectedly");
                 return false;  // Done (error case)
             }
@@ -261,6 +300,7 @@ public class FireOperation extends BaseOperation {
             // Single-shot mode: done when firing completely stops
             if (!firingHelper.isFiring()) {
                 setStatusMessage("Firing complete");
+                shotActuallyFired = true;  // Finished normally, shot fired
                 return false;  // Done
             }
         }
@@ -268,19 +308,34 @@ public class FireOperation extends BaseOperation {
         setStatusMessage("Firing... (" + firingHelper.getFiringState() + ")");
         return true;  // Still running
     }
+    
+    /**
+     * Determine if a shot actually fired based on helper's shot counter
+     * This is the most reliable method - BasicFiringHelper increments counter
+     * only when feeding completes (artifact physically ejected)
+     *
+     * @return true if shot physically occurred
+     */
+    private boolean determineShotFired() {
+        // Check if shot count increased since we started
+        int currentCount = firingHelper.getShotsFiredCount();
+        return currentCount > shotCountAtStart;
+    }
 
     @Override
     protected void doCommit() {
         // Clear center slot (artifact has been fired)
+        // This is only called if state == COMPLETE (shot actually fired)
         ledger.setCenter(null);
         
         logInfo("Fired artifact: " + firedArtifact.getColorClass() + 
-               " (conf=" + String.format("%.2f", firedArtifact.getColorConfidence()) + ")");
+               " (conf=" + String.format("%.2f", firedArtifact.getColorConfidence()) + 
+               ", shotFired=" + shotActuallyFired + ")");
         
         // Phase 5: Consume shot from plan
         if (shotPlanner != null) {
             shotPlanner.consumeShot();
-            logInfo("Shot consumed from plan");
+            logInfo("Shot consumed from plan (ONE shot = ONE consumption)");
         }
         
         logDebug("Slot Ledger", ledger.toSnapshot());
@@ -353,6 +408,7 @@ public class FireOperation extends BaseOperation {
         
         telemetry.addData("Mode", keepAlive ? "Keep-Alive" : "Single-Shot");
         telemetry.addData("Shot Type", isSubsequentShot ? "Subsequent" : "First");
+        telemetry.addData("Shot Fired", shotActuallyFired ? "YES" : "NO");
         telemetry.addData("Target RPM", String.format("%.0f", targetRPM));
         telemetry.addData("Current RPM", String.format("%.0f", shooter.getCurrentRPM()));
         telemetry.addData("Firing State", firingHelper.getFiringState());

@@ -107,6 +107,10 @@ public class BasicFiringHelper {
     private boolean keepAliveMode = false;
     private boolean buttonHeld = false;
 
+    // Shot tracking - for reliable "shot fired" detection
+    private int shotsFiredCount = 0;  // Total shots fired (increments when shot completes)
+    private int lastReportedShotCount = 0;  // For detecting new shots
+
     // Ejection tracking
     private boolean ejectionActive = false;
     private double ejectionIntakePower = EJECTION_INTAKE_POWER;
@@ -238,7 +242,9 @@ public class BasicFiringHelper {
             case FEEDING:
                 // Wait for uptake to finish feeding
                 if (!indexingHelper.isUptakeBusy()) {
-                    // Feeding complete
+                    // Feeding complete - shot has been physically fired
+                    shotsFiredCount++;  // Increment shot counter
+                    
                     if (keepAliveMode) {
                         // Keep-alive mode: transition to READY_TO_FIRE instead of stopping
                         // Shooter will stay spinning, waiting for external call to fire again
@@ -515,6 +521,41 @@ public class BasicFiringHelper {
      */
     public String getPresetName() {
         return firingPresetName;
+    }
+
+    /**
+     * Get total number of shots fired since helper creation
+     * This counter increments when a shot physically completes (feeding done)
+     * Useful for reliable shot-fired detection during cancellation
+     *
+     * @return total shots fired count
+     */
+    public int getShotsFiredCount() {
+        return shotsFiredCount;
+    }
+
+    /**
+     * Check if a new shot has been fired since last check
+     * This provides edge-detection for "shot just fired" events
+     * Call this method to mark the current shot count as "reported"
+     *
+     * @return true if shot count increased since last call
+     */
+    public boolean hasNewShotFired() {
+        if (shotsFiredCount > lastReportedShotCount) {
+            lastReportedShotCount = shotsFiredCount;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Reset the "last reported" shot count
+     * Use this to restart detection from current count
+     * Useful when starting a new firing sequence
+     */
+    public void resetShotDetection() {
+        lastReportedShotCount = shotsFiredCount;
     }
 
     // ═══════════════════════════════════════════════════════════════════════

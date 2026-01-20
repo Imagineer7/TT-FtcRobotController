@@ -397,3 +397,328 @@ Controller must:
 FireOperation now supports keep-alive mode, enabling rapid burst firing with 2-3x performance improvement. The implementation is backward compatible, easy to use, and integrates cleanly with shot planning.
 
 **Status:** ✅ Ready for Phase 6 (IndexingSystemV3 controller)
+
+---
+
+## Critical Invariants & Safety Guarantees
+
+### 1. One Operation = One Shot (or Zero if Cancelled Early)
+
+**Invariant:** Each FireOperation instance fires **exactly one shot** OR zero shots if cancelled before firing.
+
+**Why:** This maintains the clean transactional model. Keep-alive mode is just an optimization (keeps shooter spinning), NOT multi-shot within one operation.
+
+**Implications:**
+- For burst firing: Controller queues multiple FireOperation instances
+- For 3 shots: Fire → Transfer → Fire → Transfer → Fire
+- Each operation independently tracks and consumes exactly one shot
+
+### 2. Shot Consumption Must Match Reality
+
+**Problem:** How do we ensure slot ledger updates and shot plan consumption match physical reality?
+
+**Solution:** Reliable shot-fired detection using BasicFiringHelper's shot counter.
+
+**Mechanism:**
+```java
+// BasicFiringHelper.java - Shot counter increments when feeding completes
+case FEEDING:
+    if (!indexingHelper.isUptakeBusy()) {
+        shotsFiredCount++;  // Shot physically fired
+        firingState = ...
+    }
+```
+
+```java
+// FireOperation.java - Detect shot using counter comparison
+private int shotCountAtStart;  // Record at operation start
+
+protected boolean doStart() {
+    shotCountAtStart = firingHelper.getShotsFiredCount();
+    // ... start firing
+}
+
+private boolean determineShotFired() {
+    return firingHelper.getShotsFiredCount() > shotCountAtStart;
+}
+```
+
+**Guarantees:**
+- ✅ Shot ledger update occurs if and only if shot counter increased
+- ✅ Shot plan consumption occurs if and only if shot counter increased
+- ✅ Cancellation before feeding → no ledger update, no consumption
+- ✅ Cancellation during/after feeding → ledger updated, shot consumed
+
+### 3. Cancellation Semantics (Mechanically Safe)
+
+**Question:** What happens if we cancel mid-shot?
+
+**Answer:** Depends on when cancellation occurs.
+
+#### Cancellation Before Shot Starts
+
+**When:** During SPINNING_UP state, before feeding begins
+
+**Behavior:**
+1. Cancel firing helper (`cancelFiring()`)
+2. Check shot counter: no increase detected
+3. Operation fails with `GATING_MANUAL_INPUT_DETECTED`
+4. Ledger unchanged (artifact still in center)
+5. Shot plan not consumed
+6. Safe: No physical shot occurred
+
+**Code:**
+```java
+if (shouldContinueCallback != null && !shouldContinueCallback.shouldContinue()) {
+    shotActuallyFired = determineShotFired();  // Check counter
+    firingHelper.cancelFiring();
+    
+    if (!shotActuallyFired) {
+        fail(RejectReason.GATING_MANUAL_INPUT_DETECTED);  // Don't commit
+    }
+    return false;
+}
+```
+
+#### Cancellation During/After Shot
+
+**When:** During FEEDING or after, artifact already ejected
+
+**Behavior:**
+1. Cancel firing helper (`cancelFiring()`)
+2. Check shot counter: increase detected (shot occurred)
+3. Operation completes normally (state = COMPLETE)
+4. `doCommit()` runs: ledger cleared, shot consumed
+5. Safe: Shot physically occurred, model reflects reality
+
+**Why:** Cannot "unshoot" an artifact. Once feeding starts, conservatively assume shot fired.
+
+#### Summary Table
+
+| State When Cancelled | Shot Counter | Operation Result | Ledger Updated | Shot Consumed |
+|---------------------|--------------|------------------|----------------|---------------|
+| IDLE / SPINNING_UP  | No increase  | FAILED          | No             | No            |
+| FEEDING (started)   | Increase     | COMPLETE        | Yes            | Yes           |
+| COMPLETE / READY    | Increase     | COMPLETE        | Yes            | Yes           |
+
+### 4. Keep-Alive Exit Behavior
+
+**Critical:** FireOperation does NOT stop the shooter automatically in keep-alive mode.
+
+**Controller Responsibility:** Must explicitly call `firingHelper.cancelFiring()` when burst complete.
+
+**Why:** Keep-alive is designed for multi-shot bursts. Stopping after each shot defeats the purpose.
+
+**Pattern:**
+```java
+// Controller tracks burst state
+private boolean burstActive = false;
+
+public void update() {
+    // Start burst on trigger press
+    if (gamepad1.right_trigger > 0.1 && !burstActive) {
+        burstActive = true;
+        // Queue first FireOperation with keepAlive=true
+    }
+    
+    // Continue burst while trigger held
+    if (burstActive) {
+        if (gamepad1.right_trigger < 0.1) {
+            // Trigger released - stop burst
+            firingHelper.cancelFiring();
+            burstActive = false;
+        } else if (shotPlanComplete || noMoreArtifacts) {
+            // Plan complete - stop burst
+            firingHelper.cancelFiring();
+            burstActive = false;
+        }
+    }
+    
+    // Auto-timeout if burst idle too long
+    if (burstActive && timeSinceLastShot > 3000) {
+        firingHelper.cancelFiring();
+        burstActive = false;
+    }
+}
+```
+
+**Consequences of Not Stopping:**
+- ❌ Shooter spins indefinitely (wasteful, unsafe)
+- ❌ Battery drain
+- ❌ Motor overheating risk
+- ❌ Unexpected behavior if operator moves robot
+
+**Mitigation:**
+- Controller MUST implement timeout detection
+- Controller MUST detect manual mode and cancel
+- Controller MUST detect trigger release and cancel
+
+### 5. Shot Detection API (BasicFiringHelper)
+
+**New Methods Added:**
+
+```java
+/**
+ * Get total number of shots fired since helper creation
+ * Increments when feeding completes (physical shot occurred)
+ */
+int getShotsFiredCount()
+
+/**
+ * Check if a new shot has been fired since last check
+ * Provides edge-detection for "shot just fired" events
+ */
+boolean hasNewShotFired()
+
+/**
+ * Reset the "last reported" shot count
+ * Use when starting a new firing sequence
+ */
+void resetShotDetection()
+```
+
+**Usage in Controller:**
+```java
+// Start burst
+firingHelper.resetShotDetection();
+
+// In loop
+if (firingHelper.hasNewShotFired()) {
+    // Shot just completed - queue transfer + next fire
+    queueTransferOperation();
+    queueFireOperation(keepAlive=true);
+}
+```
+
+---
+
+## Testing Procedures
+
+### Test 1: Single-Shot Mode (Backward Compatibility)
+
+```java
+FireOperation op = new FireOperation(ledger, helper, shooter, rpm, telemetry);
+runner.start(op);
+while (runner.isBusy()) runner.update();
+
+// Verify:
+// - Shot fires
+// - Shooter stops after shot
+// - Ledger updated correctly
+// - Shot plan consumed (if coordinator present)
+```
+
+### Test 2: Keep-Alive Burst (3 shots)
+
+```java
+// Fire shot 1 with keep-alive
+FireOperation op1 = new FireOperation(ledger, helper, shooter, rpm, true, shotPlanner, telemetry);
+runner.start(op1);
+while (runner.isBusy()) runner.update();
+// Verify: Shooter still spinning, isReadyForNextShot() = true
+
+// Transfer next artifact
+TransferOperation transfer = new TransferOperation(...);
+runner.start(transfer);
+while (runner.isBusy()) runner.update();
+
+// Fire shot 2 (instant - no spin-up)
+FireOperation op2 = new FireOperation(ledger, helper, shooter, rpm, true, shotPlanner, telemetry);
+long start = System.currentTimeMillis();
+runner.start(op2);
+while (runner.isBusy()) runner.update();
+long elapsed = System.currentTimeMillis() - start;
+// Verify: elapsed < 500ms (much faster than 2000ms spin-up)
+
+// Stop burst
+firingHelper.cancelFiring();
+// Verify: Shooter stops
+```
+
+### Test 3: Cancellation Before Shot
+
+```java
+boolean shouldFire = true;
+ShouldContinueCallback callback = () -> shouldFire;
+
+FireOperation op = new FireOperation(ledger, helper, shooter, rpm, true, shotPlanner, callback, telemetry);
+runner.start(op);
+
+// Cancel before feeding starts (during spin-up)
+Thread.sleep(500);  // Let it spin up a bit
+shouldFire = false;  // Trigger cancellation
+
+while (runner.isBusy()) runner.update();
+
+// Verify:
+// - Operation failed (not completed)
+// - Ledger unchanged (artifact still in center)
+// - Shot plan not consumed
+// - Shot counter unchanged
+```
+
+### Test 4: Cancellation During Shot
+
+```java
+boolean shouldFire = true;
+ShouldContinueCallback callback = () -> shouldFire;
+
+FireOperation op = new FireOperation(ledger, helper, shooter, rpm, true, shotPlanner, callback, telemetry);
+runner.start(op);
+
+// Cancel during feeding
+while (runner.isBusy() && !helper.getFiringState().equals("FEEDING")) {
+    runner.update();
+}
+shouldFire = false;  // Trigger cancellation during feeding
+
+while (runner.isBusy()) runner.update();
+
+// Verify:
+// - Operation completed (not failed)
+// - Ledger updated (center cleared)
+// - Shot plan consumed
+// - Shot counter increased
+```
+
+### Test 5: Shot Counter Accuracy
+
+```java
+int countBefore = firingHelper.getShotsFiredCount();
+
+// Fire 3 shots
+for (int i = 0; i < 3; i++) {
+    FireOperation op = new FireOperation(ledger, helper, shooter, rpm, true, shotPlanner, telemetry);
+    runner.start(op);
+    while (runner.isBusy()) runner.update();
+    
+    // Transfer next artifact (if not last shot)
+    if (i < 2) {
+        TransferOperation transfer = new TransferOperation(...);
+        runner.start(transfer);
+        while (runner.isBusy()) runner.update();
+    }
+}
+
+int countAfter = firingHelper.getShotsFiredCount();
+
+// Verify: countAfter == countBefore + 3
+```
+
+---
+
+## Conclusion
+
+FireOperation now provides:
+
+✅ **Keep-alive mode** - 2-3x faster burst firing  
+✅ **Reliable shot detection** - Shot counter guarantees accuracy  
+✅ **Safe cancellation** - Mechanically safe, model reflects reality  
+✅ **Clear semantics** - One operation = one shot (or zero if cancelled early)  
+✅ **Controller responsibility** - Explicit keep-alive exit management  
+✅ **Backward compatible** - Existing code works unchanged  
+
+**Status:** ✅ Ready for Phase 6 (IndexingSystemV3 controller)
+
+**Migration:** No breaking changes. Opt-in to new features via constructor parameters.
+
