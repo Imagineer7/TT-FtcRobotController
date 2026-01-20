@@ -23,8 +23,9 @@ import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
  * 1. Check preconditions (center occupied, prepositioned, shooter ready if subsequent shot)
  * 2. Start firing: startFiring(rpm, keepAlive) OR fireShot() if shooter already spun up
  * 3. Wait for completion (shot fired, ready for next)
- * 4. Clear center slot
- * 5. Consume shot from plan (if coordinator provided)
+ * 4. **Check shouldContinueFiring() every loop** - cancel if returns false
+ * 5. Clear center slot
+ * 6. Consume shot from plan (if coordinator provided)
  *
  * Preconditions:
  * - Center slot occupied
@@ -32,10 +33,28 @@ import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
  * - If first shot: shooter ready OR will spin up
  * - If subsequent shot (keep-alive): shooter in READY_TO_FIRE state
  *
+ * Cancellation:
+ * - Firing can be cancelled mid-operation (calls cancelFiring() on helper)
+ * - shouldContinueFiring callback checked every loop (for manual override detection)
+ * - If callback returns false, operation is cancelled gracefully
+ *
  * Hardware: Uses BasicFiringHelper with keep-alive support
  * Phase 5: Integrates with ShotPlanningCoordinator
  */
 public class FireOperation extends BaseOperation {
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // INTERFACES
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Callback to check if we should continue firing
+     * Checked every loop during operation
+     * Return false to cancel firing mid-operation
+     */
+    public interface ShouldContinueCallback {
+        boolean shouldContinue();
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // FIELDS
@@ -47,6 +66,7 @@ public class FireOperation extends BaseOperation {
     private final double targetRPM;
     private final boolean keepAlive;  // Keep shooter running after shot
     private final ShotPlanningCoordinator shotPlanner;  // Optional (Phase 5)
+    private final ShouldContinueCallback shouldContinueCallback;  // Optional cancel check
 
     private ArtifactIdentity firedArtifact;
     private boolean isSubsequentShot;  // True if shooter already spun up
@@ -72,7 +92,7 @@ public class FireOperation extends BaseOperation {
                         Shooter shooter,
                         double targetRPM,
                         Telemetry telemetry) {
-        this(ledger, firingHelper, shooter, targetRPM, false, null, telemetry);
+        this(ledger, firingHelper, shooter, targetRPM, false, null, null, telemetry);
     }
 
     /**
@@ -91,7 +111,7 @@ public class FireOperation extends BaseOperation {
                         double targetRPM,
                         boolean keepAlive,
                         Telemetry telemetry) {
-        this(ledger, firingHelper, shooter, targetRPM, keepAlive, null, telemetry);
+        this(ledger, firingHelper, shooter, targetRPM, keepAlive, null, null, telemetry);
     }
 
     /**
@@ -112,6 +132,29 @@ public class FireOperation extends BaseOperation {
                         boolean keepAlive,
                         ShotPlanningCoordinator shotPlanner,
                         Telemetry telemetry) {
+        this(ledger, firingHelper, shooter, targetRPM, keepAlive, shotPlanner, null, telemetry);
+    }
+
+    /**
+     * Create a new FireOperation (full constructor with shouldContinue callback)
+     *
+     * @param ledger Slot ledger to update
+     * @param firingHelper BasicFiringHelper for firing control
+     * @param shooter Shooter instance for RPM check
+     * @param targetRPM Target RPM for firing
+     * @param keepAlive If true, keeps shooter running after shot for faster follow-up
+     * @param shotPlanner Shot planning coordinator (null if not using)
+     * @param shouldContinueCallback Callback to check if we should continue firing (null = always continue)
+     * @param telemetry Telemetry for logging
+     */
+    public FireOperation(SlotLedger ledger,
+                        BasicFiringHelper firingHelper,
+                        Shooter shooter,
+                        double targetRPM,
+                        boolean keepAlive,
+                        ShotPlanningCoordinator shotPlanner,
+                        ShouldContinueCallback shouldContinueCallback,
+                        Telemetry telemetry) {
         super(telemetry, FIRE_TIMEOUT_MS);
         this.ledger = ledger;
         this.firingHelper = firingHelper;
@@ -119,6 +162,7 @@ public class FireOperation extends BaseOperation {
         this.targetRPM = targetRPM;
         this.keepAlive = keepAlive;
         this.shotPlanner = shotPlanner;
+        this.shouldContinueCallback = shouldContinueCallback;
         this.firedArtifact = null;
         this.isSubsequentShot = false;
     }
@@ -185,6 +229,17 @@ public class FireOperation extends BaseOperation {
 
     @Override
     protected boolean doUpdate() {
+        // Check if we should continue firing (manual override detection)
+        if (shouldContinueCallback != null && !shouldContinueCallback.shouldContinue()) {
+            // User wants to cancel (e.g., released fire button)
+            setStatusMessage("Cancelled - shouldContinue returned false");
+            logInfo("Firing cancelled by shouldContinue callback");
+            // Don't call fail() - this is a graceful user-initiated cancel
+            // Just cancel the firing helper and let the operation complete
+            firingHelper.cancelFiring();
+            return false;  // Done (cancelled)
+        }
+
         // Check if shot is complete
         // In keep-alive mode, we're done when we reach READY_TO_FIRE (shot fired, ready for next)
         // In single-shot mode, we're done when firing stops completely

@@ -28,12 +28,29 @@ FireOperation(ledger, firingHelper, shooter, rpm, keepAlive=true, telemetry)
 FireOperation(ledger, firingHelper, shooter, rpm, keepAlive=true, shotPlanner, telemetry)
 ```
 
+**With Cancellation Callback** (manual override detection):
+```java
+FireOperation(ledger, firingHelper, shooter, rpm, keepAlive, shotPlanner, shouldContinueCallback, telemetry)
+```
+
 ### New Methods
 
 ```java
 boolean isShooterReadyForNext()  // Check if shooter is spun up and ready
 boolean isKeepAliveEnabled()      // Check if keep-alive mode is enabled
 ```
+
+### Cancellation Callback Interface
+
+```java
+public interface ShouldContinueCallback {
+    boolean shouldContinue();
+}
+```
+
+**Purpose:** Checked every loop during firing. Return false to cancel mid-operation.
+
+**Use Case:** Manual override detection (operator releases fire button)
 
 ---
 
@@ -117,6 +134,70 @@ Stop keep-alive on:
 - Manual mode detected
 - Timeout (e.g., 5 seconds since last shot)
 - Error condition
+
+---
+
+## Cancellation and Manual Override
+
+### ShouldContinue Callback
+
+FireOperation checks a callback **every loop** to allow mid-operation cancellation:
+
+```java
+// Define callback that checks if user still wants to fire
+FireOperation.ShouldContinueCallback shouldContinue = () -> {
+    // Return false if operator released fire button
+    return gamepad1.right_trigger > 0.1;  // Still holding trigger
+};
+
+// Create operation with callback
+FireOperation op = new FireOperation(
+    ledger, helper, shooter, rpm, 
+    keepAlive=true, shotPlanner, 
+    shouldContinue,  // Checked every loop
+    telemetry
+);
+
+runner.start(op);
+```
+
+### Cancellation Behavior
+
+**When callback returns false:**
+1. Operation logs: "Cancelled - shouldContinue returned false"
+2. Calls `firingHelper.cancelFiring()` (stops shooter gracefully)
+3. Operation completes (not marked as failed)
+4. Slot ledger **not modified** (artifact stays in center)
+
+**Manual cancel vs failure:**
+- `shouldContinue() = false`: User-initiated, graceful stop
+- Operation failure: Hardware error, timeout, precondition failure
+
+### Use Cases
+
+1. **Operator releases fire button mid-burst:**
+   ```java
+   () -> gamepad1.x  // Only continue if X button held
+   ```
+
+2. **Auto-stop when target destroyed:**
+   ```java
+   () -> vision.isTargetStillVisible()
+   ```
+
+3. **Emergency stop:**
+   ```java
+   () -> !gamepad1.back  // Stop if back button pressed
+   ```
+
+4. **Timeout after N shots:**
+   ```java
+   private int shotCount = 0;
+   () -> {
+       shotCount++;
+       return shotCount < 5;  // Max 5 shots per burst
+   }
+   ```
 
 ---
 
