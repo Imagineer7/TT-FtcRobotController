@@ -70,7 +70,7 @@ public class BasicIndexingHelperTest extends LinearOpMode {
         indexingHelper = new BasicIndexingHelper(hardware, telemetry);
 
         // Create firing helper
-        firingHelper = new BasicFiringHelper(shooter, indexingHelper, telemetry);
+        firingHelper = new BasicFiringHelper(shooter, indexingHelper, hardware, telemetry);
 
         telemetry.addLine("✅ Initialization complete!");
         telemetry.addLine("Press START to begin");
@@ -90,8 +90,11 @@ public class BasicIndexingHelperTest extends LinearOpMode {
             // ═══════════════════════════════════════════════════════════
 
             // Manual transfer sequences (hold button) - HIGHEST PRIORITY
-            indexingHelper.transferFrontIntakeToCenterManual(gamepad1.a);
-            indexingHelper.transferBackIntakeToCenterManual(gamepad1.b);
+            // Don't run during ejection
+            if (!firingHelper.isEjecting()) {
+                indexingHelper.transferFrontIntakeToCenterManual(gamepad1.a);
+                indexingHelper.transferBackIntakeToCenterManual(gamepad1.b);
+            }
 
             // Timed transfer sequences (edge detection) - HIGH PRIORITY
             boolean currentX1 = gamepad1.x;
@@ -108,8 +111,8 @@ public class BasicIndexingHelperTest extends LinearOpMode {
             }
             lastY1 = currentY1;
 
-            // Simple intake control (no transfer) - ONLY if no transfer active
-            if (!indexingHelper.isTransferActive()) {
+            // Simple intake control (no transfer or ejection) - ONLY if no transfer/ejection active
+            if (!indexingHelper.isTransferActive() && !firingHelper.isEjecting()) {
                 if (gamepad1.left_bumper) {
                     indexingHelper.runFrontIntake(true, 1.0);
                 } else {
@@ -123,12 +126,14 @@ public class BasicIndexingHelperTest extends LinearOpMode {
                 }
             }
 
-            // Pre-positioning controls
-            if (gamepad1.dpad_up) {
-                indexingHelper.prePositionArtifacts();
-            }
-            if (gamepad1.dpad_down) {
-                indexingHelper.unPrePositionArtifacts();
+            // Pre-positioning controls - don't run during ejection
+            if (!firingHelper.isEjecting()) {
+                if (gamepad1.dpad_up) {
+                    indexingHelper.prePositionArtifacts();
+                }
+                if (gamepad1.dpad_down) {
+                    indexingHelper.unPrePositionArtifacts();
+                }
             }
 
             // Ejection controls
@@ -143,8 +148,8 @@ public class BasicIndexingHelperTest extends LinearOpMode {
             // GAMEPAD 2 - Manual Uptake and Injector Controls
             // ═══════════════════════════════════════════════════════════
 
-            // Uptake manual control - ONLY if no timed movement, transfer, or firing active
-            if (!indexingHelper.isUptakeBusy() && !indexingHelper.isTransferActive() && !firingHelper.isFiring()) {
+            // Uptake manual control - ONLY if no timed movement, transfer, firing, or ejection active
+            if (!indexingHelper.isUptakeBusy() && !indexingHelper.isTransferActive() && !firingHelper.isFiring() && !firingHelper.isEjecting()) {
                 if (gamepad2.dpad_up) {
                     indexingHelper.setUptakePower(1.0);
                 } else if (gamepad2.dpad_down) {
@@ -154,8 +159,8 @@ public class BasicIndexingHelperTest extends LinearOpMode {
                 }
             }
 
-            // Injector manual control - ONLY if no timed movement, transfer, or firing active
-            if (!indexingHelper.isInjectorBusy() && !indexingHelper.isTransferActive() && !firingHelper.isFiring()) {
+            // Injector manual control - ONLY if no timed movement, transfer, firing, or ejection active
+            if (!indexingHelper.isInjectorBusy() && !indexingHelper.isTransferActive() && !firingHelper.isFiring() && !firingHelper.isEjecting()) {
                 if (gamepad2.left_bumper) {
                     indexingHelper.setInjectorPower(1.0);  // Both servos forward
                 } else if (gamepad2.left_trigger > 0.5) {
@@ -185,7 +190,7 @@ public class BasicIndexingHelperTest extends LinearOpMode {
                 }
             }
 
-            // Mid Range (B button) - hold to fire
+            // Mid-Range (B button) - hold to fire
             if (gamepad2.b) {
                 if (!firingHelper.isFiring()) {
                     telemetry.addLine(">>> Starting Mid Range firing");

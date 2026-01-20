@@ -1078,8 +1078,8 @@ public class BasicIndexingHelper {
     private String currentTransferType = "NONE";
 
     // Pre-positioning constants
-    private static final long PREPOSITION_DURATION_MS = 400;
-    private static final long UN_PREPOSITION_DURATION_MS = 500;
+    private static final long PREPOSITION_DURATION_MS = 600;
+    private static final long UN_PREPOSITION_DURATION_MS = 800;
     private static final double PREPOSITION_POWER = 1.0;
     private static final double UN_PREPOSITION_POWER = -1.0;
 

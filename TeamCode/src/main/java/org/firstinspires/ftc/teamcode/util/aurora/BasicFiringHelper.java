@@ -46,6 +46,7 @@ public class BasicFiringHelper {
     private final Shooter shooter;
     private final BasicIndexingHelper indexingHelper;
     private final Telemetry telemetry;
+    private final AuroraHardwareConfig hardware;
 
     // Global timeout (milliseconds)
     private static final long GLOBAL_TIMEOUT = 15000; // 15 seconds max for any firing operation
@@ -58,15 +59,11 @@ public class BasicFiringHelper {
     private static final boolean USE_RELAXED_READY_CHECK = true; // If true, fire when at target RPM even if not stabilized
 
     // Ejection constants
-    private static final double EJECTION_SHOOTER_RPM = 1500.0; // Low speed for safe ejection
-    private static final double EJECTION_INTAKE_POWER = -1.0;  // Reverse intakes
+    private static final double EJECTION_SHOOTER_RPM = 1200.0; // Low speed for safe ejection
+    private static final double EJECTION_INTAKE_POWER = -1.0;  // Reverse intakes (rollers backward)
+    private static final double EJECTION_TRANSFER_POWER = 1.0; // Forward transfer (push out)
     private static final double EJECTION_UPTAKE_POWER = 1.0;   // Forward to push out
 
-    // RPM Presets - Distance-based shooting (goal is ~2ft above robot)
-    private static final double RPM_LONG_RANGE = 3200.0;   // Far distance shots
-    private static final double RPM_MID_RANGE = 2800.0;    // Medium distance shots
-    private static final double RPM_SHORT_RANGE = 1800.0;  // Close distance shots - reduced for testing
-    private static final double RPM_CLOSE_RANGE = 1300.0;  // Very close shots
 
     // State tracking
     private enum FiringState {
@@ -89,6 +86,7 @@ public class BasicFiringHelper {
 
     // Ejection tracking
     private boolean ejectionActive = false;
+    private double ejectionIntakePower = EJECTION_INTAKE_POWER;
 
     // Enabled state
     private boolean enabled = true;
@@ -101,11 +99,13 @@ public class BasicFiringHelper {
      * Create a new BasicFiringHelper
      * @param shooter Shooter instance for RPM control
      * @param indexingHelper BasicIndexingHelper for uptake control
+     * @param hardware AuroraHardwareConfig for direct hardware access
      * @param telemetry Telemetry for status updates
      */
-    public BasicFiringHelper(Shooter shooter, BasicIndexingHelper indexingHelper, Telemetry telemetry) {
+    public BasicFiringHelper(Shooter shooter, BasicIndexingHelper indexingHelper, AuroraHardwareConfig hardware, Telemetry telemetry) {
         this.shooter = shooter;
         this.indexingHelper = indexingHelper;
+        this.hardware = hardware;
         this.telemetry = telemetry;
     }
 
@@ -123,6 +123,9 @@ public class BasicFiringHelper {
         // Update firing state machine
         updateFiringSequence();
 
+        // Update ejection - continuously maintain motor/servo power
+        updateEjection();
+
         // Check for global timeout
         if (firingActive) {
             long elapsed = System.currentTimeMillis() - firingStartTime;
@@ -131,6 +134,17 @@ public class BasicFiringHelper {
                 cancelFiring();
             }
         }
+    }
+
+    /**
+     * Update ejection - only maintain shooter spinup
+     * Motor/servo power set once in startEjection() and left to run
+     */
+    private void updateEjection() {
+        if (!ejectionActive) return;
+
+        // Only maintain shooter - motors/servos run from initial setPower() call
+        shooter.spinUp();
     }
 
     /**
@@ -280,6 +294,28 @@ public class BasicFiringHelper {
     }
 
     /**
+     * Start firing with a ShooterConfig preset
+     * Recommended method - uses preset configuration from ShooterConfig
+     *
+     * @param preset ShooterConfig.ShooterPreset to use
+     * @param keepAlive If true, shooter stays spinning after first shot
+     * @return true if started successfully
+     */
+    public boolean startFiringWithPreset(ShooterConfig.ShooterPreset preset, boolean keepAlive) {
+        return startFiring(preset.getTargetRPM(), preset.getName(), keepAlive);
+    }
+
+    /**
+     * Start firing with a ShooterConfig preset (keep-alive mode enabled)
+     *
+     * @param preset ShooterConfig.ShooterPreset to use
+     * @return true if started successfully
+     */
+    public boolean startFiringWithPreset(ShooterConfig.ShooterPreset preset) {
+        return startFiringWithPreset(preset, true);
+    }
+
+    /**
      * Start firing sequence with specified RPM, preset name, and keep-alive mode
      *
      * @param rpm Target RPM for shooter
@@ -354,43 +390,39 @@ public class BasicFiringHelper {
     }
 
     /**
-     * Start firing with long range preset (3200 RPM)
+     * Start firing with long range preset (2800 RPM)
      * For shots from far distance
      * Uses keep-alive mode - shooter stays spinning while button held
      * @return true if started successfully
      */
     public boolean startFiringLongRange() {
-        return startFiring(RPM_LONG_RANGE, "LONG_RANGE", true);
+        return startFiring(ShooterConfig.ShooterPreset.LONG_RANGE.getTargetRPM(),
+                          ShooterConfig.ShooterPreset.LONG_RANGE.getName(),
+                          true);
     }
 
     /**
-     * Start firing with mid range preset (2800 RPM)
+     * Start firing with mid-range preset (2300 RPM)
      * For shots from medium distance
      * Uses keep-alive mode - shooter stays spinning while button held
      * @return true if started successfully
      */
     public boolean startFiringMidRange() {
-        return startFiring(RPM_MID_RANGE, "MID_RANGE", true);
+        return startFiring(ShooterConfig.ShooterPreset.MID_RANGE.getTargetRPM(),
+                          ShooterConfig.ShooterPreset.MID_RANGE.getName(),
+                          true);
     }
 
     /**
-     * Start firing with short range preset (2400 RPM)
+     * Start firing with short range preset (1100 RPM)
      * For shots from close distance
      * Uses keep-alive mode - shooter stays spinning while button held
      * @return true if started successfully
      */
     public boolean startFiringShortRange() {
-        return startFiring(RPM_SHORT_RANGE, "SHORT_RANGE", true);
-    }
-
-    /**
-     * Start firing with close range preset (2000 RPM)
-     * For shots from very close distance
-     * Uses keep-alive mode - shooter stays spinning while button held
-     * @return true if started successfully
-     */
-    public boolean startFiringCloseRange() {
-        return startFiring(RPM_CLOSE_RANGE, "CLOSE_RANGE", true);
+        return startFiring(ShooterConfig.ShooterPreset.SHORT_RANGE.getTargetRPM(),
+                          ShooterConfig.ShooterPreset.SHORT_RANGE.getName(),
+                          true);
     }
 
     /**
@@ -482,19 +514,19 @@ public class BasicFiringHelper {
         if (shooterRPM == 0) shooterRPM = EJECTION_SHOOTER_RPM;
 
         ejectionActive = true;
+        ejectionIntakePower = intakePower; // Save for reference
 
-        // Run intakes backward - set power directly for continuous operation
-        indexingHelper.setFrontRollerPower(intakePower);
-        indexingHelper.setBackRollerPower(intakePower);
-        indexingHelper.setFrontTransferPower(intakePower);
-        indexingHelper.setBackTransferPower(intakePower);
+        // Directly control motors via hardware - set power ONCE and let it run
+        hardware.getFrontRollerMotor().setPower(intakePower);
+        hardware.getBackRollerMotor().setPower(intakePower);
+        hardware.getFrontTransferServo().setPower(EJECTION_TRANSFER_POWER);
+        hardware.getBackTransferServo().setPower(EJECTION_TRANSFER_POWER);
+        hardware.getUptakeServoL().setPower(EJECTION_UPTAKE_POWER);
+        hardware.getUptakeServoR().setPower(EJECTION_UPTAKE_POWER);
 
-        // Run shooter at low speed - MUST call both setTargetRPM and spinUp
+        // Run shooter at low speed
         shooter.setTargetRPM(shooterRPM);
         shooter.spinUp();
-
-        // Run uptake forward
-        indexingHelper.setUptakePower(EJECTION_UPTAKE_POWER);
 
         telemetry.addData("Ejection", "Active (Intakes: " + intakePower + ", Shooter: " + shooterRPM + " RPM)");
 
@@ -512,24 +544,24 @@ public class BasicFiringHelper {
 
     /**
      * Stop ejection sequence
-     * Stops all motors and servos
+     * Stops all motors and servos directly via hardware
      */
     public void stopEjection() {
         if (!ejectionActive) return;
 
         ejectionActive = false;
 
-        // Stop all intake components
-        indexingHelper.setFrontRollerPower(0);
-        indexingHelper.setBackRollerPower(0);
-        indexingHelper.setFrontTransferPower(0);
-        indexingHelper.setBackTransferPower(0);
+        // Stop all motors/servos directly via hardware
+        hardware.getFrontRollerMotor().setPower(0);
+        hardware.getBackRollerMotor().setPower(0);
+        hardware.getFrontTransferServo().setPower(0);
+        hardware.getBackTransferServo().setPower(0);
+        hardware.getUptakeServoL().setPower(0);
+        hardware.getUptakeServoR().setPower(0);
 
         // Stop shooter
         shooter.stopMotors();
 
-        // Stop uptake
-        indexingHelper.stopUptake();
 
         telemetry.addData("Ejection", "Stopped");
     }
