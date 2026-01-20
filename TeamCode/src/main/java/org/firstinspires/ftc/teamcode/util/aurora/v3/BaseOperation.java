@@ -129,10 +129,14 @@ public abstract class BaseOperation implements IndexingOperation {
         boolean stillRunning = doUpdate();
 
         if (!stillRunning) {
-            // Operation complete
-            state = OperationState.COMPLETE;
-            statusMessage = "Complete (elapsed: " + getElapsedTimeMs() + "ms)";
-            logInfo("Completed successfully");
+            // Operation complete - but check if subclass called fail()
+            if (state == OperationState.RUNNING) {
+                // Still RUNNING means success
+                state = OperationState.COMPLETE;
+                statusMessage = "Complete (elapsed: " + getElapsedTimeMs() + "ms)";
+                logInfo("Completed successfully");
+            }
+            // If state is already FAILED (subclass called fail()), don't overwrite
         }
 
         return stillRunning;

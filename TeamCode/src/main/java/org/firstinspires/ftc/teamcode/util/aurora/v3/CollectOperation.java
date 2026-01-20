@@ -96,8 +96,8 @@ public class CollectOperation extends BaseOperation {
             return false;
         }
 
-        // Check if artifact is actually detected
-        if (!perception.getEdgeDetected()) {
+        // Check if artifact is actually detected (use fast presence for responsive start)
+        if (!perception.getFastPresence()) {
             fail(RejectReason.SENSOR_DETECTION_TIMEOUT);
             setStatusMessage("No artifact detected at " + targetSlot);
             return false;
@@ -133,9 +133,15 @@ public class CollectOperation extends BaseOperation {
             long elapsedSinceEdge = System.currentTimeMillis() - edgeDetectTime;
             
             if (elapsedSinceEdge >= COLOR_CLASSIFICATION_DELAY_MS) {
+                // Enable color sampling
+                perception.enableColorSampling();
+                
                 // Sample color now - artifact has settled
                 ArtifactIdentity.ColorClass color = perception.getBestColorClass();
                 double confidence = perception.getBestColorConfidence();
+                
+                // Disable color sampling
+                perception.disableColorSampling();
                 
                 collectedArtifact = ArtifactIdentity.createFromSensor(
                     color, confidence, sequenceId
@@ -167,8 +173,10 @@ public class CollectOperation extends BaseOperation {
             if (!colorSampled) {
                 // Edge case: hardware finished before color delay
                 // Sample color now
+                perception.enableColorSampling();
                 ArtifactIdentity.ColorClass color = perception.getBestColorClass();
                 double confidence = perception.getBestColorConfidence();
+                perception.disableColorSampling();
                 
                 collectedArtifact = ArtifactIdentity.createFromSensor(
                     color, confidence, sequenceId
