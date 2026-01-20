@@ -96,7 +96,7 @@ public class ShotPlanningCoordinator {
             logDebug("Shot Plan", getShotPlanString());
             if (isRearrangementNeeded()) {
                 logDebug("Rearrangement", "Desired center: " + 
-                        planner.getDesiredCenterArtifact().getColorString());
+                        planner.getDesiredCenterArtifact().getColor().toString());
             }
         }
     }
@@ -216,7 +216,9 @@ public class ShotPlanningCoordinator {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < plan.size(); i++) {
             if (i > 0) sb.append(" → ");
-            sb.append(plan.get(i).getColorString().charAt(0));  // P or G
+            Artifact.Color color = plan.get(i).getColor();
+            sb.append(color == Artifact.Color.PURPLE ? 'P' : 
+                     color == Artifact.Color.GREEN ? 'G' : '?');
         }
         return sb.toString();
     }
@@ -260,16 +262,16 @@ public class ShotPlanningCoordinator {
      */
     private Artifact convertToArtifact(ArtifactIdentity identity, SlotLedger.Slot slot) {
         // Convert color class
-        String colorString;
+        Artifact.Color color;
         switch (identity.getColorClass()) {
             case PURPLE:
-                colorString = "PURPLE";
+                color = Artifact.Color.PURPLE;
                 break;
             case GREEN:
-                colorString = "GREEN";
+                color = Artifact.Color.GREEN;
                 break;
             default:
-                colorString = "UNKNOWN";
+                color = Artifact.Color.UNKNOWN;
                 break;
         }
 
@@ -277,7 +279,7 @@ public class ShotPlanningCoordinator {
         Artifact.Location location;
         switch (slot) {
             case CENTER:
-                location = Artifact.Location.CENTER;
+                location = Artifact.Location.CENTER_STORAGE;
                 break;
             case FRONT:
                 location = Artifact.Location.FRONT_INTAKE;
@@ -290,8 +292,8 @@ public class ShotPlanningCoordinator {
                 break;
         }
 
-        // Create artifact with sequence ID
-        return new Artifact(identity.getSequenceId(), colorString, location, false);
+        // Create artifact with Color, Location, and sequence ID (collectionOrder)
+        return new Artifact(color, location, identity.getSequenceId());
     }
 
     /**
@@ -302,14 +304,14 @@ public class ShotPlanningCoordinator {
             return false;
         }
 
-        // Match by sequence ID (most reliable)
-        if (a.getSequenceId() == b.getSequenceId()) {
+        // Match by collection order (sequence ID) - most reliable
+        if (a.getCollectionOrder() == b.getCollectionOrder()) {
             return true;
         }
 
         // Fallback: match by color if not unknown
-        if (!a.getColorString().equals("UNKNOWN") && !b.getColorString().equals("UNKNOWN")) {
-            return a.getColorString().equals(b.getColorString());
+        if (a.getColor() != Artifact.Color.UNKNOWN && b.getColor() != Artifact.Color.UNKNOWN) {
+            return a.getColor() == b.getColor();
         }
 
         return false;

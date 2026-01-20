@@ -155,7 +155,7 @@ public class EjectOperation extends BaseOperation {
             ledger.clearAll();
             logInfo("Cleared all slots (" + artifactsCleared + " artifacts)");
         } else if (mode == EjectMode.CENTER) {
-            ledger.clearCenter();
+            ledger.setCenter(null);
             logInfo("Cleared center slot");
         }
         
@@ -177,7 +177,7 @@ public class EjectOperation extends BaseOperation {
     protected void doCancel() {
         // Stop ejection hardware
         if (mode == EjectMode.ALL) {
-            firingHelper.cancelEjection();
+            firingHelper.stopEjection();
         } else if (mode == EjectMode.CENTER) {
             indexingHelper.stopUptakeL();
             indexingHelper.stopUptakeR();

@@ -135,14 +135,14 @@ public class FireOperation extends BaseOperation {
             return false;  // Done
         }
 
-        setStatusMessage("Firing... (" + firingHelper.getFiringStateName() + ")");
+        setStatusMessage("Firing... (" + firingHelper.getFiringState() + ")");
         return true;  // Still running
     }
 
     @Override
     protected void doCommit() {
         // Clear center slot (artifact has been fired)
-        ledger.clearCenter();
+        ledger.setCenter(null);
         
         logInfo("Fired artifact: " + firedArtifact.getColorClass() + 
                " (conf=" + String.format("%.2f", firedArtifact.getColorConfidence()) + ")");
@@ -201,7 +201,7 @@ public class FireOperation extends BaseOperation {
         
         telemetry.addData("Target RPM", String.format("%.0f", targetRPM));
         telemetry.addData("Current RPM", String.format("%.0f", shooter.getCurrentRPM()));
-        telemetry.addData("Firing State", firingHelper.getFiringStateName());
+        telemetry.addData("Firing State", firingHelper.getFiringState());
         
         if (firedArtifact != null) {
             telemetry.addData("Fired Artifact", firedArtifact.getColorClass());
