@@ -15,7 +15,7 @@ import java.util.Map;
  */
 public class FiringSequenceCoordinator {
 
-    private final IndexingSystem indexingSystem;
+    private final IndexingSystemOld indexingSystem;
     private final Shooter shooter;
 
     // Firing sequence state
@@ -33,7 +33,7 @@ public class FiringSequenceCoordinator {
      * @param indexingSystem The indexing system to coordinate
      * @param shooter The shooter to coordinate
      */
-    public FiringSequenceCoordinator(IndexingSystem indexingSystem, Shooter shooter) {
+    public FiringSequenceCoordinator(IndexingSystemOld indexingSystem, Shooter shooter) {
         this.indexingSystem = indexingSystem;
         this.shooter = shooter;
         

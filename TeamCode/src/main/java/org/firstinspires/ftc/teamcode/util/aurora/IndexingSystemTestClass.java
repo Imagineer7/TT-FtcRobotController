@@ -41,11 +41,11 @@ public class IndexingSystemTestClass {
     public static TestResult testFirstArtifactCollection() {
         try {
             // Create mock system (without hardware)
-            IndexingSystem system = createMockSystem();
+            IndexingSystemOld system = createMockSystem();
 
             // Simulate first artifact detection
             Artifact artifact = new Artifact(Artifact.Color.PURPLE, Artifact.Location.UNKNOWN, 0);
-            boolean collected = system.onArtifactDetected(artifact, IndexingSystem.IntakeSource.FRONT);
+            boolean collected = system.onArtifactDetected(artifact, IndexingSystemOld.IntakeSource.FRONT);
 
             if (!collected) {
                 return new TestResult("First Artifact Collection", false, 
@@ -87,11 +87,11 @@ public class IndexingSystemTestClass {
      */
     public static TestResult testSecondArtifactPush() {
         try {
-            IndexingSystem system = createMockSystem();
+            IndexingSystemOld system = createMockSystem();
 
             // Collect first artifact from front
             Artifact first = new Artifact(Artifact.Color.PURPLE, Artifact.Location.UNKNOWN, 0);
-            system.onArtifactDetected(first, IndexingSystem.IntakeSource.FRONT);
+            system.onArtifactDetected(first, IndexingSystemOld.IntakeSource.FRONT);
             simulateTime(system, 1000);
 
             // Verify first is in center
@@ -103,7 +103,7 @@ public class IndexingSystemTestClass {
 
             // Collect second artifact from back
             Artifact second = new Artifact(Artifact.Color.GREEN, Artifact.Location.UNKNOWN, 0);
-            system.onArtifactDetected(second, IndexingSystem.IntakeSource.BACK);
+            system.onArtifactDetected(second, IndexingSystemOld.IntakeSource.BACK);
             simulateTime(system, 2000); // Allow time for push operation
 
             // Verify second is now in center
@@ -142,26 +142,26 @@ public class IndexingSystemTestClass {
      */
     public static TestResult testThirdArtifactStorage() {
         try {
-            IndexingSystem system = createMockSystem();
+            IndexingSystemOld system = createMockSystem();
 
             // Collect first from front
             system.onArtifactDetected(
                 new Artifact(Artifact.Color.PURPLE, Artifact.Location.UNKNOWN, 0),
-                IndexingSystem.IntakeSource.FRONT
+                IndexingSystemOld.IntakeSource.FRONT
             );
             simulateTime(system, 1000);
 
             // Collect second from back (pushes first to front)
             system.onArtifactDetected(
                 new Artifact(Artifact.Color.GREEN, Artifact.Location.UNKNOWN, 0),
-                IndexingSystem.IntakeSource.BACK
+                IndexingSystemOld.IntakeSource.BACK
             );
             simulateTime(system, 2000);
 
             // Collect third from back
             system.onArtifactDetected(
                 new Artifact(Artifact.Color.PURPLE, Artifact.Location.UNKNOWN, 0),
-                IndexingSystem.IntakeSource.BACK
+                IndexingSystemOld.IntakeSource.BACK
             );
             simulateTime(system, 1000);
 
@@ -201,31 +201,31 @@ public class IndexingSystemTestClass {
      */
     public static TestResult testSystemFull() {
         try {
-            IndexingSystem system = createMockSystem();
+            IndexingSystemOld system = createMockSystem();
 
             // Fill system with 3 artifacts
             system.onArtifactDetected(
                 new Artifact(Artifact.Color.PURPLE, Artifact.Location.UNKNOWN, 0),
-                IndexingSystem.IntakeSource.FRONT
+                IndexingSystemOld.IntakeSource.FRONT
             );
             simulateTime(system, 1000);
 
             system.onArtifactDetected(
                 new Artifact(Artifact.Color.GREEN, Artifact.Location.UNKNOWN, 0),
-                IndexingSystem.IntakeSource.BACK
+                IndexingSystemOld.IntakeSource.BACK
             );
             simulateTime(system, 2000);
 
             system.onArtifactDetected(
                 new Artifact(Artifact.Color.PURPLE, Artifact.Location.UNKNOWN, 0),
-                IndexingSystem.IntakeSource.BACK
+                IndexingSystemOld.IntakeSource.BACK
             );
             simulateTime(system, 1000);
 
             // Try to collect fourth artifact (should fail)
             boolean collected = system.onArtifactDetected(
                 new Artifact(Artifact.Color.GREEN, Artifact.Location.UNKNOWN, 0),
-                IndexingSystem.IntakeSource.FRONT
+                IndexingSystemOld.IntakeSource.FRONT
             );
 
             if (collected) {
@@ -253,12 +253,12 @@ public class IndexingSystemTestClass {
      */
     public static TestResult testEarlyFireOneArtifact() {
         try {
-            IndexingSystem system = createMockSystem();
+            IndexingSystemOld system = createMockSystem();
 
             // Collect one artifact
             system.onArtifactDetected(
                 new Artifact(Artifact.Color.PURPLE, Artifact.Location.UNKNOWN, 0),
-                IndexingSystem.IntakeSource.FRONT
+                IndexingSystemOld.IntakeSource.FRONT
             );
             simulateTime(system, 1000);
 
@@ -284,18 +284,18 @@ public class IndexingSystemTestClass {
      */
     public static TestResult testEarlyFireTwoArtifacts() {
         try {
-            IndexingSystem system = createMockSystem();
+            IndexingSystemOld system = createMockSystem();
 
             // Collect two artifacts
             system.onArtifactDetected(
                 new Artifact(Artifact.Color.PURPLE, Artifact.Location.UNKNOWN, 0),
-                IndexingSystem.IntakeSource.FRONT
+                IndexingSystemOld.IntakeSource.FRONT
             );
             simulateTime(system, 1000);
 
             system.onArtifactDetected(
                 new Artifact(Artifact.Color.GREEN, Artifact.Location.UNKNOWN, 0),
-                IndexingSystem.IntakeSource.BACK
+                IndexingSystemOld.IntakeSource.BACK
             );
             simulateTime(system, 2000);
 
@@ -340,19 +340,19 @@ public class IndexingSystemTestClass {
     /**
      * Create a mock IndexingSystem for testing (without hardware)
      */
-    private static IndexingSystem createMockSystem() {
+    private static IndexingSystemOld createMockSystem() {
         // Create minimal config
         IndexingConfig config = new IndexingConfig();
         config.setDebugTelemetry(false); // Disable telemetry for tests
 
         // Create system with null hardware and shooter (testing logic only)
-        return new IndexingSystem(null, config, null, null);
+        return new IndexingSystemOld(null, config, null, null);
     }
 
     /**
      * Simulate time passing by calling update repeatedly
      */
-    private static void simulateTime(IndexingSystem system, long milliseconds) {
+    private static void simulateTime(IndexingSystemOld system, long milliseconds) {
         long start = System.currentTimeMillis();
         while (System.currentTimeMillis() - start < milliseconds) {
             system.update();

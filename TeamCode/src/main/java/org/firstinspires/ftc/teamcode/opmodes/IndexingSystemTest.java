@@ -2,9 +2,9 @@ package org.firstinspires.ftc.teamcode.opmodes;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.NormalizedRGBA;
+
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
-import org.firstinspires.ftc.teamcode.util.aurora.IndexingSystem;
+import org.firstinspires.ftc.teamcode.util.aurora.IndexingSystemOld;
 import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
@@ -61,7 +61,7 @@ public class IndexingSystemTest extends LinearOpMode {
 
     // Hardware and Systems
     private AuroraHardwareConfig hardware;
-    private IndexingSystem indexingSystem;
+    private IndexingSystemOld indexingSystem;
     private IndexingConfig indexingConfig;
     private Shooter shooter;
     private ShooterConfig shooterConfig;
@@ -161,7 +161,7 @@ public class IndexingSystemTest extends LinearOpMode {
         shooter.enable();
 
         // Initialize indexing system (requires shooter)
-        indexingSystem = new IndexingSystem(hardware, indexingConfig, shooter, telemetry);
+        indexingSystem = new IndexingSystemOld(hardware, indexingConfig, shooter, telemetry);
 
         telemetry.addLine("✅ Initialization complete!");
         telemetry.addLine("");
@@ -253,12 +253,12 @@ public class IndexingSystemTest extends LinearOpMode {
     /**
      * Create artifact with color detection from sensors
      */
-    private Artifact createDetectedArtifact(IndexingSystem.IntakeSource source) {
+    private Artifact createDetectedArtifact(IndexingSystemOld.IntakeSource source) {
         Artifact.Color detectedColor = detectArtifactColor(source);
 
         return new Artifact(
             detectedColor,
-            source == IndexingSystem.IntakeSource.FRONT ?
+            source == IndexingSystemOld.IntakeSource.FRONT ?
                 Artifact.Location.FRONT_INTAKE : Artifact.Location.BACK_INTAKE,
             0  // Collection order will be set by indexing system
         );
@@ -267,7 +267,7 @@ public class IndexingSystemTest extends LinearOpMode {
     /**
      * Detect artifact color using color sensors at specified intake
      */
-    private Artifact.Color detectArtifactColor(IndexingSystem.IntakeSource source) {
+    private Artifact.Color detectArtifactColor(IndexingSystemOld.IntakeSource source) {
         if (hardware == null) {
             telemetry.addLine("⚠️ Color detection: hardware is null");
             return Artifact.Color.UNKNOWN;
@@ -278,7 +278,7 @@ public class IndexingSystemTest extends LinearOpMode {
             int sensorCount = 0;
 
             // Get color readings from available sensors
-            if (source == IndexingSystem.IntakeSource.FRONT) {
+            if (source == IndexingSystemOld.IntakeSource.FRONT) {
                 if (hardware.getFrontLeftColorSensor() != null) {
                     com.qualcomm.robotcore.hardware.NormalizedRGBA colors = hardware.getFrontLeftColorSensor().getNormalizedColors();
                     totalRed += colors.red;
@@ -300,7 +300,7 @@ public class IndexingSystemTest extends LinearOpMode {
                     totalBlue += colors.blue;
                     sensorCount++;
                 }
-            } else if (source == IndexingSystem.IntakeSource.BACK) {
+            } else if (source == IndexingSystemOld.IntakeSource.BACK) {
                 if (hardware.getBackRightColorSensor() != null) {
                     com.qualcomm.robotcore.hardware.NormalizedRGBA colors = hardware.getBackRightColorSensor().getNormalizedColors();
                     totalRed += colors.red;
@@ -388,7 +388,7 @@ public class IndexingSystemTest extends LinearOpMode {
                     Artifact.Location.UNKNOWN,
                     0  // Collection order will be set by system
                 );
-                indexingSystem.onArtifactDetected(artifact, IndexingSystem.IntakeSource.FRONT);
+                indexingSystem.onArtifactDetected(artifact, IndexingSystemOld.IntakeSource.FRONT);
                 telemetry.addLine("▶ Manual: Collecting from FRONT intake");
             }
         }
@@ -402,12 +402,12 @@ public class IndexingSystemTest extends LinearOpMode {
                     Artifact.Location.UNKNOWN,
                     0  // Collection order will be set by system
                 );
-                indexingSystem.onArtifactDetected(artifact, IndexingSystem.IntakeSource.BACK);
+                indexingSystem.onArtifactDetected(artifact, IndexingSystemOld.IntakeSource.BACK);
                 telemetry.addLine("▶ Manual: Collecting from BACK intake");
             } else {
                 // Force collect from back in any mode
-                Artifact artifact = createDetectedArtifact(IndexingSystem.IntakeSource.BACK);
-                indexingSystem.onArtifactDetected(artifact, IndexingSystem.IntakeSource.BACK);
+                Artifact artifact = createDetectedArtifact(IndexingSystemOld.IntakeSource.BACK);
+                indexingSystem.onArtifactDetected(artifact, IndexingSystemOld.IntakeSource.BACK);
                 telemetry.addLine("▶ Forced: Collecting from BACK intake");
             }
         }
@@ -494,8 +494,8 @@ public class IndexingSystemTest extends LinearOpMode {
             // Check if IndexingSystem is controlling servos
             boolean indexingSystemControlling = indexingSystem.isUptakeServoPrePositioned() ||
                                               indexingSystem.isOperationInProgress() ||
-                                              indexingSystem.getCurrentState() == IndexingSystem.SystemState.FIRING ||
-                                              indexingSystem.getCurrentState() == IndexingSystem.SystemState.PUSHING;
+                                              indexingSystem.getCurrentState() == IndexingSystemOld.SystemState.FIRING ||
+                                              indexingSystem.getCurrentState() == IndexingSystemOld.SystemState.PUSHING;
 
             // Right bumper - Injector servos
             if (gamepad1.right_bumper) {
@@ -593,8 +593,8 @@ public class IndexingSystemTest extends LinearOpMode {
         if (gamepad2.x && !lastG2X) {
             // Manual color detection test
             telemetry.addLine("🎨 MANUAL COLOR TEST:");
-            Artifact.Color frontColor = detectArtifactColor(IndexingSystem.IntakeSource.FRONT);
-            Artifact.Color backColor = detectArtifactColor(IndexingSystem.IntakeSource.BACK);
+            Artifact.Color frontColor = detectArtifactColor(IndexingSystemOld.IntakeSource.FRONT);
+            Artifact.Color backColor = detectArtifactColor(IndexingSystemOld.IntakeSource.BACK);
             telemetry.addLine("Front: " + frontColor + ", Back: " + backColor);
         }
         lastG2X = gamepad2.x;
@@ -754,7 +754,7 @@ public class IndexingSystemTest extends LinearOpMode {
 
                     // Show color detection for front if artifact detected
                     if (detected) {
-                        Artifact.Color color = detectArtifactColor(IndexingSystem.IntakeSource.FRONT);
+                        Artifact.Color color = detectArtifactColor(IndexingSystemOld.IntakeSource.FRONT);
                         telemetry.addData("    Color", color.toString());
                     }
                 }
@@ -766,7 +766,7 @@ public class IndexingSystemTest extends LinearOpMode {
 
                     // Show color detection for back if artifact detected
                     if (detected) {
-                        Artifact.Color color = detectArtifactColor(IndexingSystem.IntakeSource.BACK);
+                        Artifact.Color color = detectArtifactColor(IndexingSystemOld.IntakeSource.BACK);
                         telemetry.addData("    Color", color.toString());
                     }
                 }
@@ -1244,7 +1244,7 @@ public class IndexingSystemTest extends LinearOpMode {
     /**
      * Get explanation of what the indexing system is doing in current state
      */
-    private String getStateExplanation(IndexingSystem.SystemState state) {
+    private String getStateExplanation(IndexingSystemOld.SystemState state) {
         switch (state) {
             case IDLE:
                 return "Waiting for artifact detection or fire command";

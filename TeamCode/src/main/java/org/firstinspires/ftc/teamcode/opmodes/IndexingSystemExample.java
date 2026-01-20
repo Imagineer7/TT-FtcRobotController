@@ -4,7 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
-import org.firstinspires.ftc.teamcode.util.aurora.IndexingSystem;
+import org.firstinspires.ftc.teamcode.util.aurora.IndexingSystemOld;
 import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.Artifact;
@@ -40,7 +40,7 @@ public class IndexingSystemExample extends LinearOpMode {
     private ShooterConfig shooterConfig;
     private Shooter shooter;
     private IndexingConfig indexingConfig;
-    private IndexingSystem indexingSystem;
+    private IndexingSystemOld indexingSystem;
 
     // Button state tracking (for edge detection)
     private boolean lastAButton = false;
@@ -75,7 +75,7 @@ public class IndexingSystemExample extends LinearOpMode {
             indexingConfig.setDebugTelemetry(true);
 
             // Initialize indexing system
-            indexingSystem = new IndexingSystem(hardware, indexingConfig, shooter, telemetry);
+            indexingSystem = new IndexingSystemOld(hardware, indexingConfig, shooter, telemetry);
 
             telemetry.clear();
             telemetry.addLine("✅ Indexing System Ready!");
@@ -148,7 +148,7 @@ public class IndexingSystemExample extends LinearOpMode {
             );
             boolean success = indexingSystem.onArtifactDetected(
                 artifact, 
-                IndexingSystem.IntakeSource.FRONT
+                IndexingSystemOld.IntakeSource.FRONT
             );
             if (!success) {
                 telemetry.addLine("⚠️ Failed to start collection from front intake");
@@ -165,7 +165,7 @@ public class IndexingSystemExample extends LinearOpMode {
             );
             boolean success = indexingSystem.onArtifactDetected(
                 artifact, 
-                IndexingSystem.IntakeSource.BACK
+                IndexingSystemOld.IntakeSource.BACK
             );
             if (!success) {
                 telemetry.addLine("⚠️ Failed to start collection from back intake");

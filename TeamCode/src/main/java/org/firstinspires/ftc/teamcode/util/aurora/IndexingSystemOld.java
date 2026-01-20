@@ -39,7 +39,8 @@ import java.util.List;
  * - With 3 artifacts: First shot is mechanically forced (in center)
  * - Software plans shots 2 and 3 based on motif pattern and artifact colors
  */
-public class IndexingSystem {
+@Deprecated
+public class IndexingSystemOld {
 
     // ═══════════════════════════════════════════════════════════════════════
     // SYSTEM STATE
@@ -152,7 +153,7 @@ public class IndexingSystem {
      * @param shooter The shooter subsystem
      * @param telemetry The telemetry system for logging
      */
-    public IndexingSystem(AuroraHardwareConfig hardware, IndexingConfig config, Shooter shooter, Telemetry telemetry) {
+    public IndexingSystemOld(AuroraHardwareConfig hardware, IndexingConfig config, Shooter shooter, Telemetry telemetry) {
         try {
             this.hardware = hardware;
             this.config = config;
@@ -2298,7 +2299,7 @@ public class IndexingSystem {
         }
 
         // Determine which intake has the desired artifact
-        IndexingSystem.IntakeSource storageSource;
+        IndexingSystemOld.IntakeSource storageSource;
         if (desiredCenter == artifactInFrontIntake) {
             storageSource = IntakeSource.FRONT;
         } else if (desiredCenter == artifactInBackIntake) {

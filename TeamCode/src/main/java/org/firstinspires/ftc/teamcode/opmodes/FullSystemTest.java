@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.opmodes;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
-import org.firstinspires.ftc.teamcode.util.aurora.IndexingSystem;
+import org.firstinspires.ftc.teamcode.util.aurora.IndexingSystemOld;
 import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
@@ -81,7 +81,7 @@ public class FullSystemTest extends LinearOpMode {
 
     // Hardware and Systems
     private AuroraHardwareConfig hardware;
-    private IndexingSystem indexingSystem;
+    private IndexingSystemOld indexingSystem;
     private IndexingConfig indexingConfig;
     private Shooter shooter;
     private ShooterConfig shooterConfig;
@@ -147,7 +147,7 @@ public class FullSystemTest extends LinearOpMode {
 
         // Initialize systems with shared debug logger
         shooter = new Shooter(hardware, shooterConfig, telemetry);
-        indexingSystem = new IndexingSystem(hardware, indexingConfig, shooter, telemetry);
+        indexingSystem = new IndexingSystemOld(hardware, indexingConfig, shooter, telemetry);
         firingCoordinator = new FiringSequenceCoordinator(indexingSystem, shooter);
 
         waitForStart();
@@ -205,7 +205,7 @@ public class FullSystemTest extends LinearOpMode {
                 Artifact.Location.UNKNOWN,
                 0
             );
-            indexingSystem.onArtifactDetected(artifact, IndexingSystem.IntakeSource.FRONT);
+            indexingSystem.onArtifactDetected(artifact, IndexingSystemOld.IntakeSource.FRONT);
         }
         lastA1 = gamepad1.a;
 
@@ -216,7 +216,7 @@ public class FullSystemTest extends LinearOpMode {
                 Artifact.Location.UNKNOWN,
                 0
             );
-            indexingSystem.onArtifactDetected(artifact, IndexingSystem.IntakeSource.BACK);
+            indexingSystem.onArtifactDetected(artifact, IndexingSystemOld.IntakeSource.BACK);
         }
         lastB1 = gamepad1.b;
 
@@ -298,7 +298,7 @@ public class FullSystemTest extends LinearOpMode {
     private void updateSystemMode() {
         if (firingCoordinator.isFiringActive()) {
             currentMode = SystemMode.FIRING_SEQUENCE;
-        } else if (indexingSystem.getCurrentState() == IndexingSystem.SystemState.ERROR ||
+        } else if (indexingSystem.getCurrentState() == IndexingSystemOld.SystemState.ERROR ||
                    shooter.isError()) {
             currentMode = SystemMode.ERROR;
         } else if (indexingSystem.isOperationInProgress()) {
@@ -487,8 +487,8 @@ public class FullSystemTest extends LinearOpMode {
 
             boolean indexingSystemControlling = indexingSystem.isUptakeServoPrePositioned() ||
                                               indexingSystem.isOperationInProgress() ||
-                                              indexingSystem.getCurrentState() == IndexingSystem.SystemState.FIRING ||
-                                              indexingSystem.getCurrentState() == IndexingSystem.SystemState.PUSHING;
+                                              indexingSystem.getCurrentState() == IndexingSystemOld.SystemState.FIRING ||
+                                              indexingSystem.getCurrentState() == IndexingSystemOld.SystemState.PUSHING;
 
             if (indexingSystemControlling) {
                 // IndexingSystem is controlling servos - do not interfere
