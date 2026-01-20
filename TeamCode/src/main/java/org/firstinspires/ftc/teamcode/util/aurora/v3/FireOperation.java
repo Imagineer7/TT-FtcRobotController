@@ -12,7 +12,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
  * 2. Start firing sequence via BasicFiringHelper
  * 3. Wait for completion
  * 4. Clear center slot
- * 5. (Phase 5) Advance next artifact from shot plan
+ * 5. Consume shot from plan (if coordinator provided)
  *
  * Preconditions:
  * - Center slot occupied
@@ -21,6 +21,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
  * - Not already firing
  *
  * Hardware: Uses BasicFiringHelper.startFiring()
+ * Phase 5: Integrates with ShotPlanningCoordinator
  */
 public class FireOperation extends BaseOperation {
 
@@ -32,6 +33,7 @@ public class FireOperation extends BaseOperation {
     private final BasicFiringHelper firingHelper;
     private final Shooter shooter;
     private final double targetRPM;
+    private final ShotPlanningCoordinator shotPlanner;  // Optional (Phase 5)
 
     private ArtifactIdentity firedArtifact;
 
@@ -39,11 +41,11 @@ public class FireOperation extends BaseOperation {
     private static final long FIRE_TIMEOUT_MS = 8000;  // 8 seconds
 
     // ═══════════════════════════════════════════════════════════════════════
-    // CONSTRUCTOR
+    // CONSTRUCTORS
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
-     * Create a new FireOperation
+     * Create a new FireOperation (without shot planning)
      *
      * @param ledger Slot ledger to update
      * @param firingHelper BasicFiringHelper for firing control
@@ -56,11 +58,31 @@ public class FireOperation extends BaseOperation {
                         Shooter shooter,
                         double targetRPM,
                         Telemetry telemetry) {
+        this(ledger, firingHelper, shooter, targetRPM, null, telemetry);
+    }
+
+    /**
+     * Create a new FireOperation (with shot planning - Phase 5)
+     *
+     * @param ledger Slot ledger to update
+     * @param firingHelper BasicFiringHelper for firing control
+     * @param shooter Shooter instance for RPM check
+     * @param targetRPM Target RPM for firing
+     * @param shotPlanner Shot planning coordinator (null if not using)
+     * @param telemetry Telemetry for logging
+     */
+    public FireOperation(SlotLedger ledger,
+                        BasicFiringHelper firingHelper,
+                        Shooter shooter,
+                        double targetRPM,
+                        ShotPlanningCoordinator shotPlanner,
+                        Telemetry telemetry) {
         super(telemetry, FIRE_TIMEOUT_MS);
         this.ledger = ledger;
         this.firingHelper = firingHelper;
         this.shooter = shooter;
         this.targetRPM = targetRPM;
+        this.shotPlanner = shotPlanner;
         this.firedArtifact = null;
     }
 
@@ -124,10 +146,14 @@ public class FireOperation extends BaseOperation {
         
         logInfo("Fired artifact: " + firedArtifact.getColorClass() + 
                " (conf=" + String.format("%.2f", firedArtifact.getColorConfidence()) + ")");
-        logDebug("Slot Ledger", ledger.toSnapshot());
         
-        // TODO Phase 5: Advance next artifact from shot plan
-        // If shot plan has remaining artifacts, queue TransferOperation
+        // Phase 5: Consume shot from plan
+        if (shotPlanner != null) {
+            shotPlanner.consumeShot();
+            logInfo("Shot consumed from plan");
+        }
+        
+        logDebug("Slot Ledger", ledger.toSnapshot());
     }
 
     @Override
@@ -148,6 +174,24 @@ public class FireOperation extends BaseOperation {
     }
 
     // ═══════════════════════════════════════════════════════════════════════
+    // HELPERS
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Get next slot to transfer after firing (Phase 5)
+     * Call this after commit() to determine which artifact should move to center
+     *
+     * @return FRONT or BACK slot to transfer, or null if no more shots
+     */
+    public SlotLedger.Slot getNextTransferSlot() {
+        if (shotPlanner == null) {
+            return null;  // No shot planning
+        }
+
+        return shotPlanner.getNextTransferSlot(ledger);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
     // TELEMETRY
     // ═══════════════════════════════════════════════════════════════════════
 
@@ -163,6 +207,11 @@ public class FireOperation extends BaseOperation {
             telemetry.addData("Fired Artifact", firedArtifact.getColorClass());
             telemetry.addData("Confidence", String.format("%.2f", 
                              firedArtifact.getColorConfidence()));
+        }
+        
+        if (shotPlanner != null) {
+            SlotLedger.Slot nextSlot = getNextTransferSlot();
+            telemetry.addData("Next Transfer", nextSlot != null ? nextSlot : "None");
         }
     }
 }
