@@ -4,6 +4,9 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.BasicIndexingHelper;
+import org.firstinspires.ftc.teamcode.util.aurora.BasicFiringHelper;
+import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
+import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
 
 /**
  * BasicIndexingHelperTest - Test OpMode for BasicIndexingHelper
@@ -33,20 +36,21 @@ import org.firstinspires.ftc.teamcode.util.aurora.BasicIndexingHelper;
  *   - B: Run both injectors timed (500ms)
  *   - START: Cancel any active transfer sequence
  */
-@TeleOp(name="Basic Indexing Helper Test", group="Testing")
+@TeleOp(name="Basic Indexing & Firing Test", group="Testing")
 public class BasicIndexingHelperTest extends LinearOpMode {
 
-    // Hardware and helper
+    // Hardware and helpers
     private AuroraHardwareConfig hardware;
     private BasicIndexingHelper indexingHelper;
+    private Shooter shooter;
+    private BasicFiringHelper firingHelper;
 
     // Button edge detection
-    private boolean lastA1 = false;
-    private boolean lastB1 = false;
     private boolean lastX1 = false;
     private boolean lastY1 = false;
     private boolean lastA2 = false;
     private boolean lastB2 = false;
+    private boolean lastY2 = false;
 
     @Override
     public void runOpMode() {
@@ -57,8 +61,16 @@ public class BasicIndexingHelperTest extends LinearOpMode {
         hardware = new AuroraHardwareConfig(hardwareMap, telemetry);
         hardware.initialize();
 
-        // Create helper
+        // Create shooter
+        ShooterConfig shooterConfig = new ShooterConfig();
+        shooter = new Shooter(hardware, shooterConfig, telemetry);
+        shooter.enable();
+
+        // Create indexing helper
         indexingHelper = new BasicIndexingHelper(hardware, telemetry);
+
+        // Create firing helper
+        firingHelper = new BasicFiringHelper(shooter, indexingHelper, telemetry);
 
         telemetry.addLine("✅ Initialization complete!");
         telemetry.addLine("Press START to begin");
@@ -68,8 +80,10 @@ public class BasicIndexingHelperTest extends LinearOpMode {
 
         // Main control loop
         while (opModeIsActive()) {
-            // CRITICAL: Update helper every loop
+            // CRITICAL: Update all helpers every loop
             indexingHelper.update();
+            shooter.update();
+            firingHelper.update();
 
             // ═══════════════════════════════════════════════════════════
             // GAMEPAD 1 - Intake and Transfer Controls
@@ -117,12 +131,20 @@ public class BasicIndexingHelperTest extends LinearOpMode {
                 indexingHelper.unPrePositionArtifacts();
             }
 
+            // Ejection controls
+            if (gamepad1.dpad_left) {
+                firingHelper.startEjection();
+            }
+            if (gamepad1.dpad_right) {
+                firingHelper.stopEjection();
+            }
+
             // ═══════════════════════════════════════════════════════════
-            // GAMEPAD 2 - Uptake and Injector Controls
+            // GAMEPAD 2 - Manual Uptake and Injector Controls
             // ═══════════════════════════════════════════════════════════
 
-            // Uptake manual control - ONLY if no timed movement or transfer active
-            if (!indexingHelper.isUptakeBusy() && !indexingHelper.isTransferActive()) {
+            // Uptake manual control - ONLY if no timed movement, transfer, or firing active
+            if (!indexingHelper.isUptakeBusy() && !indexingHelper.isTransferActive() && !firingHelper.isFiring()) {
                 if (gamepad2.dpad_up) {
                     indexingHelper.setUptakePower(1.0);
                 } else if (gamepad2.dpad_down) {
@@ -132,8 +154,8 @@ public class BasicIndexingHelperTest extends LinearOpMode {
                 }
             }
 
-            // Injector manual control - ONLY if no timed movement or transfer active
-            if (!indexingHelper.isInjectorBusy() && !indexingHelper.isTransferActive()) {
+            // Injector manual control - ONLY if no timed movement, transfer, or firing active
+            if (!indexingHelper.isInjectorBusy() && !indexingHelper.isTransferActive() && !firingHelper.isFiring()) {
                 if (gamepad2.left_bumper) {
                     indexingHelper.setInjectorPower(1.0);  // Both servos forward
                 } else if (gamepad2.left_trigger > 0.5) {
@@ -147,25 +169,62 @@ public class BasicIndexingHelperTest extends LinearOpMode {
                 }
             }
 
-            // Timed movements (edge detection)
-            boolean currentA2 = gamepad2.a;
-            if (currentA2 && !lastA2) {
-                indexingHelper.setUptakeTimed(1.0, 500);
-                telemetry.addLine("▶️ Uptake timed (500ms)");
-            }
-            lastA2 = currentA2;
+            // Firing with presets - hold button to fire and keep shooter spinning
+            // Update button state for automatic stop when released
+            boolean firingButtonPressed = gamepad2.a || gamepad2.b || gamepad2.y;
+            firingHelper.setButtonHeld(firingButtonPressed);
 
-            boolean currentB2 = gamepad2.b;
-            if (currentB2 && !lastB2) {
-                indexingHelper.setInjectorTimed(1.0, 500);
-                telemetry.addLine("▶️ Injector timed (500ms)");
+            // Short Range (A button) - hold to fire
+            if (gamepad2.a) {
+                if (!firingHelper.isFiring()) {
+                    telemetry.addLine(">>> Starting Short Range firing");
+                    firingHelper.startFiringShortRange();
+                } else if (firingHelper.isReadyForNextShot()) {
+                    telemetry.addLine(">>> Firing next shot (Short Range)");
+                    firingHelper.startFiringShortRange();
+                }
             }
-            lastB2 = currentB2;
 
-            // Cancel transfer (START button)
+            // Mid Range (B button) - hold to fire
+            if (gamepad2.b) {
+                if (!firingHelper.isFiring()) {
+                    telemetry.addLine(">>> Starting Mid Range firing");
+                    firingHelper.startFiringMidRange();
+                } else if (firingHelper.isReadyForNextShot()) {
+                    telemetry.addLine(">>> Firing next shot (Mid Range)");
+                    firingHelper.startFiringMidRange();
+                }
+            }
+
+            // Long Range (Y button) - hold to fire
+            if (gamepad2.y) {
+                if (!firingHelper.isFiring()) {
+                    telemetry.addLine(">>> Starting Long Range firing");
+                    firingHelper.startFiringLongRange();
+                } else if (firingHelper.isReadyForNextShot()) {
+                    telemetry.addLine(">>> Firing next shot (Long Range)");
+                    firingHelper.startFiringLongRange();
+                }
+            }
+            // Note: Shooter will stop automatically when button released (handled in update())
+
+            // Manual shooter stop
+            if (gamepad2.x) {
+                shooter.stopMotors();
+                firingHelper.cancelFiring();
+            }
+
+            // Cancel firing with START
             if (gamepad2.start) {
-                indexingHelper.cancelTransfer();
-                telemetry.addLine("❌ Transfer cancelled");
+                firingHelper.cancelFiring();
+            }
+
+            // Emergency stop all with BACK
+            if (gamepad2.back) {
+                firingHelper.stopAll();
+                indexingHelper.stopAll();
+                shooter.stopMotors();
+                telemetry.addLine("🛑 EMERGENCY STOP");
             }
 
             // ═══════════════════════════════════════════════════════════
@@ -180,17 +239,20 @@ public class BasicIndexingHelperTest extends LinearOpMode {
             telemetry.addData("Y (Press)", "Back → Center (Auto 2.5s)");
             telemetry.addData("DPad Up", "Pre-position Artifacts");
             telemetry.addData("DPad Down", "Un-pre-position Artifacts");
+            telemetry.addData("DPad Left", "▶️ Start Ejection");
+            telemetry.addData("DPad Right", "⏹️ Stop Ejection");
             telemetry.addData("", "");
 
-            telemetry.addData("═══ GAMEPAD 2 - UPTAKE/INJECTOR ═══", "");
-            telemetry.addData("DPad Up/Down", "Uptake ↑/↓");
-            telemetry.addData("L Bumper", "Both Injectors →");
-            telemetry.addData("L Trigger", "Both Injectors ←");
-            telemetry.addData("R Bumper", "Injector Right → (Individual)");
-            telemetry.addData("R Trigger", "Injector Left ← (Individual)");
-            telemetry.addData("A", "Uptake Timed (500ms)");
-            telemetry.addData("B", "Both Injectors Timed (500ms)");
-            telemetry.addData("START", "❌ Cancel Transfer");
+            telemetry.addData("═══ GAMEPAD 2 - FIRING ═══", "");
+            telemetry.addData("A (Hold)", "🔥 Fire Long Range (3200 RPM)");
+            telemetry.addData("B (Hold)", "🔥 Fire Mid Range (2800 RPM)");
+            telemetry.addData("Y (Hold)", "🔥 Fire Short Range (2400 RPM)");
+            telemetry.addData("X", "⏹️ Stop Shooter");
+            telemetry.addData("START", "❌ Cancel Firing");
+            telemetry.addData("BACK", "🛑 EMERGENCY STOP");
+            telemetry.addData("", "");
+            telemetry.addData("DPad Up/Down", "Uptake Manual (when free)");
+            telemetry.addData("Bumpers/Triggers", "Injector Manual (when free)");
             telemetry.addData("", "");
 
             // Transfer status
@@ -200,13 +262,45 @@ public class BasicIndexingHelperTest extends LinearOpMode {
             telemetry.addData("Type", indexingHelper.getTransferType());
             telemetry.addData("", "");
 
-            // Status telemetry
+            // DEBUG: Button press detection
+            telemetry.addData("═══ DEBUG - BUTTON PRESS ═══", "");
+            telemetry.addData("GP2.A (Short)", gamepad2.a ? "PRESSED" : "not pressed");
+            telemetry.addData("GP2.B (Mid)", gamepad2.b ? "PRESSED" : "not pressed");
+            telemetry.addData("GP2.Y (Long)", gamepad2.y ? "PRESSED" : "not pressed");
+            telemetry.addData("", "");
+
+            // Firing status
+            telemetry.addData("═══ FIRING STATUS ═══", "");
+            telemetry.addData("Active", firingHelper.isFiring() ? "YES ✅" : "NO");
+            telemetry.addData("Helper Enabled", firingHelper.isEnabled() ? "YES" : "NO");
+            if (firingHelper.isFiring()) {
+                telemetry.addData("State", firingHelper.getFiringState());
+                telemetry.addData("Preset", firingHelper.getPresetName());
+                telemetry.addData("Target RPM", String.format("%.0f", firingHelper.getTargetRPM()));
+                telemetry.addData("Ready for Next", firingHelper.isReadyForNextShot() ? "YES ✅" : "NO");
+            }
+            telemetry.addData("Ejection", firingHelper.isEjecting() ? "ACTIVE ⚠️" : "IDLE");
+            telemetry.addData("Button Held", firingButtonPressed ? "YES" : "NO");
+            telemetry.addData("", "");
+
+            // Shooter status
+            telemetry.addData("═══ SHOOTER ═══", "");
+            telemetry.addData("Current RPM", String.format("%.0f", shooter.getCurrentRPM()));
+            telemetry.addData("Target RPM", String.format("%.0f", shooter.getTargetRPM()));
+            telemetry.addData("Ready", shooter.isReadyToFire() ? "YES ✅" : "NO");
+            telemetry.addData("State", shooter.getState());
+            telemetry.addData("Enabled", shooter.isEnabled() ? "YES" : "NO");
+            telemetry.addData("", "");
+
+            // Hardware status
             indexingHelper.addTelemetry();
 
             telemetry.update();
         }
 
         // Stop everything on exit
+        firingHelper.stopAll();
+        shooter.stopMotors();
         indexingHelper.stopAll();
     }
 }
