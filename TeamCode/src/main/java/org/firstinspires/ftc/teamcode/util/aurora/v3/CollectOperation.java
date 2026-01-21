@@ -150,7 +150,11 @@ public class CollectOperation extends BaseOperation {
                 // Enable color sampling
                 perception.enableColorSampling();
                 
-                // Sample color now - artifact has settled
+                // CRITICAL: Must call update() to actually sample sensors and compute color
+                // Without this, getBestColorClass() returns stale/uninitialized color (UNKNOWN)
+                perception.update();
+                
+                // Now get the freshly sampled color
                 ArtifactIdentity.ColorClass color = perception.getBestColorClass();
                 double confidence = perception.getBestColorConfidence();
                 
