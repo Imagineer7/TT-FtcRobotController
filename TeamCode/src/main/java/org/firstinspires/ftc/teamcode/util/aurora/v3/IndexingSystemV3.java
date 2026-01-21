@@ -145,12 +145,13 @@ public class IndexingSystemV3 {
         this.watchdog = new KeepAliveWatchdog(firingHelper, telemetry);
         
         // Initialize perception (IntakeSide enum, sensors, config)
+        // CRITICAL: Must match sensor wiring - CENTER sensors are outward-facing, RIGHT sensors are at mouth
         this.frontPerception = new IntakePerception(
             IntakePerception.IntakeSide.FRONT,
             hardware.getFrontDistanceSensor(),
             hardware.getFrontLeftDistanceSensor(),
-            hardware.getFrontLeftColorSensor(),
-            hardware.getFrontRightColorSensor(),
+            hardware.getFrontCenterColorSensor(),  // Outward-facing color sensor
+            hardware.getFrontRightColorSensor(),   // Mouth-mounted color sensor
             config
         );
         
@@ -158,8 +159,8 @@ public class IndexingSystemV3 {
             IntakePerception.IntakeSide.BACK,
             hardware.getBackDistanceSensor(),
             hardware.getBackRightDistanceSensor(),
-            hardware.getBackRightColorSensor(),
-            hardware.getLeftRightColorSensor(),
+            hardware.getBackCenterColorSensor(),   // Outward-facing color sensor
+            hardware.getBackRightColorSensor(),    // Mouth-mounted color sensor (note: same as distance sensor)
             config
         );
         
