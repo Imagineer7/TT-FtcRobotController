@@ -1,1132 +1,301 @@
 --------- beginning of main
-12-21 15:24:43.444   978  1176 V Robocol : received command: CMD_SET_MATCH_NUMBER(22290) 0
-12-21 15:24:43.448   978  1176 V Robocol : received command: CMD_INIT_OP_MODE(22291) V3 Basic Test
-12-21 15:24:43.486   978  1749 V RobotCore: thread: ...terminating 'OpModeThread'
-12-21 15:24:43.490   978  1749 V ThreadPool: container(0x029bc6ad: OpModeExecutor) removed id=366 TID=1749 count=1
-12-21 15:24:43.490   978  1189 I System.out: PANELS: CORE: (Panels): Stop of opMode
-12-21 15:24:43.492   978  1189 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode STOPPED,
-12-21 15:24:43.493   978  1189 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:43.495   978  1189 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:43.495   978  1189 I RobotCore: Attempting to switch to OpMode V3 Basic Test
-12-21 15:24:43.502   978  1189 I RobotCore: ******************** START - OPMODE V3 Basic Test ********************
-12-21 15:24:43.715   978  1189 I System.out: PANELS: CORE: (Panels): Init of opMode
-12-21 15:24:43.717   978  1189 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode INIT, V3 Basic Test
-12-21 15:24:43.719   978  1189 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"status":"INIT"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:43.720   978  1189 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"status":"INIT"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:43.720   978  1189 D HardwareMap: Clearing which device instances have been retrieved
-12-21 15:24:43.721   978  1189 D HardwareMap: Clearing which device instances have been retrieved
-12-21 15:24:43.723   978  1189 V ThreadPool: container(0x0d81e205: OpModeExecutor) added id=368 TID=0 count=1
-12-21 15:24:43.724   978  1767 V RobotCore: thread: 'OpModeThread' starting...
-12-21 15:24:43.744   978  1217 V Robocol : sending CMD_NOTIFY_INIT_OP_MODE(1712), attempt: 0
-12-21 15:24:43.828   978  1767 I I2C     : Automatically initializing I2C device Rev2mDistanceSensor (USB (embedded); module 3; bus 2; addr7=0x29)
-12-21 15:24:43.828   978  1767 D STMicroVL53L0X: : Checking to see if it's really a VL53L0X sensor...
-12-21 15:24:43.833   978  1767 D STMicroVL53L0X: : Reg 0xC0 = ee (should be 0xEE)
-12-21 15:24:43.838   978  1767 D STMicroVL53L0X: : Reg 0xC1 = aa (should be 0xAA)
-12-21 15:24:43.843   978  1767 D STMicroVL53L0X: : Reg 0xC2 = 10 (should be 0x10)
-12-21 15:24:43.848   978  1767 D STMicroVL53L0X: : Reg 0x51 = 0 (should be 0x0099)
-12-21 15:24:43.853   978  1767 D STMicroVL53L0X: : Reg 0x61 = 0 (should be 0x0000)
-12-21 15:24:43.885   978  1767 D STMicroVL53L0X: : initial sig rate lim (MCPS) 0.250000
-12-21 15:24:43.894   978  1767 D STMicroVL53L0X: : adjusted sig rate lim (MCPS) 0.250000
-12-21 15:24:44.356   978  1767 I I2C     : Automatically initializing I2C device Rev2mDistanceSensor (USB (embedded); module 173; bus 3; addr7=0x29)
-12-21 15:24:44.356   978  1767 D STMicroVL53L0X: : Checking to see if it's really a VL53L0X sensor...
-12-21 15:24:44.360   978  1767 D STMicroVL53L0X: : Reg 0xC0 = ee (should be 0xEE)
-12-21 15:24:44.364   978  1767 D STMicroVL53L0X: : Reg 0xC1 = aa (should be 0xAA)
-12-21 15:24:44.369   978  1767 D STMicroVL53L0X: : Reg 0xC2 = 10 (should be 0x10)
-12-21 15:24:44.372   978  1767 D STMicroVL53L0X: : Reg 0x51 = 0 (should be 0x0099)
-12-21 15:24:44.375   978  1767 D STMicroVL53L0X: : Reg 0x61 = 0 (should be 0x0000)
-12-21 15:24:44.394   978  1767 D STMicroVL53L0X: : initial sig rate lim (MCPS) 0.250000
-12-21 15:24:44.400   978  1767 D STMicroVL53L0X: : adjusted sig rate lim (MCPS) 0.250000
-12-21 15:24:44.612   978  1767 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 173; bus 2; addr7=0x52)
-12-21 15:24:44.612   978  1767 V BroadcomColorSensorImpl: internalInitialize()...
-12-21 15:24:44.621   978  1767 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 15:24:44.621   978  1767 V BroadcomColorSensorImpl: setGain(0x01)
-12-21 15:24:44.624   978  1767 V BroadcomColorSensorImpl: setLEDParameters(0x37)
-12-21 15:24:44.627   978  1767 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
-12-21 15:24:44.630   978  1767 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
-12-21 15:24:44.632   978  1767 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
-12-21 15:24:44.638   978  1767 V BroadcomColorSensorImpl: enable() enabled=0x07...
-12-21 15:24:44.644   978  1767 V BroadcomColorSensorImpl: ...enable() enabled=0x07
-12-21 15:24:44.647   978  1767 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 15:24:44.647   978  1767 V BroadcomColorSensorImpl: ...internalInitialize()
-12-21 15:24:44.648   978  1767 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 3; bus 3; addr7=0x52)
-12-21 15:24:44.648   978  1767 V BroadcomColorSensorImpl: internalInitialize()...
-12-21 15:24:44.657   978  1767 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 15:24:44.657   978  1767 V BroadcomColorSensorImpl: setGain(0x01)
-12-21 15:24:44.662   978  1767 V BroadcomColorSensorImpl: setLEDParameters(0x37)
-12-21 15:24:44.666   978  1767 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
-12-21 15:24:44.670   978  1767 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
-12-21 15:24:44.675   978  1767 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
-12-21 15:24:44.683   978  1767 V BroadcomColorSensorImpl: enable() enabled=0x07...
-12-21 15:24:44.692   978  1767 V BroadcomColorSensorImpl: ...enable() enabled=0x07
-12-21 15:24:44.697   978  1767 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 15:24:44.697   978  1767 V BroadcomColorSensorImpl: ...internalInitialize()
-12-21 15:24:44.698   978  1767 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 173; bus 1; addr7=0x52)
-12-21 15:24:44.698   978  1767 V BroadcomColorSensorImpl: internalInitialize()...
-12-21 15:24:44.706   978  1767 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 15:24:44.706   978  1767 V BroadcomColorSensorImpl: setGain(0x01)
-12-21 15:24:44.708   978  1767 V BroadcomColorSensorImpl: setLEDParameters(0x37)
-12-21 15:24:44.711   978  1767 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
-12-21 15:24:44.714   978  1767 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
-12-21 15:24:44.716   978  1767 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
-12-21 15:24:44.721   978  1767 V BroadcomColorSensorImpl: enable() enabled=0x07...
-12-21 15:24:44.726   978  1767 V BroadcomColorSensorImpl: ...enable() enabled=0x07
-12-21 15:24:44.731   978  1767 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 15:24:44.731   978  1767 V BroadcomColorSensorImpl: ...internalInitialize()
-12-21 15:24:44.731   978  1767 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 3; bus 1; addr7=0x52)
-12-21 15:24:44.731   978  1767 V BroadcomColorSensorImpl: internalInitialize()...
-12-21 15:24:44.741   978  1767 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 15:24:44.741   978  1767 V BroadcomColorSensorImpl: setGain(0x01)
-12-21 15:24:44.746   978  1767 V BroadcomColorSensorImpl: setLEDParameters(0x37)
-12-21 15:24:44.751   978  1767 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
-12-21 15:24:44.755   978  1767 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
-12-21 15:24:44.761   978  1767 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
-12-21 15:24:44.769   978  1767 V BroadcomColorSensorImpl: enable() enabled=0x07...
-12-21 15:24:44.779   978  1767 V BroadcomColorSensorImpl: ...enable() enabled=0x07
-12-21 15:24:44.784   978  1767 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 15:24:44.784   978  1767 V BroadcomColorSensorImpl: ...internalInitialize()
-12-21 15:24:44.785   978  1767 I I2C     : Automatically initializing I2C device BHI260IMU (BHI260 IMU on USB (embedded); module 173; bus 0; addr7=0x28)
-12-21 15:24:44.788   978  1767 V BHI260IMU: Suppressing I2C warnings while we check for a BHI260AP IMU
-12-21 15:24:44.791   978  1767 V BHI260IMU: Found BHI260AP IMU
-12-21 15:24:44.806   978  1767 D BHI260IMU: Firmware version: 20
-12-21 15:24:44.824   978  1767 V BHI260IMU: Suppressing I2C warnings while we check for a BHI260AP IMU
-12-21 15:24:44.827   978  1767 V BHI260IMU: Found BHI260AP IMU
-12-21 15:24:44.841   978  1767 D BHI260IMU: Firmware version: 20
-12-21 15:24:44.919   978  1176 V Robocol : received command: CMD_RUN_OP_MODE(22317) V3 Basic Test
-12-21 15:24:44.930   978  1189 I System.out: PANELS: CORE: (Panels): Start of opMode
-12-21 15:24:44.931   978  1189 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode RUNNING, V3 Basic Test
-12-21 15:24:44.931   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:44.932   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:44.933   978  1189 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"startTimestamp":1640132684930,"status":"RUNNING"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:44.933   978  1189 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"startTimestamp":1640132684930,"status":"RUNNING"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:44.944   978  1217 V Robocol : sending CMD_NOTIFY_RUN_OP_MODE(1729), attempt: 0
-12-21 15:24:45.183   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":252,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:45.184   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":252,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:45.436   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":505,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:45.437   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":505,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:45.688   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":757,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:45.688   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":757,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:45.939   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1009,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:45.940   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1009,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:46.191   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1260,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:46.191   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1260,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:46.443   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1512,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:46.443   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1512,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:46.694   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1763,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:46.695   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1763,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:46.947   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":2016,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:46.947   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":2016,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:47.199   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":2268,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:47.200   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":2268,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:47.451   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":2520,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:47.451   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":2520,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:47.702   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":2771,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:47.702   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":2771,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:47.953   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":3023,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:47.954   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":3023,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:48.007   978  1767 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW too low)
-12-21 15:24:48.064   978  1767 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW too low)
-12-21 15:24:48.129   978  1767 I System.out: [OpRunner] Starting operation: Collect[FRONT]
-12-21 15:24:48.129   978  1767 I System.out: [CollectOp] doStart() called for FRONT
-12-21 15:24:48.129   978  1767 I System.out: [CollectOp] Fast presence detected, starting hardware...
-12-21 15:24:48.129   978  1767 I System.out: [CollectOp] Started FRONT intake hardware
-12-21 15:24:48.129   978  1767 I System.out: [CollectOp] doStart() completed successfully
-12-21 15:24:48.129   978  1767 I System.out: [OpRunner] STARTED successfully (#1)
-12-21 15:24:48.130   978  1767 I System.out: [IndexingV3] Auto-collect FRONT (confidence=MEDIUM)
-12-21 15:24:48.144   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.144   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.144   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.146   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.146   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.146   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.148   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.148   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.148   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.150   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.150   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.150   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.155   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.155   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.156   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.157   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.157   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.157   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.159   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.159   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.159   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.161   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.161   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.161   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.162   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.163   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.163   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.164   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.164   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.164   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.166   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.167   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.167   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.169   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.169   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.169   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.170   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.170   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.171   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.177   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.177   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.177   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.179   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.179   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.179   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.180   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.181   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.181   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.182   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.182   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.182   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.183   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.183   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.183   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.184   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.185   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.185   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.186   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.186   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.186   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.187   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.188   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.188   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.189   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.189   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.189   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.190   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.191   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.191   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.196   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.196   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.196   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.197   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.197   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.197   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.198   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.198   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.198   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.200   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.200   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.200   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.201   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.201   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.201   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.202   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.202   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.202   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.203   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.203   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.203   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.204   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.205   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.205   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.205   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":3274,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:48.206   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":3274,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:48.206   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.206   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.206   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.207   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.207   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.208   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.209   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.209   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.209   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.210   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.210   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.210   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.211   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.212   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.212   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.221   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.221   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.221   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.224   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.224   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.224   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.225   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.225   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.225   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.226   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.226   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.226   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.229   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.229   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.229   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.230   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.230   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.230   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.231   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.231   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.231   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.232   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.232   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.232   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.247   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.247   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.247   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.248   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.249   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.249   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.249   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.250   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.250   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.251   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.251   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.251   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.252   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.252   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.252   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.258   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.258   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.258   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.259   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.259   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.259   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.260   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.260   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.260   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.261   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.261   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.261   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.262   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.262   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.262   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.263   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.263   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.263   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.264   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.265   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.265   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.266   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.266   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.266   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.267   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.267   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.267   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.268   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.268   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.268   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.269   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.269   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.269   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.271   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.271   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.271   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.272   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.272   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.272   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.273   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.273   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.274   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.278   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.278   978  1767 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:24:48.278   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:24:48.279   978  1767 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:24:48.279   978  1767 I System.out: [CollectOp] Color checkpoint reached, sampling...
-12-21 15:24:48.286   978  1767 I System.out: [CollectOp] Stopped FRONT hardware for color sampling
-12-21 15:24:48.337   978  1767 I System.out: [CollectOp] Artifact settled, starting color sampling
-12-21 15:24:48.457   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":3526,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:48.457   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":3526,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:48.533   978  1767 I System.out: [CollectOp] Collected 4 color samples over 150ms
-12-21 15:24:48.534   978  1767 I System.out: [CollectOp] Initial color sampled: UNKNOWN (conf=0.40)
-12-21 15:24:48.534   978  1767 I System.out: [CollectOp] Low confidence detected, jiggling artifact to improve detection
-12-21 15:24:48.570   978   992 I art     : Background sticky concurrent mark sweep GC freed 285093(9MB) AllocSpace objects, 78(4MB) LOS objects, 31% free, 31MB/45MB, paused 2.743ms total 105.058ms
-12-21 15:24:48.709   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":3778,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:48.710   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":3778,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:48.961   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":4030,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:48.961   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":4030,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:49.213   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":4282,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:49.213   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":4282,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:49.465   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":4534,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:49.466   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":4534,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:49.567   978  1767 I System.out: [CollectOp] Jiggle complete (3 cycles), stopping hardware
-12-21 15:24:49.629   978  1767 I System.out: [CollectOp] Re-sampling color after jiggle
-12-21 15:24:49.717   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":4786,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:49.718   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":4786,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:49.822   978  1767 I System.out: [CollectOp] Collected 4 color samples after jiggle
-12-21 15:24:49.822   978  1767 I System.out: [CollectOp] After jiggle color: UNKNOWN (conf=0.40)
-12-21 15:24:49.823   978  1767 I System.out: [CollectOp] Final color sampled: UNKNOWN (conf=0.40)
-12-21 15:24:49.823   978  1767 I System.out: [CollectOp] Hardware busy check: false
-12-21 15:24:49.823   978  1767 I System.out: [CollectOp] Collection hardware complete, returning false (done)
-12-21 15:24:49.824   978  1767 I System.out: [OpRunner] update() - stillRunning=false, op=Collect[FRONT]
-12-21 15:24:49.824   978  1767 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
-12-21 15:24:49.825   978  1767 I System.out: [CollectOp] doCommit() called
-12-21 15:24:49.825   978  1767 I System.out: [CollectOp] Committed UNKNOWN to FRONT
-12-21 15:24:49.826   978  1767 I System.out: [OpRunner] Commit complete
-12-21 15:24:49.826   978  1767 I System.out: [OpRunner] Clearing operation, now idle
-12-21 15:24:49.826   978  1767 I System.out: [IndexingV3] handleOperationComplete: Collect[FRONT], success=true
-12-21 15:24:49.826   978  1767 I System.out: [IndexingV3] Collection completed, calling handlePostCollection()
-12-21 15:24:49.827   978  1767 I System.out: [IndexingV3] handlePostCollection: artifactCount=1
-12-21 15:24:49.827   978  1767 I System.out: [IndexingV3] 1st artifact - requesting transfer from FRONT
-12-21 15:24:49.827   978  1767 I System.out: [OpRunner] Starting operation: Transfer[FRONT→CENTER]
-12-21 15:24:49.827   978  1767 I System.out: [OpRunner] STARTED successfully (#2)
-12-21 15:24:49.828   978  1767 I System.out: [IndexingV3] Transfer request SUCCESSFUL
-12-21 15:24:49.877   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.883   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.885   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.887   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.889   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.891   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.893   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.895   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.897   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.903   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.905   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.907   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.909   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.911   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.913   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.915   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.917   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.923   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.925   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.927   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.929   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.930   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.932   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.933   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.935   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.937   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.942   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.947   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.948   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.950   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.951   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.953   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.955   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.956   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.961   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.963   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.965   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.967   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.968   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.969   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":5039,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:49.970   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":5039,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:49.970   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.972   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.973   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.975   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.976   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.978   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.983   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.984   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.986   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.988   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.989   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.990   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.992   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.993   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.995   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.996   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:49.998   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.003   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.005   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.006   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.007   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.009   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.011   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.012   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.013   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.015   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.017   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.018   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.024   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.025   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.026   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.027   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.029   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.030   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.031   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.032   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.034   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.035   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.036   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.037   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.038   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.043   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.044   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.045   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.047   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.048   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.049   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.050   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.051   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.053   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.054   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.055   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.056   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.057   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.059   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.063   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.064   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.066   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.067   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.074   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.080   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.086   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.088   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.089   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.091   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.092   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.094   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.096   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.098   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.099   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.101   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.106   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.107   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.113   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.114   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.116   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.118   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.120   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.121   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.126   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.127   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.128   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.129   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.131   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.132   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.134   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.135   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.137   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.138   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.140   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.142   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.147   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.149   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.150   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.151   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.152   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.153   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.155   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.156   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.157   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.158   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.159   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.161   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.162   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.167   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.168   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.169   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.170   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.172   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.173   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.175   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.176   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.177   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.179   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.179   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.181   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.182   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.187   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.189   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.190   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.192   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.193   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.195   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.197   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.198   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.200   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.201   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.202   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.207   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.208   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.210   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.211   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.212   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.213   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.214   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.215   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.217   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.218   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.219   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.220   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.220   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":5290,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:50.221   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":5290,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:50.221   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.223   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.227   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.229   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.230   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.232   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.233   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.234   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.235   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.236   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.237   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.238   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.240   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.240   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.242   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.243   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.247   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.248   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.249   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.250   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.251   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.252   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.253   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.254   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.255   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.256   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.258   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.259   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.260   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.261   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.262   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.263   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.268   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.269   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.270   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.271   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.272   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.273   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.274   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.275   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.277   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.278   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.279   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.280   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.281   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.282   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.283   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.288   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.289   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.289   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.290   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.291   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.292   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.293   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.294   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.295   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.296   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.297   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.298   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.299   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.299   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.300   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.301   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.302   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.303   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.308   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.308   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.310   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.310   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.311   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.312   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.313   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.314   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.315   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.316   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.317   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.318   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.319   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.320   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.320   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.321   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.322   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.323   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.328   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.331   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.333   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.334   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.347   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.351   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.352   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.353   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.354   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.356   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.357   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.360   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.362   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.380   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.384   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.385   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.386   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.387   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.388   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.390   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.391   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.392   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.393   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.394   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.395   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.396   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.399   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.400   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.404   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.405   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.406   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.407   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.408   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.409   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.409   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.410   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.411   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.412   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.413   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.414   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.415   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.416   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.417   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.418   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.419   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.419   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.420   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.425   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.426   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.427   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.427   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.428   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.429   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.430   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.431   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.432   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.433   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.434   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.435   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.436   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.437   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.438   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.439   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.440   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.444   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.445   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.446   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.447   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.448   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.449   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.449   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.450   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.451   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.452   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.453   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.454   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.455   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.456   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.457   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.457   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.458   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.459   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.460   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.465   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.466   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.467   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.468   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.469   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.470   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.471   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.472   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":5541,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:50.472   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.472   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":5541,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:50.473   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.474   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.475   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.476   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.477   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.478   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.479   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.480   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.484   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.485   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.486   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.487   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.488   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.489   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.490   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.491   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.492   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.492   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.493   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.494   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.495   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.496   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.497   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.498   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.499   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.500   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.504   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.505   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.506   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.507   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.508   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.508   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.509   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.510   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.511   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.512   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.513   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.514   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.515   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.515   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.516   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.517   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.518   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.519   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.520   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.524   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.525   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.526   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.527   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.528   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.529   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.529   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.530   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.531   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.532   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.533   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.534   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.534   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.535   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.536   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.537   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.538   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.539   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.540   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.544   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.545   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.546   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.547   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.547   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.548   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.549   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.550   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.551   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.552   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.553   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.553   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.554   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.555   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.556   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.557   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.558   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.559   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.560   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.564   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.564   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.565   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.566   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.567   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.568   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.569   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.570   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.578   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.583   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.587   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.588   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.589   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.590   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.591   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.592   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.592   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.593   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.594   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.595   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.596   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.597   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.598   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.599   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.599   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.600   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.601   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.602   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.603   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.608   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.609   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.609   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.610   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.611   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.612   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.613   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.614   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.615   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.616   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.620   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.621   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.622   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.623   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.631   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.646   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.650   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.651   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.652   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.653   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.654   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.655   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.656   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.657   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.657   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.658   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.659   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.660   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.661   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.661   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.662   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.663   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.664   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.665   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.666   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.667   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.672   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.672   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.673   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.674   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.675   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.676   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.677   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.677   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.678   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.679   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.680   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.681   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.682   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.682   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.683   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.684   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.685   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.686   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.687   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.691   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.692   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.693   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.693   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.694   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.695   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.696   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.697   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.697   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.698   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.699   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.700   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.701   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.701   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.702   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.703   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.704   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.705   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.706   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.707   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.711   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.712   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.712   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.713   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.714   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.715   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.716   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.716   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.717   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.718   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.719   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.720   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.721   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.722   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.723   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":5792,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:50.723   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":5792,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:50.724   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.725   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.726   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.726   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.731   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.731   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.732   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.733   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.734   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.735   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.736   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.737   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.738   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.738   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.739   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.740   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.741   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.742   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.742   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.743   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.744   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.745   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.746   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.747   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.751   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.752   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.753   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.754   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.755   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.755   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.756   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.757   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.758   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.759   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.760   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.760   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.761   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.762   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.763   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.764   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.764   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.765   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.766   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.767   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.771   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.772   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.772   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.773   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.774   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.775   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.776   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.776   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.777   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.778   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.779   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.780   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.780   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.781   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.782   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.783   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.784   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.784   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.785   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.786   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.787   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.791   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.792   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.793   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.794   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.794   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.795   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.796   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.797   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.798   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.798   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.799   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.800   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.801   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.801   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.802   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.803   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.804   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.805   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.806   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.806   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.807   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.811   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.812   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.813   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.813   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.815   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.816   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.817   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.818   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.819   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.819   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.820   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.821   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.822   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.823   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.823   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.824   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.825   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.826   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.827   978  1767 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.833   978  1767 I System.out: [OpRunner] update() - stillRunning=false, op=Transfer[FRONT→CENTER]
-12-21 15:24:50.833   978  1767 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
-12-21 15:24:50.834   978  1767 I System.out: [OpRunner] Commit complete
-12-21 15:24:50.834   978  1767 I System.out: [OpRunner] Clearing operation, now idle
-12-21 15:24:50.834   978  1767 I System.out: [IndexingV3] handleOperationComplete: Transfer[FRONT→CENTER], success=true
-12-21 15:24:50.834   978  1767 I System.out: [IndexingV3] Transfer completed
-12-21 15:24:50.834   978  1767 I System.out: [IndexingV3] Reset FRONT perception after transfer
-12-21 15:24:50.974   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":6044,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:50.975   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":6044,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:51.226   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":6295,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:51.227   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":6295,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:51.479   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":6548,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:51.480   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":6548,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:51.731   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":6800,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:51.732   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":6800,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:51.983   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":7052,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:51.984   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":7052,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:52.235   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":7304,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:52.235   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":7304,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:52.486   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":7556,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:52.487   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":7556,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:52.738   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":7807,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:52.739   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":7807,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:52.990   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":8059,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:52.990   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":8059,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:53.241   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":8311,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:53.242   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":8311,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:53.493   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":8562,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:53.494   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":8562,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:53.745   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":8814,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:53.746   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":8814,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:53.997   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":9066,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:53.997   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":9066,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:54.248   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":9318,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:54.249   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":9318,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:54.500   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":9569,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:54.501   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":9569,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:54.752   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":9821,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:54.752   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":9821,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:55.003   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":10072,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:55.003   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":10072,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:55.255   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":10324,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:55.255   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":10324,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:55.507   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":10576,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:55.508   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":10576,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:55.759   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":10828,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:55.760   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":10828,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:56.010   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":11080,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:56.011   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":11080,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:56.262   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":11331,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:56.262   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":11331,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:56.513   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":11583,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:56.514   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":11583,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:56.765   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":11834,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:56.766   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":11834,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:57.017   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":12086,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:57.017   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12086,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:57.268   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":12337,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:57.269   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12337,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:57.280   978  1176 V Robocol : received command: CMD_INIT_OP_MODE(22480) $Stop$Robot$
-12-21 15:24:57.301   978  1767 E LynxI2cDeviceSynch: placeholder: readStatusQuery
-12-21 15:24:57.301   978  1767 E LynxI2cDeviceSynch: placeholder: readTimestamped
-12-21 15:24:57.303   978  1767 E LynxI2cDeviceSynch: placeholder: readTimestamped
-12-21 15:24:57.303   978  1767 E LynxI2cDeviceSynch: placeholder: readTimestamped
-12-21 15:24:57.311   978  1767 D RobotCore: User runOpModeMethod exited
-12-21 15:24:57.316   978  1767 V RobotCore: thread: ...terminating 'OpModeThread'
-12-21 15:24:57.317   978  1767 V ThreadPool: container(0x0d81e205: OpModeExecutor) removed id=368 TID=1767 count=1
-12-21 15:24:57.317   978  1189 I System.out: PANELS: CORE: (Panels): Stop of opMode
-12-21 15:24:57.318   978  1189 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode STOPPED, V3 Basic Test
-12-21 15:24:57.320   978  1189 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:57.320   978  1189 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:57.321   978  1189 I RobotCore: Attempting to switch to OpMode $Stop$Robot$
-12-21 15:24:57.323   978  1189 I RobotCore: ******************** STOP - OPMODE /storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt ********************
-12-21 15:24:57.331   978  1769 I RobotCore: saving match logcat to /storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt
-12-21 15:24:57.331   978  1769 I RobotCore: logging command line: exec logcat -d -T '12-21 15:24:43.000' -f '/storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt' -n4 -v threadtime UsbRequestJNI:S UsbRequest:S art:W ThreadPool:W System:W ExtendedExtractor:W OMXClient:W MediaPlayer:W dalvikvm:W  *:V
-12-21 15:24:57.331   978  1189 I System.out: PANELS: CORE: (Panels): Init of opMode
-12-21 15:24:57.333   978  1189 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode INIT,
-12-21 15:24:57.334   978  1189 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:57.335   978  1189 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:57.335   978  1189 D HardwareMap: Clearing which device instances have been retrieved
-12-21 15:24:57.335   978  1189 D HardwareMap: Clearing which device instances have been retrieved
-12-21 15:24:57.337   978  1189 V ThreadPool: container(0x0b359510: OpModeExecutor) added id=372 TID=0 count=1
-12-21 15:24:57.338   978  1772 V RobotCore: thread: 'OpModeThread' starting...
-12-21 15:24:57.339   978  1189 I System.out: PANELS: CORE: (Panels): Start of opMode
-12-21 15:24:57.341   978  1202 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":0,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:57.342   978  1202 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":0,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:57.343   978  1189 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode RUNNING,
-12-21 15:24:57.344   978  1217 V Robocol : sending CMD_NOTIFY_INIT_OP_MODE(1899), attempt: 0
-12-21 15:24:57.344   978  1189 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:57.345   978  1189 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:24:57.352   978  1772 V RobotCore: nack rec'd mod=3 msg#=0 ref#=0 reason=CANCELLED_FOR_SAFETY:259
-12-21 15:24:57.353   978  1772 V RobotCore: nack rec'd mod=173 msg#=0 ref#=0 reason=CANCELLED_FOR_SAFETY:259
-12-21 15:24:57.384   978  1217 V Robocol : sending CMD_NOTIFY_RUN_OP_MODE(1900), attempt: 0
-12-21 15:24:57.480   978  1769 I RobotCore: Done running exec logcat -d -T '12-21 15:24:43.000' -f '/storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt' -n4 -v threadtime UsbRequestJNI:S UsbRequest:S art:W ThreadPool:W System:W ExtendedExtractor:W OMXClient:W MediaPlayer:W dalvikvm:W  *:V
-12-21 15:24:57.480   978  1769 I RobotCore: exiting match logcat for /storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt
+12-21 15:39:12.919  1925  1984 V ThreadPool: container(0x08d5b55f: default threadpool) removed id=113 TID=1984 count=2
+12-21 15:39:13.644  1925  1978 V ThreadPool: container(0x08d5b55f: default threadpool) removed id=107 TID=1978 count=1
+12-21 15:39:14.629  1925  1994 V ThreadPool: container(0x012c6b29: default scheduler) added id=185 TID=0 count=21
+12-21 15:39:15.923  1925  2029 V Robocol : received command: CMD_RUN_OP_MODE(10476) V3 Basic Test
+12-21 15:39:15.936  1925  2053 I System.out: PANELS: CORE: (Panels): Start of opMode
+12-21 15:39:15.939  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":0,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:15.940  1925  2053 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode RUNNING, V3 Basic Test
+12-21 15:39:15.940  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":0,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:15.943  1925  2053 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"startTimestamp":1640133555937,"status":"RUNNING"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:15.944  1925  2053 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"startTimestamp":1640133555937,"status":"RUNNING"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:15.952  1925  2033 V Robocol : sending CMD_NOTIFY_RUN_OP_MODE(563), attempt: 0
+12-21 15:39:16.192  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":254,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:16.193  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":254,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:16.445  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":507,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:16.446  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":507,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:16.698  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":760,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:16.699  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":760,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:16.950  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1012,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:16.951  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1012,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:17.203  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1265,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:17.204  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1265,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:17.456  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1518,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:17.457  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1518,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:17.709  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1770,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:17.710  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1770,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:17.961  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":2023,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:17.961  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":2023,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:18.213  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":2275,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:18.213  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":2275,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:18.465  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":2527,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:18.467  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":2527,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:18.719  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":2781,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:18.720  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":2781,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:18.802  1925  2017 I System.out: PANELS: PLUGINS/COM.BYLAZAR.BATTERY: (Plugin): Sending: {"data":12.559000000000001,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 15:39:18.803  1925  2017 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12.559000000000001,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 15:39:18.971  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":3033,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:18.972  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":3033,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:19.223  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":3285,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:19.224  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":3285,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:19.475  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":3537,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:19.476  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":3537,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:19.628  1925  1994 V ThreadPool: container(0x012c6b29: default scheduler) added id=186 TID=0 count=22
+12-21 15:39:19.727  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":3789,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:19.728  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":3789,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:19.812  1925  2075 I System.out: [OpRunner] Starting operation: Collect[FRONT]
+12-21 15:39:19.813  1925  2075 I System.out: [CollectOp] doStart() called for FRONT
+12-21 15:39:19.813  1925  2075 I System.out: [CollectOp] Fast presence detected, starting hardware...
+12-21 15:39:19.813  1925  2075 I System.out: [CollectOp] Started FRONT intake hardware
+12-21 15:39:19.813  1925  2075 I System.out: [CollectOp] doStart() completed successfully
+12-21 15:39:19.814  1925  2075 I System.out: [OpRunner] STARTED successfully (#1)
+12-21 15:39:19.814  1925  2075 I System.out: [IndexingV3] Auto-collect FRONT (confidence=MEDIUM)
+12-21 15:39:19.883  1925  2075 I System.out: [CollectOp] doUpdate() - colorSampled=false
+12-21 15:39:19.883  1925  2075 I System.out: [CollectOp] Hardware busy check: true
+12-21 15:39:19.883  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
+12-21 15:39:19.952  1925  2075 I System.out: [CollectOp] doUpdate() - colorSampled=false
+12-21 15:39:19.953  1925  2075 I System.out: [CollectOp] Hardware busy check: true
+12-21 15:39:19.953  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
+12-21 15:39:19.980  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":4042,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:19.980  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":4042,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:20.025  1925  2075 I System.out: [CollectOp] doUpdate() - colorSampled=false
+12-21 15:39:20.025  1925  2075 I System.out: [CollectOp] Color checkpoint reached, sampling...
+12-21 15:39:20.032  1925  2075 I System.out: [CollectOp] Stopped FRONT hardware for color sampling
+12-21 15:39:20.083  1925  2075 I System.out: [CollectOp] Artifact settled, starting color sampling
+12-21 15:39:20.232  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":4294,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:20.233  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":4294,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:20.259  1925  2075 I System.out: [CollectOp] Collected 3 color samples over 150ms
+12-21 15:39:20.259  1925  2075 I System.out: [CollectOp] Initial color sampled: UNKNOWN (conf=0.41)
+12-21 15:39:20.259  1925  2075 I System.out: [CollectOp] Low confidence detected, jiggling artifact to improve detection
+12-21 15:39:20.485  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":4546,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:20.486  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":4546,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:20.737  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":4799,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:20.738  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":4799,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:20.990  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":5052,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:20.991  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":5052,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:21.243  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":5305,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:21.244  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":5305,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:21.314  1925  2075 I System.out: [CollectOp] Jiggle complete (3 cycles), stopping hardware
+12-21 15:39:21.376  1925  2075 I System.out: [CollectOp] Re-sampling color after jiggle
+12-21 15:39:21.496  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":5558,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:21.497  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":5558,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:21.554  1925  2075 I System.out: [CollectOp] Collected 3 color samples after jiggle
+12-21 15:39:21.554  1925  2075 I System.out: [CollectOp] After jiggle color: UNKNOWN (conf=0.40)
+12-21 15:39:21.556  1925  2075 I System.out: [CollectOp] Final color sampled: UNKNOWN (conf=0.40)
+12-21 15:39:21.557  1925  2075 I System.out: [CollectOp] Hardware busy check: false
+12-21 15:39:21.557  1925  2075 I System.out: [CollectOp] Collection hardware complete, returning false (done)
+12-21 15:39:21.557  1925  2075 I System.out: [OpRunner] update() - stillRunning=false, op=Collect[FRONT]
+12-21 15:39:21.557  1925  2075 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
+12-21 15:39:21.558  1925  2075 I System.out: [CollectOp] doCommit() called
+12-21 15:39:21.558  1925  2075 I System.out: [CollectOp] Committed UNKNOWN to FRONT
+12-21 15:39:21.559  1925  2075 I System.out: [OpRunner] Commit complete
+12-21 15:39:21.559  1925  2075 I System.out: [OpRunner] Clearing operation, now idle
+12-21 15:39:21.559  1925  2075 I System.out: [IndexingV3] handleOperationComplete: Collect[FRONT], success=true
+12-21 15:39:21.559  1925  2075 I System.out: [IndexingV3] Collection completed, calling handlePostCollection()
+12-21 15:39:21.559  1925  2075 I System.out: [IndexingV3] handlePostCollection: artifactCount=1
+12-21 15:39:21.560  1925  2075 I System.out: [IndexingV3] 1st artifact - requesting transfer from FRONT
+12-21 15:39:21.564  1925  2075 I System.out: [OpRunner] Starting operation: Transfer[FRONT→CENTER]
+12-21 15:39:21.564  1925  2075 I System.out: [OpRunner] STARTED successfully (#2)
+12-21 15:39:21.564  1925  2075 I System.out: [IndexingV3] Transfer request SUCCESSFUL
+12-21 15:39:21.688  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:39:21.748  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":5810,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:21.749  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":5810,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:21.751  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:39:21.825  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:39:21.875  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:39:21.935  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:39:21.994  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:39:22.001  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":6062,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:22.001  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":6062,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:22.058  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:39:22.125  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:39:22.239  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:39:22.253  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":6315,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:22.254  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":6315,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:22.326  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:39:22.398  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:39:22.474  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:39:22.506  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":6567,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:22.507  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":6567,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:22.555  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:39:22.623  1925  2075 I System.out: [OpRunner] update() - stillRunning=false, op=Transfer[FRONT→CENTER]
+12-21 15:39:22.623  1925  2075 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
+12-21 15:39:22.625  1925  2075 I System.out: [OpRunner] Commit complete
+12-21 15:39:22.625  1925  2075 I System.out: [OpRunner] Clearing operation, now idle
+12-21 15:39:22.625  1925  2075 I System.out: [IndexingV3] handleOperationComplete: Transfer[FRONT→CENTER], success=true
+12-21 15:39:22.625  1925  2075 I System.out: [IndexingV3] Transfer completed
+12-21 15:39:22.626  1925  2075 I System.out: [IndexingV3] Reset FRONT perception after transfer
+12-21 15:39:22.758  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":6820,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:22.759  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":6820,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:22.804  1925  2075 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW too low)
+12-21 15:39:22.872  1925  2075 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW too low)
+12-21 15:39:22.935  1925  2075 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW too low)
+12-21 15:39:23.010  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":7072,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:23.011  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":7072,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:23.027  1925  2075 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=NONE too low)
+12-21 15:39:23.263  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":7324,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:23.264  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":7324,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:23.515  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":7577,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:23.516  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":7577,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:23.768  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":7829,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:23.770  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":7829,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:23.798  1925  2017 I System.out: PANELS: PLUGINS/COM.BYLAZAR.BATTERY: (Plugin): Sending: {"data":12.432,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 15:39:23.799  1925  2017 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12.432,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 15:39:24.021  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":8083,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:24.022  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":8083,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:24.274  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":8336,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:24.274  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":8336,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:24.526  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":8588,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:24.526  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":8588,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:24.628  1925  2065 V ThreadPool: container(0x012c6b29: default scheduler) added id=187 TID=0 count=23
+12-21 15:39:24.778  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":8840,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:24.778  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":8840,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:25.030  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":9092,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:25.030  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":9092,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:25.282  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":9344,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:25.283  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":9344,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:25.535  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":9597,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:25.535  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":9597,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:25.786  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":9849,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:25.787  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":9849,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:26.038  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":10100,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:26.039  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":10100,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:26.290  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":10352,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:26.291  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":10352,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:26.543  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":10604,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:26.544  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":10604,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:26.796  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":10857,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:26.797  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":10857,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:27.048  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":11110,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:27.049  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":11110,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:27.300  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":11362,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:27.301  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":11362,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:27.552  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":11614,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:27.553  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":11614,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:27.805  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":11866,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:27.806  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":11866,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:27.968  1925  2075 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW too low)
+12-21 15:39:28.046  1925  2075 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW too low)
+12-21 15:39:28.057  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":12119,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:28.058  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12119,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:28.162  1925  2075 I System.out: [OpRunner] Starting operation: Collect[FRONT]
+12-21 15:39:28.162  1925  2075 I System.out: [CollectOp] doStart() called for FRONT
+12-21 15:39:28.162  1925  2075 I System.out: [CollectOp] Fast presence detected, starting hardware...
+12-21 15:39:28.162  1925  2075 I System.out: [CollectOp] Started FRONT intake hardware
+12-21 15:39:28.163  1925  2075 I System.out: [CollectOp] doStart() completed successfully
+12-21 15:39:28.163  1925  2075 I System.out: [OpRunner] STARTED successfully (#3)
+12-21 15:39:28.163  1925  2075 I System.out: [IndexingV3] Auto-collect FRONT (confidence=MEDIUM)
+12-21 15:39:28.226  1925  2075 I System.out: [CollectOp] doUpdate() - colorSampled=false
+12-21 15:39:28.226  1925  2075 I System.out: [CollectOp] Hardware busy check: true
+12-21 15:39:28.226  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
+12-21 15:39:28.292  1925  2075 I System.out: [CollectOp] doUpdate() - colorSampled=false
+12-21 15:39:28.292  1925  2075 I System.out: [CollectOp] Hardware busy check: true
+12-21 15:39:28.292  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
+12-21 15:39:28.310  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":12372,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:28.311  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12372,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:28.359  1925  2075 I System.out: [CollectOp] doUpdate() - colorSampled=false
+12-21 15:39:28.359  1925  2075 I System.out: [CollectOp] Color checkpoint reached, sampling...
+12-21 15:39:28.370  1925  2075 I System.out: [CollectOp] Stopped FRONT hardware for color sampling
+12-21 15:39:28.420  1925  2075 I System.out: [CollectOp] Artifact settled, starting color sampling
+12-21 15:39:28.562  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":12624,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:28.563  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12624,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:28.574  1925  2075 I System.out: [CollectOp] Collected 3 color samples over 150ms
+12-21 15:39:28.574  1925  2075 I System.out: [CollectOp] Initial color sampled: UNKNOWN (conf=0.41)
+12-21 15:39:28.574  1925  2075 I System.out: [CollectOp] Low confidence detected, jiggling artifact to improve detection
+12-21 15:39:28.797  1925  2017 I System.out: PANELS: PLUGINS/COM.BYLAZAR.BATTERY: (Plugin): Sending: {"data":12.563,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 15:39:28.798  1925  2017 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12.563,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 15:39:28.815  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":12876,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:28.816  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12876,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:29.068  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":13129,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:29.068  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":13129,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:29.320  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":13382,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:29.321  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":13382,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:29.573  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":13635,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:29.574  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":13635,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:29.615  1925  2075 I System.out: [CollectOp] Jiggle complete (3 cycles), stopping hardware
+12-21 15:39:29.632  1925  1998 V ThreadPool: container(0x012c6b29: default scheduler) added id=188 TID=0 count=24
+12-21 15:39:29.684  1925  2075 I System.out: [CollectOp] Re-sampling color after jiggle
+12-21 15:39:29.826  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":13887,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:29.826  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":13887,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:29.843  1925  2075 I System.out: [CollectOp] Collected 3 color samples after jiggle
+12-21 15:39:29.844  1925  2075 I System.out: [CollectOp] After jiggle color: UNKNOWN (conf=0.41)
+12-21 15:39:29.844  1925  2075 I System.out: [CollectOp] Final color sampled: UNKNOWN (conf=0.41)
+12-21 15:39:29.845  1925  2075 I System.out: [CollectOp] Hardware busy check: false
+12-21 15:39:29.845  1925  2075 I System.out: [CollectOp] Collection hardware complete, returning false (done)
+12-21 15:39:29.845  1925  2075 I System.out: [OpRunner] update() - stillRunning=false, op=Collect[FRONT]
+12-21 15:39:29.845  1925  2075 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
+12-21 15:39:29.846  1925  2075 I System.out: [CollectOp] doCommit() called
+12-21 15:39:29.846  1925  2075 I System.out: [CollectOp] Committed UNKNOWN to FRONT
+12-21 15:39:29.848  1925  2075 I System.out: [OpRunner] Commit complete
+12-21 15:39:29.848  1925  2075 I System.out: [OpRunner] Clearing operation, now idle
+12-21 15:39:29.848  1925  2075 I System.out: [IndexingV3] handleOperationComplete: Collect[FRONT], success=true
+12-21 15:39:29.848  1925  2075 I System.out: [IndexingV3] Collection completed, calling handlePostCollection()
+12-21 15:39:29.848  1925  2075 I System.out: [IndexingV3] handlePostCollection: artifactCount=2
+12-21 15:39:29.848  1925  2075 I System.out: [IndexingV3] 2nd artifact - checking shot planner...
+12-21 15:39:29.849  1925  2075 I System.out: [IndexingV3] No swap needed, artifact stays in storage
+12-21 15:39:30.078  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":14140,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:30.079  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":14140,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:30.331  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":14393,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:30.332  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":14393,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:30.583  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":14645,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:30.584  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":14645,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:30.835  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":14897,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:30.836  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":14897,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:31.088  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":15149,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:31.088  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":15149,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:31.315  2087  2087 I getprop : type=1400 audit(0.0:167): avc: denied { open } for path="/dev/__properties__/u:object_r:secureboot_prop:s0" dev="tmpfs" ino=8196 scontext=u:r:shell:s0 tcontext=u:object_r:secureboot_prop:s0 tclass=file permissive=1
+12-21 15:39:31.315  2087  2087 I getprop : type=1400 audit(0.0:168): avc: denied { getattr } for path="/dev/__properties__/u:object_r:secureboot_prop:s0" dev="tmpfs" ino=8196 scontext=u:r:shell:s0 tcontext=u:object_r:secureboot_prop:s0 tclass=file permissive=1
+12-21 15:39:31.315  2087  2087 I getprop : type=1400 audit(0.0:169): avc: denied { open } for path="/dev/__properties__/u:object_r:pppoe_prop:s0" dev="tmpfs" ino=8197 scontext=u:r:shell:s0 tcontext=u:object_r:pppoe_prop:s0 tclass=file permissive=1
+12-21 15:39:31.315  2087  2087 I getprop : type=1400 audit(0.0:170): avc: denied { getattr } for path="/dev/__properties__/u:object_r:pppoe_prop:s0" dev="tmpfs" ino=8197 scontext=u:r:shell:s0 tcontext=u:object_r:pppoe_prop:s0 tclass=file permissive=1
+12-21 15:39:31.340  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":15403,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:31.341  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":15403,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:31.368   942   942 I pool-2-thread-1: type=1400 audit(0.0:171): avc: denied { sendto } for path="/data/misc/wifi/hostapd/wlan0" scontext=u:r:platform_app:s0:c512,c768 tcontext=u:r:hostapd:s0 tclass=unix_dgram_socket permissive=1
+12-21 15:39:31.593  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":15654,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:31.594  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":15654,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:31.845  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":15907,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:31.846  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":15907,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:32.099  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":16160,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:32.099  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":16160,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:32.351  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":16413,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:32.351  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":16413,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:32.603  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":16665,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:32.604  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":16665,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:32.855  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":16917,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:32.856  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":16917,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:33.107  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":17169,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:33.108  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":17169,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:33.242  1925  2029 V Robocol : received command: CMD_INIT_OP_MODE(10701) $Stop$Robot$
+12-21 15:39:33.266  1925  2075 E LynxI2cDeviceSynch: placeholder: readStatusQuery
+12-21 15:39:33.279  1925  2075 D RobotCore: User runOpModeMethod exited
+12-21 15:39:33.280  1925  2075 V RobotCore: thread: ...terminating 'OpModeThread'
+12-21 15:39:33.280  1925  2075 V ThreadPool: container(0x0b1ecd59: OpModeExecutor) removed id=182 TID=2075 count=1
+12-21 15:39:33.282  1925  2053 I System.out: PANELS: CORE: (Panels): Stop of opMode
+12-21 15:39:33.283  1925  2053 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode STOPPED, V3 Basic Test
+12-21 15:39:33.284  1925  2053 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:33.285  1925  2053 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:33.285  1925  2053 I RobotCore: Attempting to switch to OpMode $Stop$Robot$
+12-21 15:39:33.288  1925  2053 I RobotCore: ******************** STOP - OPMODE /storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt ********************
+12-21 15:39:33.295  1925  2053 D HardwareMap: Clearing which device instances have been retrieved
+12-21 15:39:33.295  1925  2090 I RobotCore: saving match logcat to /storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt
+12-21 15:39:33.295  1925  2090 I RobotCore: logging command line: exec logcat -d -T '12-21 15:39:0.000' -f '/storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt' -n4 -v threadtime UsbRequestJNI:S UsbRequest:S art:W ThreadPool:W System:W ExtendedExtractor:W OMXClient:W MediaPlayer:W dalvikvm:W  *:V
+12-21 15:39:33.295  1925  2053 I System.out: PANELS: CORE: (Panels): Init of opMode
+12-21 15:39:33.296  1925  2053 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode INIT,
+12-21 15:39:33.298  1925  2053 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:33.298  1925  2053 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:33.300  1925  2053 V ThreadPool: container(0x06a7bf4e: OpModeExecutor) added id=192 TID=0 count=1
+12-21 15:39:33.301  1925  2093 V RobotCore: thread: 'OpModeThread' starting...
+12-21 15:39:33.302  1925  2053 I System.out: PANELS: CORE: (Panels): Start of opMode
+12-21 15:39:33.303  1925  2053 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode RUNNING,
+12-21 15:39:33.303  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":0,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:33.303  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":0,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:33.304  1925  2053 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:33.305  1925  2053 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 15:39:33.311  1925  2033 V Robocol : sending CMD_NOTIFY_INIT_OP_MODE(796), attempt: 0
+12-21 15:39:33.311  1925  2033 V Robocol : sending CMD_NOTIFY_RUN_OP_MODE(797), attempt: 0
+12-21 15:39:33.330  1925  2093 V RobotCore: nack rec'd mod=173 msg#=0 ref#=0 reason=CANCELLED_FOR_SAFETY:259
+12-21 15:39:33.371  1925  2090 I RobotCore: Done running exec logcat -d -T '12-21 15:39:0.000' -f '/storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt' -n4 -v threadtime UsbRequestJNI:S UsbRequest:S art:W ThreadPool:W System:W ExtendedExtractor:W OMXClient:W MediaPlayer:W dalvikvm:W  *:V
+12-21 15:39:33.372  1925  2090 I RobotCore: exiting match logcat for /storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt
 --------- beginning of system
-12-21 15:24:58.875   790   790 D lvjinhua:  Failed while trying resolve alarm filter file, not exists
+12-21 15:39:33.802   790   790 D lvjinhua:  Failed while trying resolve alarm filter file, not exists
+12-21 15:39:33.808  1925  2017 I System.out: PANELS: PLUGINS/COM.BYLAZAR.BATTERY: (Plugin): Sending: {"data":12.707,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 15:39:33.809  1925  2017 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12.707,"messageID":"battery","pluginID":"com.bylazar.battery"}
