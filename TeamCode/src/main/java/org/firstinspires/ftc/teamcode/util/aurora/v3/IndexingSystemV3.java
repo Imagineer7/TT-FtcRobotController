@@ -1034,6 +1034,26 @@ public class IndexingSystemV3 {
         watchdog.update(triggerPressed, runner.isBusy(), manualModeActive);
     }
     
+    /**
+     * Cancel burst firing mode.
+     * 
+     * Stops the shooter and ends burst firing sequence.
+     * Any operations in progress (transfers) will complete normally.
+     * 
+     * Use this when:
+     * - User releases fire button
+     * - Manual override activated
+     * - Emergency stop needed
+     */
+    public void cancelBurstFiring() {
+        if (burstFiringActive) {
+            firingHelper.cancelFiring();
+            burstFiringActive = false;
+            telemetry.addData("🛑 Burst Firing", "Cancelled");
+            System.out.println("[IndexingV3] Burst firing cancelled by OpMode request");
+        }
+    }
+    
     // ========== Telemetry ==========
     
     /**

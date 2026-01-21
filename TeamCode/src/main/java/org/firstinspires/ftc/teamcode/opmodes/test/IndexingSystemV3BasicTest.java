@@ -39,7 +39,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.v3.SlotLedger;
  *   X - Transfer FRONT → CENTER
  *   Y - Transfer BACK → CENTER
  *   
- *   LEFT BUMPER  - Fire (if ready)
+ *   LEFT BUMPER  - Hold to fire (spins up shooter, fires when ready, keep-alive mode)
  *   RIGHT BUMPER - Toggle hunt mode
  *   
  *   BACK - Eject FRONT
@@ -56,9 +56,11 @@ import org.firstinspires.ftc.teamcode.util.aurora.v3.SlotLedger;
  *    - Verify FRONT empty, CENTER has Purple
  * 
  * 3. Fire test
- *    - Spin up shooter (check telemetry)
- *    - Press LEFT BUMPER → should fire Purple from CENTER
- *    - Verify CENTER empty
+ *    - Hold LEFT BUMPER → should spin up shooter
+ *    - When ready → should automatically fire Purple from CENTER
+ *    - Keep holding → should transfer next artifact and fire again (keep-alive)
+ *    - Release LEFT BUMPER → should stop shooter and cancel
+ *    - Verify shooter stops, CENTER empty after firing
  * 
  * 4. Hunt mode test
  *    - Press RIGHT BUMPER → enable hunt mode
@@ -92,6 +94,9 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     private boolean lastLeftBumper, lastRightBumper;
     private boolean lastBack, lastStart;
     private boolean lastGuide;  // For telemetry page navigation
+    
+    // Firing state tracking
+    private boolean isFiring = false;  // True when firing sequence active
     
     @Override
     public void runOpMode() {
@@ -222,9 +227,59 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     }
     
     private void handleFire() {
-        if (gamepad1.left_bumper && !lastLeftBumper) {
-            boolean success = indexing.requestFire();
-            telemetry.addLine(success ? "🔥 Firing!" : "❌ Cannot fire");
+        // Hold-to-fire behavior with automatic spinup and keep-alive
+        boolean fireButtonHeld = gamepad1.left_bumper;
+        
+        if (fireButtonHeld) {
+            // Button is being held
+            if (!isFiring) {
+                // Just pressed - start firing sequence
+                // Check if we have an artifact to fire
+                if (!indexing.getLedger().isCenterOccupied()) {
+                    telemetry.addLine("❌ Cannot fire: CENTER empty");
+                } else {
+                    // Start spinup
+                    telemetry.addLine("🔥 Spinning up shooter...");
+                    shooter.spinUp();  // Start spinning up
+                    isFiring = true;
+                }
+            } else {
+                // Button still held - check if shooter ready and fire if not already firing
+                if (shooter.isReadyToFire()) {
+                    // Shooter ready - try to start burst firing with keep-alive
+                    // Use requestBurstFire with callback that checks if button still held
+                    if (!indexing.isBurstFiring()) {
+                        // Not currently burst firing - start it
+                        boolean started = indexing.requestBurstFire(() -> gamepad1.left_bumper);
+                        if (started) {
+                            telemetry.addLine("🔥 Firing! (keep-alive mode)");
+                        } else {
+                            // Could not start firing (probably no artifact in center)
+                            telemetry.addLine("⏳ Waiting for artifact transfer...");
+                        }
+                    }
+                } else {
+                    // Still spinning up
+                    telemetry.addLine("⏳ Spinning up... " + 
+                        String.format("%.0f", shooter.getCurrentRPM()) + " / " + 
+                        String.format("%.0f", shooter.getTargetRPM()) + " RPM");
+                }
+            }
+        } else {
+            // Button released
+            if (isFiring) {
+                // Was firing, now stop
+                telemetry.addLine("🛑 Stopping shooter & cancelling...");
+                shooter.stopMotors();  // Stop shooter motors
+                
+                // Cancel any active burst firing
+                // Note: Operations in progress (transfers) will complete
+                if (indexing.isBurstFiring()) {
+                    indexing.cancelBurstFiring();
+                }
+                
+                isFiring = false;
+            }
         }
     }
     
