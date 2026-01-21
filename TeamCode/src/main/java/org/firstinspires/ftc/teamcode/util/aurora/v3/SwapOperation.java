@@ -5,21 +5,28 @@ import org.firstinspires.ftc.teamcode.util.aurora.BasicIndexingHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
 
 /**
- * SwapOperation - Push-style swap between center and intake slot
+ * SwapOperation - Push-based swap between center and intake slot
  *
- * This operation demonstrates atomic rearrangement coordination:
- * 1. Check preconditions (both slots occupied, exactly 2 artifacts)
- * 2. Start push hardware (simultaneous transfer both directions)
- * 3. Wait for completion
- * 4. Atomically swap slot identities
+ * This operation performs a PUSH-STYLE rearrangement where the artifact from the
+ * intake PUSHES the center artifact out to the OPPOSITE intake, and takes its place.
+ *
+ * Physical constraint: You CANNOT put two artifacts in the same intake simultaneously.
+ * Therefore, this is NOT a literal swap. Instead:
+ * - If swapping with FRONT: intake artifact pushes center artifact to BACK
+ * - If swapping with BACK: intake artifact pushes center artifact to FRONT
+ *
+ * Example: Swap(CENTER ↔ FRONT) with artifacts [FRONT:P, CENTER:G, BACK:empty]
+ * Result: [FRONT:empty, CENTER:P, BACK:G]
+ * The Purple from FRONT pushed the Green from CENTER to BACK, and Purple took center.
  *
  * Preconditions:
  * - Center slot occupied
- * - Target intake slot occupied
+ * - Target intake slot occupied  
+ * - Opposite intake slot EMPTY (critical - must have space for pushed artifact)
  * - Exactly 2 artifacts total (ensures clean swap)
  * - System not in manual mode
  *
- * Hardware: Uses simultaneous transfer + injector movements (push-style)
+ * Hardware: Uses push mechanics (intake → center, center → opposite intake)
  */
 public class SwapOperation extends BaseOperation {
 
@@ -91,79 +98,122 @@ public class SwapOperation extends BaseOperation {
             return false;
         }
 
+        // CRITICAL: Verify opposite intake is EMPTY (must have space for pushed artifact)
+        SlotLedger.Slot oppositeIntake = (intakeSlot == SlotLedger.Slot.FRONT) ? 
+                                          SlotLedger.Slot.BACK : SlotLedger.Slot.FRONT;
+        if (ledger.isOccupied(oppositeIntake)) {
+            fail(RejectReason.SLOT_OCCUPIED);
+            setStatusMessage("Opposite intake " + oppositeIntake + " must be empty for push-based swap");
+            return false;
+        }
+
         // Get artifacts for swap
         centerArtifact = ledger.getCenter();
         intakeArtifact = ledger.get(intakeSlot);
 
-        // Start push-style swap hardware
-        // Center → Intake: Run injectors + uptake backward (push center artifact to intake)
-        // Intake → Center: Run transfer + injectors forward (pull intake artifact to center)
+        // Start PUSH-BASED swap hardware
+        // Physical constraint: Cannot put two artifacts in same intake simultaneously
+        // Solution: Use intake artifact to PUSH center artifact to opposite intake
+        //
+        // Flow:
+        // 1. Intake artifact → Center (via transfer + injectors forward)
+        // 2. Center artifact → Opposite intake (pushed by incoming artifact)
         
         if (intakeSlot == SlotLedger.Slot.FRONT) {
-            // Push center artifact to front intake
-            helper.setUptakeLTimed(-1.0, 800);  // Reverse to push out
-            helper.setUptakeRTimed(-1.0, 800);
-            helper.setInjectorLeftTimed(-1.0, 800);  // Reverse to push to intake
-            helper.setInjectorRightTimed(-1.0, 800);
+            // Front artifact pushes center artifact to back
+            // Front → Center: Pull via transfer + injectors
+            helper.setFrontTransferTimed(1.0, 800);  // Pull front to center
+            helper.setInjectorLeftTimed(1.0, 800);   // Forward to pull to center
+            helper.setInjectorRightTimed(1.0, 800);
             
-            // Pull front artifact to center
-            helper.setFrontTransferTimed(1.0, 800);  // Forward to pull to center
+            // Center → Back: Pushed out by incoming front artifact
+            helper.setUptakeLTimed(-1.0, 800);  // Reverse to push to back
+            helper.setUptakeRTimed(-1.0, 800);
+            helper.setBackTransferTimed(-1.0, 800);  // Reverse to receive pushed artifact
         } else if (intakeSlot == SlotLedger.Slot.BACK) {
-            // Push center artifact to back intake
-            helper.setUptakeLTimed(-1.0, 800);
-            helper.setUptakeRTimed(-1.0, 800);
-            helper.setInjectorLeftTimed(-1.0, 800);
-            helper.setInjectorRightTimed(-1.0, 800);
+            // Back artifact pushes center artifact to front
+            // Back → Center: Pull via transfer + injectors
+            helper.setBackTransferTimed(1.0, 800);   // Pull back to center
+            helper.setInjectorLeftTimed(1.0, 800);   // Forward to pull to center
+            helper.setInjectorRightTimed(1.0, 800);
             
-            // Pull back artifact to center
-            helper.setBackTransferTimed(1.0, 800);
+            // Center → Front: Pushed out by incoming back artifact
+            helper.setUptakeLTimed(-1.0, 800);  // Reverse to push to front
+            helper.setUptakeRTimed(-1.0, 800);
+            helper.setFrontTransferTimed(-1.0, 800);  // Reverse to receive pushed artifact
         } else {
             fail(RejectReason.INVALID_PARAMETERS);
             setStatusMessage("Invalid intake slot: " + intakeSlot);
             return false;
         }
 
-        setStatusMessage("Swapping CENTER ↔ " + intakeSlot);
+        setStatusMessage("Push-swapping: " + intakeSlot + " → CENTER, CENTER → " + oppositeIntake);
         return true;
     }
 
     @Override
     protected boolean doUpdate() {
         // Check if hardware is complete
+        // For push-based swap, we need to check:
+        // - Transfer from intake (pulling to center)
+        // - Injectors (pulling to center)
+        // - Uptake (pushing out to opposite)
+        // - Transfer to opposite (receiving pushed artifact)
+        
         boolean stillBusy;
         
         if (intakeSlot == SlotLedger.Slot.FRONT) {
-            stillBusy = helper.isUptakeLBusy() || helper.isUptakeRBusy() || 
-                       helper.isInjectorLeftBusy() || helper.isInjectorRightBusy() ||
-                       helper.isFrontTransferBusy();
+            // Front → Center, Center → Back
+            stillBusy = helper.isFrontTransferBusy() ||  // Pulling front to center
+                       helper.isInjectorLeftBusy() || helper.isInjectorRightBusy() ||  // Pulling to center
+                       helper.isUptakeLBusy() || helper.isUptakeRBusy() ||  // Pushing out to back
+                       helper.isBackTransferBusy();  // Receiving at back
         } else {
-            stillBusy = helper.isUptakeLBusy() || helper.isUptakeRBusy() || 
-                       helper.isInjectorLeftBusy() || helper.isInjectorRightBusy() ||
-                       helper.isBackTransferBusy();
+            // Back → Center, Center → Front
+            stillBusy = helper.isBackTransferBusy() ||  // Pulling back to center
+                       helper.isInjectorLeftBusy() || helper.isInjectorRightBusy() ||  // Pulling to center
+                       helper.isUptakeLBusy() || helper.isUptakeRBusy() ||  // Pushing out to front
+                       helper.isFrontTransferBusy();  // Receiving at front
         }
 
         if (!stillBusy) {
-            setStatusMessage("Swap hardware complete");
+            setStatusMessage("Push-swap hardware complete");
             return false;  // Done
         }
 
-        setStatusMessage("Swapping...");
+        setStatusMessage("Push-swapping...");
         return true;  // Still running
     }
 
     @Override
     protected void doCommit() {
-        // Atomically swap artifacts between slots
-        ledger.swap(SlotLedger.Slot.CENTER, intakeSlot);
+        // Push-based swap: 3 slot updates
+        // 1. intakeSlot artifact → CENTER
+        // 2. CENTER artifact → opposite intake
+        // 3. intakeSlot becomes empty
         
-        logInfo("Committed swap: CENTER ↔ " + intakeSlot);
-        logDebug("Swapped", centerArtifact + " ↔ " + intakeArtifact);
+        SlotLedger.Slot oppositeIntake = (intakeSlot == SlotLedger.Slot.FRONT) ? 
+                                          SlotLedger.Slot.BACK : SlotLedger.Slot.FRONT;
+        
+        // Execute the push-based swap atomically
+        ArtifactIdentity centerToMove = ledger.getCenter();
+        ArtifactIdentity intakeToMove = ledger.get(intakeSlot);
+        
+        // Update slots (package-private access)
+        ledger.set(oppositeIntake, centerToMove);  // Center artifact goes to opposite
+        ledger.setCenter(intakeToMove);            // Intake artifact goes to center
+        ledger.set(intakeSlot, null);              // Source intake becomes empty
+        
+        logInfo("Committed push-swap: " + intakeSlot + " → CENTER, CENTER → " + oppositeIntake);
+        logDebug("Pushed", intakeToMove + " to center, " + centerToMove + " to " + oppositeIntake);
         logDebug("Slot Ledger", ledger.toSnapshot());
     }
 
     @Override
     public String getOperationName() {
-        return "Swap[CENTER↔" + intakeSlot + "]";
+        SlotLedger.Slot oppositeIntake = (intakeSlot == SlotLedger.Slot.FRONT) ? 
+                                          SlotLedger.Slot.BACK : SlotLedger.Slot.FRONT;
+        return "PushSwap[" + intakeSlot + "→CENTER→" + oppositeIntake + "]";
     }
 
     @Override
