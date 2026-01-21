@@ -443,12 +443,16 @@ public class IndexingSystemV3 {
         IndexingOperation lastOp = lastCompletedOperation;
         if (lastOp == null) return;
         
+        System.out.println("[IndexingV3] handleOperationComplete: " + lastOp.getOperationName() + 
+                         ", success=" + lastOp.isSuccess());
+        
         // Only process successful operations
         if (!lastOp.isSuccess()) return;
         
         // Update statistics
         if (lastOp instanceof CollectOperation) {
             totalCollections++;
+            System.out.println("[IndexingV3] Collection completed, calling handlePostCollection()");
             
             // Post-Collection Logic: Automatically handle artifact placement
             // This is the CRITICAL missing piece - after collecting, we need to:
@@ -459,13 +463,16 @@ public class IndexingSystemV3 {
             
         } else if (lastOp instanceof TransferOperation) {
             totalTransfers++;
+            System.out.println("[IndexingV3] Transfer completed");
         } else if (lastOp instanceof SwapOperation) {
             totalSwaps++;
+            System.out.println("[IndexingV3] Swap completed");
         } else if (lastOp instanceof FireOperation) {
             FireOperation fireOp = (FireOperation) lastOp;
             if (!fireOp.wasCancelledBeforeShot()) {
                 totalShots++;
                 consecutiveShotsFired++;
+                System.out.println("[IndexingV3] Shot fired, total=" + totalShots);
                 
                 // If burst firing, queue next transfer if more shots needed
                 if (burstFiringActive && shouldContinueBurst()) {
@@ -475,10 +482,12 @@ public class IndexingSystemV3 {
                 // Cancelled before shot - end burst
                 burstFiringActive = false;
                 firingHelper.cancelFiring();
+                System.out.println("[IndexingV3] Fire cancelled before shot, ending burst");
             }
         } else if (lastOp instanceof EjectOperation) {
             totalEjections++;
             burstFiringActive = false;  // Ejection ends burst
+            System.out.println("[IndexingV3] Ejection completed");
         }
     }
     
@@ -495,6 +504,7 @@ public class IndexingSystemV3 {
      */
     private void handlePostCollection() {
         int artifactCount = ledger.getArtifactCount();
+        System.out.println("[IndexingV3] handlePostCollection: artifactCount=" + artifactCount);
         
         if (artifactCount == 1) {
             // FIRST ARTIFACT: Transfer to center immediately
@@ -507,25 +517,35 @@ public class IndexingSystemV3 {
             }
             
             if (sourceSlot != null) {
+                System.out.println("[IndexingV3] 1st artifact - requesting transfer from " + sourceSlot);
                 // Queue transfer to center
-                requestTransfer(sourceSlot);
+                boolean success = requestTransfer(sourceSlot);
+                System.out.println("[IndexingV3] Transfer request " + (success ? "SUCCESSFUL" : "FAILED"));
+            } else {
+                System.out.println("[IndexingV3] WARNING: 1st artifact but no occupied intake found!");
             }
             
         } else if (artifactCount == 2) {
             // SECOND ARTIFACT: Check if swap needed for optimal shot order
+            System.out.println("[IndexingV3] 2nd artifact - checking shot planner...");
             // The shot planner will determine if we need to rearrange
             if (shotPlanner.isRearrangementNeeded()) {
                 SlotLedger.Slot swapSlot = shotPlanner.getRearrangementSlot();
                 if (swapSlot != null) {
+                    System.out.println("[IndexingV3] Shot planner recommends swap with " + swapSlot);
                     // Swap needed - do it now
-                    requestSwap(swapSlot);
+                    boolean success = requestSwap(swapSlot);
+                    System.out.println("[IndexingV3] Swap request " + (success ? "SUCCESSFUL" : "FAILED"));
                 }
+            } else {
+                System.out.println("[IndexingV3] No swap needed, artifact stays in storage");
             }
             // If no swap needed, artifact stays in intake (storage mode)
             // Hunt-mode will automatically run rollers at storage power
             
         } else if (artifactCount == 3) {
             // THIRD ARTIFACT: System full, stays in intake (storage mode)
+            System.out.println("[IndexingV3] 3rd artifact - system full, stays in storage");
             // Nothing to do - artifact is already committed to slot
             // Hunt-mode will run rollers at storage power
         }

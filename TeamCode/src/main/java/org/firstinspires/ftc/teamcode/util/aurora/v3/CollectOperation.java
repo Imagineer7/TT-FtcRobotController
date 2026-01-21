@@ -85,19 +85,24 @@ public class CollectOperation extends BaseOperation {
 
     @Override
     protected boolean doStart() {
+        System.out.println("[CollectOp] doStart() called for " + targetSlot);
+        
         // Check preconditions
         if (ledger.isFull()) {
+            System.out.println("[CollectOp] REJECTED: System full");
             fail(RejectReason.SYSTEM_FULL);
             return false;
         }
 
         if (ledger.isOccupied(targetSlot)) {
+            System.out.println("[CollectOp] REJECTED: Slot occupied");
             fail(RejectReason.SLOT_OCCUPIED);
             return false;
         }
 
         // Check if artifact is actually detected (use fast presence for responsive start)
         if (!perception.getFastPresence()) {
+            System.out.println("[CollectOp] REJECTED: No fast presence detected");
             fail(RejectReason.SENSOR_DETECTION_TIMEOUT);
             setStatusMessage("No artifact detected at " + targetSlot);
             return false;
@@ -105,6 +110,7 @@ public class CollectOperation extends BaseOperation {
 
         // Record edge detection time for color checkpoint
         edgeDetectTime = System.currentTimeMillis();
+        System.out.println("[CollectOp] Fast presence detected, starting hardware...");
 
         // Start intake hardware
         boolean started;
@@ -112,27 +118,35 @@ public class CollectOperation extends BaseOperation {
             helper.runFrontIntakeTimed(true, config.getIntakeRollerPower(), 
                                       config.getIntakeRollerTimeMs());
             started = true;
+            System.out.println("[CollectOp] Started FRONT intake hardware");
         } else if (targetSlot == SlotLedger.Slot.BACK) {
             helper.runBackIntakeTimed(true, config.getIntakeRollerPower(), 
                                      config.getIntakeRollerTimeMs());
             started = true;
+            System.out.println("[CollectOp] Started BACK intake hardware");
         } else {
+            System.out.println("[CollectOp] REJECTED: Invalid target slot");
             fail(RejectReason.INVALID_PARAMETERS);
             setStatusMessage("Invalid target slot: " + targetSlot);
             return false;
         }
 
         setStatusMessage("Collecting to " + targetSlot);
+        System.out.println("[CollectOp] doStart() completed successfully");
         return started;
     }
 
     @Override
     protected boolean doUpdate() {
+        System.out.println("[CollectOp] doUpdate() - colorSampled=" + colorSampled);
+        
         // Checkpoint 1: Color classification after delay
         if (!colorSampled) {
             long elapsedSinceEdge = System.currentTimeMillis() - edgeDetectTime;
             
             if (elapsedSinceEdge >= COLOR_CLASSIFICATION_DELAY_MS) {
+                System.out.println("[CollectOp] Color checkpoint reached, sampling...");
+                
                 // Enable color sampling
                 perception.enableColorSampling();
                 
@@ -149,6 +163,9 @@ public class CollectOperation extends BaseOperation {
                 
                 colorSampled = true;
                 
+                System.out.println("[CollectOp] Color sampled: " + color + " (conf=" + 
+                                 String.format("%.2f", confidence) + ")");
+                
                 // Log color classification
                 logInfo("Color checkpoint: " + color + " (conf=" + 
                        String.format("%.2f", confidence) + ")");
@@ -157,6 +174,7 @@ public class CollectOperation extends BaseOperation {
                 // Still waiting for delay
                 long remaining = COLOR_CLASSIFICATION_DELAY_MS - elapsedSinceEdge;
                 setStatusMessage("Waiting for settle (" + remaining + "ms)");
+                // System.out.println("[CollectOp] Waiting " + remaining + "ms for settle");
             }
         }
 
@@ -167,10 +185,14 @@ public class CollectOperation extends BaseOperation {
         } else {
             stillBusy = helper.isBackIntakeBusy();
         }
+        
+        System.out.println("[CollectOp] Hardware busy check: " + stillBusy);
 
         if (!stillBusy) {
             // Hardware complete
             if (!colorSampled) {
+                System.out.println("[CollectOp] WARNING: Hardware completed before color delay!");
+                
                 // Edge case: hardware finished before color delay
                 // Sample color now
                 perception.enableColorSampling();
@@ -186,6 +208,7 @@ public class CollectOperation extends BaseOperation {
                 logWarn("Color sampled at hardware completion (delay not full)");
             }
             
+            System.out.println("[CollectOp] Collection hardware complete, returning false (done)");
             setStatusMessage("Collection hardware complete");
             return false;  // Done
         }
@@ -195,19 +218,25 @@ public class CollectOperation extends BaseOperation {
 
     @Override
     protected void doCommit() {
+        System.out.println("[CollectOp] doCommit() called");
+        
         // Commit artifact to slot ledger
         if (collectedArtifact == null) {
             // Failsafe: create UNKNOWN artifact if something went wrong
             logWarn("No artifact sampled - creating UNKNOWN");
             collectedArtifact = ArtifactIdentity.createUnknown(sequenceId);
+            System.out.println("[CollectOp] WARNING: No artifact sampled, created UNKNOWN");
         }
 
         ledger.set(targetSlot, collectedArtifact);
+        System.out.println("[CollectOp] Committed " + collectedArtifact.getColorClass() + 
+                         " to " + targetSlot);
         
         // Clear forced detection if it was used
         if (perception.isForcedDetectionActive()) {
             perception.clearForcedDetection();
             logInfo("Cleared forced detection after collection");
+            System.out.println("[CollectOp] Cleared forced detection");
         }
         
         logInfo("Committed " + collectedArtifact.getColorClass() + 

@@ -77,6 +77,7 @@ public class ManualArtifactInjectionTest extends LinearOpMode {
     private boolean lastLeftBumper1, lastRightBumper1;
     private boolean lastBack1, lastStart1;
     private boolean lastDpadUp2, lastDpadDown2;
+    private boolean lastGuide1;  // For telemetry page navigation
     
     @Override
     public void runOpMode() {
@@ -139,8 +140,11 @@ public class ManualArtifactInjectionTest extends LinearOpMode {
             // Handle shooter control (GAMEPAD 2 DPAD)
             handleShooterControl();
             
-            // Display telemetry
-            displayTelemetry();
+            // Handle telemetry page navigation
+            handleTelemetryNavigation();
+            
+            // Display telemetry (from IndexingSystemV3)
+            indexing.addTelemetry();
             
             // Update button states
             updateButtonStates();
@@ -310,55 +314,15 @@ public class ManualArtifactInjectionTest extends LinearOpMode {
      * Display comprehensive telemetry
      */
     private void displayTelemetry() {
-        telemetry.addLine("======== MANUAL INJECTION TEST ========");
-        telemetry.addLine();
-        
-        // System state
-        telemetry.addData("Enabled", indexing.isEnabled() ? "✓" : "✗");
-        telemetry.addData("State", indexing.getCurrentState());
-        telemetry.addData("Busy", indexing.isBusy() ? "YES" : "NO");
-        telemetry.addLine();
-        
-        // Slot status
-        telemetry.addLine("--- SLOT STATUS ---");
-        telemetry.addData("FRONT", getSlotStatus(SlotLedger.Slot.FRONT));
-        telemetry.addData("CENTER", getSlotStatus(SlotLedger.Slot.CENTER));
-        telemetry.addData("BACK", getSlotStatus(SlotLedger.Slot.BACK));
-        telemetry.addData("Count", indexing.getArtifactCount() + "/3");
-        telemetry.addLine();
-        
-        // Shooter status
-        telemetry.addLine("--- SHOOTER ---");
-        telemetry.addData("State", shooter.getState());
-        telemetry.addData("RPM", String.format("%.0f / %.0f", 
-                         shooter.getCurrentRPM(), shooter.getTargetRPM()));
-        telemetry.addData("Ready", shooter.isReadyToFire() ? "✓" : "✗");
-        telemetry.addLine();
-        
-        // Shot planning (note: accessing via shot planner)
-        telemetry.addLine("--- SHOT PLANNING ---");
-        // Note: These methods would need to be exposed by IndexingSystemV3
-        // For now, just show basic info
-        telemetry.addLine();
-        
-        // Statistics
-        telemetry.addLine("--- STATISTICS ---");
-        telemetry.addData("Collections", indexing.getTotalCollections());
-        telemetry.addData("Transfers", indexing.getTotalTransfers());
-        telemetry.addData("Swaps", indexing.getTotalSwaps());
-        telemetry.addData("Shots", indexing.getTotalShots());
-        telemetry.addData("Ejections", indexing.getTotalEjections());
-        telemetry.addLine();
-        
-        // Controls
-        telemetry.addLine("--- CONTROLS ---");
-        telemetry.addLine("DPAD: Add artifacts");
-        telemetry.addLine("  UP=Purple→Front, DOWN=Green→Front");
-        telemetry.addLine("  LEFT=Purple→Back, RIGHT=Green→Back");
-        telemetry.addLine("A/B: Transfer Front/Back → Center");
-        telemetry.addLine("X: Swap | Y: Fire");
-        telemetry.addLine("Bumpers: Eject Front/Back");
-        telemetry.addLine("BACK: Clear | START: Enable/Disable");
+        // Removed - now using IndexingSystemV3.addTelemetry() for comprehensive 3-page display
+    }
+    
+    private void handleTelemetryNavigation() {
+        // Use Guide button (Xbox logo / PS button) on gamepad1 to cycle telemetry pages
+        if (gamepad1.guide && !lastGuide1) {
+            indexing.nextTelemetryPage();
+            telemetry.addLine("→ Switched to page " + indexing.getTelemetryPage());
+        }
     }
     
     /**
@@ -383,6 +347,7 @@ public class ManualArtifactInjectionTest extends LinearOpMode {
      * Update button states for edge detection
      */
     private void updateButtonStates() {
+        lastGuide1 = gamepad1.guide;
         lastDpadUp1 = gamepad1.dpad_up;
         lastDpadDown1 = gamepad1.dpad_down;
         lastDpadLeft1 = gamepad1.dpad_left;

@@ -91,6 +91,7 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     private boolean lastA, lastB, lastX, lastY;
     private boolean lastLeftBumper, lastRightBumper;
     private boolean lastBack, lastStart;
+    private boolean lastGuide;  // For telemetry page navigation
     
     @Override
     public void runOpMode() {
@@ -170,8 +171,11 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             // Handle hunt mode toggle
             handleHuntMode();
             
-            // Display telemetry
-            displayTelemetry();
+            // Handle telemetry page navigation
+            handleTelemetryNavigation();
+            
+            // Display telemetry (from IndexingSystemV3)
+            indexing.addTelemetry();
             
             // Update button states
             updateButtonStates();
@@ -248,56 +252,16 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
         }
     }
     
-    private void displayTelemetry() {
-        telemetry.addLine("========== V3 BASIC TEST ==========");
-        telemetry.addLine();
-        
-        // System state
-        telemetry.addData("State", indexing.getCurrentState());
-        telemetry.addData("Enabled", indexing.isEnabled() ? "✓" : "✗");
-        telemetry.addData("Busy", indexing.isBusy() ? "YES" : "NO");
-        telemetry.addData("Hunt Mode", indexing.isHuntEnabled() ? "🔍 ON" : "💤 OFF");
-        telemetry.addLine();
-        
-        // Slots
-        telemetry.addLine("--- SLOTS ---");
-        telemetry.addData("FRONT", getSlotString(SlotLedger.Slot.FRONT));
-        telemetry.addData("CENTER", getSlotString(SlotLedger.Slot.CENTER));
-        telemetry.addData("BACK", getSlotString(SlotLedger.Slot.BACK));
-        telemetry.addData("Count", indexing.getArtifactCount() + "/3");
-        telemetry.addLine();
-        
-        // Shooter
-        telemetry.addLine("--- SHOOTER ---");
-        telemetry.addData("RPM", String.format("%.0f / %.0f", 
-                         shooter.getCurrentRPM(), shooter.getTargetRPM()));
-        telemetry.addData("Ready", shooter.isReadyToFire() ? "✓" : "✗");
-        telemetry.addLine();
-        
-        // Statistics
-        telemetry.addData("Collections", indexing.getTotalCollections());
-        telemetry.addData("Transfers", indexing.getTotalTransfers());
-        telemetry.addData("Shots", indexing.getTotalShots());
-        telemetry.addData("Ejections", indexing.getTotalEjections());
-        telemetry.addLine();
-        
-        // Controls reminder
-        telemetry.addLine("DPAD: Manual inject | A/B: Collect");
-        telemetry.addLine("X/Y: Transfer | L-Bumper: Fire");
-        telemetry.addLine("R-Bumper: Hunt | BACK/START: Eject");
-    }
-    
-    private String getSlotString(SlotLedger.Slot slot) {
-        if (!indexing.getLedger().isOccupied(slot)) return "⬜ Empty";
-        ArtifactIdentity artifact = indexing.getLedger().get(slot);
-        if (artifact == null) return "⬜ Empty";
-        
-        String emoji = artifact.getColorClass() == ArtifactIdentity.ColorClass.PURPLE ? "🟣" : 
-                      artifact.getColorClass() == ArtifactIdentity.ColorClass.GREEN ? "🟢" : "⚪";
-        return emoji + " " + artifact.getColorClass();
+    private void handleTelemetryNavigation() {
+        // Use Guide button (Xbox logo / PS button) to cycle telemetry pages
+        if (gamepad1.guide && !lastGuide) {
+            indexing.nextTelemetryPage();
+            telemetry.addLine("→ Switched to page " + indexing.getTelemetryPage());
+        }
     }
     
     private void updateButtonStates() {
+        lastGuide = gamepad1.guide;
         lastDpadUp = gamepad1.dpad_up;
         lastDpadDown = gamepad1.dpad_down;
         lastDpadLeft = gamepad1.dpad_left;

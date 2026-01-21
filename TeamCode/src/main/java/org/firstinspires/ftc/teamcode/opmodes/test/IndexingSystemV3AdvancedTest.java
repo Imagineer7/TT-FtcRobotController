@@ -108,6 +108,7 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
     private boolean lastBack1, lastStart1;
     private boolean lastDpadUp2, lastDpadDown2;
     private boolean lastA2, lastB2, lastX2, lastY2;
+    private boolean lastGuide2;  // For telemetry page navigation
     
     // Test metrics
     private long testStartTime;
@@ -191,8 +192,11 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
             // Handle test scenarios
             handleTestScenarios();
             
-            // Display telemetry
-            displayTelemetry();
+            // Handle telemetry page navigation
+            handleTelemetryNavigation();
+            
+            // Display telemetry (from IndexingSystemV3)
+            indexing.addTelemetry();
             
             // Update button states
             updateButtonStates();
@@ -360,63 +364,15 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
     }
     
     private void displayTelemetry() {
-        telemetry.addLine("======== V3 ADVANCED TEST ========");
-        telemetry.addLine();
-        
-        // System state
-        telemetry.addData("State", indexing.getCurrentState());
-        telemetry.addData("Busy", indexing.isBusy() ? "⚙️ YES" : "💤 NO");
-        telemetry.addData("Burst Mode", indexing.isBurstFiring() ? "⚡ ACTIVE" : "OFF");
-        telemetry.addLine();
-        
-        // Slots with colors
-        telemetry.addLine("--- SLOT CONFIGURATION ---");
-        telemetry.addData("FRONT", getSlotString(SlotLedger.Slot.FRONT));
-        telemetry.addData("CENTER", getSlotString(SlotLedger.Slot.CENTER));
-        telemetry.addData("BACK", getSlotString(SlotLedger.Slot.BACK));
-        telemetry.addData("Count", indexing.getArtifactCount() + "/3");
-        telemetry.addLine();
-        
-        // Shot planning (note: accessing via internal shot planner)
-        telemetry.addLine("--- SHOT PLANNING ---");
-        // Note: These methods would need to be exposed by IndexingSystemV3
-        // For now, just show basic system state
-        telemetry.addLine();
-        
-        // Shooter
-        telemetry.addLine("--- SHOOTER ---");
-        telemetry.addData("RPM", String.format("%.0f / %.0f", 
-                         shooter.getCurrentRPM(), shooter.getTargetRPM()));
-        telemetry.addData("State", shooter.getState());
-        telemetry.addData("Ready", shooter.isReadyToFire() ? "✓" : "✗");
-        telemetry.addLine();
-        
-        // Performance metrics
-        telemetry.addLine("--- PERFORMANCE METRICS ---");
-        long elapsed = System.currentTimeMillis() - testStartTime;
-        telemetry.addData("Test Runtime", String.format("%.1fs", elapsed / 1000.0));
-        telemetry.addData("Total Operations", totalOperations);
-        telemetry.addData("Successful", successfulOperations);
-        telemetry.addData("Failed", failedOperations);
-        if (totalOperations > 0) {
-            double successRate = (successfulOperations * 100.0) / totalOperations;
-            telemetry.addData("Success Rate", String.format("%.1f%%", successRate));
+        // Removed - now using IndexingSystemV3.addTelemetry() for comprehensive 3-page display
+    }
+    
+    private void handleTelemetryNavigation() {
+        // Use Guide button (Xbox logo / PS button) on gamepad2 to cycle telemetry pages
+        if (gamepad2.guide && !lastGuide2) {
+            indexing.nextTelemetryPage();
+            telemetry.addLine("→ Switched to page " + indexing.getTelemetryPage());
         }
-        telemetry.addLine();
-        
-        // Statistics
-        telemetry.addData("Collections", indexing.getTotalCollections());
-        telemetry.addData("Transfers", indexing.getTotalTransfers());
-        telemetry.addData("Swaps", indexing.getTotalSwaps());
-        telemetry.addData("Shots", indexing.getTotalShots());
-        telemetry.addLine();
-        
-        // Controls
-        telemetry.addLine("--- CONTROLS ---");
-        telemetry.addLine("GP1: DPAD=Inject | A=Swap | B=Fire");
-        telemetry.addLine("GP1: Bumpers=Motif | BACK=Clear");
-        telemetry.addLine("GP2: A/B/X/Y=Load Test Scenarios");
-        telemetry.addLine("GP2: DPAD UP=Spin Shooter");
     }
     
     private String getSlotString(SlotLedger.Slot slot) {
@@ -454,6 +410,7 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
     }
     
     private void updateButtonStates() {
+        lastGuide2 = gamepad2.guide;
         lastDpadUp1 = gamepad1.dpad_up;
         lastDpadDown1 = gamepad1.dpad_down;
         lastDpadLeft1 = gamepad1.dpad_left;

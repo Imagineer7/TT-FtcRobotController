@@ -70,6 +70,7 @@ public class OperationRunner {
     public boolean start(IndexingOperation operation) {
         if (operation == null) {
             logError("Cannot start null operation");
+            System.out.println("[OpRunner] ERROR: Null operation");
             return false;
         }
 
@@ -77,9 +78,13 @@ public class OperationRunner {
         if (isBusy()) {
             logWarn("Rejected: " + operation.getOperationName() + 
                    " (already running: " + currentOperation.getOperationName() + ")");
+            System.out.println("[OpRunner] REJECTED: Already running " + 
+                             currentOperation.getOperationName());
             return false;
         }
 
+        System.out.println("[OpRunner] Starting operation: " + operation.getOperationName());
+        
         // Try to start operation
         boolean started = operation.start();
         
@@ -88,9 +93,11 @@ public class OperationRunner {
             operationStartTime = System.currentTimeMillis();
             operationCount++;
             logInfo("Started: " + operation.getOperationName() + " (#" + operationCount + ")");
+            System.out.println("[OpRunner] STARTED successfully (#" + operationCount + ")");
             return true;
         } else {
             logError("Failed to start: " + operation.getOperationName());
+            System.out.println("[OpRunner] FAILED to start: " + operation.getOperationName());
             return false;
         }
     }
@@ -107,6 +114,8 @@ public class OperationRunner {
 
         // Update operation
         boolean stillRunning = currentOperation.update();
+        System.out.println("[OpRunner] update() - stillRunning=" + stillRunning + 
+                         ", op=" + currentOperation.getOperationName());
 
         if (!stillRunning) {
             // Operation complete (success or failure)
@@ -114,13 +123,16 @@ public class OperationRunner {
             
             if (currentOperation.isSuccess()) {
                 // Successful completion - commit slot changes
+                System.out.println("[OpRunner] Operation SUCCESSFUL, committing...");
                 logInfo("Completed: " + currentOperation.getOperationName() + 
                        " (elapsed: " + elapsed + "ms)");
                 currentOperation.commit();
                 logInfo("Committed slot changes");
+                System.out.println("[OpRunner] Commit complete");
             } else {
                 // Failed or cancelled
                 String status = currentOperation.isComplete() ? "Failed" : "Cancelled";
+                System.out.println("[OpRunner] Operation " + status);
                 logWarn(status + ": " + currentOperation.getOperationName() + 
                        " (" + currentOperation.getStatusMessage() + ")");
                 
@@ -134,6 +146,7 @@ public class OperationRunner {
             }
 
             // Clear current operation
+            System.out.println("[OpRunner] Clearing operation, now idle");
             currentOperation = null;
             operationStartTime = 0;
         }
