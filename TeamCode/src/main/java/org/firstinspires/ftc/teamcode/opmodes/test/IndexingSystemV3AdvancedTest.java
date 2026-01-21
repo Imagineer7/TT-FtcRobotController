@@ -28,11 +28,11 @@ import org.firstinspires.ftc.teamcode.util.aurora.v3.SlotLedger;
  * GAMEPAD 1:
  *   DPAD UP/DOWN/LEFT/RIGHT - Manual artifact injection
  *   
- *   A - Request swap FRONT ↔ BACK
- *   B - Request fire (with burst keep-alive)
- *   X - Request preposition (next shot → CENTER)
- *   Y - Request rearrangement (optimize)
- *   
+ *   A (HOLD) - Short Range Firing (2800 RPM) - release to stop
+ *   B (HOLD) - Mid-Range Firing (3200 RPM) - release to stop
+ *   Y (HOLD) - Long Range Firing (3400 RPM) - release to stop
+ *   X - Request swap FRONT ↔ BACK
+ *
  *   LEFT BUMPER  - Set motif to "PPG"
  *   RIGHT BUMPER - Set motif to "PGP"
  *   LEFT TRIGGER - Set motif to "GPP"
@@ -44,13 +44,10 @@ import org.firstinspires.ftc.teamcode.util.aurora.v3.SlotLedger;
  *   DPAD UP - Spin up shooter to 3200 RPM
  *   DPAD DOWN - Stop shooter
  *   
- *   A - Add test scenario 1 (PPG optimal)
- *   B - Add test scenario 2 (needs rearrangement)
- *   X - Add test scenario 3 (wrong order)
- *   Y - Add test scenario 4 (full system)
- * 
- * Test Scenarios:
- * 
+ *   (A/B/X/Y buttons available for future use)
+ *
+ * Manual Test Scenarios (use GAMEPAD 1 DPAD to inject artifacts):
+ *
  * Scenario 1: PPG Optimal (no rearrangement)
  *   - FRONT: Purple, CENTER: Purple, BACK: Green
  *   - Motif: PPG
@@ -104,10 +101,9 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
     // Button state tracking
     private boolean lastDpadUp1, lastDpadDown1, lastDpadLeft1, lastDpadRight1;
     private boolean lastA1, lastB1, lastX1, lastY1;
-    private boolean lastLeftBumper1, lastRightBumper1;
+    private boolean lastLeftBumper1, lastRightBumper1, lastLeftTrigger1;
     private boolean lastBack1, lastStart1;
     private boolean lastDpadUp2, lastDpadDown2;
-    private boolean lastA2, lastB2, lastX2, lastY2;
     private boolean lastGuide2;  // For telemetry page navigation
     
     // Test metrics
@@ -153,7 +149,8 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
         telemetry.addLine("✓ Initialization complete!");
         telemetry.addLine();
         telemetry.addLine("Ready for advanced testing");
-        telemetry.addLine("Use GAMEPAD 2 to load test scenarios");
+        telemetry.addLine("Use GAMEPAD 1 DPAD to inject artifacts");
+        telemetry.addLine("Use GAMEPAD 1 A/B/Y to fire");
         telemetry.addLine();
         telemetry.addLine("Press START to begin");
         telemetry.update();
@@ -171,9 +168,10 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
             indexing.setWatchdogTriggerState(gamepad1.right_trigger > 0.1);
 
             // Update system
+            // NOTE: shooter.update() is called inside indexing.update() via firingHelper.update()
+            // DO NOT call shooter.update() here - it will cause duplicate updates and pulsing!
             indexing.update();
-            shooter.update();
-            
+
             // Handle manual injection
             handleManualInjection();
             
@@ -188,9 +186,6 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
             
             // Handle shooter control
             handleShooterControl();
-            
-            // Handle test scenarios
-            handleTestScenarios();
             
             // Handle telemetry page navigation
             handleTelemetryNavigation();
@@ -225,38 +220,76 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
     }
     
     private void handleAdvancedOperations() {
-        // A - Swap FRONT ↔ BACK
-        if (gamepad1.a && !lastA1) {
+        // Hold-to-fire pattern - continuously request fire while button held
+
+        // A - Short Range (2800 RPM) - HOLD to fire
+        if (gamepad1.a) {
+            // While A held - set RPM and request fire
+            shooter.setTargetRPM(ShooterConfig.ShooterPreset.SHORT_RANGE.getTargetRPM());
+
+            // Request fire if not currently busy
+            if (!indexing.isOperationActive()) {
+                boolean success = indexing.requestFire(true, () -> gamepad1.a);  // Keep-alive with shouldContinue
+                if (success && !lastA1) {
+                    telemetry.addLine("🔥 Short Range Firing (2800 RPM)");
+                    trackOperation(true);
+                }
+            }
+        } else if (lastA1) {
+            // Button just released - firing will auto-stop via shouldContinue callback
+            telemetry.addLine("⏹️ Short Range stopped");
+        }
+
+        // B - Mid Range (3200 RPM) - HOLD to fire
+        if (gamepad1.b) {
+            // While B held - set RPM and request fire
+            shooter.setTargetRPM(ShooterConfig.ShooterPreset.MID_RANGE.getTargetRPM());
+
+            // Request fire if not currently busy
+            if (!indexing.isOperationActive()) {
+                boolean success = indexing.requestFire(true, () -> gamepad1.b);  // Keep-alive with shouldContinue
+                if (success && !lastB1) {
+                    telemetry.addLine("🔥 Mid Range Firing (3200 RPM)");
+                    trackOperation(true);
+                }
+            }
+        } else if (lastB1) {
+            // Button just released
+            telemetry.addLine("⏹️ Mid Range stopped");
+        }
+
+        // Y - Long Range (3400 RPM) - HOLD to fire
+        if (gamepad1.y) {
+            // While Y held - set RPM and request fire
+            shooter.setTargetRPM(ShooterConfig.ShooterPreset.LONG_RANGE.getTargetRPM());
+
+            // Request fire if not currently busy
+            if (!indexing.isOperationActive()) {
+                boolean success = indexing.requestFire(true, () -> gamepad1.y);  // Keep-alive with shouldContinue
+                if (success && !lastY1) {
+                    telemetry.addLine("🔥 Long Range Firing (3400 RPM)");
+                    trackOperation(true);
+                }
+            }
+        } else if (lastY1) {
+            // Button just released
+            telemetry.addLine("⏹️ Long Range stopped");
+        }
+
+        // X - Swap FRONT ↔ BACK
+        if (gamepad1.x && !lastX1) {
             boolean success = indexing.requestSwap(SlotLedger.Slot.FRONT);
             trackOperation(success);
             if (success) {
                 telemetry.addLine("↔️ Swapping FRONT ↔ BACK");
             } else {
-                telemetry.addLine("❌ Cannot swap (need 2 artifacts in intakes)");
+                telemetry.addLine("❌ Cannot swap (need 2 artifacts)");
             }
         }
-        
-        // B - Fire with burst
-        if (gamepad1.b && !lastB1) {
-            boolean success = indexing.requestFire();
-            trackOperation(success);
-            if (success) {
-                telemetry.addLine("🔥 Firing (burst mode)");
-            } else {
-                telemetry.addLine("❌ Cannot fire");
-            }
-        }
-        
-        // X - Preposition next shot
-        if (gamepad1.x && !lastX1) {
-            telemetry.addLine("→ Preposition: Moving next shot to CENTER");
-            // This will be handled automatically by shot planner
-        }
-        
-        // Y - Trigger rearrangement check
-        if (gamepad1.y && !lastY1) {
-            // Note: Rearrangement is handled automatically by shot planning coordinator
-            telemetry.addLine("📊 Checking for rearrangement opportunities");
+
+        // Show current operation
+        if (indexing.isOperationActive()) {
+            telemetry.addData("Active Op", indexing.getCurrentOperationName());
         }
     }
     
@@ -274,7 +307,8 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
         }
         
         // LEFT TRIGGER - GPP
-        if (gamepad1.left_trigger > 0.5 && !(gamepad1.left_trigger > 0.5)) {
+        boolean currentLeftTrigger1 = gamepad1.left_trigger > 0.5;
+        if (currentLeftTrigger1 && !lastLeftTrigger1) {
             indexing.setMotifPattern("GPP");
             telemetry.addLine("🎯 Motif set to GPP");
         }
@@ -309,57 +343,6 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
         if (gamepad2.dpad_down && !lastDpadDown2) {
             shooter.stop();
             telemetry.addLine("⏹️ Shooter stopped");
-        }
-    }
-    
-    private void handleTestScenarios() {
-        // Scenario 1: PPG Optimal
-        if (gamepad2.a && !lastA2) {
-            indexing.requestEject(org.firstinspires.ftc.teamcode.util.aurora.v3.EjectOperation.EjectMode.ALL);
-            indexing.setMotifPattern("PPG");
-            // Add Purple to FRONT, then transfer to CENTER
-            indexing.addManualArtifact(SlotLedger.Slot.FRONT, ArtifactIdentity.ColorClass.PURPLE);
-            sleep(300);
-            indexing.addManualArtifact(SlotLedger.Slot.BACK, ArtifactIdentity.ColorClass.PURPLE);
-            sleep(300);
-            indexing.addManualArtifact(SlotLedger.Slot.FRONT, ArtifactIdentity.ColorClass.GREEN);
-            telemetry.addLine("📋 Loaded Scenario 1: PPG Optimal");
-            resetMetrics();
-        }
-        
-        // Scenario 2: Needs Rearrangement
-        if (gamepad2.b && !lastB2) {
-            indexing.requestEject(org.firstinspires.ftc.teamcode.util.aurora.v3.EjectOperation.EjectMode.ALL);
-            indexing.setMotifPattern("PPG");
-            indexing.addManualArtifact(SlotLedger.Slot.FRONT, ArtifactIdentity.ColorClass.GREEN);
-            sleep(300);
-            indexing.addManualArtifact(SlotLedger.Slot.BACK, ArtifactIdentity.ColorClass.PURPLE);
-            telemetry.addLine("📋 Loaded Scenario 2: Needs Rearrangement");
-            resetMetrics();
-        }
-        
-        // Scenario 3: Wrong Order
-        if (gamepad2.x && !lastX2) {
-            indexing.requestEject(org.firstinspires.ftc.teamcode.util.aurora.v3.EjectOperation.EjectMode.ALL);
-            indexing.setMotifPattern("PPG");
-            indexing.addManualArtifact(SlotLedger.Slot.FRONT, ArtifactIdentity.ColorClass.GREEN);
-            sleep(300);
-            indexing.addManualArtifact(SlotLedger.Slot.BACK, ArtifactIdentity.ColorClass.GREEN);
-            telemetry.addLine("📋 Loaded Scenario 3: Wrong Order");
-            resetMetrics();
-        }
-        
-        // Scenario 4: Full System
-        if (gamepad2.y && !lastY2) {
-            indexing.requestEject(org.firstinspires.ftc.teamcode.util.aurora.v3.EjectOperation.EjectMode.ALL);
-            indexing.setMotifPattern("PPG");
-            indexing.addManualArtifact(SlotLedger.Slot.FRONT, ArtifactIdentity.ColorClass.PURPLE);
-            sleep(300);
-            indexing.addManualArtifact(SlotLedger.Slot.BACK, ArtifactIdentity.ColorClass.PURPLE);
-            sleep(300);
-            // After these are collected, add one more
-            telemetry.addLine("📋 Loaded Scenario 4: Full System (3/3)");
-            resetMetrics();
         }
     }
     
@@ -421,13 +404,10 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
         lastY1 = gamepad1.y;
         lastLeftBumper1 = gamepad1.left_bumper;
         lastRightBumper1 = gamepad1.right_bumper;
+        lastLeftTrigger1 = gamepad1.left_trigger > 0.5;
         lastBack1 = gamepad1.back;
         lastStart1 = gamepad1.start;
         lastDpadUp2 = gamepad2.dpad_up;
         lastDpadDown2 = gamepad2.dpad_down;
-        lastA2 = gamepad2.a;
-        lastB2 = gamepad2.b;
-        lastX2 = gamepad2.x;
-        lastY2 = gamepad2.y;
     }
 }

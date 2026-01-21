@@ -728,7 +728,7 @@ public class IndexingSystemV3 {
      * @return true if operation started, false if rejected
      */
     public boolean requestFire() {
-        return requestFire(false, null);
+        return requestFire(true, null);
     }
     
     /**
@@ -971,6 +971,8 @@ public class IndexingSystemV3 {
     
     public boolean isEnabled() { return enabled; }
     public boolean isBusy() { return runner.isBusy(); }
+    public boolean isOperationActive() { return runner.isBusy(); }
+    public String getCurrentOperationName() { return runner.getCurrentOperationName(); }
     public boolean isManualMode() { return manualModeActive; }
     public boolean isBurstFiring() { return burstFiringActive; }
     public SystemState getCurrentState() { return currentState; }
