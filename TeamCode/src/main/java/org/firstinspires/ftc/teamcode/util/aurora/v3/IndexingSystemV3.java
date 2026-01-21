@@ -356,7 +356,7 @@ public class IndexingSystemV3 {
         
         // Power for reverse motion (negative = eject direction)
         // Lower value (-0.3 to -0.4) creates gentle jiggling without ejecting artifact
-        final double HUNT_TRANSFER_REVERSE_POWER = -0.35;
+        final double HUNT_TRANSFER_REVERSE_POWER = 0.35;
         
         // Front intake: run transfer servo in reverse if hunt-eligible
         // BUT: Don't interfere if operation has active timed movement

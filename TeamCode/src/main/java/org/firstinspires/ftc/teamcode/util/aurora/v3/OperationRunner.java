@@ -130,7 +130,7 @@ public class OperationRunner {
                 logInfo("Committed slot changes");
                 System.out.println("[OpRunner] Commit complete");
             } else {
-                // Failed or cancelled
+                // Failed or canceled
                 String status = currentOperation.isComplete() ? "Failed" : "Cancelled";
                 System.out.println("[OpRunner] Operation " + status);
                 logWarn(status + ": " + currentOperation.getOperationName() + 

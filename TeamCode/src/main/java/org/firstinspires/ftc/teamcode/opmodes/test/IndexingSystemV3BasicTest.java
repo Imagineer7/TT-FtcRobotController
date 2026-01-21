@@ -95,9 +95,9 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     
     @Override
     public void runOpMode() {
-        telemetry.addLine("========================================");
-        telemetry.addLine("   INDEXING SYSTEM V3 - BASIC TEST");
-        telemetry.addLine("========================================");
+        telemetry.addLine("======================================");
+        telemetry.addLine("   INDEXING SYSTEM V3 - BASIC TEST    ");
+        telemetry.addLine("======================================");
         telemetry.addLine();
         telemetry.addLine("Initializing hardware...");
         telemetry.update();
