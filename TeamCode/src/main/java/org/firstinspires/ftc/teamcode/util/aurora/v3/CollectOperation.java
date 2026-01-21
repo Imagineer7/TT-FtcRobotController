@@ -194,6 +194,88 @@ public class CollectOperation extends BaseOperation {
                 ArtifactIdentity.ColorClass color = perception.getBestColorClass();
                 double confidence = perception.getBestColorConfidence();
                 
+                System.out.println("[CollectOp] Initial color sampled: " + color + " (conf=" + 
+                                 String.format("%.2f", confidence) + ")");
+                
+                // Check if confidence is low - if so, jiggle artifact and resample
+                if (confidence < 0.60 && color == ArtifactIdentity.ColorClass.UNKNOWN) {
+                    System.out.println("[CollectOp] Low confidence detected, jiggling artifact to improve detection");
+                    logWarn("Low confidence (" + String.format("%.2f", confidence) + "), starting jiggle routine");
+                    
+                    // Jiggle routine: alternate transfer servo direction while rollers pull in
+                    // This rotates the artifact to avoid sensor blind spots from holes
+                    long jiggleStartTime = System.currentTimeMillis();
+                    int jiggleCycles = 0;
+                    
+                    while (System.currentTimeMillis() - jiggleStartTime < 900) {  // Jiggle for 900ms
+                        // Alternate transfer servo direction every 300ms
+                        double transferPower = (jiggleCycles % 2 == 0) ? -0.5 : 0.5;  // Forward/reverse
+                        
+                        // Set hardware: rollers pull in, transfer servos alternate
+                        if (targetSlot == SlotLedger.Slot.FRONT) {
+                            helper.setFrontRollerPower(0.8);  // Pull in
+                            helper.setFrontTransferPower(transferPower);  // Alternate direction
+                        } else {
+                            helper.setBackRollerPower(0.8);  // Pull in
+                            helper.setBackTransferPower(transferPower);  // Alternate direction
+                        }
+                        
+                        // Update perception during jiggle to collect samples
+                        perception.update();
+                        
+                        try {
+                            Thread.sleep(300);  // Hold direction for 300ms
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                        
+                        jiggleCycles++;
+                    }
+                    
+                    System.out.println("[CollectOp] Jiggle complete (" + jiggleCycles + " cycles), stopping hardware");
+                    
+                    // Stop hardware after jiggle
+                    if (targetSlot == SlotLedger.Slot.FRONT) {
+                        helper.setFrontRollerPower(0);
+                        helper.setFrontTransferPower(0);
+                        helper.setFrontBottomIntakePower(0);
+                    } else {
+                        helper.setBackRollerPower(0);
+                        helper.setBackTransferPower(0);
+                        helper.setBackBottomIntakePower(0);
+                    }
+                    
+                    // Wait 50ms for artifact to settle after jiggle
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    System.out.println("[CollectOp] Re-sampling color after jiggle");
+                    
+                    // Re-sample color with continuous sampling
+                    samplingStartTime = System.currentTimeMillis();
+                    sampleCount = 0;
+                    while (System.currentTimeMillis() - samplingStartTime < 150) {  // Sample for 150ms
+                        perception.update();  // Continuously sample sensors
+                        sampleCount++;
+                        try {
+                            Thread.sleep(15);  // 15ms between samples
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                    }
+                    System.out.println("[CollectOp] Collected " + sampleCount + " color samples after jiggle");
+                    
+                    // Get re-sampled color
+                    color = perception.getBestColorClass();
+                    confidence = perception.getBestColorConfidence();
+                    System.out.println("[CollectOp] After jiggle color: " + color + " (conf=" + 
+                                     String.format("%.2f", confidence) + ")");
+                }
+                
                 // Disable color sampling
                 perception.disableColorSampling();
                 
@@ -203,7 +285,7 @@ public class CollectOperation extends BaseOperation {
                 
                 colorSampled = true;
                 
-                System.out.println("[CollectOp] Color sampled: " + color + " (conf=" + 
+                System.out.println("[CollectOp] Final color sampled: " + color + " (conf=" + 
                                  String.format("%.2f", confidence) + ")");
                 
                 // Log color classification
@@ -264,9 +346,90 @@ public class CollectOperation extends BaseOperation {
                 
                 ArtifactIdentity.ColorClass color = perception.getBestColorClass();
                 double confidence = perception.getBestColorConfidence();
+                
+                System.out.println("[CollectOp] (Edge case) Initial color sampled: " + color + " (conf=" + 
+                                 String.format("%.2f", confidence) + ")");
+                
+                // Check if confidence is low - if so, jiggle artifact and resample
+                if (confidence < 0.60 && color == ArtifactIdentity.ColorClass.UNKNOWN) {
+                    System.out.println("[CollectOp] (Edge case) Low confidence detected, jiggling artifact");
+                    
+                    // Jiggle routine: alternate transfer servo direction while rollers pull in
+                    long jiggleStartTime = System.currentTimeMillis();
+                    int jiggleCycles = 0;
+                    
+                    while (System.currentTimeMillis() - jiggleStartTime < 900) {  // Jiggle for 900ms
+                        // Alternate transfer servo direction every 300ms
+                        double transferPower = (jiggleCycles % 2 == 0) ? -0.5 : 0.5;  // Forward/reverse
+                        
+                        // Set hardware: rollers pull in, transfer servos alternate
+                        if (targetSlot == SlotLedger.Slot.FRONT) {
+                            helper.setFrontRollerPower(0.8);  // Pull in
+                            helper.setFrontTransferPower(transferPower);  // Alternate direction
+                        } else {
+                            helper.setBackRollerPower(0.8);  // Pull in
+                            helper.setBackTransferPower(transferPower);  // Alternate direction
+                        }
+                        
+                        // Update perception during jiggle to collect samples
+                        perception.update();
+                        
+                        try {
+                            Thread.sleep(300);  // Hold direction for 300ms
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                        
+                        jiggleCycles++;
+                    }
+                    
+                    System.out.println("[CollectOp] (Edge case) Jiggle complete (" + jiggleCycles + " cycles), stopping");
+                    
+                    // Stop hardware after jiggle
+                    if (targetSlot == SlotLedger.Slot.FRONT) {
+                        helper.setFrontRollerPower(0);
+                        helper.setFrontTransferPower(0);
+                        helper.setFrontBottomIntakePower(0);
+                    } else {
+                        helper.setBackRollerPower(0);
+                        helper.setBackTransferPower(0);
+                        helper.setBackBottomIntakePower(0);
+                    }
+                    
+                    // Wait 50ms for artifact to settle after jiggle
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    System.out.println("[CollectOp] (Edge case) Re-sampling color after jiggle");
+                    
+                    // Re-sample color with continuous sampling
+                    samplingStartTime = System.currentTimeMillis();
+                    sampleCount = 0;
+                    while (System.currentTimeMillis() - samplingStartTime < 150) {  // Sample for 150ms
+                        perception.update();  // Continuously sample sensors
+                        sampleCount++;
+                        try {
+                            Thread.sleep(15);  // 15ms between samples
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                    }
+                    System.out.println("[CollectOp] (Edge case) Collected " + sampleCount + " samples after jiggle");
+                    
+                    // Get re-sampled color
+                    color = perception.getBestColorClass();
+                    confidence = perception.getBestColorConfidence();
+                    System.out.println("[CollectOp] (Edge case) After jiggle color: " + color + " (conf=" + 
+                                     String.format("%.2f", confidence) + ")");
+                }
+                
                 perception.disableColorSampling();
                 
-                System.out.println("[CollectOp] (Edge case) Color sampled: " + color + " (conf=" + 
+                System.out.println("[CollectOp] (Edge case) Final color sampled: " + color + " (conf=" + 
                                  String.format("%.2f", confidence) + ")");
                 
                 collectedArtifact = ArtifactIdentity.createFromSensor(
