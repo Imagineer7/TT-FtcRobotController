@@ -73,11 +73,6 @@ public class IndexingSystemV3 {
     private boolean manualModeActive;
     private boolean huntEnabled;  // Hunt mode: auto-collect when artifacts detected
     
-    // Manual override detection
-    private boolean lastManual_frontIntake;
-    private boolean lastManual_backIntake;
-    private boolean lastManual_uptake;
-    
     // Burst firing state
     private boolean burstFiringActive;
     private long lastOperationCompleteTime;
@@ -204,21 +199,17 @@ public class IndexingSystemV3 {
     /**
      * Main update loop - MUST be called every iteration.
      * 
-     * @param gamepad1 Driver gamepad
-     * @param gamepad2 Operator gamepad
+     * OpModes should call this method in their loop and handle gamepad inputs separately.
      */
-    public void update(Gamepad gamepad1, Gamepad gamepad2) {
+    public void update() {
         if (!enabled) return;
         
         // Update perception (sensor fusion) - only for hunt-eligible intakes
         updatePerception();
         
-        // Detect manual override
-        detectManualOverride(gamepad2);
-        
         // Update watchdog (automatic safety enforcement)
-        boolean triggerPressed = gamepad1.right_trigger > 0.1;
-        watchdog.update(triggerPressed, runner.isBusy(), manualModeActive);
+        // Note: OpMode must call setWatchdogTriggerState() to update trigger state
+        watchdog.update(false, runner.isBusy(), manualModeActive);
         
         // Capture current operation before update (for completion handling)
         boolean isBusyNow = runner.isBusy();
@@ -247,45 +238,7 @@ public class IndexingSystemV3 {
         }
     }
     
-    /**
-     * Detect manual override from gamepad inputs.
-     */
-    private void detectManualOverride(Gamepad gamepad2) {
-        // Manual control detection (from GamepadConfig)
-        boolean manual_frontIntake = gamepad2.dpad_left;
-        boolean manual_backIntake = gamepad2.dpad_right;
-        boolean manual_uptake = gamepad2.dpad_up || gamepad2.dpad_down;
-        
-        // Edge detection - manual mode activated if any control just pressed
-        boolean manualActivated = (manual_frontIntake && !lastManual_frontIntake) ||
-                                 (manual_backIntake && !lastManual_backIntake) ||
-                                 (manual_uptake && !lastManual_uptake);
-        
-        if (manualActivated) {
-            manualModeActive = true;
-            // Cancel burst firing if manual override detected
-            if (burstFiringActive) {
-                firingHelper.cancelFiring();
-                burstFiringActive = false;
-                telemetry.addData("⚠️ MANUAL OVERRIDE", "Burst cancelled");
-            }
-        }
-        
-        // Manual mode ends when all controls released for 500ms
-        if (!manual_frontIntake && !manual_backIntake && !manual_uptake) {
-            // TODO: Add 500ms delay before clearing manual mode
-            // For now, immediate clear
-            if (manualModeActive) {
-                manualModeActive = false;
-                telemetry.addData("Manual Mode", "Deactivated");
-            }
-        }
-        
-        // Store last state
-        lastManual_frontIntake = manual_frontIntake;
-        lastManual_backIntake = manual_backIntake;
-        lastManual_uptake = manual_uptake;
-    }
+    // Manual override detection removed - OpModes handle gamepad inputs directly
     
     /**
      * Update perception sensors based on hunt mode eligibility.
@@ -775,6 +728,48 @@ public class IndexingSystemV3 {
     public int getTotalSwaps() { return totalSwaps; }
     public int getTotalShots() { return totalShots; }
     public int getTotalEjections() { return totalEjections; }
+    
+    // ========== Public API - State Setters (OpMode-Controlled) ==========
+    
+    /**
+     * Set manual mode state (OpMode-controlled).
+     * 
+     * OpModes should call this method to indicate when manual controls are active.
+     * When manual mode is activated, burst firing is automatically cancelled.
+     * 
+     * @param active true if manual controls are being used, false if auto mode
+     */
+    public void setManualModeActive(boolean active) {
+        boolean wasActive = manualModeActive;
+        manualModeActive = active;
+        
+        // Cancel burst firing if manual override just activated
+        if (active && !wasActive) {
+            if (burstFiringActive) {
+                firingHelper.cancelFiring();
+                burstFiringActive = false;
+                telemetry.addData("⚠️ MANUAL OVERRIDE", "Burst cancelled");
+            }
+        }
+        
+        // Log state change
+        if (active != wasActive) {
+            telemetry.addData("Manual Mode", active ? "⚠️ ACTIVE" : "Auto");
+        }
+    }
+    
+    /**
+     * Set watchdog trigger state (OpMode-controlled).
+     * 
+     * OpModes should call this method to indicate when the fire trigger is pressed.
+     * This allows the watchdog to detect trigger release and auto-cancel burst firing.
+     * 
+     * @param triggerPressed true if fire trigger is pressed, false if released
+     */
+    public void setWatchdogTriggerState(boolean triggerPressed) {
+        // Update watchdog with current trigger state
+        watchdog.update(triggerPressed, runner.isBusy(), manualModeActive);
+    }
     
     // ========== Telemetry ==========
     

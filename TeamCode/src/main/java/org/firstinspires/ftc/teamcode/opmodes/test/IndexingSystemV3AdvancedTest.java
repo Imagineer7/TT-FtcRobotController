@@ -162,7 +162,15 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
         // Main loop
         while (opModeIsActive()) {
             // Update subsystems
-            indexing.update(gamepad1, gamepad2);
+            // Update manual mode based on gamepad2 inputs
+            boolean manualActive = gamepad2.dpad_left || gamepad2.dpad_right || gamepad2.dpad_up || gamepad2.dpad_down;
+            indexing.setManualModeActive(manualActive);
+
+            // Update watchdog trigger state
+            indexing.setWatchdogTriggerState(gamepad1.right_trigger > 0.1);
+
+            // Update system
+            indexing.update();
             shooter.update();
             
             // Handle manual injection
