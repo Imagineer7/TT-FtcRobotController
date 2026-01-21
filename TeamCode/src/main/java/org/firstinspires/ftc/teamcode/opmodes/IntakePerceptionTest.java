@@ -68,8 +68,8 @@ public class IntakePerceptionTest extends LinearOpMode {
                 IntakePerception.IntakeSide.FRONT,
                 hardware.getFrontDistanceSensor(),
                 hardware.getFrontLeftDistanceSensor(),
-                hardware.getFrontRightColorSensor(),
-                hardware.getFrontCenterColorSensor(),
+                hardware.getFrontCenterColorSensor(),  // SWAPPED: mouth sensor is outward
+                hardware.getFrontRightColorSensor(),   // SWAPPED: right sensor is at mouth
                 config
             );
             telemetry.addData("✓", "Front perception initialized");
@@ -98,6 +98,14 @@ public class IntakePerceptionTest extends LinearOpMode {
         telemetry.update();
 
         waitForStart();
+
+        // Enable color sampling for continuous color detection in test mode
+        if (frontPerception != null) {
+            frontPerception.enableColorSampling();
+        }
+        if (backPerception != null) {
+            backPerception.enableColorSampling();
+        }
 
         // Main loop
         while (opModeIsActive()) {
@@ -210,6 +218,32 @@ public class IntakePerceptionTest extends LinearOpMode {
             
             telemetry.addData("Best Color", perception.getBestColorClass());
             telemetry.addData("Color Confidence", String.format("%.2f", perception.getBestColorConfidence()));
+
+            // Add raw color values in summary mode
+            telemetry.addData("", "");
+            telemetry.addData("Raw Color Values", "");
+            double[] outwardRaw = perception.getOutwardColorRaw();
+            if (outwardRaw != null) {
+                telemetry.addData("  Outward RGB", String.format("%.3f, %.3f, %.3f",
+                    outwardRaw[0], outwardRaw[1], outwardRaw[2]));
+            }
+            double[] mouthRaw = perception.getMouthColorRaw();
+            if (mouthRaw != null) {
+                telemetry.addData("  Mouth RGB", String.format("%.3f, %.3f, %.3f",
+                    mouthRaw[0], mouthRaw[1], mouthRaw[2]));
+            }
+
+            // Add color scores
+            double[] outwardScores = perception.getOutwardColorScores();
+            if (outwardScores != null) {
+                telemetry.addData("  Outward Scores", String.format("P:%.2f G:%.2f",
+                    outwardScores[0], outwardScores[1]));
+            }
+            double[] mouthScores = perception.getMouthColorScores();
+            if (mouthScores != null) {
+                telemetry.addData("  Mouth Scores", String.format("P:%.2f G:%.2f",
+                    mouthScores[0], mouthScores[1]));
+            }
         }
     }
 }

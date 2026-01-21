@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -57,6 +58,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.Artifact;
  *    - Does NOT affect intake roller operation
  */
 @TeleOp(name = "🔧 Indexing System Test", group = "Testing")
+@Disabled
 public class IndexingSystemTest extends LinearOpMode {
 
     // Hardware and Systems

@@ -1712,10 +1712,11 @@ public class IndexingSystemOld {
         uptakeServoPrePositionedForCurrentArtifact = false;
 
         // Notify shot planner to re-evaluate
-        if (shotPlanner != null) {
-            shotPlanner.updateShotPlan(artifacts, artifactInCenter, 
-                artifactInFrontIntake, artifactInBackIntake);
-        }
+        // NOTE: ShotPlanner now uses v3 API - disabled in deprecated IndexingSystemOld
+        // if (shotPlanner != null) {
+        //     shotPlanner.updateShotPlan(artifacts, artifactInCenter,
+        //         artifactInFrontIntake, artifactInBackIntake);
+        // }
 
         if (config.isDebugTelemetry() && telemetry != null) {
             telemetry.addLine(String.format("   Consumed: %s #%d → FIRED", 
@@ -1764,6 +1765,8 @@ public class IndexingSystemOld {
         }
 
         // Get next artifact from shot plan
+        // NOTE: ShotPlanner now uses v3 API - disabled in deprecated IndexingSystemOld
+        /*
         if (shotPlanner != null) {
             List<Artifact> shotPlan = shotPlanner.getShotPlan();
             
@@ -1840,6 +1843,10 @@ public class IndexingSystemOld {
             changeState(SystemState.IDLE);
             operationInProgress = false;
         }
+        */
+        // Fallback: just go to IDLE when shot planner is disabled
+        changeState(SystemState.IDLE);
+        operationInProgress = false;
     }
 
     /**
@@ -2182,8 +2189,12 @@ public class IndexingSystemOld {
     /**
      * Update shot planner - runs every loop cycle
      * Determines optimal shot order and requests rearrangement if needed
+     *
+     * NOTE: Disabled in deprecated IndexingSystemOld - ShotPlanner now uses v3 API
      */
     private void updateShotPlanner() {
+        // Disabled - use v3 system with ShotPlanningCoordinator instead
+        /*
         if (shotPlanner == null) {
             return;
         }
@@ -2208,6 +2219,7 @@ public class IndexingSystemOld {
         plannedFirstShot = shotPlan.size() > 0 ? shotPlan.get(0) : null;
         plannedSecondShot = shotPlan.size() > 1 ? shotPlan.get(1) : null;
         plannedThirdShot = shotPlan.size() > 2 ? shotPlan.get(2) : null;
+        */
     }
 
     /**
@@ -2654,6 +2666,8 @@ public class IndexingSystemOld {
         vars.put("motifPattern", motifPattern + (motifPatternSet ? "" : " (default)"));
         
         // Get shot plan from planner if available - show full plan
+        // NOTE: Disabled in deprecated IndexingSystemOld - ShotPlanner now uses v3 API
+        /*
         if (shotPlanner != null) {
             List<Artifact> shotPlan = shotPlanner.getShotPlan();
             vars.put("shotPlanSize", shotPlan.size());
@@ -2677,6 +2691,12 @@ public class IndexingSystemOld {
             vars.put("desiredCenter", desiredCenter != null ?
                 String.format("%s #%d", desiredCenter.getColor(), desiredCenter.getCollectionOrder()) : "none");
         } else {
+        */
+        // Fallback values when shot planner is disabled
+        if (true) {
+            vars.put("shotPlanSize", 0);
+            vars.put("shotPlan", "disabled (v3 system)");
+            vars.put("desiredCenter", "none");
             vars.put("plannedShot1", plannedFirstShot != null ?
                 String.format("%s #%d", plannedFirstShot.getColor(), plannedFirstShot.getCollectionOrder()) : "none");
             vars.put("plannedShot2", plannedSecondShot != null ?

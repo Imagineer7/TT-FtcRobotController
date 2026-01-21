@@ -322,11 +322,24 @@ public class IntakePerception {
             double green = sensor.getNormalizedColors().green;
             double blue = sensor.getNormalizedColors().blue;
 
+            // Calculate confidence for BOTH colors
+            double purpleConfidence = config.calculateColorConfidence(red, green, blue, "PURPLE");
+            double greenConfidence = config.calculateColorConfidence(red, green, blue, "GREEN");
+
+            // Get classification from config (may return UNKNOWN)
             String colorStr = config.detectArtifactColor(red, green, blue);
             ArtifactIdentity.ColorClass colorClass = parseColorString(colorStr);
-            double confidence = config.calculateColorConfidence(red, green, blue, colorStr);
 
-            return new ColorObservation(colorClass, confidence);
+            // Use the best confidence score (highest of purple or green)
+            double bestConfidence = Math.max(purpleConfidence, greenConfidence);
+
+            // If confidence is high enough but classification said UNKNOWN, override with best color
+            if (colorClass == ArtifactIdentity.ColorClass.UNKNOWN && bestConfidence >= config.getColorConfidenceThreshold()) {
+                colorClass = (greenConfidence > purpleConfidence) ?
+                    ArtifactIdentity.ColorClass.GREEN : ArtifactIdentity.ColorClass.PURPLE;
+            }
+
+            return new ColorObservation(colorClass, bestConfidence);
         } catch (Exception e) {
             return new ColorObservation(ArtifactIdentity.ColorClass.UNKNOWN, 0.0);
         }
@@ -530,6 +543,76 @@ public class IntakePerception {
     }
     
     /**
+     * Get raw RGB values from outward color sensor (for debugging)
+     * Returns array [red, green, blue] or null if sensor unavailable
+     */
+    public double[] getOutwardColorRaw() {
+        if (outwardColorSensor == null) return null;
+        try {
+            return new double[] {
+                outwardColorSensor.getNormalizedColors().red,
+                outwardColorSensor.getNormalizedColors().green,
+                outwardColorSensor.getNormalizedColors().blue
+            };
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get raw RGB values from mouth color sensor (for debugging)
+     * Returns array [red, green, blue] or null if sensor unavailable
+     */
+    public double[] getMouthColorRaw() {
+        if (mouthColorSensor == null) return null;
+        try {
+            return new double[] {
+                mouthColorSensor.getNormalizedColors().red,
+                mouthColorSensor.getNormalizedColors().green,
+                mouthColorSensor.getNormalizedColors().blue
+            };
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get calculated purple and green confidence scores from outward sensor
+     * Returns array [purpleScore, greenScore] or null if sensor unavailable
+     */
+    public double[] getOutwardColorScores() {
+        if (outwardColorSensor == null) return null;
+        try {
+            double red = outwardColorSensor.getNormalizedColors().red;
+            double green = outwardColorSensor.getNormalizedColors().green;
+            double blue = outwardColorSensor.getNormalizedColors().blue;
+            double purpleScore = config.calculateColorConfidence(red, green, blue, "PURPLE");
+            double greenScore = config.calculateColorConfidence(red, green, blue, "GREEN");
+            return new double[] { purpleScore, greenScore };
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Get calculated purple and green confidence scores from mouth sensor
+     * Returns array [purpleScore, greenScore] or null if sensor unavailable
+     */
+    public double[] getMouthColorScores() {
+        if (mouthColorSensor == null) return null;
+        try {
+            double red = mouthColorSensor.getNormalizedColors().red;
+            double green = mouthColorSensor.getNormalizedColors().green;
+            double blue = mouthColorSensor.getNormalizedColors().blue;
+            double purpleScore = config.calculateColorConfidence(red, green, blue, "PURPLE");
+            double greenScore = config.calculateColorConfidence(red, green, blue, "GREEN");
+            return new double[] { purpleScore, greenScore };
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
      * Force detection of an artifact with specified color (for testing/operator override).
      * This bypasses normal sensor detection and makes the system believe an artifact
      * is present. The forced detection is automatically cleared after it's used in
@@ -646,8 +729,36 @@ public class IntakePerception {
         sb.append("  presenceConfidence: ").append(getPresenceConfidence()).append("\n");
         sb.append("  samplingEnabled: ").append(samplingEnabled).append("\n");
         sb.append("  bestColor: ").append(lastColorClass)
-          .append(" (conf=").append(String.format("%.2f", lastColorConfidence)).append(")");
-        
+          .append(" (conf=").append(String.format("%.2f", lastColorConfidence)).append(")\n");
+
+        // Add raw color sensor values
+        double[] outwardRaw = getOutwardColorRaw();
+        if (outwardRaw != null) {
+            sb.append("  outwardColorRaw: R=").append(String.format("%.3f", outwardRaw[0]))
+              .append(", G=").append(String.format("%.3f", outwardRaw[1]))
+              .append(", B=").append(String.format("%.3f", outwardRaw[2])).append("\n");
+        }
+
+        double[] mouthRaw = getMouthColorRaw();
+        if (mouthRaw != null) {
+            sb.append("  mouthColorRaw: R=").append(String.format("%.3f", mouthRaw[0]))
+              .append(", G=").append(String.format("%.3f", mouthRaw[1]))
+              .append(", B=").append(String.format("%.3f", mouthRaw[2])).append("\n");
+        }
+
+        // Add color scores
+        double[] outwardScores = getOutwardColorScores();
+        if (outwardScores != null) {
+            sb.append("  outwardScores: Purple=").append(String.format("%.2f", outwardScores[0]))
+              .append(", Green=").append(String.format("%.2f", outwardScores[1])).append("\n");
+        }
+
+        double[] mouthScores = getMouthColorScores();
+        if (mouthScores != null) {
+            sb.append("  mouthScores: Purple=").append(String.format("%.2f", mouthScores[0]))
+              .append(", Green=").append(String.format("%.2f", mouthScores[1]));
+        }
+
         return sb.toString();
     }
 

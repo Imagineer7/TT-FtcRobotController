@@ -1,31 +1,28 @@
 package org.firstinspires.ftc.teamcode.util.aurora.v3;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.util.aurora.Artifact;
 import org.firstinspires.ftc.teamcode.util.aurora.ShotPlanner;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * ShotPlanningCoordinator - Bridges existing ShotPlanner with v3 operations
+ * ShotPlanningCoordinator - Bridges ShotPlanner with v3 operations
  *
  * This coordinator:
- * - Converts SlotLedger state → Artifact list for ShotPlanner
- * - Calls ShotPlanner.updateShotPlan() every loop
+ * - Calls ShotPlanner.updateShotPlan() every loop with SlotLedger
  * - Determines if rearrangement is needed
  * - Determines next artifact to transfer after firing
  * - Provides shot plan consumption interface
  *
  * Phase 5 Integration:
  * - FireOperation calls consumeShot() after firing
- * - Main controller calls requestRearrangement() when needed
+ * - Main controller calls isRearrangementNeeded() to trigger SwapOperation
  * - Operations use getNextTransferSlot() to know which artifact to move
  *
  * Design:
- * - ShotPlanner remains unchanged (existing tests still pass)
- * - Coordinator adapts between v3 data model and ShotPlanner
- * - Confidence-aware planning (prefer high-confidence artifacts)
+ * - ShotPlanner now works directly with v3 data model (ArtifactIdentity + SlotLedger)
+ * - Coordinator manages consumption state and telemetry
+ * - No more Artifact → ArtifactIdentity conversion needed
  */
 public class ShotPlanningCoordinator {
 
@@ -36,10 +33,6 @@ public class ShotPlanningCoordinator {
     private final ShotPlanner planner;
     private final Telemetry telemetry;
 
-    // Current slot mappings for planner
-    private Artifact centerArtifact;
-    private Artifact frontArtifact;
-    private Artifact backArtifact;
 
     // Shot plan consumption state
     private int shotsFired;
@@ -58,9 +51,6 @@ public class ShotPlanningCoordinator {
     public ShotPlanningCoordinator(ShotPlanner planner, Telemetry telemetry) {
         this.planner = planner;
         this.telemetry = telemetry;
-        this.centerArtifact = null;
-        this.frontArtifact = null;
-        this.backArtifact = null;
         this.shotsFired = 0;
         this.planActive = false;
     }
@@ -77,26 +67,18 @@ public class ShotPlanningCoordinator {
      * @param manualMode True if manual control active (disables auto-rearrangement)
      */
     public void update(SlotLedger ledger, boolean manualMode) {
-        // Convert slot ledger to artifact list + location mappings
-        List<Artifact> artifacts = convertLedgerToArtifacts(ledger);
-
-        // Update shot planner
+        // Update shot planner with v3 data directly
         planner.setManualPushMode(manualMode);
-        boolean planned = planner.updateShotPlan(
-            artifacts,
-            centerArtifact,
-            frontArtifact,
-            backArtifact
-        );
+        boolean planned = planner.updateShotPlan(ledger);
 
-        planActive = planned && !artifacts.isEmpty();
+        planActive = planned && ledger.getArtifactCount() > 0;
 
         // Log planning result
         if (planActive) {
             logDebug("Shot Plan", getShotPlanString());
             if (isRearrangementNeeded()) {
-                logDebug("Rearrangement", "Desired center: " + 
-                        planner.getDesiredCenterArtifact().getColor().toString());
+                SlotLedger.Slot slot = getRearrangementSlot();
+                logDebug("Rearrangement", "Swap " + (slot != null ? slot : "Unknown") + " with CENTER");
             }
         }
     }
@@ -108,29 +90,17 @@ public class ShotPlanningCoordinator {
      * @return true if planner recommends rearrangement
      */
     public boolean isRearrangementNeeded() {
-        return planner.getDesiredCenterArtifact() != null;
+        return planner.isRearrangementNeeded();
     }
 
     /**
      * Get which slot should be swapped with center
      * Only valid if isRearrangementNeeded() returns true
      *
-     * @return FRONT or BACK slot that has desired artifact, or null
+     * @return FRONT or BACK slot that should be swapped, or null
      */
     public SlotLedger.Slot getRearrangementSlot() {
-        Artifact desired = planner.getDesiredCenterArtifact();
-        if (desired == null) {
-            return null;
-        }
-
-        // Find which slot has this artifact
-        if (frontArtifact != null && artifactsMatch(frontArtifact, desired)) {
-            return SlotLedger.Slot.FRONT;
-        } else if (backArtifact != null && artifactsMatch(backArtifact, desired)) {
-            return SlotLedger.Slot.BACK;
-        }
-
-        return null;
+        return planner.getDesiredSwapSlot();
     }
 
     /**
@@ -141,29 +111,26 @@ public class ShotPlanningCoordinator {
      * @return FRONT or BACK slot to transfer, or null if no more shots
      */
     public SlotLedger.Slot getNextTransferSlot(SlotLedger ledger) {
-        // Get current shot plan
-        List<Artifact> plan = planner.getShotPlan();
-        
+        // Get current shot plan (ArtifactIdentity list)
+        List<ArtifactIdentity> plan = planner.getShotPlan();
+
         if (plan.isEmpty() || shotsFired >= plan.size()) {
             return null;  // No more shots in plan
         }
 
         // Next artifact in plan
-        Artifact nextArtifact = plan.get(shotsFired);
+        ArtifactIdentity nextArtifact = plan.get(shotsFired);
 
-        // Find which slot has this artifact
-        if (ledger.isOccupied(SlotLedger.Slot.FRONT)) {
-            Artifact frontArt = convertToArtifact(ledger.getFront(), SlotLedger.Slot.FRONT);
-            if (artifactsMatch(frontArt, nextArtifact)) {
-                return SlotLedger.Slot.FRONT;
-            }
+        // Find which slot has this artifact (match by sequence ID)
+        ArtifactIdentity frontIdentity = ledger.getFront();
+        ArtifactIdentity backIdentity = ledger.getBack();
+
+        if (frontIdentity != null && frontIdentity.getSequenceId() == nextArtifact.getSequenceId()) {
+            return SlotLedger.Slot.FRONT;
         }
 
-        if (ledger.isOccupied(SlotLedger.Slot.BACK)) {
-            Artifact backArt = convertToArtifact(ledger.getBack(), SlotLedger.Slot.BACK);
-            if (artifactsMatch(backArt, nextArtifact)) {
-                return SlotLedger.Slot.BACK;
-            }
+        if (backIdentity != null && backIdentity.getSequenceId() == nextArtifact.getSequenceId()) {
+            return SlotLedger.Slot.BACK;
         }
 
         // Fallback: prefer front if available
@@ -208,7 +175,7 @@ public class ShotPlanningCoordinator {
      * Get current shot plan as string for telemetry
      */
     public String getShotPlanString() {
-        List<Artifact> plan = planner.getShotPlan();
+        List<ArtifactIdentity> plan = planner.getShotPlan();
         if (plan.isEmpty()) {
             return "Empty";
         }
@@ -216,106 +183,13 @@ public class ShotPlanningCoordinator {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < plan.size(); i++) {
             if (i > 0) sb.append(" → ");
-            Artifact.Color color = plan.get(i).getColor();
-            sb.append(color == Artifact.Color.PURPLE ? 'P' : 
-                     color == Artifact.Color.GREEN ? 'G' : '?');
+            ArtifactIdentity.ColorClass color = plan.get(i).getColorClass();
+            sb.append(color == ArtifactIdentity.ColorClass.PURPLE ? 'P' :
+                     color == ArtifactIdentity.ColorClass.GREEN ? 'G' : '?');
         }
         return sb.toString();
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // CONVERSION HELPERS
-    // ═══════════════════════════════════════════════════════════════════════
-
-    /**
-     * Convert SlotLedger to list of Artifacts for ShotPlanner
-     */
-    private List<Artifact> convertLedgerToArtifacts(SlotLedger ledger) {
-        List<Artifact> artifacts = new ArrayList<>();
-        centerArtifact = null;
-        frontArtifact = null;
-        backArtifact = null;
-
-        // Convert center
-        if (ledger.isCenterOccupied()) {
-            centerArtifact = convertToArtifact(ledger.getCenter(), SlotLedger.Slot.CENTER);
-            artifacts.add(centerArtifact);
-        }
-
-        // Convert front
-        if (ledger.isOccupied(SlotLedger.Slot.FRONT)) {
-            frontArtifact = convertToArtifact(ledger.getFront(), SlotLedger.Slot.FRONT);
-            artifacts.add(frontArtifact);
-        }
-
-        // Convert back
-        if (ledger.isOccupied(SlotLedger.Slot.BACK)) {
-            backArtifact = convertToArtifact(ledger.getBack(), SlotLedger.Slot.BACK);
-            artifacts.add(backArtifact);
-        }
-
-        return artifacts;
-    }
-
-    /**
-     * Convert ArtifactIdentity → Artifact
-     */
-    private Artifact convertToArtifact(ArtifactIdentity identity, SlotLedger.Slot slot) {
-        // Convert color class
-        Artifact.Color color;
-        switch (identity.getColorClass()) {
-            case PURPLE:
-                color = Artifact.Color.PURPLE;
-                break;
-            case GREEN:
-                color = Artifact.Color.GREEN;
-                break;
-            default:
-                color = Artifact.Color.UNKNOWN;
-                break;
-        }
-
-        // Convert location
-        Artifact.Location location;
-        switch (slot) {
-            case CENTER:
-                location = Artifact.Location.CENTER_STORAGE;
-                break;
-            case FRONT:
-                location = Artifact.Location.FRONT_INTAKE;
-                break;
-            case BACK:
-                location = Artifact.Location.BACK_INTAKE;
-                break;
-            default:
-                location = Artifact.Location.UNKNOWN;
-                break;
-        }
-
-        // Create artifact with Color, Location, and sequence ID (collectionOrder)
-        return new Artifact(color, location, identity.getSequenceId());
-    }
-
-    /**
-     * Check if two artifacts match (same sequence ID or color)
-     */
-    private boolean artifactsMatch(Artifact a, Artifact b) {
-        if (a == null || b == null) {
-            return false;
-        }
-
-        // Match by collection order (sequence ID) - most reliable
-        if (a.getCollectionOrder() == b.getCollectionOrder()) {
-            return true;
-        }
-
-        // Fallback: match by color if not unknown
-        if (a.getColor() != Artifact.Color.UNKNOWN && b.getColor() != Artifact.Color.UNKNOWN) {
-            return a.getColor() == b.getColor();
-        }
-
-        return false;
-    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // LOGGING HELPERS
