@@ -399,6 +399,14 @@ public class FireOperation extends BaseOperation {
     public boolean isKeepAliveEnabled() {
         return keepAlive;
     }
+    
+    /**
+     * Check if operation was cancelled before shot fired (for telemetry).
+     * @return true if cancelled before shot, false otherwise
+     */
+    public boolean wasCancelledBeforeShot() {
+        return wasCancelledBeforeShot;
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // TELEMETRY

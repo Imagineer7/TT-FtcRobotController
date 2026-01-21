@@ -82,6 +82,13 @@ public class IndexingSystemV3 {
     private long lastOperationCompleteTime;
     private int consecutiveShotsFired;
     
+    // Artifact tracking
+    private int nextSequenceId;
+    
+    // Operation tracking
+    private IndexingOperation lastCompletedOperation;
+    private boolean wasRunnerBusyLastUpdate;
+    
     // Statistics
     private int totalCollections;
     private int totalTransfers;
@@ -124,34 +131,32 @@ public class IndexingSystemV3 {
         
         // Initialize helpers (new API - no config, no enable/disable)
         this.indexingHelper = new BasicIndexingHelper(hardware, telemetry);
-        this.firingHelper = new BasicFiringHelper(hardware, telemetry, indexingHelper, shooter);
+        this.firingHelper = new BasicFiringHelper(shooter, indexingHelper, hardware, telemetry);
         
         // Initialize shot planning
-        ShotPlanner planner = new ShotPlanner(telemetry);
+        ShotPlanner planner = new ShotPlanner();
         this.shotPlanner = new ShotPlanningCoordinator(planner, telemetry);
         
         // Initialize watchdog
         this.watchdog = new KeepAliveWatchdog(firingHelper, telemetry);
         
-        // Initialize perception
+        // Initialize perception (IntakeSide enum, sensors, config)
         this.frontPerception = new IntakePerception(
+            IntakePerception.IntakeSide.FRONT,
             hardware.getFrontDistanceSensor(),
             hardware.getFrontLeftDistanceSensor(),
             hardware.getFrontLeftColorSensor(),
             hardware.getFrontRightColorSensor(),
-            config,
-            telemetry,
-            "FRONT"
+            config
         );
         
         this.backPerception = new IntakePerception(
+            IntakePerception.IntakeSide.BACK,
             hardware.getBackDistanceSensor(),
             hardware.getBackRightDistanceSensor(),
             hardware.getBackRightColorSensor(),
             hardware.getLeftRightColorSensor(),
-            config,
-            telemetry,
-            "BACK"
+            config
         );
         
         // Initialize state
@@ -161,6 +166,9 @@ public class IndexingSystemV3 {
         this.burstFiringActive = false;
         this.lastOperationCompleteTime = System.currentTimeMillis();
         this.consecutiveShotsFired = 0;
+        this.nextSequenceId = 1;
+        this.lastCompletedOperation = null;
+        this.wasRunnerBusyLastUpdate = false;
         
         telemetry.addData("IndexingSystemV3", "Initialized");
         telemetry.update();
@@ -181,7 +189,7 @@ public class IndexingSystemV3 {
         enabled = false;
         // Cancel any running operation
         if (runner.isBusy()) {
-            runner.forceCancel();
+            runner.cancel();
         }
         // Stop shooter if spinning
         if (firingHelper.isFiring() || firingHelper.isReadyForNextShot()) {
@@ -211,14 +219,20 @@ public class IndexingSystemV3 {
         boolean triggerPressed = gamepad1.right_trigger > 0.1;
         watchdog.update(triggerPressed, runner.isBusy(), manualModeActive);
         
+        // Capture current operation before update (for completion handling)
+        boolean isBusyNow = runner.isBusy();
+        if (isBusyNow) {
+            lastCompletedOperation = runner.getCurrentOperation();
+        }
+        
         // Update operation runner (automatic lifecycle management)
         runner.update();
         
-        // Handle operation completion
-        if (!runner.isBusy() && lastOperationCompleteTime != runner.getOperationCount()) {
+        // Handle operation completion (detect transition from busy to idle)
+        if (wasRunnerBusyLastUpdate && !runner.isBusy()) {
             handleOperationComplete();
-            lastOperationCompleteTime = runner.getOperationCount();
         }
+        wasRunnerBusyLastUpdate = runner.isBusy();
         
         // Update shot planner
         shotPlanner.update(ledger, manualModeActive);
@@ -276,7 +290,7 @@ public class IndexingSystemV3 {
      * Handle operation completion.
      */
     private void handleOperationComplete() {
-        IndexingOperation lastOp = runner.getLastCompletedOperation();
+        IndexingOperation lastOp = lastCompletedOperation;
         if (lastOp == null) return;
         
         // Update statistics
@@ -288,7 +302,7 @@ public class IndexingSystemV3 {
             totalSwaps++;
         } else if (lastOp instanceof FireOperation) {
             FireOperation fireOp = (FireOperation) lastOp;
-            if (lastOp.isSuccess() && !fireOp.wasCancelledBeforeShot) {
+            if (lastOp.isSuccess() && !fireOp.wasCancelledBeforeShot()) {
                 totalShots++;
                 consecutiveShotsFired++;
                 
@@ -296,7 +310,7 @@ public class IndexingSystemV3 {
                 if (burstFiringActive && shouldContinueBurst()) {
                     queueNextShotInBurst();
                 }
-            } else if (fireOp.wasCancelledBeforeShot) {
+            } else if (fireOp.wasCancelledBeforeShot()) {
                 // Cancelled before shot - end burst
                 burstFiringActive = false;
                 firingHelper.cancelFiring();
@@ -329,7 +343,7 @@ public class IndexingSystemV3 {
             // Idle or ready
             if (ledger.isCenterOccupied() && shooter.isReadyToFire()) {
                 currentState = SystemState.READY_TO_FIRE;
-            } else if (ledger.getCount() > 0) {
+            } else if (ledger.getArtifactCount() > 0) {
                 currentState = SystemState.IDLE;  // Has artifacts but not ready
             } else {
                 currentState = SystemState.IDLE;
@@ -350,7 +364,7 @@ public class IndexingSystemV3 {
         }
         
         // Auto-rearrange if shot planner detects benefit
-        if (shotPlanner.isRearrangementNeeded() && ledger.getCount() == 2) {
+        if (shotPlanner.isRearrangementNeeded() && ledger.getArtifactCount() == 2) {
             SlotLedger.Slot swapSlot = shotPlanner.getRearrangementSlot();
             if (swapSlot != null) {
                 requestSwap(swapSlot);
@@ -373,7 +387,7 @@ public class IndexingSystemV3 {
         IntakePerception perception = (slot == SlotLedger.Slot.FRONT) ? frontPerception : backPerception;
         
         CollectOperation op = new CollectOperation(
-            ledger, slot, indexingHelper, perception, config, telemetry
+            ledger, perception, indexingHelper, config, slot, nextSequenceId++, telemetry
         );
         
         return runner.start(op);
@@ -392,7 +406,7 @@ public class IndexingSystemV3 {
         IntakePerception perception = (slot == SlotLedger.Slot.FRONT) ? frontPerception : backPerception;
         
         TransferOperation op = new TransferOperation(
-            ledger, slot, indexingHelper, perception, config, telemetry
+            ledger, perception, indexingHelper, config, slot, telemetry
         );
         
         return runner.start(op);
@@ -409,7 +423,7 @@ public class IndexingSystemV3 {
         if (intakeSlot == SlotLedger.Slot.CENTER) return false;  // Invalid slot
         
         SwapOperation op = new SwapOperation(
-            ledger, intakeSlot, indexingHelper, config, telemetry
+            ledger, indexingHelper, config, intakeSlot, telemetry
         );
         
         return runner.start(op);
@@ -424,7 +438,7 @@ public class IndexingSystemV3 {
         if (!enabled) return false;
         
         PrepositionOperation op = new PrepositionOperation(
-            ledger, indexingHelper, telemetry
+            ledger, indexingHelper, false, telemetry  // false = not yet prepositioned
         );
         
         return runner.start(op);
@@ -489,7 +503,7 @@ public class IndexingSystemV3 {
         if (!enabled) return false;
         
         EjectOperation op = new EjectOperation(
-            ledger, indexingHelper, firingHelper, shooter, mode, telemetry
+            ledger, firingHelper, indexingHelper, mode, telemetry
         );
         
         boolean started = runner.start(op);
@@ -580,7 +594,7 @@ public class IndexingSystemV3 {
     public boolean isBurstFiring() { return burstFiringActive; }
     public SystemState getCurrentState() { return currentState; }
     public SlotLedger getLedger() { return ledger; }
-    public int getArtifactCount() { return ledger.getCount(); }
+    public int getArtifactCount() { return ledger.getArtifactCount(); }
     public boolean hasArtifactInCenter() { return ledger.isCenterOccupied(); }
     public boolean isReadyToFire() { return currentState == SystemState.READY_TO_FIRE; }
     
@@ -606,7 +620,7 @@ public class IndexingSystemV3 {
         
         // Slot ledger
         telemetry.addLine("--- Slot Ledger ---");
-        telemetry.addData("Count", ledger.getCount() + "/3");
+        telemetry.addData("Count", ledger.getArtifactCount() + "/3");
         telemetry.addData("CENTER", ledger.isCenterOccupied() ? 
             ledger.getCenter().getColorClass() + " (" + String.format("%.0f%%", ledger.getCenter().getColorConfidence() * 100) + ")" : "EMPTY");
         telemetry.addData("FRONT", ledger.isFrontOccupied() ? 
@@ -619,7 +633,8 @@ public class IndexingSystemV3 {
         telemetry.addLine("--- Operations ---");
         if (runner.isBusy()) {
             telemetry.addData("Current", runner.getCurrentOperationName());
-            telemetry.addData("Progress", String.format("%.0f%%", runner.getCurrentOperation().getProgressPercent()));
+            // Note: getProgressPercent() not available in BaseOperation
+            // telemetry.addData("Progress", String.format("%.0f%%", runner.getCurrentOperation().getProgressPercent()));
         } else {
             telemetry.addData("Current", "IDLE");
         }
