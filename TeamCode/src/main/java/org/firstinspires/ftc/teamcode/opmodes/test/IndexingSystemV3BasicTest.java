@@ -230,40 +230,47 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     }
     
     private void handleFire() {
-        // Hold-to-fire behavior with automatic spinup and keep-alive
+        // Hold-to-fire behavior using FiringHelper's built-in keep-alive mode
+        // FiringHelper automatically handles spinup, firing, and keeping shooter alive
         boolean fireButtonHeld = gamepad1.left_bumper;
+        
+        // Update button state for FiringHelper to track
+        indexing.setFiringButtonHeld(fireButtonHeld);
         
         if (fireButtonHeld) {
             // Button is being held
             if (!isFiring) {
                 // Just pressed - start firing sequence
-                // Check if we have an artifact to fire
+                // FiringHelper will handle spinup automatically when we call startFiring()
                 if (!indexing.getLedger().isCenterOccupied()) {
                     telemetry.addLine("❌ Cannot fire: CENTER empty");
                 } else {
-                    // Start spinup through IndexingSystemV3 API
-                    telemetry.addLine("🔥 Spinning up shooter...");
-                    indexing.startShooterSpinup();  // ✅ Use IndexingSystemV3 API
-                    isFiring = true;
+                    telemetry.addLine("🔥 Starting firing sequence...");
+                    // startFiring() handles spinup automatically and fires the first shot
+                    // Keep-alive mode enabled - shooter stays spinning for rapid follow-up shots
+                    // Use LONG_RANGE preset (2800 RPM)
+                    boolean started = indexing.requestFire(ShooterConfig.ShooterPreset.LONG_RANGE.getTargetRPM());
+                    if (started) {
+                        isFiring = true;
+                    } else {
+                        telemetry.addLine("❌ Could not start firing");
+                    }
                 }
             } else {
-                // Button still held - check if shooter ready and fire if not already firing
-                if (indexing.isShooterReady()) {  // ✅ Use IndexingSystemV3 API
-                    // Shooter ready - try to start burst firing with keep-alive
-                    // Use requestBurstFire with callback that checks if button still held
-                    if (!indexing.isBurstFiring()) {
-                        // Not currently burst firing - start it
-                        boolean started = indexing.requestBurstFire(() -> gamepad1.left_bumper);
-                        if (started) {
-                            telemetry.addLine("🔥 Firing! (keep-alive mode)");
-                        } else {
-                            // Could not start firing (probably no artifact in center)
-                            telemetry.addLine("⏳ Waiting for artifact transfer...");
-                        }
+                // Button still held - check if ready for next shot and fire it
+                if (indexing.isReadyForNextShot()) {
+                    // Shooter is spun up and ready for another shot
+                    // Check if we have an artifact ready to fire
+                    if (indexing.getLedger().isCenterOccupied()) {
+                        telemetry.addLine("🔥 Firing next shot...");
+                        // Fire the next shot (FiringHelper keeps shooter spinning)
+                        indexing.fireNextShot();
+                    } else {
+                        telemetry.addLine("⏳ Waiting for next artifact transfer...");
                     }
                 } else {
-                    // Still spinning up - show progress using IndexingSystemV3 API
-                    telemetry.addLine("⏳ Spinning up... " + 
+                    // Still processing previous shot or spinning up
+                    telemetry.addLine("⏳ Processing... " + 
                         String.format("%.0f", indexing.getShooterCurrentRPM()) + " / " + 
                         String.format("%.0f", indexing.getShooterTargetRPM()) + " RPM");
                 }
@@ -272,15 +279,9 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             // Button released
             if (isFiring) {
                 // Was firing, now stop
-                telemetry.addLine("🛑 Stopping shooter & cancelling...");
-                indexing.stopShooter();  // ✅ Use IndexingSystemV3 API
-                
-                // Cancel any active burst firing
-                // Note: Operations in progress (transfers) will complete
-                if (indexing.isBurstFiring()) {
-                    indexing.cancelBurstFiring();
-                }
-                
+                telemetry.addLine("🛑 Button released - stopping shooter");
+                // Cancel firing through FiringHelper (stops shooter, completes any transfers)
+                indexing.cancelBurstFiring();
                 isFiring = false;
             }
         }

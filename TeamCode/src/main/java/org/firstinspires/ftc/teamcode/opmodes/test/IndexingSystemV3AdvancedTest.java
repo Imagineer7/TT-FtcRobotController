@@ -302,17 +302,9 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
     }
     
     private void handleShooterControl() {
-        // DPAD UP - Spin up
-        if (gamepad2.dpad_up && !lastDpadUp2) {
-            indexing.startShooterSpinup();  // ✅ Use IndexingSystemV3 API
-            telemetry.addLine("🎯 Shooter spinning up");
-        }
-        
-        // DPAD DOWN - Stop
-        if (gamepad2.dpad_down && !lastDpadDown2) {
-            indexing.stopShooter();  // ✅ Use IndexingSystemV3 API
-            telemetry.addLine("⏹️ Shooter stopped");
-        }
+        // Shooter control is now handled by FiringHelper automatically
+        // Use the firing buttons (left bumper/right bumper) instead
+        // Removed manual spinup/stop controls as FiringHelper manages shooter lifecycle
     }
     
     private void handleTestScenarios() {
