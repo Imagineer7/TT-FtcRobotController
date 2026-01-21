@@ -251,6 +251,8 @@ public class IndexingSystemV3 {
     private void updatePerception() {
         // Don't update perception if operation is running (operation controls rollers)
         if (runner.isBusy()) {
+            // Stop hunt-mode transfer servos when operations take control
+            stopHuntingTransferServos();
             return;
         }
         
@@ -262,6 +264,67 @@ public class IndexingSystemV3 {
         // Update back intake perception if eligible to hunt
         if (isIntakeHuntEligible(SlotLedger.Slot.BACK)) {
             backPerception.update();
+        }
+        
+        // Run transfer servos in reverse for hunt-eligible intakes
+        // This creates a "jiggling" effect that rotates artifacts slightly
+        // Helps prevent sensor blind spots from holes in artifacts
+        updateHuntingTransferServos();
+    }
+    
+    /**
+     * Control transfer servos for hunt mode.
+     * 
+     * When hunt-eligible (waiting to collect), run transfer servos in reverse.
+     * This creates a back-and-forth motion with the roller that rotates the artifact slightly,
+     * helping prevent holes in the artifact from lining up with sensors (blind spots).
+     * 
+     * Reverse power means the servo pushes artifact away from center (eject direction).
+     * Combined with forward roller motion, this creates a "jiggling" effect.
+     * 
+     * IMPORTANT: Only applies hunt-mode power when no timed movement is active.
+     * Operations use timed movements for transfers, and we must not interfere.
+     */
+    private void updateHuntingTransferServos() {
+        // Power for reverse motion (negative = eject direction)
+        // Lower value (-0.3 to -0.4) creates gentle jiggling without ejecting artifact
+        final double HUNT_TRANSFER_REVERSE_POWER = -0.35;
+        
+        // Front intake: run transfer servo in reverse if hunt-eligible
+        // BUT: Don't interfere if operation has active timed movement
+        if (isIntakeHuntEligible(SlotLedger.Slot.FRONT) && !indexingHelper.isFrontTransferBusy()) {
+            indexingHelper.setFrontTransferPower(HUNT_TRANSFER_REVERSE_POWER);
+        } else if (!indexingHelper.isFrontTransferBusy()) {
+            // Not hunt-eligible and no operation: stop transfer servo
+            // (If operation is busy, let it control the servo)
+            indexingHelper.setFrontTransferPower(0);
+        }
+        
+        // Back intake: run transfer servo in reverse if hunt-eligible
+        // BUT: Don't interfere if operation has active timed movement
+        if (isIntakeHuntEligible(SlotLedger.Slot.BACK) && !indexingHelper.isBackTransferBusy()) {
+            indexingHelper.setBackTransferPower(HUNT_TRANSFER_REVERSE_POWER);
+        } else if (!indexingHelper.isBackTransferBusy()) {
+            // Not hunt-eligible and no operation: stop transfer servo
+            // (If operation is busy, let it control the servo)
+            indexingHelper.setBackTransferPower(0);
+        }
+    }
+    
+    /**
+     * Stop hunt-mode transfer servos.
+     * Called when operations take control of servos.
+     * 
+     * Only stops servos if they don't have active timed movements.
+     * Operations use timed movements, so we respect those.
+     */
+    private void stopHuntingTransferServos() {
+        // Only stop if no timed movement is active
+        if (!indexingHelper.isFrontTransferBusy()) {
+            indexingHelper.setFrontTransferPower(0);
+        }
+        if (!indexingHelper.isBackTransferBusy()) {
+            indexingHelper.setBackTransferPower(0);
         }
     }
     
