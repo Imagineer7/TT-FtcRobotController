@@ -468,6 +468,19 @@ public class IndexingSystemV3 {
         } else if (lastOp instanceof TransferOperation) {
             totalTransfers++;
             System.out.println("[IndexingV3] Transfer completed");
+            
+            // CRITICAL: Reset perception for the source intake to prevent false detections
+            // After an artifact physically moves away, sensors may still show presence briefly
+            // Resetting clears stale sensor data and prevents immediate false re-collection
+            String opName = lastOp.getOperationName();
+            if (opName.contains("FRONT")) {
+                frontPerception.reset();
+                System.out.println("[IndexingV3] Reset FRONT perception after transfer");
+            } else if (opName.contains("BACK")) {
+                backPerception.reset();
+                System.out.println("[IndexingV3] Reset BACK perception after transfer");
+            }
+            
         } else if (lastOp instanceof SwapOperation) {
             totalSwaps++;
             System.out.println("[IndexingV3] Swap completed");

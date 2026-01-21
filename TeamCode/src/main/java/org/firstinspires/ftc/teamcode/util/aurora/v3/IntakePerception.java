@@ -651,6 +651,47 @@ public class IntakePerception {
     public boolean isForcedDetectionActive() {
         return forcedDetectionActive;
     }
+    
+    /**
+     * Reset perception state to clear stale sensor data.
+     * 
+     * This should be called after operations that physically move artifacts away from the intake
+     * (e.g., after a successful transfer operation) to prevent false detections from lingering
+     * sensor signals.
+     * 
+     * Resets:
+     * - Presence flags (fast, stable)
+     * - Raw sensor hints (frontBlocked, mouthOccupied, color sensors)
+     * - Debounce timing
+     * - Forced detection state
+     * 
+     * Does NOT reset:
+     * - Calibration data (REV baseline)
+     * - Configuration
+     */
+    public void reset() {
+        // Clear all presence flags
+        fastPresence = false;
+        stablePresence = false;
+        lastRawHint = false;
+        
+        // Reset debounce timing
+        lastRawHintChangeTime = System.currentTimeMillis();
+        
+        // Clear raw sensor hints
+        frontBlocked = false;
+        mouthOccupied = false;
+        colorSeesArtifact_outward = false;
+        colorSeesArtifact_mouth = false;
+        revSensorHysteresisState = false;
+        
+        // Clear forced detection
+        forcedDetectionActive = false;
+        forcedColor = ArtifactIdentity.ColorClass.UNKNOWN;
+        
+        // Note: Baseline calibration is preserved
+        // Note: samplingEnabled state is preserved (operations control this)
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // CALIBRATION
