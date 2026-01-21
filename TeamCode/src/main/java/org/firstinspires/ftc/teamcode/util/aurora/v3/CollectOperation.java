@@ -150,11 +150,20 @@ public class CollectOperation extends BaseOperation {
                 // Enable color sampling
                 perception.enableColorSampling();
                 
-                // CRITICAL: Must call update() to actually sample sensors and compute color
-                // Without this, getBestColorClass() returns stale/uninitialized color (UNKNOWN)
+                // CRITICAL: Color sensors need time to get accurate readings
+                // REV color sensors have latency - give them time to capture fresh data
+                // Without this delay, sensors return stale/inaccurate readings (UNKNOWN)
+                try {
+                    Thread.sleep(100);  // 100ms for sensors to stabilize
+                    System.out.println("[CollectOp] Waited 100ms for color sensors to stabilize");
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                
+                // Now call update() to read the fresh sensor data
                 perception.update();
                 
-                // Now get the freshly sampled color
+                // Get the freshly sampled color
                 ArtifactIdentity.ColorClass color = perception.getBestColorClass();
                 double confidence = perception.getBestColorConfidence();
                 
@@ -200,6 +209,16 @@ public class CollectOperation extends BaseOperation {
                 // Edge case: hardware finished before color delay
                 // Sample color now
                 perception.enableColorSampling();
+                
+                // Give sensors time to get fresh readings
+                try {
+                    Thread.sleep(100);  // 100ms for sensors to stabilize
+                    System.out.println("[CollectOp] (Edge case) Waited 100ms for color sensors");
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                
+                perception.update();  // Read fresh sensor data
                 ArtifactIdentity.ColorClass color = perception.getBestColorClass();
                 double confidence = perception.getBestColorConfidence();
                 perception.disableColorSampling();
