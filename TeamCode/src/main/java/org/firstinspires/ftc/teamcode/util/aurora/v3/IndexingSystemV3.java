@@ -261,29 +261,28 @@ public class IndexingSystemV3 {
      * Note: Perception is always skipped during operations (rollers controlled by operations).
      */
     private void updatePerception() {
-        // Don't update perception if operation is running (operation controls rollers)
+        // CRITICAL FIX: Always update perception for color sampling during operations
+        // Operations need perception to read color sensors at checkpoints
+        // Even when operations are running, perception must continue to update
+        // so that color sampling (when enabled) can collect fresh sensor readings
+        
+        // Always update perception - needed for color sampling during operations
+        frontPerception.update();
+        backPerception.update();
+        
+        // During operations: skip hunt-mode hardware control (operation has control)
         if (runner.isBusy()) {
             // Stop hunt-mode hardware when operations take control
             stopHuntingTransferServos();
             stopHuntingRollers();
-            return;
+            return;  // Skip hunt-mode updates below
         }
         
-        // Update front intake perception if eligible to hunt
-        if (isIntakeHuntEligible(SlotLedger.Slot.FRONT)) {
-            frontPerception.update();
-        }
-        
-        // Update back intake perception if eligible to hunt
-        if (isIntakeHuntEligible(SlotLedger.Slot.BACK)) {
-            backPerception.update();
-        }
-        
-        // Run intake rollers for hunt-eligible intakes
+        // Hunt mode: Run intake rollers for hunt-eligible intakes
         // This allows artifacts to be pulled in during hunt mode
         updateHuntingRollers();
         
-        // Run transfer servos in reverse for hunt-eligible intakes
+        // Hunt mode: Run transfer servos in reverse for hunt-eligible intakes
         // This creates a "jiggling" effect that rotates artifacts slightly
         // Helps prevent sensor blind spots from holes in artifacts
         updateHuntingTransferServos();
