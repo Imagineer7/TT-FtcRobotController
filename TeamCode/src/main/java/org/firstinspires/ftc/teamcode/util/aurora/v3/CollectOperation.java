@@ -150,20 +150,24 @@ public class CollectOperation extends BaseOperation {
                 // Enable color sampling
                 perception.enableColorSampling();
                 
-                // CRITICAL: Color sensors need time to get accurate readings
-                // REV color sensors have latency - give them time to capture fresh data
-                // Without this delay, sensors return stale/inaccurate readings (UNKNOWN)
-                try {
-                    Thread.sleep(100);  // 100ms for sensors to stabilize
-                    System.out.println("[CollectOp] Waited 100ms for color sensors to stabilize");
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                // CRITICAL: Color sensors need multiple samples to average for accurate readings
+                // REV color sensors require continuous sampling over time - call update() repeatedly
+                // to allow IntakePerception to collect and average multiple readings
+                long samplingStartTime = System.currentTimeMillis();
+                int sampleCount = 0;
+                while (System.currentTimeMillis() - samplingStartTime < 100) {  // Sample for 100ms
+                    perception.update();  // Continuously sample sensors
+                    sampleCount++;
+                    try {
+                        Thread.sleep(10);  // 10ms between samples (allows ~10 samples)
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
                 }
+                System.out.println("[CollectOp] Collected " + sampleCount + " color samples over 100ms");
                 
-                // Now call update() to read the fresh sensor data
-                perception.update();
-                
-                // Get the freshly sampled color
+                // Get the averaged/best color from multiple samples
                 ArtifactIdentity.ColorClass color = perception.getBestColorClass();
                 double confidence = perception.getBestColorConfidence();
                 
@@ -207,18 +211,24 @@ public class CollectOperation extends BaseOperation {
                 System.out.println("[CollectOp] WARNING: Hardware completed before color delay!");
                 
                 // Edge case: hardware finished before color delay
-                // Sample color now
+                // Sample color now with continuous sampling
                 perception.enableColorSampling();
                 
-                // Give sensors time to get fresh readings
-                try {
-                    Thread.sleep(100);  // 100ms for sensors to stabilize
-                    System.out.println("[CollectOp] (Edge case) Waited 100ms for color sensors");
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                // Continuously sample sensors to collect multiple readings
+                long samplingStartTime = System.currentTimeMillis();
+                int sampleCount = 0;
+                while (System.currentTimeMillis() - samplingStartTime < 100) {  // Sample for 100ms
+                    perception.update();  // Continuously sample sensors
+                    sampleCount++;
+                    try {
+                        Thread.sleep(10);  // 10ms between samples
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
                 }
+                System.out.println("[CollectOp] (Edge case) Collected " + sampleCount + " color samples");
                 
-                perception.update();  // Read fresh sensor data
                 ArtifactIdentity.ColorClass color = perception.getBestColorClass();
                 double confidence = perception.getBestColorConfidence();
                 perception.disableColorSampling();
