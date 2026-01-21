@@ -251,8 +251,9 @@ public class IndexingSystemV3 {
     private void updatePerception() {
         // Don't update perception if operation is running (operation controls rollers)
         if (runner.isBusy()) {
-            // Stop hunt-mode transfer servos when operations take control
+            // Stop hunt-mode hardware when operations take control
             stopHuntingTransferServos();
+            stopHuntingRollers();
             return;
         }
         
@@ -266,10 +267,59 @@ public class IndexingSystemV3 {
             backPerception.update();
         }
         
+        // Run intake rollers for hunt-eligible intakes
+        // This allows artifacts to be pulled in during hunt mode
+        updateHuntingRollers();
+        
         // Run transfer servos in reverse for hunt-eligible intakes
         // This creates a "jiggling" effect that rotates artifacts slightly
         // Helps prevent sensor blind spots from holes in artifacts
         updateHuntingTransferServos();
+    }
+    
+    /**
+     * Control intake rollers during hunt mode.
+     * Hunt-eligible intakes run rollers at collect power.
+     * Non-hunt-eligible intakes stop rollers (unless holding artifact).
+     */
+    private void updateHuntingRollers() {
+        // Front intake roller control
+        if (isIntakeHuntEligible(SlotLedger.Slot.FRONT)) {
+            // Hunt-eligible: run roller at collect power
+            indexingHelper.setFrontRollerPower(config.getIntakeRollerPower());
+        } else if (ledger.isOccupied(SlotLedger.Slot.FRONT)) {
+            // Storage intake: run at hold power to retain artifact
+            indexingHelper.setFrontRollerPower(config.getIntakeStoragePower());
+        } else {
+            // Not hunt-eligible and empty: stop roller
+            indexingHelper.setFrontRollerPower(0);
+        }
+        
+        // Back intake roller control
+        if (isIntakeHuntEligible(SlotLedger.Slot.BACK)) {
+            // Hunt-eligible: run roller at collect power
+            indexingHelper.setBackRollerPower(config.getIntakeRollerPower());
+        } else if (ledger.isOccupied(SlotLedger.Slot.BACK)) {
+            // Storage intake: run at hold power to retain artifact
+            indexingHelper.setBackRollerPower(config.getIntakeStoragePower());
+        } else {
+            // Not hunt-eligible and empty: stop roller
+            indexingHelper.setBackRollerPower(0);
+        }
+    }
+    
+    /**
+     * Stop hunt-mode rollers.
+     * Called when operations take control.
+     */
+    private void stopHuntingRollers() {
+        // Only stop if not busy with timed movements
+        if (!indexingHelper.isFrontRollerBusy()) {
+            indexingHelper.setFrontRollerPower(0);
+        }
+        if (!indexingHelper.isBackRollerBusy()) {
+            indexingHelper.setBackRollerPower(0);
+        }
     }
     
     /**
@@ -837,49 +887,80 @@ public class IndexingSystemV3 {
     // ========== Telemetry ==========
     
     /**
-     * Add telemetry display.
+     * Add telemetry display with paged output.
+     * Provides detailed information about system state, sensors, operations, etc.
+     * 
+     * Usage in OpMode:
+     * - Call indexing.addTelemetry() at end of loop
+     * - Telemetry from IndexingSystemV3 will appear BEFORE OpMode telemetry (display order)
      */
     public void addTelemetry() {
-        telemetry.addLine("========== INDEXING V3 ==========");
+        // === PAGE 1: OVERVIEW ===
+        telemetry.addLine("========== INDEXING V3 (Page 1/3) ==========");
         telemetry.addData("State", currentState);
         telemetry.addData("Enabled", enabled ? "✓" : "✗");
-        telemetry.addData("Hunt Mode", huntEnabled ? "🔍 ON (Active)" : "💤 OFF (Sleep)");
-        telemetry.addData("Manual Mode", manualModeActive ? "⚠️ ACTIVE" : "Auto");
+        telemetry.addData("Hunt Mode", huntEnabled ? "🔍 ON" : "💤 OFF");
+        telemetry.addData("Manual Mode", manualModeActive ? "⚠️ YES" : "No");
         telemetry.addData("Burst Firing", burstFiringActive ? "🔥 YES (" + consecutiveShotsFired + ")" : "No");
         telemetry.addLine();
         
         // Slot ledger
-        telemetry.addLine("--- Slot Ledger ---");
-        telemetry.addData("Count", ledger.getArtifactCount() + "/3");
+        telemetry.addLine("--- Slot Ledger ("+ledger.getArtifactCount()+"/3) ---");
         telemetry.addData("CENTER", ledger.isCenterOccupied() ? 
-            ledger.getCenter().getColorClass() + " (" + String.format("%.0f%%", ledger.getCenter().getColorConfidence() * 100) + ")" : "EMPTY");
+            ledger.getCenter().getColorClass() + " " + String.format("%.0f%%", ledger.getCenter().getColorConfidence() * 100) : "EMPTY");
         telemetry.addData("FRONT", ledger.isFrontOccupied() ? 
-            ledger.getFront().getColorClass() + " (" + String.format("%.0f%%", ledger.getFront().getColorConfidence() * 100) + ")" : "EMPTY");
+            ledger.getFront().getColorClass() + " " + String.format("%.0f%%", ledger.getFront().getColorConfidence() * 100) : "EMPTY");
         telemetry.addData("BACK", ledger.isBackOccupied() ? 
-            ledger.getBack().getColorClass() + " (" + String.format("%.0f%%", ledger.getBack().getColorConfidence() * 100) + ")" : "EMPTY");
+            ledger.getBack().getColorClass() + " " + String.format("%.0f%%", ledger.getBack().getColorConfidence() * 100) : "EMPTY");
         telemetry.addLine();
         
         // Operations
-        telemetry.addLine("--- Operations ---");
+        telemetry.addLine("--- Current Operation ---");
         if (runner.isBusy()) {
-            telemetry.addData("Current", runner.getCurrentOperationName());
-            // Note: getProgressPercent() not available in BaseOperation
-            // telemetry.addData("Progress", String.format("%.0f%%", runner.getCurrentOperation().getProgressPercent()));
+            telemetry.addData("Op", runner.getCurrentOperationName());
+            telemetry.addData("Status", runner.getCurrentOperation().getStatusMessage());
         } else {
-            telemetry.addData("Current", "IDLE");
+            telemetry.addData("Op", "IDLE");
         }
         telemetry.addData("Total Ops", runner.getOperationCount());
-        telemetry.addLine();
         
-        // Shot planner
+        // Shot planning
         if (shotPlanner.isRearrangementNeeded()) {
-            telemetry.addData("⚠️ REARRANGE", "Swap " + shotPlanner.getRearrangementSlot() + " ↔ CENTER");
+            telemetry.addLine();
+            telemetry.addData("⚠️ REARRANGE", shotPlanner.getRearrangementSlot() + " ↔ CENTER");
         }
         telemetry.addData("Shot Plan", shotPlanner.getShotPlanString());
         telemetry.addLine();
         
-        // Statistics
-        telemetry.addLine("--- Statistics ---");
+        //=== PAGE 2: SENSORS & PERCEPTION ===
+        telemetry.addLine("========== SENSORS (Page 2/3) ==========");
+        
+        // Front intake perception
+        telemetry.addLine("--- FRONT Intake ---");
+        telemetry.addData("Hunt Eligible", isIntakeHuntEligible(SlotLedger.Slot.FRONT) ? "✓ YES" : "✗ No");
+        telemetry.addData("Fast Presence", frontPerception.getFastPresence() ? "✓ DETECTED" : "✗ Empty");
+        telemetry.addData("Stable Presence", frontPerception.getStablePresence() ? "✓ DETECTED" : "✗ Empty");
+        telemetry.addData("Confidence", frontPerception.getPresenceConfidence());
+        telemetry.addData("Best Color", frontPerception.getBestColorClass() + " (" + 
+            String.format("%.0f%%", frontPerception.getBestColorConfidence() * 100) + ")");
+        telemetry.addData("Roller Busy", indexingHelper.isFrontRollerBusy() ? "✓ YES" : "No");
+        telemetry.addData("Transfer Busy", indexingHelper.isFrontTransferBusy() ? "✓ YES" : "No");
+        telemetry.addLine();
+        
+        // Back intake perception
+        telemetry.addLine("--- BACK Intake ---");
+        telemetry.addData("Hunt Eligible", isIntakeHuntEligible(SlotLedger.Slot.BACK) ? "✓ YES" : "✗ No");
+        telemetry.addData("Fast Presence", backPerception.getFastPresence() ? "✓ DETECTED" : "✗ Empty");
+        telemetry.addData("Stable Presence", backPerception.getStablePresence() ? "✓ DETECTED" : "✗ Empty");
+        telemetry.addData("Confidence", backPerception.getPresenceConfidence());
+        telemetry.addData("Best Color", backPerception.getBestColorClass() + " (" + 
+            String.format("%.0f%%", backPerception.getBestColorConfidence() * 100) + ")");
+        telemetry.addData("Roller Busy", indexingHelper.isBackRollerBusy() ? "✓ YES" : "No");
+        telemetry.addData("Transfer Busy", indexingHelper.isBackTransferBusy() ? "✓ YES" : "No");
+        telemetry.addLine();
+        
+        // === PAGE 3: STATISTICS & WATCHDOG ===
+        telemetry.addLine("========== STATS (Page 3/3) ==========");
         telemetry.addData("Collections", totalCollections);
         telemetry.addData("Transfers", totalTransfers);
         telemetry.addData("Swaps", totalSwaps);
@@ -887,7 +968,8 @@ public class IndexingSystemV3 {
         telemetry.addData("Ejections", totalEjections);
         telemetry.addLine();
         
-        // Watchdog
+        // Watchdog status
+        telemetry.addLine("--- KeepAlive Watchdog ---");
         watchdog.addTelemetry();
     }
 }
