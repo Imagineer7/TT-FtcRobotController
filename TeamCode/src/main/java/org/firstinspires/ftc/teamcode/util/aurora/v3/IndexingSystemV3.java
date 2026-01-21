@@ -92,6 +92,14 @@ public class IndexingSystemV3 {
     private int totalShots;
     private int totalEjections;
     
+    // Telemetry page switching (Issue 1)
+    private int telemetryPage = 0;  // 0, 1, or 2
+    
+    // Auto-collect cooldown (Issue 3)
+    private static final long AUTO_COLLECT_COOLDOWN_MS = 1000;  // 1 second
+    private long lastFrontAutoCollectTime = 0;
+    private long lastBackAutoCollectTime = 0;
+    
     /**
      * System states for high-level coordination.
      */
@@ -283,6 +291,11 @@ public class IndexingSystemV3 {
      * Non-hunt-eligible intakes stop rollers (unless holding artifact).
      */
     private void updateHuntingRollers() {
+        // Issue 2 Fix: Don't control hardware if operation is running
+        if (runner.isBusy()) {
+            return;  // Operations have exclusive control
+        }
+        
         // Front intake roller control
         if (isIntakeHuntEligible(SlotLedger.Slot.FRONT)) {
             // Hunt-eligible: run roller at collect power
@@ -336,6 +349,11 @@ public class IndexingSystemV3 {
      * Operations use timed movements for transfers, and we must not interfere.
      */
     private void updateHuntingTransferServos() {
+        // Issue 2 Fix: Don't control hardware if operation is running
+        if (runner.isBusy()) {
+            return;  // Operations have exclusive control
+        }
+        
         // Power for reverse motion (negative = eject direction)
         // Lower value (-0.3 to -0.4) creates gentle jiggling without ejecting artifact
         final double HUNT_TRANSFER_REVERSE_POWER = -0.35;
@@ -487,14 +505,23 @@ public class IndexingSystemV3 {
      * Perform automatic operations based on system state.
      */
     private void performAutomaticOperations() {
+        // Issue 3 Fix: Add cooldown to prevent repeated auto-collections
+        long currentTime = System.currentTimeMillis();
+        
         // Auto-collect ONLY if hunt mode enabled and intake eligible
         if (huntEnabled && isIntakeHuntEligible(SlotLedger.Slot.FRONT) && 
-            frontPerception.getFastPresence()) {
-            requestCollect(SlotLedger.Slot.FRONT);
+            frontPerception.getFastPresence() &&
+            (currentTime - lastFrontAutoCollectTime) >= AUTO_COLLECT_COOLDOWN_MS) {
+            if (requestCollect(SlotLedger.Slot.FRONT)) {
+                lastFrontAutoCollectTime = currentTime;
+            }
         }
         if (huntEnabled && isIntakeHuntEligible(SlotLedger.Slot.BACK) && 
-            backPerception.getFastPresence()) {
-            requestCollect(SlotLedger.Slot.BACK);
+            backPerception.getFastPresence() &&
+            (currentTime - lastBackAutoCollectTime) >= AUTO_COLLECT_COOLDOWN_MS) {
+            if (requestCollect(SlotLedger.Slot.BACK)) {
+                lastBackAutoCollectTime = currentTime;
+            }
         }
         
         // Auto-rearrange if shot planner detects benefit
@@ -842,6 +869,12 @@ public class IndexingSystemV3 {
     public int getTotalShots() { return totalShots; }
     public int getTotalEjections() { return totalEjections; }
     
+    // Telemetry page control (Issue 1)
+    public int getTelemetryPage() { return telemetryPage; }
+    public void nextTelemetryPage() { 
+        telemetryPage = (telemetryPage + 1) % 3;  // Cycle 0->1->2->0
+    }
+    
     // ========== Public API - State Setters (OpMode-Controlled) ==========
     
     /**
@@ -895,7 +928,24 @@ public class IndexingSystemV3 {
      * - Telemetry from IndexingSystemV3 will appear BEFORE OpMode telemetry (display order)
      */
     public void addTelemetry() {
-        // === PAGE 1: OVERVIEW ===
+        // Issue 1 Fix: Implement actual page switching
+        switch (telemetryPage) {
+            case 0:
+                addTelemetryPage1();
+                break;
+            case 1:
+                addTelemetryPage2();
+                break;
+            case 2:
+                addTelemetryPage3();
+                break;
+        }
+    }
+    
+    /**
+     * Telemetry Page 1: Overview - System state, slot ledger, operations, shot planning
+     */
+    private void addTelemetryPage1() {
         telemetry.addLine("========== INDEXING V3 (Page 1/3) ==========");
         telemetry.addData("State", currentState);
         telemetry.addData("Enabled", enabled ? "✓" : "✗");
@@ -931,8 +981,12 @@ public class IndexingSystemV3 {
         }
         telemetry.addData("Shot Plan", shotPlanner.getShotPlanString());
         telemetry.addLine();
-        
-        //=== PAGE 2: SENSORS & PERCEPTION ===
+    }
+    
+    /**
+     * Telemetry Page 2: Sensors & Perception - Intake status, sensor data, hardware state
+     */
+    private void addTelemetryPage2() {
         telemetry.addLine("========== SENSORS (Page 2/3) ==========");
         
         // Front intake perception
@@ -958,8 +1012,12 @@ public class IndexingSystemV3 {
         telemetry.addData("Roller Busy", indexingHelper.isBackRollerBusy() ? "✓ YES" : "No");
         telemetry.addData("Transfer Busy", indexingHelper.isBackTransferBusy() ? "✓ YES" : "No");
         telemetry.addLine();
-        
-        // === PAGE 3: STATISTICS & WATCHDOG ===
+    }
+    
+    /**
+     * Telemetry Page 3: Statistics & Watchdog - Counters, operation history, safety status
+     */
+    private void addTelemetryPage3() {
         telemetry.addLine("========== STATS (Page 3/3) ==========");
         telemetry.addData("Collections", totalCollections);
         telemetry.addData("Transfers", totalTransfers);
