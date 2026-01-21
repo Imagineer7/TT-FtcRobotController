@@ -215,6 +215,10 @@ public class IndexingSystemV3 {
         // Update perception (sensor fusion) - only for hunt-eligible intakes
         updatePerception();
         
+        // CRITICAL: Update indexing helper to process timed movements
+        // This clears the busy flags when timed movements complete
+        indexingHelper.update();
+        
         // Update watchdog (automatic safety enforcement)
         // Note: OpMode must call setWatchdogTriggerState() to update trigger state
         watchdog.update(false, runner.isBusy(), manualModeActive);
