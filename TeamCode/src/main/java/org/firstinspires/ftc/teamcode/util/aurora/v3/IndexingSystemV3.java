@@ -1144,10 +1144,16 @@ public class IndexingSystemV3 {
      * 
      * This is used for subsequent shots after the first one in keep-alive mode.
      * 
+     * CRITICAL: This creates a FireOperation to properly update the ledger after firing.
+     * Direct firingHelper.fireShot() bypasses ledger updates!
+     * 
      * @return true if shot started, false if not ready
      */
     public boolean fireNextShot() {
-        return firingHelper.fireShot();
+        // Must create a FireOperation to track shot and update ledger
+        // Direct hardware call bypasses ledger management!
+        // Pass null for shouldContinue - let user manage cancellation via cancelBurstFiring()
+        return requestFire(true, null);
     }
     
     /**
