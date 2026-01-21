@@ -605,19 +605,41 @@ public class IndexingSystemV3 {
         // Issue 3 Fix: Add cooldown to prevent repeated auto-collections
         long currentTime = System.currentTimeMillis();
         
-        // Auto-collect ONLY if hunt mode enabled and intake eligible
+        // Auto-collect ONLY if hunt mode enabled, intake eligible, AND presence confidence is sufficient
+        // CRITICAL: Check presence confidence to avoid collecting non-artifacts (hands, temporary objects)
+        // Only collect when confidence is MEDIUM or HIGH (multiple sensors agree)
         if (huntEnabled && isIntakeHuntEligible(SlotLedger.Slot.FRONT) && 
             frontPerception.getFastPresence() &&
             (currentTime - lastFrontAutoCollectTime) >= AUTO_COLLECT_COOLDOWN_MS) {
-            if (requestCollect(SlotLedger.Slot.FRONT)) {
-                lastFrontAutoCollectTime = currentTime;
+            
+            // Check presence confidence - need at least MEDIUM (2+ sensors detect)
+            IntakePerception.PresenceConfidence confidence = frontPerception.getPresenceConfidence();
+            if (confidence == IntakePerception.PresenceConfidence.MEDIUM || 
+                confidence == IntakePerception.PresenceConfidence.HIGH) {
+                if (requestCollect(SlotLedger.Slot.FRONT)) {
+                    lastFrontAutoCollectTime = currentTime;
+                    System.out.println("[IndexingV3] Auto-collect FRONT (confidence=" + confidence + ")");
+                }
+            } else {
+                // Low or no confidence - likely not a real artifact (e.g., hand, temporary object)
+                System.out.println("[IndexingV3] Skipping FRONT auto-collect (confidence=" + confidence + " too low)");
             }
         }
         if (huntEnabled && isIntakeHuntEligible(SlotLedger.Slot.BACK) && 
             backPerception.getFastPresence() &&
             (currentTime - lastBackAutoCollectTime) >= AUTO_COLLECT_COOLDOWN_MS) {
-            if (requestCollect(SlotLedger.Slot.BACK)) {
-                lastBackAutoCollectTime = currentTime;
+            
+            // Check presence confidence - need at least MEDIUM (2+ sensors detect)
+            IntakePerception.PresenceConfidence confidence = backPerception.getPresenceConfidence();
+            if (confidence == IntakePerception.PresenceConfidence.MEDIUM || 
+                confidence == IntakePerception.PresenceConfidence.HIGH) {
+                if (requestCollect(SlotLedger.Slot.BACK)) {
+                    lastBackAutoCollectTime = currentTime;
+                    System.out.println("[IndexingV3] Auto-collect BACK (confidence=" + confidence + ")");
+                }
+            } else {
+                // Low or no confidence - likely not a real artifact (e.g., hand, temporary object)
+                System.out.println("[IndexingV3] Skipping BACK auto-collect (confidence=" + confidence + " too low)");
             }
         }
         
