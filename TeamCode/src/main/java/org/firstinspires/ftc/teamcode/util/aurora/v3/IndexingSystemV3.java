@@ -71,6 +71,7 @@ public class IndexingSystemV3 {
     private SystemState currentState;
     private boolean enabled;
     private boolean manualModeActive;
+    private boolean huntEnabled;  // Hunt mode: auto-collect when artifacts detected
     
     // Manual override detection
     private boolean lastManual_frontIntake;
@@ -163,6 +164,7 @@ public class IndexingSystemV3 {
         this.currentState = SystemState.IDLE;
         this.enabled = false;
         this.manualModeActive = false;
+        this.huntEnabled = true;  // Hunt mode ON by default
         this.burstFiringActive = false;
         this.lastOperationCompleteTime = System.currentTimeMillis();
         this.consecutiveShotsFired = 0;
@@ -208,9 +210,8 @@ public class IndexingSystemV3 {
     public void update(Gamepad gamepad1, Gamepad gamepad2) {
         if (!enabled) return;
         
-        // Update perception (sensor fusion)
-        frontPerception.update();
-        backPerception.update();
+        // Update perception (sensor fusion) - only for hunt-eligible intakes
+        updatePerception();
         
         // Detect manual override
         detectManualOverride(gamepad2);
@@ -287,6 +288,71 @@ public class IndexingSystemV3 {
     }
     
     /**
+     * Update perception sensors based on hunt mode eligibility.
+     * 
+     * Hunt Mode ON: Update perception for empty intakes (eligible to hunt).
+     * Hunt Mode OFF: Skip perception updates for empty intakes (sleep mode).
+     * 
+     * Note: Perception is always skipped during operations (rollers controlled by operations).
+     */
+    private void updatePerception() {
+        // Don't update perception if operation is running (operation controls rollers)
+        if (runner.isBusy()) {
+            return;
+        }
+        
+        // Update front intake perception if eligible to hunt
+        if (isIntakeHuntEligible(SlotLedger.Slot.FRONT)) {
+            frontPerception.update();
+        }
+        
+        // Update back intake perception if eligible to hunt
+        if (isIntakeHuntEligible(SlotLedger.Slot.BACK)) {
+            backPerception.update();
+        }
+    }
+    
+    /**
+     * Check if intake is eligible to hunt for artifacts.
+     * 
+     * Eligible when:
+     * - Hunt mode ON
+     * - Slot is empty (not storing an artifact)
+     * - System not full (has capacity)
+     * - No operation running (not busy)
+     * 
+     * @param slot FRONT or BACK intake
+     * @return true if intake should hunt (run rollers, poll sensors)
+     */
+    private boolean isIntakeHuntEligible(SlotLedger.Slot slot) {
+        if (!huntEnabled) {
+            return false;  // Hunt mode OFF - sleep
+        }
+        
+        if (slot == SlotLedger.Slot.CENTER) {
+            return false;  // Center slot never hunts
+        }
+        
+        // Check if slot is occupied
+        boolean slotOccupied = (slot == SlotLedger.Slot.FRONT) ? 
+                              ledger.isFrontOccupied() : ledger.isBackOccupied();
+        
+        if (slotOccupied) {
+            return false;  // Can't hunt if storing an artifact
+        }
+        
+        if (ledger.isFull()) {
+            return false;  // Can't hunt if system full
+        }
+        
+        if (runner.isBusy()) {
+            return false;  // Can't hunt if operation running
+        }
+        
+        return true;  // Eligible to hunt!
+    }
+    
+    /**
      * Handle operation completion.
      */
     private void handleOperationComplete() {
@@ -355,11 +421,13 @@ public class IndexingSystemV3 {
      * Perform automatic operations based on system state.
      */
     private void performAutomaticOperations() {
-        // Auto-collect if intake sees artifact and slot empty
-        if (frontPerception.getFastPresence() && !ledger.isFrontOccupied() && !ledger.isFull()) {
+        // Auto-collect ONLY if hunt mode enabled and intake eligible
+        if (huntEnabled && isIntakeHuntEligible(SlotLedger.Slot.FRONT) && 
+            frontPerception.getFastPresence()) {
             requestCollect(SlotLedger.Slot.FRONT);
         }
-        if (backPerception.getFastPresence() && !ledger.isBackOccupied() && !ledger.isFull()) {
+        if (huntEnabled && isIntakeHuntEligible(SlotLedger.Slot.BACK) && 
+            backPerception.getFastPresence()) {
             requestCollect(SlotLedger.Slot.BACK);
         }
         
@@ -564,6 +632,41 @@ public class IndexingSystemV3 {
     }
     
     /**
+     * Set hunt mode (controls auto-collection).
+     * 
+     * Hunt Mode ON: Empty intakes run rollers, poll sensors, auto-collect artifacts.
+     * Hunt Mode OFF (Sleep): Empty intakes stop rollers and sensors, no auto-collect.
+     *                        Storage intakes (with artifacts) still maintain hold power.
+     *                        All other operations (fire, transfer, swap, eject) still work.
+     * 
+     * @param enabled true for ON (active), false for OFF (sleep)
+     */
+    public void setHuntEnabled(boolean enabled) {
+        this.huntEnabled = enabled;
+        telemetry.addData("Hunt Mode", enabled ? "🔍 ON (Active)" : "💤 OFF (Sleep)");
+    }
+    
+    /**
+     * Toggle hunt mode between ON and OFF.
+     * 
+     * @return new hunt mode state (true = ON, false = OFF)
+     */
+    public boolean toggleHuntEnabled() {
+        huntEnabled = !huntEnabled;
+        telemetry.addData("Hunt Mode", huntEnabled ? "🔍 ON (Active)" : "💤 OFF (Sleep)");
+        return huntEnabled;
+    }
+    
+    /**
+     * Check if hunt mode is enabled.
+     * 
+     * @return true if hunt mode ON (active), false if OFF (sleep)
+     */
+    public boolean isHuntEnabled() {
+        return huntEnabled;
+    }
+    
+    /**
      * Enable color sampling at current checkpoint.
      * Used by operations to control when color is read.
      */
@@ -614,6 +717,7 @@ public class IndexingSystemV3 {
         telemetry.addLine("========== INDEXING V3 ==========");
         telemetry.addData("State", currentState);
         telemetry.addData("Enabled", enabled ? "✓" : "✗");
+        telemetry.addData("Hunt Mode", huntEnabled ? "🔍 ON (Active)" : "💤 OFF (Sleep)");
         telemetry.addData("Manual Mode", manualModeActive ? "⚠️ ACTIVE" : "Auto");
         telemetry.addData("Burst Firing", burstFiringActive ? "🔥 YES (" + consecutiveShotsFired + ")" : "No");
         telemetry.addLine();
