@@ -204,6 +204,12 @@ public class CollectOperation extends BaseOperation {
 
         ledger.set(targetSlot, collectedArtifact);
         
+        // Clear forced detection if it was used
+        if (perception.isForcedDetectionActive()) {
+            perception.clearForcedDetection();
+            logInfo("Cleared forced detection after collection");
+        }
+        
         logInfo("Committed " + collectedArtifact.getColorClass() + 
                " artifact to " + targetSlot);
         logDebug("Artifact", collectedArtifact.toString());
@@ -222,6 +228,12 @@ public class CollectOperation extends BaseOperation {
             helper.stopFrontIntake();
         } else {
             helper.stopBackIntake();
+        }
+        
+        // Clear forced detection on cancel
+        if (perception.isForcedDetectionActive()) {
+            perception.clearForcedDetection();
+            logInfo("Cleared forced detection after cancel");
         }
     }
 

@@ -83,6 +83,10 @@ public class IntakePerception {
     // Baseline calibration state
     private long lastBaselineUpdateTime;
     private int emptyReadingCount;
+    
+    // Manual override state (for testing/operator override)
+    private boolean forcedDetectionActive;
+    private ArtifactIdentity.ColorClass forcedColor;
 
     // Constants (will be moved to config)
     private static final double LASER_THRESHOLD_CM = 10.0;  // Artifact detected when < 10cm
@@ -141,6 +145,8 @@ public class IntakePerception {
         this.samplingEnabled = false;
         this.lastBaselineUpdateTime = System.currentTimeMillis();
         this.emptyReadingCount = 0;
+        this.forcedDetectionActive = false;
+        this.forcedColor = ArtifactIdentity.ColorClass.UNKNOWN;
 
         // Calibrate REV sensor baseline
         calibrateRevSensorBaseline();
@@ -284,6 +290,13 @@ public class IntakePerception {
      * Called during stable checkpoints (not continuously)
      */
     private void updateBestColorClassification() {
+        // If forced detection is active, use forced color with max confidence
+        if (forcedDetectionActive) {
+            lastColorClass = forcedColor;
+            lastColorConfidence = 1.0;
+            return;
+        }
+        
         // Get readings from both sensors
         ColorObservation outwardObs = getColorObservation(outwardColorSensor);
         ColorObservation mouthObs = getColorObservation(mouthColorSensor);
@@ -394,10 +407,11 @@ public class IntakePerception {
 
     /**
      * Get raw artifact hint (before debounce)
-     * True if any sensor indicates presence
+     * True if any sensor indicates presence OR forced detection is active
      */
     private boolean getRawArtifactHint() {
-        return frontBlocked || mouthOccupied || colorSeesArtifact_outward || colorSeesArtifact_mouth;
+        return forcedDetectionActive || frontBlocked || mouthOccupied || 
+               colorSeesArtifact_outward || colorSeesArtifact_mouth;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -513,6 +527,46 @@ public class IntakePerception {
      */
     public IntakeSide getSide() {
         return side;
+    }
+    
+    /**
+     * Force detection of an artifact with specified color (for testing/operator override).
+     * This bypasses normal sensor detection and makes the system believe an artifact
+     * is present. The forced detection is automatically cleared after it's used in
+     * a collection operation.
+     * 
+     * @param color Color to force detect (PURPLE or GREEN)
+     */
+    public void forceDetection(ArtifactIdentity.ColorClass color) {
+        if (color == ArtifactIdentity.ColorClass.UNKNOWN) {
+            // Don't allow forcing UNKNOWN - that defeats the purpose
+            return;
+        }
+        
+        forcedDetectionActive = true;
+        forcedColor = color;
+        
+        // Immediately trigger presence signals
+        fastPresence = true;
+        stablePresence = true;
+        lastRawHint = true;
+        lastRawHintChangeTime = System.currentTimeMillis();
+    }
+    
+    /**
+     * Clear forced detection.
+     * Called automatically by CollectOperation after artifact is collected.
+     */
+    public void clearForcedDetection() {
+        forcedDetectionActive = false;
+        forcedColor = ArtifactIdentity.ColorClass.UNKNOWN;
+    }
+    
+    /**
+     * Check if forced detection is active.
+     */
+    public boolean isForcedDetectionActive() {
+        return forcedDetectionActive;
     }
 
     // ═══════════════════════════════════════════════════════════════════════

@@ -689,6 +689,74 @@ public class IndexingSystemV3 {
         }
     }
     
+    /**
+     * Manually inject an artifact into a slot (for testing/operator override).
+     * 
+     * This bypasses normal sensor detection and creates a "phantom" artifact that
+     * the system will collect. It forces the perception system to detect an artifact
+     * of the specified color, then initiates a collection operation.
+     * 
+     * Use cases:
+     * - Testing shot planning without physical artifacts
+     * - Operator override when sensors malfunction
+     * - Debugging collection/transfer logic
+     * - Simulating various artifact configurations
+     * 
+     * Safety checks:
+     * - Target slot must be empty
+     * - System must not be full (< 3 artifacts)
+     * - No operation must be running
+     * - Cannot inject into CENTER (only FRONT or BACK)
+     * 
+     * @param slot Which slot to inject artifact into (FRONT or BACK only)
+     * @param color Color of the artifact (PURPLE or GREEN recommended, not UNKNOWN)
+     * @return true if successfully queued, false if rejected
+     */
+    public boolean addManualArtifact(SlotLedger.Slot slot, ArtifactIdentity.ColorClass color) {
+        // Validate slot (can only manually add to intake slots)
+        if (slot == SlotLedger.Slot.CENTER) {
+            telemetry.addData("❌ Manual Add", "Cannot add directly to CENTER");
+            return false;
+        }
+        
+        // Check if slot already occupied
+        if (ledger.isOccupied(slot)) {
+            telemetry.addData("❌ Manual Add", slot + " already occupied");
+            return false;
+        }
+        
+        // Check if system is full
+        if (ledger.isFull()) {
+            telemetry.addData("❌ Manual Add", "System full (3/3)");
+            return false;
+        }
+        
+        // Check if operation is running
+        if (runner.isBusy()) {
+            telemetry.addData("❌ Manual Add", "Operation in progress");
+            return false;
+        }
+        
+        // Get perception for this slot
+        IntakePerception perception = (slot == SlotLedger.Slot.FRONT) ? frontPerception : backPerception;
+        
+        // Force perception to report artifact with operator-specified color
+        perception.forceDetection(color);
+        
+        // Now request collect (will use forced detection)
+        boolean success = requestCollect(slot);
+        
+        if (success) {
+            telemetry.addData("✅ Manual Add", color + " → " + slot + " (queued)");
+        } else {
+            // Failed to queue - clear forced detection
+            perception.clearForcedDetection();
+            telemetry.addData("❌ Manual Add", "Failed to queue collection");
+        }
+        
+        return success;
+    }
+    
     // ========== Public API - State Queries ==========
     
     public boolean isEnabled() { return enabled; }
