@@ -752,6 +752,43 @@ public class IndexingSystemV3 {
     }
     
     /**
+     * Request fire shot with specified RPM (keep-alive mode enabled).
+     * 
+     * This method starts the firing sequence using BasicFiringHelper's built-in functionality.
+     * The FiringHelper will automatically:
+     * - Spin up the shooter to target RPM
+     * - Feed the artifact when ready
+     * - Keep the shooter spinning (keep-alive mode)
+     * - Track shot completion
+     * 
+     * After the first shot, use fireNextShot() when isReadyForNextShot() returns true.
+     * 
+     * @param rpm Target RPM for shooter
+     * @return true if started successfully, false if already firing or no artifact
+     */
+    public boolean requestFire(double rpm) {
+        if (!enabled) return false;
+        
+        // Check if CENTER has an artifact
+        if (!ledger.isCenterOccupied()) {
+            telemetry.addData("⚠️ Fire", "CENTER empty - cannot fire");
+            return false;
+        }
+        
+        // Start firing with keep-alive mode using BasicFiringHelper
+        // This handles spinup automatically and keeps shooter spinning for follow-up shots
+        boolean started = firingHelper.startFiring(rpm, "CUSTOM", true);
+        
+        if (started) {
+            burstFiringActive = true;
+            consecutiveShotsFired = 0;
+            firingHelper.resetShotDetection();
+        }
+        
+        return started;
+    }
+    
+    /**
      * Request fire shot with optional keep-alive and cancellation callback.
      * 
      * @param keepAlive Enable keep-alive mode (shooter stays spun)
@@ -1077,23 +1114,38 @@ public class IndexingSystemV3 {
     // ========== Shooter Control API ==========
     
     /**
-     * Start spinning up the shooter to target RPM.
+     * Set the firing button held state for automatic keep-alive management.
+     * Call this every loop with the current button state.
      * 
-     * OpModes should use this instead of accessing the shooter directly.
-     * The indexing system manages the shooter through BasicFiringHelper.
+     * OpModes should use this to track the firing button state.
+     * BasicFiringHelper uses this to automatically stop when button is released.
+     * 
+     * @param held true if firing button is currently pressed, false otherwise
      */
-    public void startShooterSpinup() {
-        firingHelper.spinUpShooter();
+    public void setFiringButtonHeld(boolean held) {
+        firingHelper.setButtonHeld(held);
     }
     
     /**
-     * Stop the shooter motors.
+     * Check if ready to fire the next shot (shooter spun up and waiting).
+     * Use this after starting firing to know when you can fire the next shot.
      * 
-     * OpModes should use this instead of accessing the shooter directly.
-     * The indexing system manages the shooter through BasicFiringHelper.
+     * @return true if in READY_TO_FIRE state, false otherwise
      */
-    public void stopShooter() {
-        firingHelper.stopShooter();
+    public boolean isReadyForNextShot() {
+        return firingHelper.isReadyForNextShot();
+    }
+    
+    /**
+     * Fire the next shot (only works when in READY_TO_FIRE state).
+     * Call this when isReadyForNextShot() returns true and you have an artifact ready.
+     * 
+     * This is used for subsequent shots after the first one in keep-alive mode.
+     * 
+     * @return true if shot started, false if not ready
+     */
+    public boolean fireNextShot() {
+        return firingHelper.fireShot();
     }
     
     /**
