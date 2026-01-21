@@ -99,7 +99,7 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
     
     // Subsystems
     private IndexingSystemV3 indexing;
-    private Shooter shooter;
+    // Note: Shooter is managed internally by IndexingSystemV3 - OpModes should NOT access it directly
     
     // Button state tracking
     private boolean lastDpadUp1, lastDpadDown1, lastDpadLeft1, lastDpadRight1;
@@ -134,11 +134,12 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
         shooterConfig = new ShooterConfig();
         
         // Initialize subsystems
-        shooter = new Shooter(hardware, shooterConfig, telemetry);
+        // Note: Shooter is created and managed internally by IndexingSystemV3
+        Shooter shooter = new Shooter(hardware, shooterConfig, telemetry);
         indexing = new IndexingSystemV3(hardware, indexingConfig, shooter, telemetry);
         
         // Enable systems
-        shooter.enable();
+        shooter.enable();  // Enable shooter (managed internally by indexing system)
         indexing.enable();
         
         // Set default motif
@@ -171,8 +172,10 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
             indexing.setWatchdogTriggerState(gamepad1.right_trigger > 0.1);
 
             // Update system
+            // ⚠️ CRITICAL: indexing.update() calls firingHelper.update() internally,
+            // which then calls shooter.update(). DO NOT call shooter.update() here!
             indexing.update();
-            shooter.update();
+            // shooter.update();  // ❌ REMOVED - would cause duplicate call and pulsing
             
             // Handle manual injection
             handleManualInjection();
@@ -301,13 +304,13 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
     private void handleShooterControl() {
         // DPAD UP - Spin up
         if (gamepad2.dpad_up && !lastDpadUp2) {
-            shooter.spinUp(ShooterConfig.ShooterPreset.LONG_RANGE);
+            indexing.startShooterSpinup();  // ✅ Use IndexingSystemV3 API
             telemetry.addLine("🎯 Shooter spinning up");
         }
         
         // DPAD DOWN - Stop
         if (gamepad2.dpad_down && !lastDpadDown2) {
-            shooter.stop();
+            indexing.stopShooter();  // ✅ Use IndexingSystemV3 API
             telemetry.addLine("⏹️ Shooter stopped");
         }
     }

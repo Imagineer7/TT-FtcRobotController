@@ -571,6 +571,44 @@ public class BasicFiringHelper {
     }
 
     /**
+     * Get current shooter RPM (actual measured speed).
+     * 
+     * @return current shooter RPM
+     */
+    public double getCurrentRPM() {
+        return shooter.getCurrentRPM();
+    }
+
+    /**
+     * Check if shooter is ready to fire (at target RPM and stable).
+     * 
+     * @return true if shooter is ready to fire
+     */
+    public boolean isShooterReady() {
+        return shooter.isReadyToFire();
+    }
+
+    /**
+     * Start spinning up shooter to target RPM.
+     * This is the preferred method for OpModes to spin up the shooter.
+     * 
+     * Note: After spinup, use startFiring() to actually fire when ready.
+     */
+    public void spinUpShooter() {
+        shooter.spinUp();
+    }
+
+    /**
+     * Stop the shooter motors completely.
+     * This is the preferred method for OpModes to stop the shooter.
+     * 
+     * Note: This stops the shooter immediately, regardless of firing state.
+     */
+    public void stopShooter() {
+        shooter.stopMotors();
+    }
+
+    /**
      * Get firing preset name
      * @return preset name
      */

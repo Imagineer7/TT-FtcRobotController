@@ -209,6 +209,22 @@ public class IndexingSystemV3 {
      * Main update loop - MUST be called every iteration.
      * 
      * OpModes should call this method in their loop and handle gamepad inputs separately.
+     * 
+     * ⚠️ CRITICAL: This method calls firingHelper.update() which internally calls shooter.update()!
+     * DO NOT call shooter.update() separately in your OpMode loop!
+     * Calling shooter.update() twice per loop will cause the shooter to pulse on/off.
+     * 
+     * CORRECT OpMode pattern:
+     *   while (opModeIsActive()) {
+     *       indexing.update();  // ← shooter.update() called here internally via firingHelper
+     *       // ... rest of code
+     *   }
+     * 
+     * WRONG OpMode pattern (DO NOT DO THIS):
+     *   while (opModeIsActive()) {
+     *       indexing.update();  // Calls firingHelper.update() → shooter.update()
+     *       shooter.update();   // ❌ WRONG - duplicate call causes pulsing!
+     *   }
      */
     public void update() {
         if (!enabled) return;
@@ -219,6 +235,10 @@ public class IndexingSystemV3 {
         // CRITICAL: Update indexing helper to process timed movements
         // This clears the busy flags when timed movements complete
         indexingHelper.update();
+        
+        // CRITICAL: Update firing helper to process firing sequences
+        // This internally calls shooter.update() - DO NOT call shooter.update() separately!
+        firingHelper.update();
         
         // Update watchdog (automatic safety enforcement)
         // Note: OpMode must call setWatchdogTriggerState() to update trigger state
@@ -1052,6 +1072,55 @@ public class IndexingSystemV3 {
             telemetry.addData("🛑 Burst Firing", "Cancelled");
             System.out.println("[IndexingV3] Burst firing cancelled by OpMode request");
         }
+    }
+    
+    // ========== Shooter Control API ==========
+    
+    /**
+     * Start spinning up the shooter to target RPM.
+     * 
+     * OpModes should use this instead of accessing the shooter directly.
+     * The indexing system manages the shooter through BasicFiringHelper.
+     */
+    public void startShooterSpinup() {
+        firingHelper.spinUpShooter();
+    }
+    
+    /**
+     * Stop the shooter motors.
+     * 
+     * OpModes should use this instead of accessing the shooter directly.
+     * The indexing system manages the shooter through BasicFiringHelper.
+     */
+    public void stopShooter() {
+        firingHelper.stopShooter();
+    }
+    
+    /**
+     * Check if shooter is ready to fire (at target RPM and stable).
+     * 
+     * @return true if shooter ready, false otherwise
+     */
+    public boolean isShooterReady() {
+        return firingHelper.isShooterReady();
+    }
+    
+    /**
+     * Get current shooter RPM.
+     * 
+     * @return current RPM
+     */
+    public double getShooterCurrentRPM() {
+        return firingHelper.getCurrentRPM();
+    }
+    
+    /**
+     * Get target shooter RPM.
+     * 
+     * @return target RPM
+     */
+    public double getShooterTargetRPM() {
+        return firingHelper.getTargetRPM();
     }
     
     // ========== Telemetry ==========
