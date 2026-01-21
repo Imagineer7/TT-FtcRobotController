@@ -147,6 +147,29 @@ public class CollectOperation extends BaseOperation {
             if (elapsedSinceEdge >= COLOR_CLASSIFICATION_DELAY_MS) {
                 System.out.println("[CollectOp] Color checkpoint reached, sampling...");
                 
+                // CRITICAL: Stop hardware movement before sampling color
+                // Color sensors need artifact to be stationary for accurate readings
+                // Running hardware causes artifact to move/vibrate, degrading color accuracy
+                if (targetSlot == SlotLedger.Slot.FRONT) {
+                    helper.setFrontRollerPower(0);
+                    helper.setFrontTransferPower(0);
+                    helper.setFrontBottomIntakePower(0);
+                    System.out.println("[CollectOp] Stopped FRONT hardware for color sampling");
+                } else {
+                    helper.setBackRollerPower(0);
+                    helper.setBackTransferPower(0);
+                    helper.setBackBottomIntakePower(0);
+                    System.out.println("[CollectOp] Stopped BACK hardware for color sampling");
+                }
+                
+                // Wait 50ms for artifact to settle (stop vibrating/moving)
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                System.out.println("[CollectOp] Artifact settled, starting color sampling");
+                
                 // Enable color sampling
                 perception.enableColorSampling();
                 
@@ -155,17 +178,17 @@ public class CollectOperation extends BaseOperation {
                 // to allow IntakePerception to collect and average multiple readings
                 long samplingStartTime = System.currentTimeMillis();
                 int sampleCount = 0;
-                while (System.currentTimeMillis() - samplingStartTime < 100) {  // Sample for 100ms
+                while (System.currentTimeMillis() - samplingStartTime < 150) {  // Sample for 150ms
                     perception.update();  // Continuously sample sensors
                     sampleCount++;
                     try {
-                        Thread.sleep(10);  // 10ms between samples (allows ~10 samples)
+                        Thread.sleep(15);  // 15ms between samples (allows ~10 samples)
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         break;
                     }
                 }
-                System.out.println("[CollectOp] Collected " + sampleCount + " color samples over 100ms");
+                System.out.println("[CollectOp] Collected " + sampleCount + " color samples over 150ms");
                 
                 // Get the averaged/best color from multiple samples
                 ArtifactIdentity.ColorClass color = perception.getBestColorClass();
@@ -211,27 +234,40 @@ public class CollectOperation extends BaseOperation {
                 System.out.println("[CollectOp] WARNING: Hardware completed before color delay!");
                 
                 // Edge case: hardware finished before color delay
+                // Hardware is already stopped, artifact should be stationary
+                
+                // Wait 50ms for artifact to settle completely
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                System.out.println("[CollectOp] (Edge case) Artifact settled, starting color sampling");
+                
                 // Sample color now with continuous sampling
                 perception.enableColorSampling();
                 
                 // Continuously sample sensors to collect multiple readings
                 long samplingStartTime = System.currentTimeMillis();
                 int sampleCount = 0;
-                while (System.currentTimeMillis() - samplingStartTime < 100) {  // Sample for 100ms
+                while (System.currentTimeMillis() - samplingStartTime < 150) {  // Sample for 150ms
                     perception.update();  // Continuously sample sensors
                     sampleCount++;
                     try {
-                        Thread.sleep(10);  // 10ms between samples
+                        Thread.sleep(15);  // 15ms between samples
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         break;
                     }
                 }
-                System.out.println("[CollectOp] (Edge case) Collected " + sampleCount + " color samples");
+                System.out.println("[CollectOp] (Edge case) Collected " + sampleCount + " color samples over 150ms");
                 
                 ArtifactIdentity.ColorClass color = perception.getBestColorClass();
                 double confidence = perception.getBestColorConfidence();
                 perception.disableColorSampling();
+                
+                System.out.println("[CollectOp] (Edge case) Color sampled: " + color + " (conf=" + 
+                                 String.format("%.2f", confidence) + ")");
                 
                 collectedArtifact = ArtifactIdentity.createFromSensor(
                     color, confidence, sequenceId
