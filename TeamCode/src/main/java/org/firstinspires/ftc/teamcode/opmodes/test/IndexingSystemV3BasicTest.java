@@ -86,7 +86,7 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     
     // Subsystems
     private IndexingSystemV3 indexing;
-    private Shooter shooter;
+    // Note: Shooter is managed internally by IndexingSystemV3 - OpModes should NOT access it directly
     
     // Button state tracking
     private boolean lastDpadUp, lastDpadDown, lastDpadLeft, lastDpadRight;
@@ -127,11 +127,12 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
         shooterConfig = new ShooterConfig();
         
         // Initialize subsystems
-        shooter = new Shooter(hardware, shooterConfig, telemetry);
+        // Note: Shooter is created and managed internally by IndexingSystemV3
+        Shooter shooter = new Shooter(hardware, shooterConfig, telemetry);
         indexing = new IndexingSystemV3(hardware, indexingConfig, shooter, telemetry);
         
         // Enable systems
-        shooter.enable();
+        shooter.enable();  // Enable shooter (managed internally by indexing system)
         indexing.enable();
         
         telemetry.addLine("✓ Initialization complete!");
@@ -155,8 +156,10 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             indexing.setWatchdogTriggerState(gamepad1.right_trigger > 0.1);
 
             // Update system
+            // ⚠️ CRITICAL: indexing.update() calls firingHelper.update() internally,
+            // which then calls shooter.update(). DO NOT call shooter.update() here!
             indexing.update();
-            shooter.update();
+            // shooter.update();  // ❌ REMOVED - would cause duplicate call and pulsing
             
             // Handle manual injection
             handleManualInjection();
@@ -238,14 +241,14 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
                 if (!indexing.getLedger().isCenterOccupied()) {
                     telemetry.addLine("❌ Cannot fire: CENTER empty");
                 } else {
-                    // Start spinup
+                    // Start spinup through IndexingSystemV3 API
                     telemetry.addLine("🔥 Spinning up shooter...");
-                    shooter.spinUp();  // Start spinning up
+                    indexing.startShooterSpinup();  // ✅ Use IndexingSystemV3 API
                     isFiring = true;
                 }
             } else {
                 // Button still held - check if shooter ready and fire if not already firing
-                if (shooter.isReadyToFire()) {
+                if (indexing.isShooterReady()) {  // ✅ Use IndexingSystemV3 API
                     // Shooter ready - try to start burst firing with keep-alive
                     // Use requestBurstFire with callback that checks if button still held
                     if (!indexing.isBurstFiring()) {
@@ -259,10 +262,10 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
                         }
                     }
                 } else {
-                    // Still spinning up
+                    // Still spinning up - show progress using IndexingSystemV3 API
                     telemetry.addLine("⏳ Spinning up... " + 
-                        String.format("%.0f", shooter.getCurrentRPM()) + " / " + 
-                        String.format("%.0f", shooter.getTargetRPM()) + " RPM");
+                        String.format("%.0f", indexing.getShooterCurrentRPM()) + " / " + 
+                        String.format("%.0f", indexing.getShooterTargetRPM()) + " RPM");
                 }
             }
         } else {
@@ -270,7 +273,7 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             if (isFiring) {
                 // Was firing, now stop
                 telemetry.addLine("🛑 Stopping shooter & cancelling...");
-                shooter.stopMotors();  // Stop shooter motors
+                indexing.stopShooter();  // ✅ Use IndexingSystemV3 API
                 
                 // Cancel any active burst firing
                 // Note: Operations in progress (transfers) will complete
