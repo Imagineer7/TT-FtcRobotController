@@ -605,40 +605,38 @@ public class IndexingSystemV3 {
         long currentTime = System.currentTimeMillis();
         
         // Auto-collect ONLY if hunt mode enabled, intake eligible, AND presence confidence is sufficient
-        // CRITICAL: Check presence confidence to avoid collecting non-artifacts (hands, temporary objects)
-        // Only collect when confidence is MEDIUM or HIGH (multiple sensors agree)
+        // CRITICAL: Only collect on HIGH confidence to prevent false positives (hands, etc.)
+        // HIGH = 3+ sensors agree, ensuring real artifact presence
         if (huntEnabled && isIntakeHuntEligible(SlotLedger.Slot.FRONT) && 
             frontPerception.getFastPresence() &&
             (currentTime - lastFrontAutoCollectTime) >= AUTO_COLLECT_COOLDOWN_MS) {
             
-            // Check presence confidence - need at least MEDIUM (2+ sensors detect)
+            // Check presence confidence - REQUIRE HIGH (3+ sensors detect)
             IntakePerception.PresenceConfidence confidence = frontPerception.getPresenceConfidence();
-            if (confidence == IntakePerception.PresenceConfidence.MEDIUM || 
-                confidence == IntakePerception.PresenceConfidence.HIGH) {
+            if (confidence == IntakePerception.PresenceConfidence.HIGH) {
                 if (requestCollect(SlotLedger.Slot.FRONT)) {
                     lastFrontAutoCollectTime = currentTime;
                     System.out.println("[IndexingV3] Auto-collect FRONT (confidence=" + confidence + ")");
                 }
             } else {
-                // Low or no confidence - likely not a real artifact (e.g., hand, temporary object)
-                System.out.println("[IndexingV3] Skipping FRONT auto-collect (confidence=" + confidence + " too low)");
+                // Not HIGH confidence - skip (likely hand, temporary object, or poor sensor view)
+                System.out.println("[IndexingV3] Skipping FRONT auto-collect (confidence=" + confidence + " not HIGH)");
             }
         }
         if (huntEnabled && isIntakeHuntEligible(SlotLedger.Slot.BACK) && 
             backPerception.getFastPresence() &&
             (currentTime - lastBackAutoCollectTime) >= AUTO_COLLECT_COOLDOWN_MS) {
             
-            // Check presence confidence - need at least MEDIUM (2+ sensors detect)
+            // Check presence confidence - REQUIRE HIGH (3+ sensors detect)
             IntakePerception.PresenceConfidence confidence = backPerception.getPresenceConfidence();
-            if (confidence == IntakePerception.PresenceConfidence.MEDIUM || 
-                confidence == IntakePerception.PresenceConfidence.HIGH) {
+            if (confidence == IntakePerception.PresenceConfidence.HIGH) {
                 if (requestCollect(SlotLedger.Slot.BACK)) {
                     lastBackAutoCollectTime = currentTime;
                     System.out.println("[IndexingV3] Auto-collect BACK (confidence=" + confidence + ")");
                 }
             } else {
-                // Low or no confidence - likely not a real artifact (e.g., hand, temporary object)
-                System.out.println("[IndexingV3] Skipping BACK auto-collect (confidence=" + confidence + " too low)");
+                // Not HIGH confidence - skip (likely hand, temporary object, or poor sensor view)
+                System.out.println("[IndexingV3] Skipping BACK auto-collect (confidence=" + confidence + " not HIGH)");
             }
         }
         
@@ -1117,6 +1115,12 @@ public class IndexingSystemV3 {
             String.format("%.0f%%", frontPerception.getBestColorConfidence() * 100) + ")");
         telemetry.addData("Roller Busy", indexingHelper.isFrontRollerBusy() ? "✓ YES" : "No");
         telemetry.addData("Transfer Busy", indexingHelper.isFrontTransferBusy() ? "✓ YES" : "No");
+        
+        // Raw sensor hints
+        telemetry.addData("Raw: FrontBlocked", frontPerception.isFrontBlocked() ? "✓" : "✗");
+        telemetry.addData("Raw: MouthOccupied", frontPerception.isMouthOccupied() ? "✓" : "✗");
+        telemetry.addData("Raw: ColorOutward", frontPerception.colorSeesArtifact_Outward() ? "✓" : "✗");
+        telemetry.addData("Raw: ColorMouth", frontPerception.colorSeesArtifact_Mouth() ? "✓" : "✗");
         telemetry.addLine();
         
         // Back intake perception
@@ -1129,6 +1133,12 @@ public class IndexingSystemV3 {
             String.format("%.0f%%", backPerception.getBestColorConfidence() * 100) + ")");
         telemetry.addData("Roller Busy", indexingHelper.isBackRollerBusy() ? "✓ YES" : "No");
         telemetry.addData("Transfer Busy", indexingHelper.isBackTransferBusy() ? "✓ YES" : "No");
+        
+        // Raw sensor hints
+        telemetry.addData("Raw: FrontBlocked", backPerception.isFrontBlocked() ? "✓" : "✗");
+        telemetry.addData("Raw: MouthOccupied", backPerception.isMouthOccupied() ? "✓" : "✗");
+        telemetry.addData("Raw: ColorOutward", backPerception.colorSeesArtifact_Outward() ? "✓" : "✗");
+        telemetry.addData("Raw: ColorMouth", backPerception.colorSeesArtifact_Mouth() ? "✓" : "✗");
         telemetry.addLine();
     }
     
