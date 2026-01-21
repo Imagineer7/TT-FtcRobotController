@@ -242,7 +242,12 @@ public class BasicFiringHelper {
             case FEEDING:
                 // Wait for uptake to finish feeding
                 if (!indexingHelper.isUptakeBusy()) {
-                    // Feeding complete - shot has been physically fired
+                    // Feeding complete - artifact ejected (POINT OF NO RETURN)
+                    // Shot counter increments here because:
+                    // - Artifact has been pushed through uptake into shooter
+                    // - Past point of no return - artifact leaves center slot permanently
+                    // - Conservative assumption: if feeding started, treat as fired
+                    // - Even if jams in shooter, counter increments (safe/consistent model)
                     shotsFiredCount++;  // Increment shot counter
                     
                     if (keepAliveMode) {
@@ -525,10 +530,29 @@ public class BasicFiringHelper {
 
     /**
      * Get total number of shots fired since helper creation
-     * This counter increments when a shot physically completes (feeding done)
-     * Useful for reliable shot-fired detection during cancellation
      *
-     * @return total shots fired count
+     * **Shot Fired Definition:**
+     * Counter increments when uptake feeding completes (artifact ejected from center slot).
+     * This is the "point of no return" - once feeding begins, artifact is considered fired.
+     *
+     * **Conservative Assumption:**
+     * Even if artifact jams in shooter after feeding, counter still increments.
+     * This ensures slot ledger always reflects physical state (artifact left center slot).
+     *
+     * **Usage (Operations):**
+     * Operations should snapshot this counter at start and compare during/after execution:
+     * ```java
+     * int startCount = firingHelper.getShotsFiredCount();
+     * // ... operation runs
+     * boolean shotFired = firingHelper.getShotsFiredCount() > startCount;
+     * ```
+     *
+     * **Why This Works:**
+     * - Stateless: Each operation has independent snapshot
+     * - Race-free: No shared edge detection state
+     * - Reliable: Works even if telemetry/controller also checks counter
+     *
+     * @return total shots fired count (point-of-no-return boundary)
      */
     public int getShotsFiredCount() {
         return shotsFiredCount;
@@ -536,10 +560,28 @@ public class BasicFiringHelper {
 
     /**
      * Check if a new shot has been fired since last check
-     * This provides edge-detection for "shot just fired" events
-     * Call this method to mark the current shot count as "reported"
      *
-     * @return true if shot count increased since last call
+     * **CONTROLLER ORCHESTRATION ONLY - DO NOT USE IN OPERATIONS**
+     *
+     * This provides edge-detection for "shot just fired" events for controller orchestration
+     * (e.g., detect shot complete → queue next transfer operation).
+     *
+     * **Stateful:** This method maintains internal state (`lastReportedShotCount`).
+     * Only the controller should call this method. Operations MUST use getShotsFiredCount()
+     * with snapshot pattern instead.
+     *
+     * **Usage Pattern (Controller):**
+     * ```java
+     * // Controller calls ONCE per loop for orchestration
+     * if (firingHelper.hasNewShotFired()) {
+     *     // Shot just completed - queue transfer for next artifact
+     *     queueTransferOperation();
+     * }
+     * ```
+     *
+     * **Do NOT use in FireOperation** - operations use count-based detection with snapshots.
+     *
+     * @return true if shot count increased since last call to this method
      */
     public boolean hasNewShotFired() {
         if (shotsFiredCount > lastReportedShotCount) {
@@ -551,8 +593,13 @@ public class BasicFiringHelper {
 
     /**
      * Reset the "last reported" shot count
-     * Use this to restart detection from current count
-     * Useful when starting a new firing sequence
+     *
+     * **CONTROLLER USE ONLY**
+     *
+     * Use this to restart edge detection from current count.
+     * Controller should call this at the start of a new burst sequence.
+     *
+     * @see #hasNewShotFired() for usage pattern
      */
     public void resetShotDetection() {
         lastReportedShotCount = shotsFiredCount;

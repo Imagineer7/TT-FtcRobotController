@@ -83,6 +83,7 @@ public class FireOperation extends BaseOperation {
     private boolean isSubsequentShot;  // True if shooter already spun up
     private boolean shotActuallyFired;  // True if physical shot occurred (for cancellation safety)
     private int shotCountAtStart;  // Shot count when operation started (for reliable detection)
+    private boolean wasCancelledBeforeShot;  // True if cancelled before shot fired (for explicit telemetry)
 
     // Fire timeout
     private static final long FIRE_TIMEOUT_MS = 8000;  // 8 seconds
@@ -262,6 +263,7 @@ public class FireOperation extends BaseOperation {
                 logInfo("Shot was fired before cancellation - will consume");
             } else {
                 logInfo("Shot NOT fired - cancelling before physical shot");
+                wasCancelledBeforeShot = true;  // Mark for explicit telemetry
             }
             
             // Cancel the firing helper (stop shooter if not keep-alive)
@@ -405,6 +407,15 @@ public class FireOperation extends BaseOperation {
     @Override
     public void addTelemetry() {
         super.addTelemetry();
+        
+        // Show explicit state (helps OperationRunner distinguish outcomes)
+        if (wasCancelledBeforeShot) {
+            telemetry.addData("Result", "❌ CANCELLED (before shot)");
+        } else if (getState() == OperationState.FAILED) {
+            telemetry.addData("Result", "❌ FAILED (" + getFailureReason() + ")");
+        } else if (shotActuallyFired) {
+            telemetry.addData("Result", "✅ COMPLETE (shot fired)");
+        }
         
         telemetry.addData("Mode", keepAlive ? "Keep-Alive" : "Single-Shot");
         telemetry.addData("Shot Type", isSubsequentShot ? "Subsequent" : "First");
