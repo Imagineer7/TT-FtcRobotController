@@ -443,16 +443,27 @@ public class IndexingSystemV3 {
         IndexingOperation lastOp = lastCompletedOperation;
         if (lastOp == null) return;
         
+        // Only process successful operations
+        if (!lastOp.isSuccess()) return;
+        
         // Update statistics
         if (lastOp instanceof CollectOperation) {
             totalCollections++;
+            
+            // Post-Collection Logic: Automatically handle artifact placement
+            // This is the CRITICAL missing piece - after collecting, we need to:
+            // - 1st artifact: Transfer to center
+            // - 2nd artifact: Check if swap needed (shot planning), otherwise stay in intake
+            // - 3rd artifact: Stay in intake
+            handlePostCollection();
+            
         } else if (lastOp instanceof TransferOperation) {
             totalTransfers++;
         } else if (lastOp instanceof SwapOperation) {
             totalSwaps++;
         } else if (lastOp instanceof FireOperation) {
             FireOperation fireOp = (FireOperation) lastOp;
-            if (lastOp.isSuccess() && !fireOp.wasCancelledBeforeShot()) {
+            if (!fireOp.wasCancelledBeforeShot()) {
                 totalShots++;
                 consecutiveShotsFired++;
                 
@@ -460,7 +471,7 @@ public class IndexingSystemV3 {
                 if (burstFiringActive && shouldContinueBurst()) {
                     queueNextShotInBurst();
                 }
-            } else if (fireOp.wasCancelledBeforeShot()) {
+            } else {
                 // Cancelled before shot - end burst
                 burstFiringActive = false;
                 firingHelper.cancelFiring();
@@ -468,6 +479,55 @@ public class IndexingSystemV3 {
         } else if (lastOp instanceof EjectOperation) {
             totalEjections++;
             burstFiringActive = false;  // Ejection ends burst
+        }
+    }
+    
+    /**
+     * Handle post-collection logic to automatically place collected artifacts.
+     * 
+     * Collection Rules:
+     * - 1st artifact: Transfer to center (ready to fire)
+     * - 2nd artifact: Stay in intake UNLESS shot planner says swap
+     * - 3rd artifact: Stay in intake (system full)
+     * 
+     * Storage Mode: Artifacts in intakes are in "storage mode" - rollers run at
+     * hold power to retain artifact, not collect power.
+     */
+    private void handlePostCollection() {
+        int artifactCount = ledger.getArtifactCount();
+        
+        if (artifactCount == 1) {
+            // FIRST ARTIFACT: Transfer to center immediately
+            // Find which intake has the artifact
+            SlotLedger.Slot sourceSlot = null;
+            if (ledger.isFrontOccupied()) {
+                sourceSlot = SlotLedger.Slot.FRONT;
+            } else if (ledger.isBackOccupied()) {
+                sourceSlot = SlotLedger.Slot.BACK;
+            }
+            
+            if (sourceSlot != null) {
+                // Queue transfer to center
+                requestTransfer(sourceSlot);
+            }
+            
+        } else if (artifactCount == 2) {
+            // SECOND ARTIFACT: Check if swap needed for optimal shot order
+            // The shot planner will determine if we need to rearrange
+            if (shotPlanner.isRearrangementNeeded()) {
+                SlotLedger.Slot swapSlot = shotPlanner.getRearrangementSlot();
+                if (swapSlot != null) {
+                    // Swap needed - do it now
+                    requestSwap(swapSlot);
+                }
+            }
+            // If no swap needed, artifact stays in intake (storage mode)
+            // Hunt-mode will automatically run rollers at storage power
+            
+        } else if (artifactCount == 3) {
+            // THIRD ARTIFACT: System full, stays in intake (storage mode)
+            // Nothing to do - artifact is already committed to slot
+            // Hunt-mode will run rollers at storage power
         }
     }
     
