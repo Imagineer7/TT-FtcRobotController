@@ -13,9 +13,9 @@ import org.firstinspires.ftc.teamcode.util.aurora.*;
  * 3. How to stop the shooter
  *
  * Controls:
- * - Gamepad1 X: Start keep-alive mode (spin up shooter)
+ * - Gamepad1 X (HOLD): Hold to spin up and keep shooter running, release to stop
  * - Gamepad1 A: Fire a shot (when ready)
- * - Gamepad1 B: Stop firing (cancel keep-alive)
+ * - Gamepad1 B: Stop firing immediately (emergency stop)
  * - Gamepad1 Y: Start ejection
  * - Gamepad1 Right Bumper: Stop ejection
  */
@@ -63,9 +63,9 @@ public class BasicFiringHelperExample extends LinearOpMode {
         telemetry.addData("Status", "✅ Ready to start");
         telemetry.addData("", "");
         telemetry.addData("Controls", "");
-        telemetry.addData("  X", "Start keep-alive (spin up)");
+        telemetry.addData("  X (HOLD)", "Hold to spin up, release to stop");
         telemetry.addData("  A", "Fire shot (when ready)");
-        telemetry.addData("  B", "Stop firing");
+        telemetry.addData("  B", "Emergency stop");
         telemetry.addData("  Y", "Start ejection");
         telemetry.addData("  RB", "Stop ejection");
         telemetry.update();
@@ -78,7 +78,7 @@ public class BasicFiringHelperExample extends LinearOpMode {
 
         while (opModeIsActive()) {
             // CRITICAL: Update all subsystems every loop
-            shooter.update();
+            // NOTE: shooter.update() is called inside firingHelper.update() - don't call twice!
             indexingHelper.update();
             firingHelper.update();
 
@@ -86,8 +86,10 @@ public class BasicFiringHelperExample extends LinearOpMode {
             // BUTTON CONTROLS (with edge detection)
             // ───────────────────────────────────────────────────────────────────
 
-            // X: Start keep-alive mode (spin up shooter and fire first shot)
+            // X: Hold-to-fire mode (hold to keep spinning, release to stop)
             boolean currentX = gamepad1.x;
+
+            // Pressed: Start keep-alive mode
             if (currentX && !lastX) {
                 // Start firing with keep-alive mode enabled
                 // This will spin up, fire once, then wait in READY_TO_FIRE state
@@ -103,6 +105,15 @@ public class BasicFiringHelperExample extends LinearOpMode {
                     telemetry.addData("Action", "❌ Failed to start (already active?)");
                 }
             }
+
+            // Released: Stop firing
+            if (!currentX && lastX) {
+                if (firingHelper.isFiring()) {
+                    firingHelper.cancelFiring();
+                    telemetry.addData("Action", "✅ Stopped (X released)");
+                }
+            }
+
             lastX = currentX;
 
             // A: Fire a shot (only works when in READY_TO_FIRE state)
@@ -184,9 +195,9 @@ public class BasicFiringHelperExample extends LinearOpMode {
             // Controls reminder
             telemetry.addData("", "");
             telemetry.addData("Controls", "");
-            telemetry.addData("  X", "Start keep-alive");
+            telemetry.addData("  X (HOLD)", "Hold to spin, release to stop");
             telemetry.addData("  A", "Fire shot");
-            telemetry.addData("  B", "Stop firing");
+            telemetry.addData("  B", "Emergency stop");
             telemetry.addData("  Y", "Start ejection");
             telemetry.addData("  RB", "Stop ejection");
 

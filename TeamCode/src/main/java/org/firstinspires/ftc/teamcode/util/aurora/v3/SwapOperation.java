@@ -122,14 +122,14 @@ public class SwapOperation extends BaseOperation {
         if (intakeSlot == SlotLedger.Slot.FRONT) {
             // Front artifact pushes center artifact to back
             // Front → Center: Pull via transfer + injectors
-            helper.setBackTransferTimed(-1.0, 3000);  // Reverse to receive pushed artifact
-            helper.transferFrontIntakeToCenterTimed(2500);  // Pull front to center
+            helper.setBackTransferTimed(1.0, 3000);  // Reverse to receive pushed artifact
+            helper.transferFrontIntakeToCenterTimed(3000);  // Pull front to center
 
         } else if (intakeSlot == SlotLedger.Slot.BACK) {
             // Back artifact pushes center artifact to front
             // Back → Center: Pull via transfer + injectors
-            helper.setFrontTransferTimed(-1.0, 3000);  // Reverse to receive pushed artifact
-            helper.transferBackIntakeToCenterTimed(2500);  // Pull back to center
+            helper.setFrontTransferTimed(1.0, 3000);  // Reverse to receive pushed artifact
+            helper.transferBackIntakeToCenterTimed(3000);  // Pull back to center
         } else {
             fail(RejectReason.INVALID_PARAMETERS);
             setStatusMessage("Invalid intake slot: " + intakeSlot);

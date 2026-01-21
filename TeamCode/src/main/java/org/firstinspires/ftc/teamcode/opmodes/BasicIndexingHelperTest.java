@@ -81,8 +81,8 @@ public class BasicIndexingHelperTest extends LinearOpMode {
         // Main control loop
         while (opModeIsActive()) {
             // CRITICAL: Update all helpers every loop
+            // NOTE: shooter.update() is called inside firingHelper.update() - don't call twice!
             indexingHelper.update();
-            shooter.update();
             firingHelper.update();
 
             // ═══════════════════════════════════════════════════════════

@@ -275,7 +275,7 @@ public class FireOperation extends BaseOperation {
                 fail(RejectReason.GATING_MANUAL_INPUT_DETECTED);  // Don't commit if no shot fired
             }
             
-            return false;  // Done (cancelled or completed)
+            return false;  // Done (canceled or completed)
         }
 
         // Check if shot is complete
