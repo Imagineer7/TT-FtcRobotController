@@ -8,6 +8,7 @@ import java.util.List;
  * 
  * Tests pattern scoring algorithm and shot planning logic
  */
+@Deprecated
 public class ShotPlannerTest {
 
     public static void main(String[] args) {

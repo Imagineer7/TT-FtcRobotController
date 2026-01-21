@@ -13,6 +13,7 @@ import java.util.Map;
  * - Managing shot counts and timing
  * - Safety timeouts
  */
+@Deprecated
 public class FiringSequenceCoordinator {
 
     private final IndexingSystemOld indexingSystem;

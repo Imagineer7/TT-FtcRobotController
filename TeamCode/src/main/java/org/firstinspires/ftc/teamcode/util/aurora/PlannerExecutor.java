@@ -30,6 +30,7 @@ package org.firstinspires.ftc.teamcode.util.aurora;
  * - NORMAL mode: Intake is empty, rollers return to normal intake behavior
  * - Empty intakes automatically return to normal intake mode
  */
+@Deprecated
 public class PlannerExecutor {
 
     // ═══════════════════════════════════════════════════════════════════════

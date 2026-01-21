@@ -11,7 +11,7 @@ import java.util.List;
  * - Decides which artifact should be in the center position
  * - Produces a shot plan (ordered list of artifacts to fire)
  * - Validates artifact location states before planning
- * - Does NOT move hardware (hardware control is PlannerExecutor's job)
+ * - Does NOT move hardware (hardware control is PlannerExecutor's job which is depracated)
  *
  * PLANNER SKIP CONDITIONS:
  * - All artifacts are green

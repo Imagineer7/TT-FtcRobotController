@@ -9,6 +9,7 @@ import java.util.Map;
  * Replaces complex DebugLogger with focused live state display
  * Includes System.out logging for remote monitoring
  */
+@Deprecated
 public class SystemMonitor {
     
     private static final Map<String, Object> liveVars = new LinkedHashMap<>();
