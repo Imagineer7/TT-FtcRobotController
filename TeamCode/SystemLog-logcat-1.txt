@@ -1,347 +1,460 @@
-12-21 18:13:16.125   994  2999 I TeamDbg : Global log level set to: DEBUG
-12-21 18:13:16.128   994  2999 I TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/I: ========================================
-12-21 18:13:16.129   994  2999 I TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/I:   INDEXING SYSTEM V3 - BASIC TEST
-12-21 18:13:16.130   994  2999 I TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/I: ========================================
-12-21 18:13:16.130   994  2999 I TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/I: Initializing hardware...
-12-21 18:13:17.222   994  2999 D TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/D: Hardware initialized: true
-12-21 18:13:17.222   994  2999 I TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/I: Hardware initialization successful
-12-21 18:13:17.230   994  2999 D TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/D: Creating subsystems...
-12-21 18:13:17.950   994  2999 I TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/I: Subsystems created successfully
-12-21 18:13:17.950   994  2999 I TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/I: Systems enabled
-12-21 18:13:17.951   994  2999 I TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/I: Waiting for START...
-12-21 18:13:18.233   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][0] TEST/I: OpMode started - entering main loop
-12-21 18:13:19.726   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][19] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 18:13:19.798   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][20] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 18:13:19.889   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][21] PLANEX/D: Starting operation: Collect[FRONT]
-12-21 18:13:19.890   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][21] INTAKE/D: doStart() called for FRONT
-12-21 18:13:19.890   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][21] INTAKE/D: Fast presence detected, starting hardware...
-12-21 18:13:19.891   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][21] INTAKE/D: Started FRONT intake hardware
-12-21 18:13:19.891   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][21] INTAKE/D: doStart() completed successfully
-12-21 18:13:19.892   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][21] PLANEX/D: STARTED successfully (#1)
-12-21 18:13:19.893   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][21] INTAKE/D: Auto-collect FRONT (confidence=HIGH)
-12-21 18:13:20.005   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][22] PLANEX/D: update() - stillRunning=true, op=Collect[FRONT]
-12-21 18:13:20.073   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] INTAKE/D: Color checkpoint reached, stopping hardware
-12-21 18:13:20.079   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] INTAKE/D: → SETTLING state
-12-21 18:13:20.079   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][23] INTAKE/W: Hardware done before sampling, forcing completion
-12-21 18:13:20.339   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] INTAKE/D: Collection complete
-12-21 18:13:20.340   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] PLANEX/D: update() - stillRunning=false, op=Collect[FRONT]
-12-21 18:13:20.341   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] PLANEX/D: Operation SUCCESSFUL, committing...
-12-21 18:13:20.341   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] INTAKE/D: doCommit() called
-12-21 18:13:20.342   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][23] INTAKE/I: Committed PURPLE (0.7053178206086159) to FRONT
-12-21 18:13:20.344   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] PLANEX/D: Commit complete
-12-21 18:13:20.344   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] PLANEX/D: Clearing operation, now idle
-12-21 18:13:20.345   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] PLANEX/D: handleOperationComplete: Collect[FRONT], success=true
-12-21 18:13:20.346   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] INDEX/D: Collection completed, calling handlePostCollection()
-12-21 18:13:20.346   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] INDEX/D: handlePostCollection: artifactCount=1
-12-21 18:13:20.347   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] TRANSFER/D: 1st artifact - requesting transfer from FRONT
-12-21 18:13:20.350   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] PLANEX/D: Starting operation: Transfer[FRONT→CENTER]
-12-21 18:13:20.351   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] TRANSFER/D: Starting transferFrontIntakeToCenterTimed
-12-21 18:13:20.351   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] TRANSFER/D: TransferSequenceState.UN_PREPOSITIONING
-12-21 18:13:20.352   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] PLANEX/D: STARTED successfully (#2)
-12-21 18:13:20.353   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][23] TRANSFER/D: Transfer request SUCCESSFUL
-12-21 18:13:20.425   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][24] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 18:13:20.524   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][25] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 18:13:20.611   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][26] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 18:13:20.689   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][27] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 18:13:20.761   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][28] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 18:13:20.827   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][29] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 18:13:20.891   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][30] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 18:13:20.974   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][31] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 18:13:21.061   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][32] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 18:13:21.143   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][33] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 18:13:21.216   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][34] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 18:13:21.296   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][35] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 18:13:21.370   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][36] TRANSFER/D: TRANSFERRING - Elapsed Time: 92ms
-12-21 18:13:21.375   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][36] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 18:13:21.445   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][37] TRANSFER/D: TRANSFERRING - Elapsed Time: 166ms
-12-21 18:13:21.451   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][37] PLANEX/D: update() - stillRunning=false, op=Transfer[FRONT→CENTER]
-12-21 18:13:21.452   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][37] PLANEX/D: Operation SUCCESSFUL, committing...
-12-21 18:13:21.454   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][37] PLANEX/D: Commit complete
-12-21 18:13:21.454   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][37] PLANEX/D: Clearing operation, now idle
-12-21 18:13:21.455   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][37] PLANEX/D: handleOperationComplete: Transfer[FRONT→CENTER], success=true
-12-21 18:13:21.455   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][37] TRANSFER/D: Transfer completed
-12-21 18:13:21.455   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][37] INTAKE/D: Reset FRONT perception after transfer
-12-21 18:13:21.523   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][38] TRANSFER/D: TRANSFERRING - Elapsed Time: 244ms
-12-21 18:13:21.603   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][39] TRANSFER/D: TRANSFERRING - Elapsed Time: 325ms
-12-21 18:13:21.617   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][39] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 18:13:21.695   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][40] TRANSFER/D: TRANSFERRING - Elapsed Time: 417ms
-12-21 18:13:21.701   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][40] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 18:13:21.773   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][41] TRANSFER/D: TRANSFERRING - Elapsed Time: 495ms
-12-21 18:13:21.778   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][41] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 18:13:21.841   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][42] TRANSFER/D: TRANSFERRING - Elapsed Time: 562ms
-12-21 18:13:21.863   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][42] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 18:13:21.930   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][43] TRANSFER/D: TRANSFERRING - Elapsed Time: 651ms
-12-21 18:13:21.935   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][43] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 18:13:21.998   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][44] TRANSFER/D: TRANSFERRING - Elapsed Time: 720ms
-12-21 18:13:22.004   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][44] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 18:13:22.074   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][45] TRANSFER/D: TRANSFERRING - Elapsed Time: 796ms
-12-21 18:13:22.079   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][45] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 18:13:22.148   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][46] TRANSFER/D: TRANSFERRING - Elapsed Time: 870ms
-12-21 18:13:22.162   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][46] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 18:13:22.226   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][47] TRANSFER/D: TRANSFERRING - Elapsed Time: 948ms
-12-21 18:13:22.231   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][47] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 18:13:22.297   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][48] TRANSFER/D: TRANSFERRING - Elapsed Time: 1018ms
-12-21 18:13:22.303   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][48] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 18:13:22.372   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][49] TRANSFER/D: TRANSFERRING - Elapsed Time: 1094ms
-12-21 18:13:22.396   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][49] INTAKE/D: Skipping FRONT auto-collect (confidence=LOW not HIGH)
-12-21 18:13:22.467   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][50] TRANSFER/D: TRANSFERRING - Elapsed Time: 1189ms
-12-21 18:13:22.473   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][50] INTAKE/D: Skipping FRONT auto-collect (confidence=NONE not HIGH)
-12-21 18:13:22.537   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][51] TRANSFER/D: TRANSFERRING - Elapsed Time: 1258ms
-12-21 18:13:22.615   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][52] TRANSFER/D: TRANSFERRING - Elapsed Time: 1337ms
-12-21 18:13:22.722   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][53] TRANSFER/D: TRANSFERRING - Elapsed Time: 1444ms
-12-21 18:13:22.801   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][54] TRANSFER/D: TRANSFERRING - Elapsed Time: 1523ms
-12-21 18:13:22.874   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][55] TRANSFER/D: TRANSFERRING - Elapsed Time: 1595ms
-12-21 18:13:22.972   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][56] TRANSFER/D: TRANSFERRING - Elapsed Time: 1694ms
-12-21 18:13:23.045   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][57] TRANSFER/D: TRANSFERRING - Elapsed Time: 1766ms
-12-21 18:13:23.124   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][58] TRANSFER/D: TRANSFERRING - Elapsed Time: 1845ms
-12-21 18:13:23.218   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][59] TRANSFER/D: TRANSFERRING - Elapsed Time: 1940ms
-12-21 18:13:23.297   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][60] TRANSFER/D: TRANSFERRING - Elapsed Time: 2018ms
-12-21 18:13:23.382   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][61] TRANSFER/D: TRANSFERRING - Elapsed Time: 2104ms
-12-21 18:13:23.478   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][62] TRANSFER/D: TRANSFERRING - Elapsed Time: 2200ms
-12-21 18:13:23.546   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][63] TRANSFER/D: TRANSFERRING - Elapsed Time: 2268ms
-12-21 18:13:23.616   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][64] TRANSFER/D: TRANSFERRING - Elapsed Time: 2338ms
-12-21 18:13:23.706   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][65] TRANSFER/D: TRANSFERRING - Elapsed Time: 2428ms
-12-21 18:13:23.801   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][66] TRANSFER/D: TRANSFERRING - Elapsed Time: 2523ms
-12-21 18:13:23.905   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][67] TRANSFER/D: TRANSFERRING - Elapsed Time: 2627ms
-12-21 18:13:23.986   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][68] TRANSFER/D: PREPOSITIONING
-12-21 18:13:24.050   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][69] TRANSFER/D: PREPOSITIONING
-12-21 18:13:24.109   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][70] TRANSFER/D: PREPOSITIONING
-12-21 18:13:24.176   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][71] TRANSFER/D: PREPOSITIONING
-12-21 18:13:24.251   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][72] TRANSFER/D: PREPOSITIONING
-12-21 18:13:24.338   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][73] TRANSFER/D: PREPOSITIONING
-12-21 18:13:24.428   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][74] TRANSFER/D: PREPOSITIONING
-12-21 18:13:24.500   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][75] TRANSFER/D: PREPOSITIONING
-12-21 18:13:24.564   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][76] TRANSFER/D: PREPOSITIONING
-12-21 18:13:24.625   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][77] TRANSFER/D: PREPOSITIONING
-12-21 18:13:24.966   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][81] INTAKE/D: Skipping FRONT auto-collect (confidence=LOW not HIGH)
-12-21 18:13:25.032   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][82] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 18:13:25.096   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][83] PLANEX/D: Starting operation: Collect[FRONT]
-12-21 18:13:25.097   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][83] INTAKE/D: doStart() called for FRONT
-12-21 18:13:25.097   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][83] INTAKE/D: Fast presence detected, starting hardware...
-12-21 18:13:25.098   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][83] INTAKE/D: Started FRONT intake hardware
-12-21 18:13:25.098   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][83] INTAKE/D: doStart() completed successfully
-12-21 18:13:25.099   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][83] PLANEX/D: STARTED successfully (#3)
-12-21 18:13:25.100   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][83] INTAKE/D: Auto-collect FRONT (confidence=HIGH)
-12-21 18:13:25.191   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][84] PLANEX/D: update() - stillRunning=true, op=Collect[FRONT]
-12-21 18:13:25.260   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][85] INTAKE/D: Color checkpoint reached, stopping hardware
-12-21 18:13:25.267   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][85] INTAKE/D: → SETTLING state
-12-21 18:13:25.267   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][85] INTAKE/W: Hardware done before sampling, forcing completion
-12-21 18:13:25.515   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][85] INTAKE/D: Collection complete
-12-21 18:13:25.516   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][85] PLANEX/D: update() - stillRunning=false, op=Collect[FRONT]
-12-21 18:13:25.516   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][85] PLANEX/D: Operation SUCCESSFUL, committing...
-12-21 18:13:25.517   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][85] INTAKE/D: doCommit() called
-12-21 18:13:25.517   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][85] INTAKE/I: Committed GREEN (0.6187429333275014) to FRONT
-12-21 18:13:25.519   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][85] PLANEX/D: Commit complete
-12-21 18:13:25.519   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][85] PLANEX/D: Clearing operation, now idle
-12-21 18:13:25.519   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][85] PLANEX/D: handleOperationComplete: Collect[FRONT], success=true
-12-21 18:13:25.520   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][85] INDEX/D: Collection completed, calling handlePostCollection()
-12-21 18:13:25.520   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][85] INDEX/D: handlePostCollection: artifactCount=2
-12-21 18:13:25.520   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][85] SHOTPLAN/D: 2nd artifact - checking shot planner...
-12-21 18:13:25.520   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][85] SHOTPLAN/D: No swap needed, artifact stays in storage
-12-21 18:13:28.617   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][127] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:28.618   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][127] TEST/I: Starting firing with SHORT_RANGE preset (1100 RPM)
-12-21 18:13:28.619   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][127] FIRING/D: startFiring() called - targetRPM=1100, preset=CUSTOM, keepAlive=true
-12-21 18:13:28.619   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][127] TEST/D: requestFire returned: true
-12-21 18:13:28.620   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][127] TEST/I: Firing sequence started successfully
-12-21 18:13:28.705   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][128] TEST/D: Spinning up: 0 / 1100 RPM
-12-21 18:13:29.232   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][135] TEST/D: Spinning up: 823 / 1100 RPM
-12-21 18:13:29.805   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][142] TEST/D: Spinning up: 1416 / 1100 RPM
-12-21 18:13:30.355   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][149] TEST/D: Spinning up: 1262 / 1100 RPM
-12-21 18:13:30.891   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][156] TEST/D: Spinning up: 1071 / 1100 RPM
-12-21 18:13:30.961   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][157] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
-12-21 18:13:30.970   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][157] FIRING/D: Subsequent shot detected (0 → 1), clearing CENTER
-12-21 18:13:30.970   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][157] SHOTPLAN/D: Shot consumed from plan
-12-21 18:13:30.971   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][157] PLANEX/D: Starting operation: Transfer[FRONT→CENTER]
-12-21 18:13:30.971   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][157] TRANSFER/D: Starting transferFrontIntakeToCenterTimed
-12-21 18:13:30.971   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][157] TRANSFER/D: TransferSequenceState.UN_PREPOSITIONING
-12-21 18:13:30.972   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][157] PLANEX/D: STARTED successfully (#4)
-12-21 18:13:30.972   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][157] TEST/D: Transfer in progress...
-12-21 18:13:31.089   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][158] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 18:13:31.180   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][159] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 18:13:31.252   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][160] TRANSFER/D: TRANSFERRING - Elapsed Time: 90ms
-12-21 18:13:31.256   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][160] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 18:13:31.330   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][161] TRANSFER/D: TRANSFERRING - Elapsed Time: 169ms
-12-21 18:13:31.335   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][161] PLANEX/D: update() - stillRunning=false, op=Transfer[FRONT→CENTER]
-12-21 18:13:31.335   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][161] PLANEX/D: Operation SUCCESSFUL, committing...
-12-21 18:13:31.337   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][161] PLANEX/D: Commit complete
-12-21 18:13:31.337   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][161] PLANEX/D: Clearing operation, now idle
-12-21 18:13:31.337   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][161] PLANEX/D: handleOperationComplete: Transfer[FRONT→CENTER], success=true
-12-21 18:13:31.337   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][161] TRANSFER/D: Transfer completed
-12-21 18:13:31.337   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][161] INTAKE/D: Reset FRONT perception after transfer
-12-21 18:13:31.406   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][162] TRANSFER/D: TRANSFERRING - Elapsed Time: 245ms
-12-21 18:13:31.485   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][163] TRANSFER/D: TRANSFERRING - Elapsed Time: 324ms
-12-21 18:13:31.489   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][163] PLANEX/D: Starting operation: Collect[FRONT]
-12-21 18:13:31.490   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][163] INTAKE/D: doStart() called for FRONT
-12-21 18:13:31.490   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][163] INTAKE/D: Fast presence detected, starting hardware...
-12-21 18:13:31.490   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][163] INTAKE/D: Started FRONT intake hardware
-12-21 18:13:31.490   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][163] INTAKE/D: doStart() completed successfully
-12-21 18:13:31.491   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][163] PLANEX/D: STARTED successfully (#5)
-12-21 18:13:31.491   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][163] INTAKE/D: Auto-collect FRONT (confidence=HIGH)
-12-21 18:13:31.491   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][163] TEST/D: Transfer in progress...
-12-21 18:13:31.562   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][164] TRANSFER/D: TRANSFERRING - Elapsed Time: 401ms
-12-21 18:13:31.568   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][164] PLANEX/D: update() - stillRunning=true, op=Collect[FRONT]
-12-21 18:13:31.633   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][165] TRANSFER/D: TRANSFERRING - Elapsed Time: 471ms
-12-21 18:13:31.647   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][165] INTAKE/D: Color checkpoint reached, stopping hardware
-12-21 18:13:31.661   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][165] INTAKE/D: → SETTLING state
-12-21 18:13:31.662   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][165] INTAKE/W: Hardware done before sampling, forcing completion
-12-21 18:13:31.934   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][165] INTAKE/D: Collection complete
-12-21 18:13:31.935   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][165] PLANEX/D: update() - stillRunning=false, op=Collect[FRONT]
-12-21 18:13:31.935   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][165] PLANEX/D: Operation SUCCESSFUL, committing...
-12-21 18:13:31.935   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][165] INTAKE/D: doCommit() called
-12-21 18:13:31.936   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][165] INTAKE/I: Committed GREEN (0.7373311877250671) to FRONT
-12-21 18:13:31.938   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][165] PLANEX/D: Commit complete
-12-21 18:13:31.939   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][165] PLANEX/D: Clearing operation, now idle
-12-21 18:13:31.939   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][165] PLANEX/D: handleOperationComplete: Collect[FRONT], success=true
-12-21 18:13:31.940   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][165] INDEX/D: Collection completed, calling handlePostCollection()
-12-21 18:13:31.940   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][165] INDEX/D: Skipping handlePostCollection (burst firing active)
-12-21 18:13:32.029   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][166] TRANSFER/D: TRANSFERRING - Elapsed Time: 868ms
-12-21 18:13:32.044   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][166] TEST/D: Transfer in progress...
-12-21 18:13:32.112   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][167] TRANSFER/D: TRANSFERRING - Elapsed Time: 951ms
-12-21 18:13:32.191   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][168] TRANSFER/D: TRANSFERRING - Elapsed Time: 1030ms
-12-21 18:13:32.260   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][169] TRANSFER/D: TRANSFERRING - Elapsed Time: 1099ms
-12-21 18:13:32.328   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][170] TRANSFER/D: TRANSFERRING - Elapsed Time: 1167ms
-12-21 18:13:32.388   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][171] TRANSFER/D: TRANSFERRING - Elapsed Time: 1227ms
-12-21 18:13:32.455   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][172] TRANSFER/D: TRANSFERRING - Elapsed Time: 1294ms
-12-21 18:13:32.553   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][173] TRANSFER/D: TRANSFERRING - Elapsed Time: 1391ms
-12-21 18:13:32.567   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][173] TEST/D: Transfer in progress...
-12-21 18:13:32.640   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][174] TRANSFER/D: TRANSFERRING - Elapsed Time: 1479ms
-12-21 18:13:32.703   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][175] TRANSFER/D: TRANSFERRING - Elapsed Time: 1542ms
-12-21 18:13:32.785   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][176] TRANSFER/D: TRANSFERRING - Elapsed Time: 1624ms
-12-21 18:13:32.858   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][177] TRANSFER/D: TRANSFERRING - Elapsed Time: 1696ms
-12-21 18:13:32.928   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][178] TRANSFER/D: TRANSFERRING - Elapsed Time: 1767ms
-12-21 18:13:32.989   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][179] TRANSFER/D: TRANSFERRING - Elapsed Time: 1828ms
-12-21 18:13:33.080   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][180] TRANSFER/D: TRANSFERRING - Elapsed Time: 1919ms
-12-21 18:13:33.096   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][180] TEST/D: Transfer in progress...
-12-21 18:13:33.161   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][181] TRANSFER/D: TRANSFERRING - Elapsed Time: 2000ms
-12-21 18:13:33.229   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][182] TRANSFER/D: TRANSFERRING - Elapsed Time: 2068ms
-12-21 18:13:33.298   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][183] TRANSFER/D: TRANSFERRING - Elapsed Time: 2137ms
-12-21 18:13:33.362   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][184] TRANSFER/D: TRANSFERRING - Elapsed Time: 2201ms
-12-21 18:13:33.427   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][185] TRANSFER/D: TRANSFERRING - Elapsed Time: 2266ms
-12-21 18:13:33.482   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][186] TRANSFER/D: TRANSFERRING - Elapsed Time: 2321ms
-12-21 18:13:33.547   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][187] TRANSFER/D: TRANSFERRING - Elapsed Time: 2386ms
-12-21 18:13:33.648   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][188] TRANSFER/D: TRANSFERRING - Elapsed Time: 2487ms
-12-21 18:13:33.662   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][188] TEST/D: Transfer in progress...
-12-21 18:13:33.746   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][189] TRANSFER/D: TRANSFERRING - Elapsed Time: 2584ms
-12-21 18:13:33.842   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][190] TRANSFER/D: TRANSFERRING - Elapsed Time: 2681ms
-12-21 18:13:33.909   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][191] TRANSFER/D: PREPOSITIONING
-12-21 18:13:33.968   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][192] TRANSFER/D: PREPOSITIONING
-12-21 18:13:34.045   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][193] TRANSFER/D: PREPOSITIONING
-12-21 18:13:34.112   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][194] TRANSFER/D: PREPOSITIONING
-12-21 18:13:34.195   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][195] TRANSFER/D: PREPOSITIONING
-12-21 18:13:34.199   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][195] TEST/D: Transfer in progress...
-12-21 18:13:34.273   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][196] TRANSFER/D: PREPOSITIONING
-12-21 18:13:34.361   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][197] TRANSFER/D: PREPOSITIONING
-12-21 18:13:34.440   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][198] TRANSFER/D: PREPOSITIONING
-12-21 18:13:34.506   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][199] TRANSFER/D: PREPOSITIONING
-12-21 18:13:34.578   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][200] TRANSFER/D: PREPOSITIONING
-12-21 18:13:34.585   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][200] TEST/D: Spinning up: 16 / 1100 RPM
-12-21 18:13:35.101   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][207] TEST/D: Spinning up: 0 / 1100 RPM
-12-21 18:13:35.309   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][210] TEST/I: Fire button released - canceling firing sequence
-12-21 18:13:35.313   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][210] FIRING/I: Burst firing cancelled by OpMode request
-12-21 18:13:35.313   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][210] TEST/I: Firing sequence canceled
-12-21 18:13:39.308   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][264] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:39.308   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][264] TEST/I: Starting firing with SHORT_RANGE preset (1100 RPM)
-12-21 18:13:39.310   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][264] FIRING/D: startFiring() called - targetRPM=1100, preset=CUSTOM, keepAlive=true
-12-21 18:13:39.311   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][264] TEST/D: requestFire returned: true
-12-21 18:13:39.311   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][264] TEST/I: Firing sequence started successfully
-12-21 18:13:39.384   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][265] TEST/D: Spinning up: 0 / 1100 RPM
-12-21 18:13:39.886   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][271] TEST/D: Spinning up: 813 / 1100 RPM
-12-21 18:13:40.438   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][278] TEST/D: Spinning up: 1438 / 1100 RPM
-12-21 18:13:40.953   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][284] TEST/D: Spinning up: 1310 / 1100 RPM
-12-21 18:13:41.488   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][291] TEST/D: Spinning up: 1101 / 1100 RPM
-12-21 18:13:41.684   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][294] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
-12-21 18:13:41.693   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][294] FIRING/D: Subsequent shot detected (1 → 2), clearing CENTER
-12-21 18:13:41.693   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][294] SHOTPLAN/D: Shot consumed from plan
-12-21 18:13:41.697   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][294] TEST/D: Waiting for next artifact transfer...
-12-21 18:13:42.755   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][308] TEST/D: Waiting for next artifact transfer...
-12-21 18:13:43.823   994  2999 D TeamDbg : [V3Test][V3BasicTest:RUN][322] TEST/D: Waiting for next artifact transfer...
-12-21 18:13:44.711   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][334] TEST/I: Fire button released - canceling firing sequence
-12-21 18:13:44.714   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][334] TEST/I: Firing sequence canceled
-12-21 18:13:47.967   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][379] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:47.967   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][379] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:48.048   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][380] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:48.049   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][380] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:48.127   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][381] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:48.127   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][381] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:48.214   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][382] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:48.214   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][382] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:48.291   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][383] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:48.291   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][383] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:48.366   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][384] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:48.367   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][384] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:48.426   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][385] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:48.426   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][385] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:48.494   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][386] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:48.495   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][386] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:48.577   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][387] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:48.577   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][387] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:48.645   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][388] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:48.645   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][388] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:48.732   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][389] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:48.732   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][389] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:48.803   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][390] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:48.803   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][390] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:49.019   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][393] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:49.020   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][393] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:49.096   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][394] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:49.096   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][394] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:49.178   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][395] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:49.178   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][395] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:49.273   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][396] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:49.273   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][396] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:49.353   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][397] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:49.354   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][397] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:49.430   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][398] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:49.430   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][398] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:49.494   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][399] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:49.494   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][399] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:49.566   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][400] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:49.566   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][400] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:49.637   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][401] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:49.637   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][401] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:49.704   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][402] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:49.704   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][402] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:49.797   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][403] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:49.798   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][403] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:50.361   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][410] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:50.362   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][410] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:50.438   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][411] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:50.438   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][411] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:50.500   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][412] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:50.500   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][412] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:50.570   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][413] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:50.571   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][413] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:50.636   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][414] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:50.636   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][414] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:50.707   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][415] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:50.707   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][415] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:50.781   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][416] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:50.781   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][416] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:50.876   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][417] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:50.876   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][417] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:50.950   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][418] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:50.950   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][418] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:51.023   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][419] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:51.024   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][419] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:51.097   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][420] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:51.097   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][420] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:51.321   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][423] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:51.321   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][423] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:51.405   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][424] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:51.405   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][424] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:51.476   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][425] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:51.476   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][425] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:51.551   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][426] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:51.551   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][426] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:51.618   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][427] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:51.618   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][427] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:51.683   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][428] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:51.683   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][428] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:51.761   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][429] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:51.762   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][429] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:51.844   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][430] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:51.844   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][430] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:51.944   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][431] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:51.944   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][431] TEST/W: Cannot fire: CENTER empty
-12-21 18:13:52.012   994  2999 I TeamDbg : [V3Test][V3BasicTest:RUN][432] TEST/I: Fire button pressed - initiating firing sequence
-12-21 18:13:52.012   994  2999 W TeamDbg : [V3Test][V3BasicTest:RUN][432] TEST/W: Cannot fire: CENTER empty
+12-21 18:25:37.335   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][0] TEST/I: OpMode started - entering main loop
+12-21 18:25:39.195   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][24] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:25:39.267   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][25] PLANEX/D: Starting operation: Collect[FRONT]
+12-21 18:25:39.268   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][25] INTAKE/D: doStart() called for FRONT
+12-21 18:25:39.268   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][25] INTAKE/D: Fast presence detected, starting hardware...
+12-21 18:25:39.268   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][25] INTAKE/D: Started FRONT intake hardware
+12-21 18:25:39.268   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][25] INTAKE/D: doStart() completed successfully
+12-21 18:25:39.269   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][25] PLANEX/D: STARTED successfully (#1)
+12-21 18:25:39.269   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][25] INTAKE/D: Auto-collect FRONT (confidence=HIGH)
+12-21 18:25:39.348   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][26] PLANEX/D: update() - stillRunning=true, op=Collect[FRONT]
+12-21 18:25:39.403   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][27] PLANEX/D: update() - stillRunning=true, op=Collect[FRONT]
+12-21 18:25:39.466   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] INTAKE/D: Color checkpoint reached, stopping hardware
+12-21 18:25:39.471   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] INTAKE/D: → SETTLING state
+12-21 18:25:39.472   994  3193 W TeamDbg : [V3Test][V3BasicTest:RUN][28] INTAKE/W: Hardware done before sampling, forcing completion
+12-21 18:25:39.715   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] INTAKE/D: Collection complete
+12-21 18:25:39.716   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] PLANEX/D: update() - stillRunning=false, op=Collect[FRONT]
+12-21 18:25:39.717   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] PLANEX/D: Operation SUCCESSFUL, committing...
+12-21 18:25:39.717   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] INTAKE/D: doCommit() called
+12-21 18:25:39.718   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][28] INTAKE/I: Committed PURPLE (0.6304417371749877) to FRONT
+12-21 18:25:39.719   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] PLANEX/D: Commit complete
+12-21 18:25:39.719   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] PLANEX/D: Clearing operation, now idle
+12-21 18:25:39.719   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] PLANEX/D: handleOperationComplete: Collect[FRONT], success=true
+12-21 18:25:39.719   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] INDEX/D: Collection completed, calling handlePostCollection()
+12-21 18:25:39.720   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] INDEX/D: handlePostCollection: artifactCount=1
+12-21 18:25:39.720   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] TRANSFER/D: 1st artifact - requesting transfer from FRONT
+12-21 18:25:39.722   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] PLANEX/D: Starting operation: Transfer[FRONT→CENTER]
+12-21 18:25:39.723   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] TRANSFER/D: Starting transferFrontIntakeToCenterTimed
+12-21 18:25:39.723   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] TRANSFER/D: TransferSequenceState.UN_PREPOSITIONING
+12-21 18:25:39.724   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] PLANEX/D: STARTED successfully (#2)
+12-21 18:25:39.724   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][28] TRANSFER/D: Transfer request SUCCESSFUL
+12-21 18:25:39.821   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][29] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:25:39.904   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][30] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:25:39.983   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][31] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:25:40.053   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][32] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:25:40.112   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][33] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:25:40.187   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][34] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:25:40.258   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][35] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:25:40.368   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][36] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:25:40.440   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][37] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:25:40.519   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][38] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:25:40.591   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][39] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:25:40.675   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][40] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:25:40.742   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][41] TRANSFER/D: TRANSFERRING - Elapsed Time: 85ms
+12-21 18:25:40.748   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][41] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:25:40.803   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][42] TRANSFER/D: TRANSFERRING - Elapsed Time: 146ms
+12-21 18:25:40.809   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][42] PLANEX/D: update() - stillRunning=false, op=Transfer[FRONT→CENTER]
+12-21 18:25:40.809   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][42] PLANEX/D: Operation SUCCESSFUL, committing...
+12-21 18:25:40.811   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][42] PLANEX/D: Commit complete
+12-21 18:25:40.811   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][42] PLANEX/D: Clearing operation, now idle
+12-21 18:25:40.812   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][42] PLANEX/D: handleOperationComplete: Transfer[FRONT→CENTER], success=true
+12-21 18:25:40.812   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][42] TRANSFER/D: Transfer completed
+12-21 18:25:40.814   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][42] INTAKE/D: Reset FRONT perception after transfer
+12-21 18:25:40.893   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][43] TRANSFER/D: TRANSFERRING - Elapsed Time: 236ms
+12-21 18:25:40.975   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][44] TRANSFER/D: TRANSFERRING - Elapsed Time: 317ms
+12-21 18:25:40.980   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][44] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:25:41.044   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][45] TRANSFER/D: TRANSFERRING - Elapsed Time: 385ms
+12-21 18:25:41.050   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][45] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:25:41.107   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][46] TRANSFER/D: TRANSFERRING - Elapsed Time: 450ms
+12-21 18:25:41.111   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][46] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:25:41.178   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][47] TRANSFER/D: TRANSFERRING - Elapsed Time: 520ms
+12-21 18:25:41.199   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][47] INTAKE/D: Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 18:25:41.262   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][48] TRANSFER/D: TRANSFERRING - Elapsed Time: 605ms
+12-21 18:25:41.267   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][48] INTAKE/D: Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 18:25:41.330   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][49] TRANSFER/D: TRANSFERRING - Elapsed Time: 672ms
+12-21 18:25:41.335   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][49] INTAKE/D: Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 18:25:41.415   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][50] TRANSFER/D: TRANSFERRING - Elapsed Time: 758ms
+12-21 18:25:41.430   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][50] INTAKE/D: Skipping FRONT auto-collect (confidence=NONE not HIGH)
+12-21 18:25:41.496   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][51] TRANSFER/D: TRANSFERRING - Elapsed Time: 839ms
+12-21 18:25:41.575   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][52] TRANSFER/D: TRANSFERRING - Elapsed Time: 917ms
+12-21 18:25:41.650   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][53] TRANSFER/D: TRANSFERRING - Elapsed Time: 992ms
+12-21 18:25:41.729   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][54] TRANSFER/D: TRANSFERRING - Elapsed Time: 1072ms
+12-21 18:25:41.823   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][55] TRANSFER/D: TRANSFERRING - Elapsed Time: 1165ms
+12-21 18:25:41.887   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][56] TRANSFER/D: TRANSFERRING - Elapsed Time: 1230ms
+12-21 18:25:41.988   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][57] TRANSFER/D: TRANSFERRING - Elapsed Time: 1331ms
+12-21 18:25:42.069   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][58] TRANSFER/D: TRANSFERRING - Elapsed Time: 1412ms
+12-21 18:25:42.139   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][59] TRANSFER/D: TRANSFERRING - Elapsed Time: 1482ms
+12-21 18:25:42.204   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][60] TRANSFER/D: TRANSFERRING - Elapsed Time: 1547ms
+12-21 18:25:42.289   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][61] TRANSFER/D: TRANSFERRING - Elapsed Time: 1631ms
+12-21 18:25:42.383   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][62] TRANSFER/D: TRANSFERRING - Elapsed Time: 1725ms
+12-21 18:25:42.468   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][63] TRANSFER/D: TRANSFERRING - Elapsed Time: 1811ms
+12-21 18:25:42.550   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][64] TRANSFER/D: TRANSFERRING - Elapsed Time: 1893ms
+12-21 18:25:42.629   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][65] TRANSFER/D: TRANSFERRING - Elapsed Time: 1972ms
+12-21 18:25:42.687   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][66] TRANSFER/D: TRANSFERRING - Elapsed Time: 2029ms
+12-21 18:25:42.752   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][67] TRANSFER/D: TRANSFERRING - Elapsed Time: 2094ms
+12-21 18:25:42.833   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][68] TRANSFER/D: TRANSFERRING - Elapsed Time: 2176ms
+12-21 18:25:42.922   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][69] TRANSFER/D: TRANSFERRING - Elapsed Time: 2265ms
+12-21 18:25:43.013   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][70] TRANSFER/D: TRANSFERRING - Elapsed Time: 2356ms
+12-21 18:25:43.094   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][71] TRANSFER/D: TRANSFERRING - Elapsed Time: 2436ms
+12-21 18:25:43.178   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][72] TRANSFER/D: TRANSFERRING - Elapsed Time: 2521ms
+12-21 18:25:43.258   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][73] TRANSFER/D: TRANSFERRING - Elapsed Time: 2600ms
+12-21 18:25:43.272   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][73] INTAKE/D: Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 18:25:43.339   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][74] TRANSFER/D: PREPOSITIONING
+12-21 18:25:43.344   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][74] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:25:43.408   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][75] TRANSFER/D: PREPOSITIONING
+12-21 18:25:43.412   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][75] PLANEX/D: Starting operation: Collect[FRONT]
+12-21 18:25:43.415   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][75] INTAKE/D: doStart() called for FRONT
+12-21 18:25:43.415   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][75] INTAKE/D: Fast presence detected, starting hardware...
+12-21 18:25:43.415   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][75] INTAKE/D: Started FRONT intake hardware
+12-21 18:25:43.415   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][75] INTAKE/D: doStart() completed successfully
+12-21 18:25:43.416   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][75] PLANEX/D: STARTED successfully (#3)
+12-21 18:25:43.416   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][75] INTAKE/D: Auto-collect FRONT (confidence=HIGH)
+12-21 18:25:43.481   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][76] TRANSFER/D: PREPOSITIONING
+12-21 18:25:43.493   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][76] PLANEX/D: update() - stillRunning=true, op=Collect[FRONT]
+12-21 18:25:43.560   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][77] TRANSFER/D: PREPOSITIONING
+12-21 18:25:43.565   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][77] INTAKE/D: Color checkpoint reached, stopping hardware
+12-21 18:25:43.570   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][77] INTAKE/D: → SETTLING state
+12-21 18:25:43.571   994  3193 W TeamDbg : [V3Test][V3BasicTest:RUN][77] INTAKE/W: Hardware done before sampling, forcing completion
+12-21 18:25:43.803   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][77] INTAKE/D: Collection complete
+12-21 18:25:43.804   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][77] PLANEX/D: update() - stillRunning=false, op=Collect[FRONT]
+12-21 18:25:43.804   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][77] PLANEX/D: Operation SUCCESSFUL, committing...
+12-21 18:25:43.804   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][77] INTAKE/D: doCommit() called
+12-21 18:25:43.805   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][77] INTAKE/I: Committed GREEN (0.7388570964336395) to FRONT
+12-21 18:25:43.807   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][77] PLANEX/D: Commit complete
+12-21 18:25:43.807   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][77] PLANEX/D: Clearing operation, now idle
+12-21 18:25:43.808   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][77] PLANEX/D: handleOperationComplete: Collect[FRONT], success=true
+12-21 18:25:43.808   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][77] INDEX/D: Collection completed, calling handlePostCollection()
+12-21 18:25:43.808   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][77] INDEX/D: handlePostCollection: artifactCount=2
+12-21 18:25:43.809   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][77] SHOTPLAN/D: 2nd artifact - checking shot planner...
+12-21 18:25:43.809   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][77] SHOTPLAN/D: No swap needed, artifact stays in storage
+12-21 18:25:43.887   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][78] TRANSFER/D: PREPOSITIONING
+12-21 18:25:43.979   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][79] TRANSFER/D: PREPOSITIONING
+12-21 18:25:46.403   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][113] TEST/I: Fire button pressed - initiating firing sequence
+12-21 18:25:46.403   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][113] TEST/I: Starting firing with SHORT_RANGE preset (1100 RPM)
+12-21 18:25:46.406   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][113] FIRING/D: startFiring() called - targetRPM=1100, preset=CUSTOM, keepAlive=true
+12-21 18:25:46.407   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][113] TEST/D: requestFire returned: true
+12-21 18:25:46.407   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][113] TEST/I: Firing sequence started successfully
+12-21 18:25:46.476   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][114] TEST/D: Spinning up: 0 / 1100 RPM
+12-21 18:25:47.006   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][121] TEST/D: Spinning up: 808 / 1100 RPM
+12-21 18:25:47.564   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][128] TEST/D: Spinning up: 1434 / 1100 RPM
+12-21 18:25:48.119   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][135] TEST/D: Spinning up: 1277 / 1100 RPM
+12-21 18:25:48.688   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][142] TEST/D: Spinning up: 1087 / 1100 RPM
+12-21 18:25:48.842   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][144] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 18:25:48.851   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][144] FIRING/D: Subsequent shot detected (0 → 1), clearing CENTER
+12-21 18:25:48.851   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][144] SHOTPLAN/D: Shot consumed from plan
+12-21 18:25:48.852   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][144] PLANEX/D: Starting operation: Transfer[FRONT→CENTER]
+12-21 18:25:48.852   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][144] TRANSFER/D: Starting transferFrontIntakeToCenterTimed
+12-21 18:25:48.852   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][144] TRANSFER/D: TransferSequenceState.UN_PREPOSITIONING
+12-21 18:25:48.853   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][144] PLANEX/D: STARTED successfully (#4)
+12-21 18:25:48.854   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][144] TEST/D: Transfer in progress...
+12-21 18:25:48.956   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][145] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:25:49.060   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][146] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:25:49.131   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][147] TRANSFER/D: TRANSFERRING - Elapsed Time: 90ms
+12-21 18:25:49.135   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][147] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:25:49.216   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][148] TRANSFER/D: TRANSFERRING - Elapsed Time: 176ms
+12-21 18:25:49.222   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][148] PLANEX/D: update() - stillRunning=false, op=Transfer[FRONT→CENTER]
+12-21 18:25:49.222   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][148] PLANEX/D: Operation SUCCESSFUL, committing...
+12-21 18:25:49.224   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][148] PLANEX/D: Commit complete
+12-21 18:25:49.224   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][148] PLANEX/D: Clearing operation, now idle
+12-21 18:25:49.224   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][148] PLANEX/D: handleOperationComplete: Transfer[FRONT→CENTER], success=true
+12-21 18:25:49.225   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][148] TRANSFER/D: Transfer completed
+12-21 18:25:49.225   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][148] INTAKE/D: Reset FRONT perception after transfer
+12-21 18:25:49.310   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][149] TRANSFER/D: TRANSFERRING - Elapsed Time: 270ms
+12-21 18:25:49.389   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][150] TRANSFER/D: TRANSFERRING - Elapsed Time: 349ms
+12-21 18:25:49.394   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][150] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:25:49.395   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][150] TEST/D: Transfer in progress...
+12-21 18:25:49.463   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][151] TRANSFER/D: TRANSFERRING - Elapsed Time: 423ms
+12-21 18:25:49.475   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][151] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:25:49.550   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][152] TRANSFER/D: TRANSFERRING - Elapsed Time: 510ms
+12-21 18:25:49.572   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][152] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:25:49.637   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][153] TRANSFER/D: TRANSFERRING - Elapsed Time: 597ms
+12-21 18:25:49.642   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][153] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:25:49.707   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][154] TRANSFER/D: TRANSFERRING - Elapsed Time: 667ms
+12-21 18:25:49.712   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][154] INTAKE/D: Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 18:25:49.776   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][155] TRANSFER/D: TRANSFERRING - Elapsed Time: 736ms
+12-21 18:25:49.780   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][155] INTAKE/D: Skipping FRONT auto-collect (confidence=NONE not HIGH)
+12-21 18:25:49.850   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][156] TRANSFER/D: TRANSFERRING - Elapsed Time: 810ms
+12-21 18:25:49.923   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][157] TRANSFER/D: TRANSFERRING - Elapsed Time: 883ms
+12-21 18:25:49.929   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][157] TEST/D: Transfer in progress...
+12-21 18:25:49.987   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][158] TRANSFER/D: TRANSFERRING - Elapsed Time: 947ms
+12-21 18:25:50.063   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][159] TRANSFER/D: TRANSFERRING - Elapsed Time: 1023ms
+12-21 18:25:50.155   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][160] TRANSFER/D: TRANSFERRING - Elapsed Time: 1115ms
+12-21 18:25:50.240   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][161] TRANSFER/D: TRANSFERRING - Elapsed Time: 1199ms
+12-21 18:25:50.316   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][162] TRANSFER/D: TRANSFERRING - Elapsed Time: 1276ms
+12-21 18:25:50.407   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][163] TRANSFER/D: TRANSFERRING - Elapsed Time: 1367ms
+12-21 18:25:50.490   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][164] TRANSFER/D: TRANSFERRING - Elapsed Time: 1450ms
+12-21 18:25:50.502   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][164] TEST/D: Transfer in progress...
+12-21 18:25:50.578   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][165] TRANSFER/D: TRANSFERRING - Elapsed Time: 1538ms
+12-21 18:25:50.675   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][166] TRANSFER/D: TRANSFERRING - Elapsed Time: 1635ms
+12-21 18:25:50.756   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][167] TRANSFER/D: TRANSFERRING - Elapsed Time: 1715ms
+12-21 18:25:50.822   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][168] TRANSFER/D: TRANSFERRING - Elapsed Time: 1782ms
+12-21 18:25:50.880   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][169] TRANSFER/D: TRANSFERRING - Elapsed Time: 1840ms
+12-21 18:25:50.967   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][170] TRANSFER/D: TRANSFERRING - Elapsed Time: 1927ms
+12-21 18:25:51.040   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][171] TRANSFER/D: TRANSFERRING - Elapsed Time: 2000ms
+12-21 18:25:51.053   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][171] TEST/D: Transfer in progress...
+12-21 18:25:51.129   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][172] TRANSFER/D: TRANSFERRING - Elapsed Time: 2089ms
+12-21 18:25:51.225   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][173] TRANSFER/D: TRANSFERRING - Elapsed Time: 2185ms
+12-21 18:25:51.298   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][174] TRANSFER/D: TRANSFERRING - Elapsed Time: 2258ms
+12-21 18:25:51.356   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][175] TRANSFER/D: TRANSFERRING - Elapsed Time: 2316ms
+12-21 18:25:51.439   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][176] TRANSFER/D: TRANSFERRING - Elapsed Time: 2398ms
+12-21 18:25:51.524   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][177] TRANSFER/D: TRANSFERRING - Elapsed Time: 2484ms
+12-21 18:25:51.592   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][178] TRANSFER/D: TRANSFERRING - Elapsed Time: 2552ms
+12-21 18:25:51.614   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][178] TEST/D: Transfer in progress...
+12-21 18:25:51.681   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][179] TRANSFER/D: TRANSFERRING - Elapsed Time: 2641ms
+12-21 18:25:51.759   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][180] TRANSFER/D: PREPOSITIONING
+12-21 18:25:51.824   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][181] TRANSFER/D: PREPOSITIONING
+12-21 18:25:51.887   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][182] TRANSFER/D: PREPOSITIONING
+12-21 18:25:51.953   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][183] TRANSFER/D: PREPOSITIONING
+12-21 18:25:52.055   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][184] TRANSFER/D: PREPOSITIONING
+12-21 18:25:52.131   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][185] TRANSFER/D: PREPOSITIONING
+12-21 18:25:52.144   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][185] TEST/D: Transfer in progress...
+12-21 18:25:52.233   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][186] TRANSFER/D: PREPOSITIONING
+12-21 18:25:52.316   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][187] TRANSFER/D: PREPOSITIONING
+12-21 18:25:52.387   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][188] TRANSFER/D: PREPOSITIONING
+12-21 18:25:52.393   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][188] TEST/D: Spinning up: 64 / 1100 RPM
+12-21 18:25:52.944   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][195] TEST/D: Spinning up: 16 / 1100 RPM
+12-21 18:25:53.508   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][202] TEST/D: Spinning up: 0 / 1100 RPM
+12-21 18:25:54.039   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][209] TEST/D: Spinning up: 0 / 1100 RPM
+12-21 18:25:54.581   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][216] TEST/D: Spinning up: 0 / 1100 RPM
+12-21 18:25:55.130   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][223] TEST/D: Spinning up: 0 / 1100 RPM
+12-21 18:25:55.682   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][230] TEST/D: Spinning up: 0 / 1100 RPM
+12-21 18:25:56.218   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][237] TEST/D: Spinning up: 0 / 1100 RPM
+12-21 18:25:56.518   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][241] TEST/I: Fire button released - canceling firing sequence
+12-21 18:25:56.520   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][241] FIRING/I: Burst firing cancelled by OpMode request
+12-21 18:25:56.520   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][241] TEST/I: Firing sequence canceled
+12-21 18:25:56.813   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][245] TEST/I: Fire button pressed - initiating firing sequence
+12-21 18:25:56.813   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][245] TEST/I: Starting firing with SHORT_RANGE preset (1100 RPM)
+12-21 18:25:56.815   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][245] FIRING/D: startFiring() called - targetRPM=1100, preset=CUSTOM, keepAlive=true
+12-21 18:25:56.815   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][245] TEST/D: requestFire returned: true
+12-21 18:25:56.815   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][245] TEST/I: Firing sequence started successfully
+12-21 18:25:56.885   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][246] TEST/D: Spinning up: 0 / 1100 RPM
+12-21 18:25:57.386   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][252] TEST/D: Spinning up: 795 / 1100 RPM
+12-21 18:25:57.951   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][259] TEST/D: Spinning up: 1414 / 1100 RPM
+12-21 18:25:58.503   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][266] TEST/D: Spinning up: 1298 / 1100 RPM
+12-21 18:25:59.005   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][272] TEST/D: Spinning up: 1102 / 1100 RPM
+12-21 18:25:59.176   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][274] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 18:25:59.189   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][274] FIRING/D: Subsequent shot detected (1 → 2), clearing CENTER
+12-21 18:25:59.189   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][274] SHOTPLAN/D: Shot consumed from plan
+12-21 18:25:59.194   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][274] TEST/D: Waiting for next artifact transfer...
+12-21 18:26:00.200   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][287] TEST/D: Waiting for next artifact transfer...
+12-21 18:26:01.191   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][300] TEST/I: Fire button released - canceling firing sequence
+12-21 18:26:01.191   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][300] TEST/I: Firing sequence canceled
+12-21 18:26:05.770   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][360] INTAKE/D: Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 18:26:05.836   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][361] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:26:05.904   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][362] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:26:05.973   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][363] PLANEX/D: Starting operation: Collect[FRONT]
+12-21 18:26:05.973   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][363] INTAKE/D: doStart() called for FRONT
+12-21 18:26:05.973   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][363] INTAKE/D: Fast presence detected, starting hardware...
+12-21 18:26:05.974   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][363] INTAKE/D: Started FRONT intake hardware
+12-21 18:26:05.974   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][363] INTAKE/D: doStart() completed successfully
+12-21 18:26:05.974   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][363] PLANEX/D: STARTED successfully (#5)
+12-21 18:26:05.975   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][363] INTAKE/D: Auto-collect FRONT (confidence=HIGH)
+12-21 18:26:06.068   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][364] PLANEX/D: update() - stillRunning=true, op=Collect[FRONT]
+12-21 18:26:06.148   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] INTAKE/D: Color checkpoint reached, stopping hardware
+12-21 18:26:06.153   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] INTAKE/D: → SETTLING state
+12-21 18:26:06.153   994  3193 W TeamDbg : [V3Test][V3BasicTest:RUN][365] INTAKE/W: Hardware done before sampling, forcing completion
+12-21 18:26:06.392   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] INTAKE/D: Collection complete
+12-21 18:26:06.393   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] PLANEX/D: update() - stillRunning=false, op=Collect[FRONT]
+12-21 18:26:06.393   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] PLANEX/D: Operation SUCCESSFUL, committing...
+12-21 18:26:06.393   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] INTAKE/D: doCommit() called
+12-21 18:26:06.394   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][365] INTAKE/I: Committed PURPLE (0.6668116420507431) to FRONT
+12-21 18:26:06.395   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] PLANEX/D: Commit complete
+12-21 18:26:06.395   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] PLANEX/D: Clearing operation, now idle
+12-21 18:26:06.396   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] PLANEX/D: handleOperationComplete: Collect[FRONT], success=true
+12-21 18:26:06.396   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] INDEX/D: Collection completed, calling handlePostCollection()
+12-21 18:26:06.396   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] INDEX/D: handlePostCollection: artifactCount=1
+12-21 18:26:06.396   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] TRANSFER/D: 1st artifact - requesting transfer from FRONT
+12-21 18:26:06.397   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] PLANEX/D: Starting operation: Transfer[FRONT→CENTER]
+12-21 18:26:06.397   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] TRANSFER/D: Starting transferFrontIntakeToCenterTimed
+12-21 18:26:06.397   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] TRANSFER/D: TransferSequenceState.UN_PREPOSITIONING
+12-21 18:26:06.397   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] PLANEX/D: STARTED successfully (#6)
+12-21 18:26:06.398   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][365] TRANSFER/D: Transfer request SUCCESSFUL
+12-21 18:26:06.487   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][366] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:26:06.562   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][367] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:26:06.634   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][368] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:26:06.725   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][369] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:26:06.797   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][370] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:26:06.868   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][371] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:26:06.938   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][372] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:26:07.043   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][373] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:26:07.122   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][374] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:26:07.204   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][375] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:26:07.281   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][376] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:26:07.368   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][377] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:26:07.436   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][378] TRANSFER/D: TRANSFERRING - Elapsed Time: 90ms
+12-21 18:26:07.441   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][378] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:26:07.515   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][379] TRANSFER/D: TRANSFERRING - Elapsed Time: 170ms
+12-21 18:26:07.521   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][379] PLANEX/D: update() - stillRunning=false, op=Transfer[FRONT→CENTER]
+12-21 18:26:07.521   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][379] PLANEX/D: Operation SUCCESSFUL, committing...
+12-21 18:26:07.522   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][379] PLANEX/D: Commit complete
+12-21 18:26:07.522   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][379] PLANEX/D: Clearing operation, now idle
+12-21 18:26:07.523   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][379] PLANEX/D: handleOperationComplete: Transfer[FRONT→CENTER], success=true
+12-21 18:26:07.523   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][379] TRANSFER/D: Transfer completed
+12-21 18:26:07.523   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][379] INTAKE/D: Reset FRONT perception after transfer
+12-21 18:26:07.594   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][380] TRANSFER/D: TRANSFERRING - Elapsed Time: 249ms
+12-21 18:26:07.667   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][381] TRANSFER/D: TRANSFERRING - Elapsed Time: 322ms
+12-21 18:26:07.672   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][381] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:26:07.735   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][382] TRANSFER/D: TRANSFERRING - Elapsed Time: 390ms
+12-21 18:26:07.744   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][382] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:26:07.815   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][383] TRANSFER/D: TRANSFERRING - Elapsed Time: 470ms
+12-21 18:26:07.829   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][383] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:26:07.902   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][384] TRANSFER/D: TRANSFERRING - Elapsed Time: 556ms
+12-21 18:26:07.922   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][384] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:26:07.990   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][385] TRANSFER/D: TRANSFERRING - Elapsed Time: 645ms
+12-21 18:26:07.995   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][385] INTAKE/D: Skipping FRONT auto-collect (confidence=NONE not HIGH)
+12-21 18:26:08.063   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][386] TRANSFER/D: TRANSFERRING - Elapsed Time: 718ms
+12-21 18:26:08.142   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][387] TRANSFER/D: TRANSFERRING - Elapsed Time: 796ms
+12-21 18:26:08.226   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][388] TRANSFER/D: TRANSFERRING - Elapsed Time: 881ms
+12-21 18:26:08.301   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][389] TRANSFER/D: TRANSFERRING - Elapsed Time: 956ms
+12-21 18:26:08.374   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][390] TRANSFER/D: TRANSFERRING - Elapsed Time: 1029ms
+12-21 18:26:08.454   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][391] TRANSFER/D: TRANSFERRING - Elapsed Time: 1108ms
+12-21 18:26:08.529   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][392] TRANSFER/D: TRANSFERRING - Elapsed Time: 1183ms
+12-21 18:26:08.607   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][393] TRANSFER/D: TRANSFERRING - Elapsed Time: 1261ms
+12-21 18:26:08.675   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][394] TRANSFER/D: TRANSFERRING - Elapsed Time: 1330ms
+12-21 18:26:08.747   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][395] TRANSFER/D: TRANSFERRING - Elapsed Time: 1402ms
+12-21 18:26:08.827   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][396] TRANSFER/D: TRANSFERRING - Elapsed Time: 1481ms
+12-21 18:26:08.911   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][397] TRANSFER/D: TRANSFERRING - Elapsed Time: 1566ms
+12-21 18:26:08.995   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][398] TRANSFER/D: TRANSFERRING - Elapsed Time: 1649ms
+12-21 18:26:09.086   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][399] TRANSFER/D: TRANSFERRING - Elapsed Time: 1740ms
+12-21 18:26:09.167   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][400] TRANSFER/D: TRANSFERRING - Elapsed Time: 1822ms
+12-21 18:26:09.237   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][401] TRANSFER/D: TRANSFERRING - Elapsed Time: 1892ms
+12-21 18:26:09.322   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][402] TRANSFER/D: TRANSFERRING - Elapsed Time: 1976ms
+12-21 18:26:09.397   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][403] TRANSFER/D: TRANSFERRING - Elapsed Time: 2052ms
+12-21 18:26:09.468   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][404] TRANSFER/D: TRANSFERRING - Elapsed Time: 2123ms
+12-21 18:26:09.542   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][405] TRANSFER/D: TRANSFERRING - Elapsed Time: 2197ms
+12-21 18:26:09.631   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][406] TRANSFER/D: TRANSFERRING - Elapsed Time: 2286ms
+12-21 18:26:09.708   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][407] TRANSFER/D: TRANSFERRING - Elapsed Time: 2363ms
+12-21 18:26:09.782   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][408] TRANSFER/D: TRANSFERRING - Elapsed Time: 2437ms
+12-21 18:26:09.860   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][409] TRANSFER/D: TRANSFERRING - Elapsed Time: 2515ms
+12-21 18:26:09.941   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][410] TRANSFER/D: TRANSFERRING - Elapsed Time: 2596ms
+12-21 18:26:10.027   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][411] TRANSFER/D: PREPOSITIONING
+12-21 18:26:10.106   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][412] TRANSFER/D: PREPOSITIONING
+12-21 18:26:10.191   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][413] TRANSFER/D: PREPOSITIONING
+12-21 18:26:10.268   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][414] TRANSFER/D: PREPOSITIONING
+12-21 18:26:10.339   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][415] TRANSFER/D: PREPOSITIONING
+12-21 18:26:10.435   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][416] TRANSFER/D: PREPOSITIONING
+12-21 18:26:10.508   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][417] TRANSFER/D: PREPOSITIONING
+12-21 18:26:10.593   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][418] TRANSFER/D: PREPOSITIONING
+12-21 18:26:10.686   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][419] TRANSFER/D: PREPOSITIONING
+12-21 18:26:11.378   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][428] INTAKE/D: Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 18:26:11.454   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][429] INTAKE/D: Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 18:26:11.535   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][430] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:26:11.606   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][431] PLANEX/D: Starting operation: Collect[FRONT]
+12-21 18:26:11.607   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][431] INTAKE/D: doStart() called for FRONT
+12-21 18:26:11.607   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][431] INTAKE/D: Fast presence detected, starting hardware...
+12-21 18:26:11.607   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][431] INTAKE/D: Started FRONT intake hardware
+12-21 18:26:11.608   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][431] INTAKE/D: doStart() completed successfully
+12-21 18:26:11.608   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][431] PLANEX/D: STARTED successfully (#7)
+12-21 18:26:11.608   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][431] INTAKE/D: Auto-collect FRONT (confidence=HIGH)
+12-21 18:26:11.683   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][432] PLANEX/D: update() - stillRunning=true, op=Collect[FRONT]
+12-21 18:26:11.748   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][433] PLANEX/D: update() - stillRunning=true, op=Collect[FRONT]
+12-21 18:26:11.816   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][434] INTAKE/D: Color checkpoint reached, stopping hardware
+12-21 18:26:11.821   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][434] INTAKE/D: → SETTLING state
+12-21 18:26:11.821   994  3193 W TeamDbg : [V3Test][V3BasicTest:RUN][434] INTAKE/W: Hardware done before sampling, forcing completion
+12-21 18:26:12.063   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][434] INTAKE/D: Collection complete
+12-21 18:26:12.063   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][434] PLANEX/D: update() - stillRunning=false, op=Collect[FRONT]
+12-21 18:26:12.063   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][434] PLANEX/D: Operation SUCCESSFUL, committing...
+12-21 18:26:12.063   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][434] INTAKE/D: doCommit() called
+12-21 18:26:12.064   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][434] INTAKE/I: Committed GREEN (0.7007095575332641) to FRONT
+12-21 18:26:12.066   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][434] PLANEX/D: Commit complete
+12-21 18:26:12.066   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][434] PLANEX/D: Clearing operation, now idle
+12-21 18:26:12.066   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][434] PLANEX/D: handleOperationComplete: Collect[FRONT], success=true
+12-21 18:26:12.066   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][434] INDEX/D: Collection completed, calling handlePostCollection()
+12-21 18:26:12.066   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][434] INDEX/D: handlePostCollection: artifactCount=2
+12-21 18:26:12.066   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][434] SHOTPLAN/D: 2nd artifact - checking shot planner...
+12-21 18:26:12.066   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][434] SHOTPLAN/D: No swap needed, artifact stays in storage
+12-21 18:26:12.998   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][447] TEST/I: Fire button pressed - initiating firing sequence
+12-21 18:26:12.998   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][447] TEST/I: Starting firing with SHORT_RANGE preset (1100 RPM)
+12-21 18:26:12.998   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][447] FIRING/D: startFiring() called - targetRPM=1100, preset=CUSTOM, keepAlive=true
+12-21 18:26:12.999   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][447] TEST/D: requestFire returned: true
+12-21 18:26:12.999   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][447] TEST/I: Firing sequence started successfully
+12-21 18:26:13.063   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][448] TEST/D: Spinning up: 0 / 1100 RPM
+12-21 18:26:13.571   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][454] TEST/D: Spinning up: 821 / 1100 RPM
+12-21 18:26:14.089   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][461] TEST/D: Spinning up: 1400 / 1100 RPM
+12-21 18:26:14.653   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][468] TEST/D: Spinning up: 1319 / 1100 RPM
+12-21 18:26:15.221   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][475] TEST/D: Spinning up: 1098 / 1100 RPM
+12-21 18:26:15.366   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][477] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 18:26:15.374   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][477] FIRING/D: Subsequent shot detected (2 → 3), clearing CENTER
+12-21 18:26:15.374   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][477] SHOTPLAN/D: Shot consumed from plan
+12-21 18:26:15.374   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][477] FIRING/D: Shot plan exhausted, using FRONT artifact
+12-21 18:26:15.375   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][477] PLANEX/D: Starting operation: Transfer[FRONT→CENTER]
+12-21 18:26:15.375   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][477] TRANSFER/D: Starting transferFrontIntakeToCenterTimed
+12-21 18:26:15.375   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][477] TRANSFER/D: TransferSequenceState.UN_PREPOSITIONING
+12-21 18:26:15.375   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][477] PLANEX/D: STARTED successfully (#8)
+12-21 18:26:15.376   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][477] TEST/D: Transfer in progress...
+12-21 18:26:15.496   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][478] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:26:15.590   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][479] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:26:15.659   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][480] TRANSFER/D: TRANSFERRING - Elapsed Time: 90ms
+12-21 18:26:15.664   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][480] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 18:26:15.735   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][481] TRANSFER/D: TRANSFERRING - Elapsed Time: 166ms
+12-21 18:26:15.740   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][481] PLANEX/D: update() - stillRunning=false, op=Transfer[FRONT→CENTER]
+12-21 18:26:15.740   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][481] PLANEX/D: Operation SUCCESSFUL, committing...
+12-21 18:26:15.742   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][481] PLANEX/D: Commit complete
+12-21 18:26:15.742   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][481] PLANEX/D: Clearing operation, now idle
+12-21 18:26:15.742   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][481] PLANEX/D: handleOperationComplete: Transfer[FRONT→CENTER], success=true
+12-21 18:26:15.742   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][481] TRANSFER/D: Transfer completed
+12-21 18:26:15.742   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][481] INTAKE/D: Reset FRONT perception after transfer
+12-21 18:26:15.814   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][482] TRANSFER/D: TRANSFERRING - Elapsed Time: 245ms
+12-21 18:26:15.910   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][483] TRANSFER/D: TRANSFERRING - Elapsed Time: 340ms
+12-21 18:26:15.914   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][483] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:26:15.914   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][483] TEST/D: Transfer in progress...
+12-21 18:26:15.992   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][484] TRANSFER/D: TRANSFERRING - Elapsed Time: 423ms
+12-21 18:26:16.009   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][484] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:26:16.066   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][485] TRANSFER/D: TRANSFERRING - Elapsed Time: 497ms
+12-21 18:26:16.071   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][485] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:26:16.138   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][486] TRANSFER/D: TRANSFERRING - Elapsed Time: 568ms
+12-21 18:26:16.158   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][486] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 18:26:16.226   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][487] TRANSFER/D: TRANSFERRING - Elapsed Time: 657ms
+12-21 18:26:16.232   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][487] INTAKE/D: Skipping FRONT auto-collect (confidence=NONE not HIGH)
+12-21 18:26:16.300   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][488] TRANSFER/D: TRANSFERRING - Elapsed Time: 731ms
+12-21 18:26:16.370   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][489] TRANSFER/D: TRANSFERRING - Elapsed Time: 801ms
+12-21 18:26:16.440   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][490] TRANSFER/D: TRANSFERRING - Elapsed Time: 871ms
+12-21 18:26:16.444   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][490] TEST/D: Transfer in progress...
+12-21 18:26:16.520   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][491] TRANSFER/D: TRANSFERRING - Elapsed Time: 950ms
+12-21 18:26:16.601   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][492] TRANSFER/D: TRANSFERRING - Elapsed Time: 1032ms
+12-21 18:26:16.665   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][493] TRANSFER/D: TRANSFERRING - Elapsed Time: 1096ms
+12-21 18:26:16.764   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][494] TRANSFER/D: TRANSFERRING - Elapsed Time: 1195ms
+12-21 18:26:16.830   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][495] TRANSFER/D: TRANSFERRING - Elapsed Time: 1261ms
+12-21 18:26:16.912   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][496] TRANSFER/D: TRANSFERRING - Elapsed Time: 1343ms
+12-21 18:26:16.981   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][497] TRANSFER/D: TRANSFERRING - Elapsed Time: 1412ms
+12-21 18:26:16.987   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][497] TEST/D: Transfer in progress...
+12-21 18:26:17.050   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][498] TRANSFER/D: TRANSFERRING - Elapsed Time: 1480ms
+12-21 18:26:17.125   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][499] TRANSFER/D: TRANSFERRING - Elapsed Time: 1556ms
+12-21 18:26:17.200   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][500] TRANSFER/D: TRANSFERRING - Elapsed Time: 1631ms
+12-21 18:26:17.306   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][501] TRANSFER/D: TRANSFERRING - Elapsed Time: 1736ms
+12-21 18:26:17.367   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][502] TRANSFER/D: TRANSFERRING - Elapsed Time: 1798ms
+12-21 18:26:17.439   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][503] TRANSFER/D: TRANSFERRING - Elapsed Time: 1870ms
+12-21 18:26:17.509   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][504] TRANSFER/D: TRANSFERRING - Elapsed Time: 1940ms
+12-21 18:26:17.513   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][504] TEST/D: Transfer in progress...
+12-21 18:26:17.569   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][505] TRANSFER/D: TRANSFERRING - Elapsed Time: 2000ms
+12-21 18:26:17.652   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][506] TRANSFER/D: TRANSFERRING - Elapsed Time: 2083ms
+12-21 18:26:17.722   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][507] TRANSFER/D: TRANSFERRING - Elapsed Time: 2153ms
+12-21 18:26:17.830   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][508] TRANSFER/D: TRANSFERRING - Elapsed Time: 2261ms
+12-21 18:26:17.908   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][509] TRANSFER/D: TRANSFERRING - Elapsed Time: 2339ms
+12-21 18:26:17.976   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][510] TRANSFER/D: TRANSFERRING - Elapsed Time: 2406ms
+12-21 18:26:18.058   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][511] TRANSFER/D: TRANSFERRING - Elapsed Time: 2489ms
+12-21 18:26:18.063   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][511] TEST/D: Transfer in progress...
+12-21 18:26:18.130   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][512] TRANSFER/D: TRANSFERRING - Elapsed Time: 2561ms
+12-21 18:26:18.217   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][513] TRANSFER/D: TRANSFERRING - Elapsed Time: 2647ms
+12-21 18:26:18.297   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][514] TRANSFER/D: PREPOSITIONING
+12-21 18:26:18.366   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][515] TRANSFER/D: PREPOSITIONING
+12-21 18:26:18.442   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][516] TRANSFER/D: PREPOSITIONING
+12-21 18:26:18.518   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][517] TRANSFER/D: PREPOSITIONING
+12-21 18:26:18.591   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][518] TRANSFER/D: PREPOSITIONING
+12-21 18:26:18.596   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][518] TEST/D: Transfer in progress...
+12-21 18:26:18.659   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][519] TRANSFER/D: PREPOSITIONING
+12-21 18:26:18.744   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][520] TRANSFER/D: PREPOSITIONING
+12-21 18:26:18.827   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][521] TRANSFER/D: PREPOSITIONING
+12-21 18:26:18.911   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][522] TRANSFER/D: PREPOSITIONING
+12-21 18:26:18.919   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][522] TEST/D: Spinning up: 39 / 1100 RPM
+12-21 18:26:19.301   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][527] TEST/I: Fire button released - canceling firing sequence
+12-21 18:26:19.302   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][527] FIRING/I: Burst firing cancelled by OpMode request
+12-21 18:26:19.302   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][527] TEST/I: Firing sequence canceled
+12-21 18:26:19.451   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][529] TEST/I: Fire button pressed - initiating firing sequence
+12-21 18:26:19.451   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][529] TEST/I: Starting firing with SHORT_RANGE preset (1100 RPM)
+12-21 18:26:19.453   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][529] FIRING/D: startFiring() called - targetRPM=1100, preset=CUSTOM, keepAlive=true
+12-21 18:26:19.453   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][529] TEST/D: requestFire returned: true
+12-21 18:26:19.453   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][529] TEST/I: Firing sequence started successfully
+12-21 18:26:19.534   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][530] TEST/D: Spinning up: 14 / 1100 RPM
+12-21 18:26:20.051   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][536] TEST/D: Spinning up: 807 / 1100 RPM
+12-21 18:26:20.617   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][543] TEST/D: Spinning up: 1444 / 1100 RPM
+12-21 18:26:21.153   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][550] TEST/D: Spinning up: 1282 / 1100 RPM
+12-21 18:26:21.697   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][557] TEST/D: Spinning up: 1104 / 1100 RPM
+12-21 18:26:21.772   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][558] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 18:26:21.780   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][558] FIRING/D: Subsequent shot detected (3 → 4), clearing CENTER
+12-21 18:26:21.782   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][558] SHOTPLAN/D: Shot consumed from plan
+12-21 18:26:21.787   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][558] TEST/D: Waiting for next artifact transfer...
+12-21 18:26:22.824   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][572] TEST/D: Waiting for next artifact transfer...
+12-21 18:26:23.855   994  3193 D TeamDbg : [V3Test][V3BasicTest:RUN][586] TEST/D: Waiting for next artifact transfer...
+12-21 18:26:24.743   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][598] TEST/I: Fire button released - canceling firing sequence
+12-21 18:26:24.745   994  3193 I TeamDbg : [V3Test][V3BasicTest:RUN][598] TEST/I: Firing sequence canceled
