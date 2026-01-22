@@ -20,6 +20,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
  *   intake.setBackPower(0.8);   // Back roller at 80%, servo at -80%
  *   intake.stopAll();           // Stop all intake systems
  */
+@Deprecated
 public class IntakeController {
 
     // Hardware references

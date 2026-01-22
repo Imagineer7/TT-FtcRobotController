@@ -10,6 +10,7 @@ package org.firstinspires.ftc.teamcode.util.aurora;
  * or called directly for validation. For proper unit testing, integrate with
  * your test framework.
  */
+@Deprecated
 public class IndexingSystemTestClass {
 
     /**

@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
@@ -33,6 +34,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.Artifact;
  *   D-Pad Left/Right - Change to MID_RANGE preset
  */
 @TeleOp(name="Indexing System Example", group="Examples")
+@Disabled
 public class IndexingSystemExample extends LinearOpMode {
 
     // System components

@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
@@ -76,7 +77,9 @@ import org.firstinspires.ftc.teamcode.util.aurora.SystemMonitor;
  *   [L-BUMPER + DPAD] - RPM adjustment mode:
  *     LB+UP/DOWN: ±100 RPM, LB+LEFT/RIGHT: ±500 RPM
  */
+@Deprecated
 @TeleOp(name = "🚀 Full System Test", group = "Testing")
+@Disabled
 public class FullSystemTest extends LinearOpMode {
 
     // Hardware and Systems

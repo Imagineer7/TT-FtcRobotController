@@ -65,7 +65,7 @@ public class Constants {
             .forwardPodY(-2.83)
             .strafePodX(4.71)
             .distanceUnit(DistanceUnit.INCH)
-            .hardwareMapName("odo")  // Matches your hardware config
+            .hardwareMapName("OdometryPinpointComputer")  // Matches your hardware config
             .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)  // Strafe pod reversed so Y increases when moving left
             .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD); // Forward pod forward so X increases when moving forward
     // Forward encoder direction is FORWARD by default

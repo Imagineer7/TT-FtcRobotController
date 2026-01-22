@@ -1,17 +1,22 @@
 package org.firstinspires.ftc.teamcode.util.aurora;
 
+import org.firstinspires.ftc.teamcode.util.aurora.v3.ArtifactIdentity;
+import org.firstinspires.ftc.teamcode.util.aurora.v3.SlotLedger;
+
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * ShotPlanner - Pure logic component for determining shot order and rearrangement strategy
  *
+ * Updated for v3 system using ArtifactIdentity and SlotLedger
+ *
  * RESPONSIBILITIES:
  * - Runs every loop cycle (unless explicitly skipped by rules)
  * - Decides which artifact should be in the center position
  * - Produces a shot plan (ordered list of artifacts to fire)
  * - Validates artifact location states before planning
- * - Does NOT move hardware (hardware control is PlannerExecutor's job)
+ * - Does NOT move hardware (coordination handled by ShotPlanningCoordinator)
  *
  * PLANNER SKIP CONDITIONS:
  * - All artifacts are green
@@ -29,7 +34,7 @@ import java.util.List;
  * 1. Generate all feasible orders based on artifact count and mechanical constraints
  * 2. Score each order against the motif pattern
  * 3. Select the best scoring order
- * 4. If best order's first artifact ≠ current center, output desiredCenterArtifact
+ * 4. If best order's first artifact ≠ current center, output desiredCenterSlot
  */
 public class ShotPlanner {
 
@@ -41,10 +46,10 @@ public class ShotPlanner {
     private String motifPattern = "GPP";
 
     /** Current shot plan (ordered list of artifacts) */
-    private List<Artifact> shotPlan = new ArrayList<>();
+    private List<ArtifactIdentity> shotPlan = new ArrayList<>();
 
-    /** Desired center artifact for rearrangement (null if no rearrangement needed) */
-    private Artifact desiredCenterArtifact = null;
+    /** Desired slot to swap with center for rearrangement (null if no rearrangement needed) */
+    private SlotLedger.Slot desiredSwapSlot = null;
 
     /** Manual push mode flag (when true, planner skips rearrangement) */
     private boolean manualPushMode = false;
@@ -56,7 +61,7 @@ public class ShotPlanner {
     public ShotPlanner() {
         this.motifPattern = "PPG";
         this.shotPlan = new ArrayList<>();
-        this.desiredCenterArtifact = null;
+        this.desiredSwapSlot = null;
         this.manualPushMode = false;
     }
 
@@ -86,76 +91,62 @@ public class ShotPlanner {
      * Update the shot plan based on current artifact state
      * This is the main entry point called every loop cycle
      *
-     * @param artifacts List of all artifacts in the system
-     * @param artifactInCenter Current artifact in center position (null if empty)
-     * @param artifactInFrontIntake Current artifact in front intake (null if empty)
-     * @param artifactInBackIntake Current artifact in back intake (null if empty)
+     * @param ledger The current slot ledger state
      * @return true if planning succeeded, false if skipped
      */
-    public boolean updateShotPlan(List<Artifact> artifacts,
-                                   Artifact artifactInCenter,
-                                   Artifact artifactInFrontIntake,
-                                   Artifact artifactInBackIntake) {
-        // Clear previous desired center artifact
-        desiredCenterArtifact = null;
+    public boolean updateShotPlan(SlotLedger ledger) {
+        // Clear previous desired swap slot
+        desiredSwapSlot = null;
 
-        // Validate artifact location states
-        if (!validateArtifactStates(artifacts, artifactInCenter, artifactInFrontIntake, artifactInBackIntake)) {
-            // Invalid state - use default order
-            shotPlan = buildDefaultOrder(artifacts);
-            return false;
-        }
+        // Get artifacts from ledger
+        ArtifactIdentity centerArtifact = ledger.getCenter();
+        ArtifactIdentity frontArtifact = ledger.getFront();
+        ArtifactIdentity backArtifact = ledger.getBack();
 
-        // Count non-fired artifacts
-        int artifactCount = countActiveArtifacts(artifacts);
+        // Count non-null artifacts
+        int artifactCount = ledger.getArtifactCount();
 
         // Check skip conditions
-        if (shouldSkipPlanning(artifacts, artifactCount)) {
+        if (shouldSkipPlanning(ledger, artifactCount)) {
             // Use default order when planning is skipped
-            shotPlan = buildDefaultOrder(artifacts);
+            shotPlan = buildDefaultOrder(ledger);
             return false;
         }
 
         // Generate feasible orders
-        List<List<Artifact>> feasibleOrders = generateFeasibleOrders(
-            artifacts, artifactInCenter, artifactInFrontIntake, artifactInBackIntake);
+        List<ShotOrder> feasibleOrders = generateFeasibleOrders(ledger);
 
         if (feasibleOrders.isEmpty()) {
             // No feasible orders - use default
-            shotPlan = buildDefaultOrder(artifacts);
+            shotPlan = buildDefaultOrder(ledger);
             return false;
         }
 
         // Score each order against motif pattern
         int bestScore = -1;
-        List<Artifact> bestOrder = null;
-        boolean bestRequiresRearrangement = false;
+        ShotOrder bestOrder = null;
 
-        for (List<Artifact> order : feasibleOrders) {
-            int score = scoreOrder(order);
-            boolean requiresRearrangement = doesOrderRequireRearrangement(order, artifactInCenter);
+        for (ShotOrder order : feasibleOrders) {
+            int score = scoreOrder(order.artifacts);
 
             // Select best order (prefer higher score, tie-break by no rearrangement)
-            if (score > bestScore || (score == bestScore && !requiresRearrangement && bestRequiresRearrangement)) {
+            if (score > bestScore || (score == bestScore && !order.requiresSwap && bestOrder != null && bestOrder.requiresSwap)) {
                 bestScore = score;
                 bestOrder = order;
-                bestRequiresRearrangement = requiresRearrangement;
             }
         }
 
         // Set the shot plan
         if (bestOrder != null) {
-            shotPlan = bestOrder;
+            shotPlan = bestOrder.artifacts;
 
             // Determine if rearrangement is needed
-            if (artifactCount == 2 && bestRequiresRearrangement && !manualPushMode) {
-                // Request rearrangement by setting desiredCenterArtifact
-                if (!bestOrder.isEmpty() && bestOrder.get(0) != artifactInCenter) {
-                    desiredCenterArtifact = bestOrder.get(0);
-                }
+            if (artifactCount == 2 && bestOrder.requiresSwap && !manualPushMode) {
+                // Request rearrangement by setting desiredSwapSlot
+                desiredSwapSlot = bestOrder.swapSlot;
             }
         } else {
-            shotPlan = buildDefaultOrder(artifacts);
+            shotPlan = buildDefaultOrder(ledger);
         }
 
         return true;
@@ -165,7 +156,7 @@ public class ShotPlanner {
      * Get the current shot plan (ordered list of artifacts to fire)
      * @return Mutable list of artifacts in firing order
      */
-    public List<Artifact> getShotPlan() {
+    public List<ArtifactIdentity> getShotPlan() {
         return new ArrayList<>(shotPlan);
     }
 
@@ -174,15 +165,23 @@ public class ShotPlanner {
      */
     public void clearShotPlan() {
         shotPlan.clear();
-        desiredCenterArtifact = null;
+        desiredSwapSlot = null;
     }
 
     /**
-     * Get the desired center artifact for rearrangement
-     * @return Desired artifact, or null if no rearrangement needed
+     * Get the desired swap slot for rearrangement
+     * @return Slot to swap with center (FRONT or BACK), or null if no rearrangement needed
      */
-    public Artifact getDesiredCenterArtifact() {
-        return desiredCenterArtifact;
+    public SlotLedger.Slot getDesiredSwapSlot() {
+        return desiredSwapSlot;
+    }
+
+    /**
+     * Check if rearrangement is needed
+     * @return true if a swap is recommended
+     */
+    public boolean isRearrangementNeeded() {
+        return desiredSwapSlot != null;
     }
 
     /**
@@ -198,44 +197,24 @@ public class ShotPlanner {
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
-     * Validate artifact location states
+     * Inner class to represent a potential shot order with metadata
      */
-    private boolean validateArtifactStates(List<Artifact> artifacts,
-                                           Artifact artifactInCenter,
-                                           Artifact artifactInFrontIntake,
-                                           Artifact artifactInBackIntake) {
-        // Ensure artifact references are consistent with artifact list
-        for (Artifact a : artifacts) {
-            if (a.getLocation() == Artifact.Location.CENTER_STORAGE && a != artifactInCenter) {
-                return false;
-            }
-            if (a.getLocation() == Artifact.Location.FRONT_INTAKE && a != artifactInFrontIntake) {
-                return false;
-            }
-            if (a.getLocation() == Artifact.Location.BACK_INTAKE && a != artifactInBackIntake) {
-                return false;
-            }
-        }
-        return true;
-    }
+    private static class ShotOrder {
+        final List<ArtifactIdentity> artifacts;
+        final boolean requiresSwap;
+        final SlotLedger.Slot swapSlot;  // Which slot to swap if requiresSwap is true
 
-    /**
-     * Count active (non-fired) artifacts
-     */
-    private int countActiveArtifacts(List<Artifact> artifacts) {
-        int count = 0;
-        for (Artifact a : artifacts) {
-            if (a.getLocation() != Artifact.Location.FIRED) {
-                count++;
-            }
+        ShotOrder(List<ArtifactIdentity> artifacts, boolean requiresSwap, SlotLedger.Slot swapSlot) {
+            this.artifacts = artifacts;
+            this.requiresSwap = requiresSwap;
+            this.swapSlot = swapSlot;
         }
-        return count;
     }
 
     /**
      * Check if planning should be skipped
      */
-    private boolean shouldSkipPlanning(List<Artifact> artifacts, int artifactCount) {
+    private boolean shouldSkipPlanning(SlotLedger ledger, int artifactCount) {
         // Skip if manual push mode is enabled
         if (manualPushMode) {
             return true;
@@ -253,23 +232,35 @@ public class ShotPlanner {
 
         // Skip if all artifacts are green
         boolean allGreen = true;
-        for (Artifact a : artifacts) {
-            if (a.getLocation() != Artifact.Location.FIRED && a.getColor() != Artifact.Color.GREEN) {
-                allGreen = false;
-                break;
-            }
+        ArtifactIdentity center = ledger.getCenter();
+        ArtifactIdentity front = ledger.getFront();
+        ArtifactIdentity back = ledger.getBack();
+
+        if (center != null && center.getColorClass() != ArtifactIdentity.ColorClass.GREEN) {
+            allGreen = false;
         }
-        if (allGreen) {
+        if (front != null && front.getColorClass() != ArtifactIdentity.ColorClass.GREEN) {
+            allGreen = false;
+        }
+        if (back != null && back.getColorClass() != ArtifactIdentity.ColorClass.GREEN) {
+            allGreen = false;
+        }
+
+        if (allGreen && artifactCount > 0) {
             return true;
         }
 
         // Skip if exactly 2 artifacts and both are green
         if (artifactCount == 2) {
             int greenCount = 0;
-            for (Artifact a : artifacts) {
-                if (a.getLocation() != Artifact.Location.FIRED && a.getColor() == Artifact.Color.GREEN) {
-                    greenCount++;
-                }
+            if (center != null && center.getColorClass() == ArtifactIdentity.ColorClass.GREEN) {
+                greenCount++;
+            }
+            if (front != null && front.getColorClass() == ArtifactIdentity.ColorClass.GREEN) {
+                greenCount++;
+            }
+            if (back != null && back.getColorClass() == ArtifactIdentity.ColorClass.GREEN) {
+                greenCount++;
             }
             if (greenCount == 2) {
                 return true;
@@ -282,65 +273,72 @@ public class ShotPlanner {
     /**
      * Generate all feasible orders based on artifact count and mechanical constraints
      */
-    private List<List<Artifact>> generateFeasibleOrders(List<Artifact> artifacts,
-                                                         Artifact artifactInCenter,
-                                                         Artifact artifactInFrontIntake,
-                                                         Artifact artifactInBackIntake) {
-        List<List<Artifact>> orders = new ArrayList<>();
+    private List<ShotOrder> generateFeasibleOrders(SlotLedger ledger) {
+        List<ShotOrder> orders = new ArrayList<>();
 
-        // Get active artifacts
-        List<Artifact> activeArtifacts = new ArrayList<>();
-        for (Artifact a : artifacts) {
-            if (a.getLocation() != Artifact.Location.FIRED) {
-                activeArtifacts.add(a);
-            }
-        }
-
-        int count = activeArtifacts.size();
+        ArtifactIdentity centerArtifact = ledger.getCenter();
+        ArtifactIdentity frontArtifact = ledger.getFront();
+        ArtifactIdentity backArtifact = ledger.getBack();
+        int count = ledger.getArtifactCount();
 
         if (count == 1) {
-            // Only one order possible
-            orders.add(new ArrayList<>(activeArtifacts));
+            // Only one order possible - no swap needed
+            List<ArtifactIdentity> currentOrder = new ArrayList<>();
+            if (centerArtifact != null) {
+                currentOrder.add(centerArtifact);
+            } else if (frontArtifact != null) {
+                currentOrder.add(frontArtifact);
+            } else if (backArtifact != null) {
+                currentOrder.add(backArtifact);
+            }
+            orders.add(new ShotOrder(currentOrder, false, null));
+
         } else if (count == 2) {
             // Two orders possible: current order and swapped order
-            // Current order: center first, then storage
-            List<Artifact> currentOrder = new ArrayList<>();
-            if (artifactInCenter != null) {
-                currentOrder.add(artifactInCenter);
-            }
-            if (artifactInFrontIntake != null) {
-                currentOrder.add(artifactInFrontIntake);
-            } else if (artifactInBackIntake != null) {
-                currentOrder.add(artifactInBackIntake);
-            }
-            orders.add(currentOrder);
 
-            // Swapped order: storage first, then center
-            List<Artifact> swappedOrder = new ArrayList<>();
-            if (artifactInFrontIntake != null) {
-                swappedOrder.add(artifactInFrontIntake);
-            } else if (artifactInBackIntake != null) {
-                swappedOrder.add(artifactInBackIntake);
+            // Current order: center first, then storage (no swap)
+            List<ArtifactIdentity> currentOrder = new ArrayList<>();
+            if (centerArtifact != null) {
+                currentOrder.add(centerArtifact);
             }
-            if (artifactInCenter != null) {
-                swappedOrder.add(artifactInCenter);
+            if (frontArtifact != null) {
+                currentOrder.add(frontArtifact);
+            } else if (backArtifact != null) {
+                currentOrder.add(backArtifact);
             }
-            orders.add(swappedOrder);
+            orders.add(new ShotOrder(currentOrder, false, null));
+
+            // Swapped order: storage first, then center (requires swap)
+            List<ArtifactIdentity> swappedOrder = new ArrayList<>();
+            SlotLedger.Slot swapSlot = null;
+
+            if (frontArtifact != null) {
+                swappedOrder.add(frontArtifact);
+                swapSlot = SlotLedger.Slot.FRONT;
+            } else if (backArtifact != null) {
+                swappedOrder.add(backArtifact);
+                swapSlot = SlotLedger.Slot.BACK;
+            }
+            if (centerArtifact != null) {
+                swappedOrder.add(centerArtifact);
+            }
+            orders.add(new ShotOrder(swappedOrder, true, swapSlot));
+
         } else if (count == 3) {
             // Only current physical order is possible (no rearrangement)
             // Physical order: center, front intake, back intake
-            List<Artifact> currentOrder = new ArrayList<>();
-            if (artifactInCenter != null) {
-                currentOrder.add(artifactInCenter);
+            List<ArtifactIdentity> currentOrder = new ArrayList<>();
+            if (centerArtifact != null) {
+                currentOrder.add(centerArtifact);
             }
             // Add artifacts in physical position order (front then back)
-            if (artifactInFrontIntake != null) {
-                currentOrder.add(artifactInFrontIntake);
+            if (frontArtifact != null) {
+                currentOrder.add(frontArtifact);
             }
-            if (artifactInBackIntake != null) {
-                currentOrder.add(artifactInBackIntake);
+            if (backArtifact != null) {
+                currentOrder.add(backArtifact);
             }
-            orders.add(currentOrder);
+            orders.add(new ShotOrder(currentOrder, false, null));
         }
 
         return orders;
@@ -354,15 +352,15 @@ public class ShotPlanner {
      * - Second artifact matching motif[1]: +2 points
      * - Third artifact matching motif[2]: +1 point
      */
-    private int scoreOrder(List<Artifact> order) {
+    private int scoreOrder(List<ArtifactIdentity> order) {
         int score = 0;
 
         // Parse motif pattern into colors
-        Artifact.Color[] motifColors = parseMotifPattern(motifPattern);
+        ArtifactIdentity.ColorClass[] motifColors = parseMotifPattern(motifPattern);
 
         // Score each position
         for (int i = 0; i < Math.min(order.size(), motifColors.length); i++) {
-            if (order.get(i).getColor() == motifColors[i]) {
+            if (order.get(i).getColorClass() == motifColors[i]) {
                 score += (3 - i); // 3 for first, 2 for second, 1 for third
             }
         }
@@ -371,32 +369,21 @@ public class ShotPlanner {
     }
 
     /**
-     * Parse motif pattern string into array of colors
+     * Parse motif pattern string into array of color classes
      */
-    private Artifact.Color[] parseMotifPattern(String pattern) {
-        Artifact.Color[] colors = new Artifact.Color[pattern.length()];
+    private ArtifactIdentity.ColorClass[] parseMotifPattern(String pattern) {
+        ArtifactIdentity.ColorClass[] colors = new ArtifactIdentity.ColorClass[pattern.length()];
         for (int i = 0; i < pattern.length(); i++) {
             char c = pattern.charAt(i);
             if (c == 'P') {
-                colors[i] = Artifact.Color.PURPLE;
+                colors[i] = ArtifactIdentity.ColorClass.PURPLE;
             } else if (c == 'G') {
-                colors[i] = Artifact.Color.GREEN;
+                colors[i] = ArtifactIdentity.ColorClass.GREEN;
             } else {
-                colors[i] = Artifact.Color.UNKNOWN;
+                colors[i] = ArtifactIdentity.ColorClass.UNKNOWN;
             }
         }
         return colors;
-    }
-
-    /**
-     * Check if an order requires rearrangement from current state
-     */
-    private boolean doesOrderRequireRearrangement(List<Artifact> order, Artifact artifactInCenter) {
-        if (order.isEmpty()) {
-            return false;
-        }
-        // Rearrangement is needed if first artifact in order is not currently in center
-        return order.get(0) != artifactInCenter;
     }
 
     /**
@@ -404,33 +391,18 @@ public class ShotPlanner {
      * Default order: respects physical positions (center, front intake, back intake)
      * This ensures the physical firing order is used when no rearrangement is possible
      */
-    private List<Artifact> buildDefaultOrder(List<Artifact> artifacts) {
-        List<Artifact> defaultOrder = new ArrayList<>();
-
-        // Get active artifacts and group by location
-        Artifact centerArtifact = null;
-        Artifact frontArtifact = null;
-        Artifact backArtifact = null;
-
-        for (Artifact a : artifacts) {
-            if (a.getLocation() == Artifact.Location.CENTER_STORAGE) {
-                centerArtifact = a;
-            } else if (a.getLocation() == Artifact.Location.FRONT_INTAKE) {
-                frontArtifact = a;
-            } else if (a.getLocation() == Artifact.Location.BACK_INTAKE) {
-                backArtifact = a;
-            }
-        }
+    private List<ArtifactIdentity> buildDefaultOrder(SlotLedger ledger) {
+        List<ArtifactIdentity> defaultOrder = new ArrayList<>();
 
         // Build order: center first, then front intake, then back intake
-        if (centerArtifact != null) {
-            defaultOrder.add(centerArtifact);
+        if (ledger.getCenter() != null) {
+            defaultOrder.add(ledger.getCenter());
         }
-        if (frontArtifact != null) {
-            defaultOrder.add(frontArtifact);
+        if (ledger.getFront() != null) {
+            defaultOrder.add(ledger.getFront());
         }
-        if (backArtifact != null) {
-            defaultOrder.add(backArtifact);
+        if (ledger.getBack() != null) {
+            defaultOrder.add(ledger.getBack());
         }
 
         return defaultOrder;

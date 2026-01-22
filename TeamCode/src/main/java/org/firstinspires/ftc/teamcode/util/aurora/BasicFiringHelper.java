@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.util.aurora;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.util.debug.Dbg;
+import org.firstinspires.ftc.teamcode.util.debug.LogGroup;
 
 /**
  * BasicFiringHelper - Non-blocking firing and ejection control
@@ -8,6 +10,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * This helper class provides:
  * - Non-blocking firing sequences (spin up → feed → fire)
  * - RPM preset management (high, medium, low range)
+ * - Keep-alive mode (shooter stays spinning for rapid follow-up shots)
  * - Ejection sequences (clear artifacts from robot)
  * - State machine architecture for reliable operation
  * - Cancel operations mid-sequence
@@ -16,29 +19,51 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * 1. Spin up shooter to target RPM
  * 2. Wait for shooter ready (at target + stable)
  * 3. Feed artifact with uptake servos (300ms)
- * 4. Complete
+ * 4. Complete (or transition to READY_TO_FIRE if keep-alive mode)
+ *
+ * Keep-Alive Mode:
+ * When enabled, shooter stays spinning after first shot.
+ * Use fireShot() or startFiring() to trigger subsequent shots.
+ * Call cancelFiring() to stop the shooter.
  *
  * Ejection Sequence:
  * - Run both intakes backward (eject from intakes)
  * - Run shooter at low speed (safe ejection from center)
  * - Run uptake forward (push artifact out through shooter)
  *
- * Usage Pattern:
- *   BasicFiringHelper firingHelper = new BasicFiringHelper(shooter, indexingHelper, telemetry);
+ * Usage Pattern (Single Shot):
+ *   BasicFiringHelper firingHelper = new BasicFiringHelper(shooter, indexingHelper, hardware, telemetry);
  *
- *   // Start firing with preset
- *   firingHelper.startFiring(ShooterConfig.RPM_HIGH_BASKET);
+ *   // Start single shot (shooter stops after)
+ *   firingHelper.startFiring(ShooterConfig.RPM_HIGH_BASKET, "HIGH", false);
  *
  *   // In loop
  *   firingHelper.update();
  *
- *   // Check if you can start new firing
+ *   // Check if complete
  *   if (!firingHelper.isFiring()) {
- *       firingHelper.startFiring(rpm);
+ *       // Ready for next shot
  *   }
  *
- *   // Cancel if needed
- *   firingHelper.cancelFiring();
+ * Usage Pattern (Keep-Alive / Multiple Shots):
+ *   // Start with keep-alive enabled
+ *   firingHelper.startFiring(ShooterConfig.RPM_HIGH_BASKET, "HIGH", true);
+ *
+ *   // In loop
+ *   firingHelper.update();
+ *
+ *   // Wait for ready
+ *   if (firingHelper.isReadyForNextShot()) {
+ *       // Fire subsequent shots
+ *       if (gamepad1.a) {
+ *           firingHelper.fireShot();  // Fire another shot
+ *       }
+ *   }
+ *
+ *   // Stop when done
+ *   if (gamepad1.b) {
+ *       firingHelper.cancelFiring();
+ *   }
  */
 public class BasicFiringHelper {
 
@@ -84,6 +109,10 @@ public class BasicFiringHelper {
     private boolean keepAliveMode = false;
     private boolean buttonHeld = false;
 
+    // Shot tracking - for reliable "shot fired" detection
+    private int shotsFiredCount = 0;  // Total shots fired (increments when shot completes)
+    private int lastReportedShotCount = 0;  // For detecting new shots
+
     // Ejection tracking
     private boolean ejectionActive = false;
     private double ejectionIntakePower = EJECTION_INTAKE_POWER;
@@ -116,15 +145,48 @@ public class BasicFiringHelper {
     /**
      * Update firing sequences - MUST be called every loop
      * Handles state transitions and timeout protection
+     *
+     * ⚠️ CRITICAL: This method calls shooter.update() internally!
+     * DO NOT call shooter.update() separately in your OpMode loop!
+     * Calling shooter.update() twice per loop will cause the shooter to pulse on/off.
+     *
+     * CORRECT OpMode pattern:
+     *   while (opModeIsActive()) {
+     *       indexingHelper.update();
+     *       firingHelper.update();  // ← shooter.update() called here internally
+     *       // ... rest of code
+     *   }
+     *
+     * WRONG OpMode pattern (DO NOT DO THIS):
+     *   while (opModeIsActive()) {
+     *       shooter.update();       // ❌ WRONG - duplicate call!
+     *       firingHelper.update();  // ❌ Also calls shooter.update() internally
+     *   }
      */
     public void update() {
         if (!enabled) return;
 
-        // Update firing state machine
+        // DEBUG: Track shooter state before operations
+        String stateBefore = shooter.getState().toString();
+
+        // IMPORTANT: Update firing state machine FIRST to set desired state via spinUp()
+        // This ensures the state is set before DecodeHelper.update() processes it
         updateFiringSequence();
 
         // Update ejection - continuously maintain motor/servo power
         updateEjection();
+
+        // CRITICAL: Update shooter state machine (DecodeHelper) AFTER setting desired state
+        // This processes RPM measurements, PID control, and state transitions
+        shooter.update();
+
+        String stateAfter = shooter.getState().toString();
+
+        // DEBUG: Log if state changed unexpectedly
+        if (!stateBefore.equals(stateAfter)) {
+            telemetry.addData("DEBUG State Change", stateBefore + " → " + stateAfter);
+        }
+
 
         // Check for global timeout
         if (firingActive) {
@@ -154,22 +216,22 @@ public class BasicFiringHelper {
     private void updateFiringSequence() {
         if (!firingActive) return;
 
-        // Check for button release in keep-alive mode (ANY state)
-        if (keepAliveMode && !buttonHeld) {
-            // Button released - stop everything
-            firingState = FiringState.COMPLETE;
-            firingActive = false;
-            keepAliveMode = false;
-            shooter.stopMotors();
-            telemetry.addData("Firing", "✅ Complete - Button released");
-            return;
-        }
-
         switch (firingState) {
             case SPINNING_UP:
                 // Call spinUp() every loop to keep shooter stable
                 // This prevents RPM fluctuations and keeps the shooter spinning reliably
-                shooter.spinUp();
+                boolean spinUpSuccess = shooter.spinUp();
+
+                // DEBUG: Log detailed state information
+                telemetry.addData("DEBUG targetRPM", targetRPM);
+                telemetry.addData("DEBUG shooter.getTargetRPM()", shooter.getTargetRPM());
+                telemetry.addData("DEBUG shooter.getState()", shooter.getState());
+                telemetry.addData("DEBUG shooter.isEnabled()", shooter.isEnabled());
+                telemetry.addData("DEBUG spinUp() returned", spinUpSuccess);
+                telemetry.addData("DEBUG firingActive", firingActive);
+                telemetry.addData("DEBUG ejectionActive", ejectionActive);
+                telemetry.addData("DEBUG Left Motor Power", hardware.getLeftShooterMotor().getPower());
+                telemetry.addData("DEBUG Right Motor Power", hardware.getRightShooterMotor().getPower());
 
                 // Wait for shooter to reach target RPM and stabilize
                 long elapsed = System.currentTimeMillis() - firingStartTime;
@@ -224,19 +286,33 @@ public class BasicFiringHelper {
                 break;
 
             case FEEDING:
+                // CRITICAL: Call spinUp() every loop to maintain shooter RPM during feeding
+                // Without this, shooter loses speed during the 300ms feed period
+                shooter.spinUp();
+
                 // Wait for uptake to finish feeding
                 if (!indexingHelper.isUptakeBusy()) {
-                    // Feeding complete
-                    if (keepAliveMode && buttonHeld) {
+                    // Feeding complete - artifact ejected (POINT OF NO RETURN)
+                    // Shot counter increments here because:
+                    // - Artifact has been pushed through uptake into shooter
+                    // - Past point of no return - artifact leaves center slot permanently
+                    // - Conservative assumption: if feeding started, treat as fired
+                    // - Even if jams in shooter, counter increments (safe/consistent model)
+                    shotsFiredCount++;  // Increment shot counter
+                    
+                    if (keepAliveMode) {
                         // Keep-alive mode: transition to READY_TO_FIRE instead of stopping
+                        // Shooter will stay spinning, waiting for external call to fire again
                         firingState = FiringState.READY_TO_FIRE;
                         telemetry.addData("Firing", "✅ Shot complete - Ready for next");
+                        Dbg.d(LogGroup.FIRING, "Shot fired - transitioning to READY_TO_FIRE");
                     } else {
                         // Normal mode: complete and stop
                         firingState = FiringState.COMPLETE;
                         firingActive = false;
                         shooter.stopMotors();
                         telemetry.addData("Firing", "✅ Complete");
+                        Dbg.i(LogGroup.FIRING, "Shot fired - firing sequence complete");
                     }
                 }
                 break;
@@ -329,9 +405,10 @@ public class BasicFiringHelper {
             return false;
         }
 
+        // Safety: Stop ejection if somehow still active
         if (ejectionActive) {
-            telemetry.addData("⚠️ WARNING", "Cannot fire during ejection");
-            return false;
+            telemetry.addData("⚠️ WARNING", "Ejection was active - stopping it");
+            stopEjection();
         }
 
         // If already in READY_TO_FIRE state (keep-alive), allow another shot
@@ -356,7 +433,6 @@ public class BasicFiringHelper {
         targetRPM = rpm;
         firingPresetName = presetName;
         keepAliveMode = keepAlive;
-        buttonHeld = keepAlive; // Assume button held if keep-alive requested
 
         // Spin up shooter - MUST call both setTargetRPM and spinUp
         shooter.setTargetRPM(rpm);
@@ -365,7 +441,38 @@ public class BasicFiringHelper {
         if (keepAlive) {
             telemetry.addData("Mode", "Keep-alive (continuous)");
         }
+        Dbg.d(LogGroup.FIRING, "startFiring() called - targetRPM=%.0f, preset=%s, keepAlive=%b", rpm, presetName, keepAlive);
 
+        return true;
+    }
+
+    /**
+     * Fire a single shot (only works when in READY_TO_FIRE state)
+     * Use this method to trigger follow-up shots after the shooter is spun up
+     *
+     * This is the recommended way to fire subsequent shots in keep-alive mode:
+     * 1. Call startFiring() with keepAlive=true to spin up
+     * 2. Wait for isReadyForNextShot() to return true
+     * 3. Call fireShot() to trigger each subsequent shot
+     *
+     * @return true if shot started, false if not ready
+     */
+    public boolean fireShot() {
+        if (!enabled) {
+            telemetry.addData("⚠️ WARNING", "Firing helper disabled");
+            return false;
+        }
+
+        if (!firingActive || firingState != FiringState.READY_TO_FIRE) {
+            telemetry.addData("⚠️ WARNING", "Not in READY_TO_FIRE state");
+            return false;
+        }
+
+        // Transition to FEEDING state
+        firingState = FiringState.FEEDING;
+        indexingHelper.setUptakeTimed(FEED_POWER, FEED_DURATION_MS);
+        telemetry.addData("Firing", "✅ Firing shot (300ms)");
+        Dbg.d(LogGroup.FIRING, "fireShot() called - feeding artifact");
         return true;
     }
 
@@ -436,6 +543,7 @@ public class BasicFiringHelper {
         firingState = FiringState.IDLE;
 
         // Stop shooter
+        telemetry.addData("DEBUG", "❌ cancelFiring() called - stopping shooter");
         shooter.stopMotors();
 
         // Stop uptake if feeding
@@ -469,11 +577,126 @@ public class BasicFiringHelper {
     }
 
     /**
+     * Get current shooter RPM (actual measured speed).
+     * 
+     * @return current shooter RPM
+     */
+    public double getCurrentRPM() {
+        return shooter.getCurrentRPM();
+    }
+
+    /**
+     * Check if shooter is ready to fire (at target RPM and stable).
+     * 
+     * @return true if shooter is ready to fire
+     */
+    public boolean isShooterReady() {
+        return shooter.isReadyToFire();
+    }
+
+    /**
+     * Start spinning up shooter to target RPM.
+     * This is the preferred method for OpModes to spin up the shooter.
+     * 
+     * Note: After spinup, use startFiring() to actually fire when ready.
+     */
+    public void spinUpShooter() {
+        shooter.spinUp();
+    }
+
+    /**
+     * Stop the shooter motors completely.
+     * This is the preferred method for OpModes to stop the shooter.
+     * 
+     * Note: This stops the shooter immediately, regardless of firing state.
+     */
+    public void stopShooter() {
+        shooter.stopMotors();
+    }
+
+    /**
      * Get firing preset name
      * @return preset name
      */
     public String getPresetName() {
         return firingPresetName;
+    }
+
+    /**
+     * Get total number of shots fired since helper creation
+     *
+     * **Shot Fired Definition:**
+     * Counter increments when uptake feeding completes (artifact ejected from center slot).
+     * This is the "point of no return" - once feeding begins, artifact is considered fired.
+     *
+     * **Conservative Assumption:**
+     * Even if artifact jams in shooter after feeding, counter still increments.
+     * This ensures slot ledger always reflects physical state (artifact left center slot).
+     *
+     * **Usage (Operations):**
+     * Operations should snapshot this counter at start and compare during/after execution:
+     * ```java
+     * int startCount = firingHelper.getShotsFiredCount();
+     * // ... operation runs
+     * boolean shotFired = firingHelper.getShotsFiredCount() > startCount;
+     * ```
+     *
+     * **Why This Works:**
+     * - Stateless: Each operation has independent snapshot
+     * - Race-free: No shared edge detection state
+     * - Reliable: Works even if telemetry/controller also checks counter
+     *
+     * @return total shots fired count (point-of-no-return boundary)
+     */
+    public int getShotsFiredCount() {
+        return shotsFiredCount;
+    }
+
+    /**
+     * Check if a new shot has been fired since last check
+     *
+     * **CONTROLLER ORCHESTRATION ONLY - DO NOT USE IN OPERATIONS**
+     *
+     * This provides edge-detection for "shot just fired" events for controller orchestration
+     * (e.g., detect shot complete → queue next transfer operation).
+     *
+     * **Stateful:** This method maintains internal state (`lastReportedShotCount`).
+     * Only the controller should call this method. Operations MUST use getShotsFiredCount()
+     * with snapshot pattern instead.
+     *
+     * **Usage Pattern (Controller):**
+     * ```java
+     * // Controller calls ONCE per loop for orchestration
+     * if (firingHelper.hasNewShotFired()) {
+     *     // Shot just completed - queue transfer for next artifact
+     *     queueTransferOperation();
+     * }
+     * ```
+     *
+     * **Do NOT use in FireOperation** - operations use count-based detection with snapshots.
+     *
+     * @return true if shot count increased since last call to this method
+     */
+    public boolean hasNewShotFired() {
+        if (shotsFiredCount > lastReportedShotCount) {
+            lastReportedShotCount = shotsFiredCount;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Reset the "last reported" shot count
+     *
+     * **CONTROLLER USE ONLY**
+     *
+     * Use this to restart edge detection from current count.
+     * Controller should call this at the start of a new burst sequence.
+     *
+     * @see #hasNewShotFired() for usage pattern
+     */
+    public void resetShotDetection() {
+        lastReportedShotCount = shotsFiredCount;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -549,6 +772,7 @@ public class BasicFiringHelper {
     public void stopEjection() {
         if (!ejectionActive) return;
 
+        telemetry.addData("DEBUG", "❌ stopEjection() called - stopping shooter");
         ejectionActive = false;
 
         // Stop all motors/servos directly via hardware
