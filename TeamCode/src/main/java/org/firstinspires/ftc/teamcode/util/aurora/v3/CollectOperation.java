@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.util.aurora.v3;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.util.aurora.BasicIndexingHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
+import org.firstinspires.ftc.teamcode.util.debug.Dbg;
+import org.firstinspires.ftc.teamcode.util.debug.LogGroup;
 
 /**
  * CollectOperation - Collect artifact from front or back intake
@@ -111,24 +113,24 @@ public class CollectOperation extends BaseOperation {
 
     @Override
     protected boolean doStart() {
-        System.out.println("[CollectOp] doStart() called for " + targetSlot);
-        
+        Dbg.d(LogGroup.INTAKE, "doStart() called for %s", targetSlot);
+
         // Check preconditions
         if (ledger.isFull()) {
-            System.out.println("[CollectOp] REJECTED: System full");
+            Dbg.w(LogGroup.INTAKE, "REJECTED: System full");
             fail(RejectReason.SYSTEM_FULL);
             return false;
         }
 
         if (ledger.isOccupied(targetSlot)) {
-            System.out.println("[CollectOp] REJECTED: Slot occupied");
+            Dbg.w(LogGroup.INTAKE, "REJECTED: Slot occupied");
             fail(RejectReason.SLOT_OCCUPIED);
             return false;
         }
 
         // Check if artifact is actually detected (use fast presence for responsive start)
         if (!perception.getFastPresence()) {
-            System.out.println("[CollectOp] REJECTED: No fast presence detected");
+            Dbg.w(LogGroup.INTAKE, "REJECTED: No fast presence detected");
             fail(RejectReason.SENSOR_DETECTION_TIMEOUT);
             setStatusMessage("No artifact detected at " + targetSlot);
             return false;
@@ -136,7 +138,7 @@ public class CollectOperation extends BaseOperation {
 
         // Record edge detection time for color checkpoint
         edgeDetectTime = System.currentTimeMillis();
-        System.out.println("[CollectOp] Fast presence detected, starting hardware...");
+        Dbg.d(LogGroup.INTAKE, "Fast presence detected, starting hardware...");
 
         // Start intake hardware
         boolean started;
@@ -144,21 +146,21 @@ public class CollectOperation extends BaseOperation {
             helper.runFrontIntakeTimed(true, config.getIntakeRollerPower(), 
                                       config.getIntakeRollerTimeMs());
             started = true;
-            System.out.println("[CollectOp] Started FRONT intake hardware");
+            Dbg.d(LogGroup.INTAKE, "Started FRONT intake hardware");
         } else if (targetSlot == SlotLedger.Slot.BACK) {
             helper.runBackIntakeTimed(true, config.getIntakeRollerPower(), 
                                      config.getIntakeRollerTimeMs());
             started = true;
-            System.out.println("[CollectOp] Started BACK intake hardware");
+            Dbg.d(LogGroup.INTAKE, "Started BACK intake hardware");
         } else {
-            System.out.println("[CollectOp] REJECTED: Invalid target slot");
+            Dbg.e(LogGroup.INTAKE, "REJECTED: Invalid target slot");
             fail(RejectReason.INVALID_PARAMETERS);
             setStatusMessage("Invalid target slot: " + targetSlot);
             return false;
         }
 
         setStatusMessage("Collecting to " + targetSlot);
-        System.out.println("[CollectOp] doStart() completed successfully");
+        Dbg.d(LogGroup.INTAKE, "doStart() completed successfully");
         return started;
     }
 
@@ -176,15 +178,15 @@ public class CollectOperation extends BaseOperation {
                 long elapsedSinceEdge = currentTime - edgeDetectTime;
                 
                 if (elapsedSinceEdge >= COLOR_CLASSIFICATION_DELAY_MS) {
-                    System.out.println("[CollectOp] Color checkpoint reached, stopping hardware");
-                    
+                    Dbg.d(LogGroup.INTAKE, "Color checkpoint reached, stopping hardware");
+
                     // Stop hardware for color sampling
                     stopHardware();
                     
                     // Transition to settling
                     samplingState = SamplingState.SETTLING;
                     samplingStateStartTime = currentTime;
-                    System.out.println("[CollectOp] → SETTLING state");
+                    Dbg.d(LogGroup.INTAKE, "→ SETTLING state");
                 } else {
                     long remaining = COLOR_CLASSIFICATION_DELAY_MS - elapsedSinceEdge;
                     setStatusMessage("Waiting for settle (" + remaining + "ms)");
@@ -194,8 +196,8 @@ public class CollectOperation extends BaseOperation {
             case SETTLING:
                 // Wait for artifact to stop vibrating
                 if (elapsedInState >= SETTLE_DELAY_MS) {
-                    System.out.println("[CollectOp] Artifact settled, starting initial sampling");
-                    
+                    Dbg.d(LogGroup.INTAKE, "Artifact settled, starting initial sampling");
+
                     // Enable color sampling
                     perception.enableColorSampling();
                     totalSampleCount = 0;
@@ -203,7 +205,7 @@ public class CollectOperation extends BaseOperation {
                     // Transition to initial sampling
                     samplingState = SamplingState.SAMPLING_INITIAL;
                     samplingStateStartTime = currentTime;
-                    System.out.println("[CollectOp] → SAMPLING_INITIAL state");
+                    Dbg.d(LogGroup.INTAKE, "→ SAMPLING_INITIAL state");
                 } else {
                     setStatusMessage("Settling artifact...");
                 }
@@ -221,18 +223,18 @@ public class CollectOperation extends BaseOperation {
                     ArtifactIdentity.ColorClass color = perception.getBestColorClass();
                     double confidence = perception.getBestColorConfidence();
                     
-                    System.out.println("[CollectOp] Initial sampling complete: " + totalSampleCount + 
-                                     " samples, color=" + color + ", conf=" + String.format("%.2f", confidence));
-                    
+                    Dbg.d(LogGroup.INTAKE, "Initial sampling complete: %d samples, color=%s, conf=%.2f",
+                                     totalSampleCount, color, confidence);
+
                     // Check if jiggle needed
                     if (confidence < JIGGLE_TRIGGER_CONFIDENCE && color == ArtifactIdentity.ColorClass.UNKNOWN) {
-                        System.out.println("[CollectOp] Low confidence, starting jiggle routine");
+                        Dbg.d(LogGroup.INTAKE, "Low confidence, starting jiggle routine");
                         logWarn("Low confidence (" + String.format("%.2f", confidence) + "), jiggling");
                         
                         jiggleCycleCount = 0;
                         samplingState = SamplingState.JIGGLING;
                         samplingStateStartTime = currentTime;
-                        System.out.println("[CollectOp] → JIGGLING state");
+                        Dbg.d(LogGroup.INTAKE, "→ JIGGLING state");
                     } else {
                         // Good enough, complete sampling
                         collectedArtifact = ArtifactIdentity.createFromSensor(color, confidence, sequenceId);
@@ -240,8 +242,8 @@ public class CollectOperation extends BaseOperation {
                         
                         perception.disableColorSampling();
                         samplingState = SamplingState.COMPLETE;
-                        System.out.println("[CollectOp] → COMPLETE (initial sample sufficient)");
-                        
+                        Dbg.d(LogGroup.INTAKE, "→ COMPLETE (initial sample sufficient)");
+
                         logInfo("Color checkpoint: " + color + " (conf=" + String.format("%.2f", confidence) + ")");
                         setStatusMessage("Collected " + color + " artifact");
                     }
@@ -274,15 +276,15 @@ public class CollectOperation extends BaseOperation {
                 perception.update();
                 
                 if (jiggleElapsed >= JIGGLE_DURATION_MS) {
-                    System.out.println("[CollectOp] Jiggle complete (" + jiggleCycleCount + " cycles)");
-                    
+                    Dbg.d(LogGroup.INTAKE, "Jiggle complete (%d cycles)", jiggleCycleCount);
+
                     // Stop hardware
                     stopHardware();
                     
                     // Transition to settling after jiggle
                     samplingState = SamplingState.SETTLING_AFTER_JIGGLE;
                     samplingStateStartTime = currentTime;
-                    System.out.println("[CollectOp] → SETTLING_AFTER_JIGGLE state");
+                    Dbg.d(LogGroup.INTAKE, "→ SETTLING_AFTER_JIGGLE state");
                 } else {
                     setStatusMessage("Jiggling artifact... (" + jiggleCycleCount + ")");
                 }
@@ -291,14 +293,14 @@ public class CollectOperation extends BaseOperation {
             case SETTLING_AFTER_JIGGLE:
                 // Wait for artifact to settle after jiggle
                 if (elapsedInState >= SETTLE_DELAY_MS) {
-                    System.out.println("[CollectOp] Artifact settled, re-sampling");
-                    
+                    Dbg.d(LogGroup.INTAKE, "Artifact settled, re-sampling");
+
                     totalSampleCount = 0;
                     
                     // Transition to re-sampling
                     samplingState = SamplingState.SAMPLING_AFTER_JIGGLE;
                     samplingStateStartTime = currentTime;
-                    System.out.println("[CollectOp] → SAMPLING_AFTER_JIGGLE state");
+                    Dbg.d(LogGroup.INTAKE, "→ SAMPLING_AFTER_JIGGLE state");
                 }
                 break;
                 
@@ -314,16 +316,16 @@ public class CollectOperation extends BaseOperation {
                     ArtifactIdentity.ColorClass color = perception.getBestColorClass();
                     double confidence = perception.getBestColorConfidence();
                     
-                    System.out.println("[CollectOp] Re-sampling complete: " + totalSampleCount + 
-                                     " samples, color=" + color + ", conf=" + String.format("%.2f", confidence));
-                    
+                    Dbg.d(LogGroup.INTAKE, "Re-sampling complete: %d samples, color=%s, conf=%.2f",
+                                     totalSampleCount, color, confidence);
+
                     collectedArtifact = ArtifactIdentity.createFromSensor(color, confidence, sequenceId);
                     colorSampled = true;
                     
                     perception.disableColorSampling();
                     samplingState = SamplingState.COMPLETE;
-                    System.out.println("[CollectOp] → COMPLETE (after jiggle)");
-                    
+                    Dbg.d(LogGroup.INTAKE, "→ COMPLETE (after jiggle)");
+
                     logInfo("Color after jiggle: " + color + " (conf=" + String.format("%.2f", confidence) + ")");
                     setStatusMessage("Collected " + color + " artifact");
                 } else {
@@ -341,8 +343,8 @@ public class CollectOperation extends BaseOperation {
         
         if (!stillBusy && samplingState != SamplingState.COMPLETE) {
             // Edge case: hardware finished before sampling complete
-            System.out.println("[CollectOp] Hardware done before sampling, forcing completion");
-            
+            Dbg.w(LogGroup.INTAKE, "Hardware done before sampling, forcing completion");
+
             if (samplingState == SamplingState.JIGGLING) {
                 stopHardware();
             }
@@ -369,7 +371,7 @@ public class CollectOperation extends BaseOperation {
         }
         
         if (!stillBusy && samplingState == SamplingState.COMPLETE) {
-            System.out.println("[CollectOp] Collection complete");
+            Dbg.d(LogGroup.INTAKE, "Collection complete");
             return false;  // Done
         }
         
@@ -390,7 +392,7 @@ public class CollectOperation extends BaseOperation {
             helper.setBackBottomIntakePower(0);
         }
     }
-    
+
     /**
      * Check if hardware is still busy
      */
@@ -404,14 +406,14 @@ public class CollectOperation extends BaseOperation {
 
     @Override
     protected void doCommit() {
-        System.out.println("[CollectOp] doCommit() called");
-        
+        Dbg.d(LogGroup.INTAKE, "doCommit() called");
+
         // Commit artifact to slot ledger
         if (collectedArtifact == null) {
             // Failsafe: create UNKNOWN artifact if something went wrong
             logWarn("No artifact sampled - creating UNKNOWN");
             collectedArtifact = ArtifactIdentity.createUnknown(sequenceId);
-            System.out.println("[CollectOp] WARNING: No artifact sampled, created UNKNOWN");
+            Dbg.w(LogGroup.INTAKE, "WARNING: No artifact sampled, created UNKNOWN");
         }
         
         // CRITICAL: Validate color confidence before committing
@@ -420,9 +422,8 @@ public class CollectOperation extends BaseOperation {
         if (confidence < MIN_COLOR_CONFIDENCE) {
             logWarn("Color confidence too low (" + String.format("%.2f", confidence) + 
                    " < " + MIN_COLOR_CONFIDENCE + "), REJECTING collection");
-            System.out.println("[CollectOp] REJECTED: Color confidence " + 
-                             String.format("%.2f", confidence) + " below threshold");
-            
+            Dbg.w(LogGroup.INTAKE, "REJECTED: Color confidence %.2f below threshold", confidence);
+
             // Don't commit - reject the operation
             fail(RejectReason.SENSOR_DETECTION_TIMEOUT);  // Use existing reject reason
             setStatusMessage("Color conf too low (" + String.format("%.2f", confidence) + ")");
@@ -435,14 +436,14 @@ public class CollectOperation extends BaseOperation {
         }
 
         ledger.set(targetSlot, collectedArtifact);
-        System.out.println("[CollectOp] Committed " + collectedArtifact.getColorClass() + 
-                         " to " + targetSlot + " (conf=" + String.format("%.2f", confidence) + ")");
-        
+        Dbg.i(LogGroup.INTAKE, "Committed %s (%s) to %s", collectedArtifact.getColorClass(),
+                         collectedArtifact.getColorConfidence(), targetSlot);
+
         // Clear forced detection if it was used
         if (perception.isForcedDetectionActive()) {
             perception.clearForcedDetection();
             logInfo("Cleared forced detection after collection");
-            System.out.println("[CollectOp] Cleared forced detection");
+            Dbg.d(LogGroup.INTAKE, "Cleared forced detection");
         }
         
         logInfo("Committed " + collectedArtifact.getColorClass() + 

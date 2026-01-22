@@ -202,15 +202,16 @@ public class DebugLogger {
             logs.subList(0, logs.size() - maxTotalLogs).clear();
         }
         
-        // Also print to System.out for console debugging (but rate-limited for non-priority)
-        String priorityFlag = priority ? "🔥 " : "";
-        System.out.println(String.format("[%s] %s%s [%s] %s%s",
-            entry.getFormattedTime(startTime),
-            priorityFlag,
-            level.getIcon(),
-            category,
-            message,
-            details != null ? " | " + details : ""));
+        // Console output disabled - use Dbg.dumpConfig() or telemetry instead
+        // This prevents recursive logging and console pollution
+        // String priorityFlag = priority ? "🔥 " : "";
+        // Dbg.d(LogGroup.DBG, "[%s] %s%s [%s] %s%s",
+        //     entry.getFormattedTime(startTime),
+        //     priorityFlag,
+        //     level.getIcon(),
+        //     category,
+        //     message,
+        //     details != null ? " | " + details : "");
     }
     
     // === Boolean Condition Tracking ===

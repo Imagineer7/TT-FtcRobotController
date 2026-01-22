@@ -9,6 +9,8 @@ import org.firstinspires.ftc.teamcode.util.aurora.BasicIndexingHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShotPlanner;
+import org.firstinspires.ftc.teamcode.util.debug.Dbg;
+import org.firstinspires.ftc.teamcode.util.debug.LogGroup;
 
 /**
  * IndexingSystemV3 - Main controller for the v3 indexing system.
@@ -349,9 +351,9 @@ public class IndexingSystemV3 {
             // Shot fired! Get the artifact before clearing CENTER
             ArtifactIdentity firedArtifact = ledger.getCenter();
             
-            System.out.println("[IndexingV3] Subsequent shot detected (" + 
-                             lastKnownShotCount + " → " + currentShotCount + "), clearing CENTER");
-            
+            Dbg.d(LogGroup.FIRING, "Subsequent shot detected (%d → %d), clearing CENTER",
+                             lastKnownShotCount, currentShotCount);
+
             // Clear center slot (artifact was fired)
             ledger.setCenter(null);
             
@@ -364,7 +366,7 @@ public class IndexingSystemV3 {
             // Consume shot from plan
             if (shotPlanner != null) {
                 shotPlanner.consumeShot();
-                System.out.println("[IndexingV3] Shot consumed from plan");
+                Dbg.d(LogGroup.SHOTPLAN, "Shot consumed from plan");
             }
             
             // Queue next artifact transfer if available
@@ -530,17 +532,17 @@ public class IndexingSystemV3 {
         IndexingOperation lastOp = lastCompletedOperation;
         if (lastOp == null) return;
         
-        System.out.println("[IndexingV3] handleOperationComplete: " + lastOp.getOperationName() + 
-                         ", success=" + lastOp.isSuccess());
-        
+        Dbg.d(LogGroup.PLANNEREX, "handleOperationComplete: %s, success=%b",
+                         lastOp.getOperationName(), lastOp.isSuccess());
+
         // Only process successful operations
         if (!lastOp.isSuccess()) return;
         
         // Update statistics
         if (lastOp instanceof CollectOperation) {
             totalCollections++;
-            System.out.println("[IndexingV3] Collection completed, calling handlePostCollection()");
-            
+            Dbg.d(LogGroup.INDEXING, "Collection completed, calling handlePostCollection()");
+
             // Post-Collection Logic: Automatically handle artifact placement
             // This is the CRITICAL missing piece - after collecting, we need to:
             // - 1st artifact: Transfer to center
@@ -550,31 +552,31 @@ public class IndexingSystemV3 {
             
         } else if (lastOp instanceof TransferOperation) {
             totalTransfers++;
-            System.out.println("[IndexingV3] Transfer completed");
-            
+            Dbg.d(LogGroup.TRANSFER, "Transfer completed");
+
             // CRITICAL: Reset perception for the source intake to prevent false detections
             // After an artifact physically moves away, sensors may still show presence briefly
             // Resetting clears stale sensor data and prevents immediate false re-collection
             String opName = lastOp.getOperationName();
             if (opName.contains("FRONT")) {
                 frontPerception.reset();
-                System.out.println("[IndexingV3] Reset FRONT perception after transfer");
+                Dbg.d(LogGroup.INTAKE, "Reset FRONT perception after transfer");
             } else if (opName.contains("BACK")) {
                 backPerception.reset();
-                System.out.println("[IndexingV3] Reset BACK perception after transfer");
+                Dbg.d(LogGroup.INTAKE, "Reset BACK perception after transfer");
             }
             
         } else if (lastOp instanceof SwapOperation) {
             totalSwaps++;
-            System.out.println("[IndexingV3] Swap completed");
+            Dbg.d(LogGroup.TRANSFER, "Swap completed");
         } else if (lastOp instanceof FireOperation) {
             FireOperation fireOp = (FireOperation) lastOp;
             if (!fireOp.wasCancelledBeforeShot()) {
                 totalShots++;
                 consecutiveShotsFired++;
                 lastFiredArtifact = fireOp.getFiredArtifact();  // Track for telemetry
-                System.out.println("[IndexingV3] Shot fired, total=" + totalShots);
-                
+                Dbg.i(LogGroup.FIRING, "Shot fired, total=%d", totalShots);
+
                 // If burst firing, queue next transfer if more shots needed
                 if (burstFiringActive && shouldContinueBurst()) {
                     queueNextShotInBurst();
@@ -583,12 +585,12 @@ public class IndexingSystemV3 {
                 // Cancelled before shot - end burst
                 burstFiringActive = false;
                 firingHelper.cancelFiring();
-                System.out.println("[IndexingV3] Fire cancelled before shot, ending burst");
+                Dbg.i(LogGroup.FIRING, "Fire cancelled before shot, ending burst");
             }
         } else if (lastOp instanceof EjectOperation) {
             totalEjections++;
             burstFiringActive = false;  // Ejection ends burst
-            System.out.println("[IndexingV3] Ejection completed");
+            Dbg.d(LogGroup.EJECT, "Ejection completed");
         }
     }
     
@@ -605,8 +607,8 @@ public class IndexingSystemV3 {
      */
     private void handlePostCollection() {
         int artifactCount = ledger.getArtifactCount();
-        System.out.println("[IndexingV3] handlePostCollection: artifactCount=" + artifactCount);
-        
+        Dbg.d(LogGroup.INDEXING, "handlePostCollection: artifactCount=%d", artifactCount);
+
         if (artifactCount == 1) {
             // FIRST ARTIFACT: Transfer to center immediately
             // Find which intake has the artifact
@@ -618,35 +620,35 @@ public class IndexingSystemV3 {
             }
             
             if (sourceSlot != null) {
-                System.out.println("[IndexingV3] 1st artifact - requesting transfer from " + sourceSlot);
+                Dbg.d(LogGroup.TRANSFER, "1st artifact - requesting transfer from %s", sourceSlot);
                 // Queue transfer to center
                 boolean success = requestTransfer(sourceSlot);
-                System.out.println("[IndexingV3] Transfer request " + (success ? "SUCCESSFUL" : "FAILED"));
+                Dbg.d(LogGroup.TRANSFER, "Transfer request %s", success ? "SUCCESSFUL" : "FAILED");
             } else {
-                System.out.println("[IndexingV3] WARNING: 1st artifact but no occupied intake found!");
+                Dbg.w(LogGroup.INDEXING, "WARNING: 1st artifact but no occupied intake found!");
             }
             
         } else if (artifactCount == 2) {
             // SECOND ARTIFACT: Check if swap needed for optimal shot order
-            System.out.println("[IndexingV3] 2nd artifact - checking shot planner...");
+            Dbg.d(LogGroup.SHOTPLAN, "2nd artifact - checking shot planner...");
             // The shot planner will determine if we need to rearrange
             if (shotPlanner.isRearrangementNeeded()) {
                 SlotLedger.Slot swapSlot = shotPlanner.getRearrangementSlot();
                 if (swapSlot != null) {
-                    System.out.println("[IndexingV3] Shot planner recommends swap with " + swapSlot);
+                    Dbg.d(LogGroup.SHOTPLAN, "Shot planner recommends swap with %s", swapSlot);
                     // Swap needed - do it now
                     boolean success = requestSwap(swapSlot);
-                    System.out.println("[IndexingV3] Swap request " + (success ? "SUCCESSFUL" : "FAILED"));
+                    Dbg.d(LogGroup.TRANSFER, "Swap request %s", success ? "SUCCESSFUL" : "FAILED");
                 }
             } else {
-                System.out.println("[IndexingV3] No swap needed, artifact stays in storage");
+                Dbg.d(LogGroup.SHOTPLAN, "No swap needed, artifact stays in storage");
             }
             // If no swap needed, artifact stays in intake (storage mode)
             // Hunt-mode will automatically run rollers at storage power
             
         } else if (artifactCount == 3) {
             // THIRD ARTIFACT: System full, stays in intake (storage mode)
-            System.out.println("[IndexingV3] 3rd artifact - system full, stays in storage");
+            Dbg.d(LogGroup.INDEXING, "3rd artifact - system full, stays in storage");
             // Nothing to do - artifact is already committed to slot
             // Hunt-mode will run rollers at storage power
         }
@@ -701,11 +703,11 @@ public class IndexingSystemV3 {
             if (confidence == IntakePerception.PresenceConfidence.HIGH) {
                 if (requestCollect(SlotLedger.Slot.FRONT)) {
                     lastFrontAutoCollectTime = currentTime;
-                    System.out.println("[IndexingV3] Auto-collect FRONT (confidence=" + confidence + ")");
+                    Dbg.d(LogGroup.INTAKE, "Auto-collect FRONT (confidence=%s)", confidence);
                 }
             } else {
                 // Not HIGH confidence - skip (likely hand, temporary object, or poor sensor view)
-                System.out.println("[IndexingV3] Skipping FRONT auto-collect (confidence=" + confidence + " not HIGH)");
+                Dbg.d(LogGroup.INTAKE, "Skipping FRONT auto-collect (confidence=%s not HIGH)", confidence);
             }
         }
         if (huntEnabled && isIntakeHuntEligible(SlotLedger.Slot.BACK) && 
@@ -717,11 +719,11 @@ public class IndexingSystemV3 {
             if (confidence == IntakePerception.PresenceConfidence.HIGH) {
                 if (requestCollect(SlotLedger.Slot.BACK)) {
                     lastBackAutoCollectTime = currentTime;
-                    System.out.println("[IndexingV3] Auto-collect BACK (confidence=" + confidence + ")");
+                    Dbg.d(LogGroup.INTAKE, "Auto-collect BACK (confidence=%s)", confidence);
                 }
             } else {
                 // Not HIGH confidence - skip (likely hand, temporary object, or poor sensor view)
-                System.out.println("[IndexingV3] Skipping BACK auto-collect (confidence=" + confidence + " not HIGH)");
+                Dbg.d(LogGroup.INTAKE, "Skipping BACK auto-collect (confidence=%s not HIGH)", confidence);
             }
         }
         
@@ -1175,7 +1177,7 @@ public class IndexingSystemV3 {
             firingHelper.cancelFiring();
             burstFiringActive = false;
             telemetry.addData("🛑 Burst Firing", "Cancelled");
-            System.out.println("[IndexingV3] Burst firing cancelled by OpMode request");
+            Dbg.i(LogGroup.FIRING, "Burst firing cancelled by OpMode request");
         }
     }
     

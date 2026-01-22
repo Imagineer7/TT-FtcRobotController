@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.util.aurora;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.util.debug.Dbg;
+import org.firstinspires.ftc.teamcode.util.debug.LogGroup;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -84,11 +86,11 @@ public class SystemMonitor {
      * Log current state to System.out for remote monitoring
      */
     private static void logToConsole() {
-        System.out.println("═══ SystemMonitor Update ═══");
+        Dbg.d(LogGroup.MONITOR, "═══ SystemMonitor Update ═══");
         for (Map.Entry<String, Object> entry : liveVars.entrySet()) {
-            System.out.println(String.format("  %s: %s", entry.getKey(), entry.getValue()));
+            Dbg.d(LogGroup.MONITOR, "  %s: %s", entry.getKey(), entry.getValue());
         }
-        System.out.println("═══════════════════════════");
+        Dbg.d(LogGroup.MONITOR, "═══════════════════════════");
     }
     
     /**
@@ -96,7 +98,7 @@ public class SystemMonitor {
      */
     public static void logNow(String message) {
         if (consoleLoggingEnabled) {
-            System.out.println("[SystemMonitor] " + message);
+            Dbg.i(LogGroup.MONITOR, "%s", message);
         }
     }
     

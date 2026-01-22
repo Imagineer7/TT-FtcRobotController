@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.util.aurora.v3;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.util.debug.Dbg;
+import org.firstinspires.ftc.teamcode.util.debug.LogGroup;
 
 /**
  * OperationRunner - Manages operation lifecycle and enforces single operation at a time
@@ -70,7 +72,7 @@ public class OperationRunner {
     public boolean start(IndexingOperation operation) {
         if (operation == null) {
             logError("Cannot start null operation");
-            System.out.println("[OpRunner] ERROR: Null operation");
+            Dbg.e(LogGroup.PLANNEREX, "ERROR: Null operation");
             return false;
         }
 
@@ -78,13 +80,13 @@ public class OperationRunner {
         if (isBusy()) {
             logWarn("Rejected: " + operation.getOperationName() + 
                    " (already running: " + currentOperation.getOperationName() + ")");
-            System.out.println("[OpRunner] REJECTED: Already running " + 
+            Dbg.w(LogGroup.PLANNEREX, "REJECTED: Already running %s",
                              currentOperation.getOperationName());
             return false;
         }
 
-        System.out.println("[OpRunner] Starting operation: " + operation.getOperationName());
-        
+        Dbg.d(LogGroup.PLANNEREX, "Starting operation: %s", operation.getOperationName());
+
         // Try to start operation
         boolean started = operation.start();
         
@@ -93,11 +95,11 @@ public class OperationRunner {
             operationStartTime = System.currentTimeMillis();
             operationCount++;
             logInfo("Started: " + operation.getOperationName() + " (#" + operationCount + ")");
-            System.out.println("[OpRunner] STARTED successfully (#" + operationCount + ")");
+            Dbg.d(LogGroup.PLANNEREX, "STARTED successfully (#%d)", operationCount);
             return true;
         } else {
             logError("Failed to start: " + operation.getOperationName());
-            System.out.println("[OpRunner] FAILED to start: " + operation.getOperationName());
+            Dbg.e(LogGroup.PLANNEREX, "FAILED to start: %s", operation.getOperationName());
             return false;
         }
     }
@@ -114,8 +116,8 @@ public class OperationRunner {
 
         // Update operation
         boolean stillRunning = currentOperation.update();
-        System.out.println("[OpRunner] update() - stillRunning=" + stillRunning + 
-                         ", op=" + currentOperation.getOperationName());
+        Dbg.d(LogGroup.PLANNEREX, "update() - stillRunning=%b, op=%s", stillRunning,
+                         currentOperation.getOperationName());
 
         if (!stillRunning) {
             // Operation complete (success or failure)
@@ -123,17 +125,17 @@ public class OperationRunner {
             
             if (currentOperation.isSuccess()) {
                 // Successful completion - commit slot changes
-                System.out.println("[OpRunner] Operation SUCCESSFUL, committing...");
-                logInfo("Completed: " + currentOperation.getOperationName() + 
+                Dbg.d(LogGroup.PLANNEREX, "Operation SUCCESSFUL, committing...");
+                logInfo("Completed: " + currentOperation.getOperationName() +
                        " (elapsed: " + elapsed + "ms)");
                 currentOperation.commit();
                 logInfo("Committed slot changes");
-                System.out.println("[OpRunner] Commit complete");
+                Dbg.d(LogGroup.PLANNEREX, "Commit complete");
             } else {
                 // Failed or canceled
                 String status = currentOperation.isComplete() ? "Failed" : "Cancelled";
-                System.out.println("[OpRunner] Operation " + status);
-                logWarn(status + ": " + currentOperation.getOperationName() + 
+                Dbg.w(LogGroup.PLANNEREX, "Operation %s", status);
+                logWarn(status + ": " + currentOperation.getOperationName() +
                        " (" + currentOperation.getStatusMessage() + ")");
                 
                 // Log failure reason if available
@@ -146,7 +148,7 @@ public class OperationRunner {
             }
 
             // Clear current operation
-            System.out.println("[OpRunner] Clearing operation, now idle");
+            Dbg.d(LogGroup.PLANNEREX, "Clearing operation, now idle");
             currentOperation = null;
             operationStartTime = 0;
         }
@@ -212,7 +214,7 @@ public class OperationRunner {
     }
 
     /**
-     * Get current operation (may be null)
+     * Get current operation (can be null)
      * 
      * @return Current operation or null if idle
      */

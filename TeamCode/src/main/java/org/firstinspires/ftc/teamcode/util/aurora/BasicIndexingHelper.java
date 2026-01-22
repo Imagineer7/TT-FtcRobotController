@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.util.aurora;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.util.debug.Dbg;
+import org.firstinspires.ftc.teamcode.util.debug.LogGroup;
 
 /**
  * BasicIndexingHelper - Manual control for indexing system motors and servos
@@ -1132,7 +1134,7 @@ public class BasicIndexingHelper {
             telemetry.addData("⚠️ WARNING", "Transfer already in progress");
             return;
         }
-        System.out.println("[BasicIndexingHelper]: Starting transferFrontIntakeToCenterTimed");
+        Dbg.d(LogGroup.TRANSFER, "Starting transferFrontIntakeToCenterTimed");
 
         transferSequenceActive = true;
         transferSequenceState = TransferSequenceState.UN_PREPOSITIONING;
@@ -1144,7 +1146,7 @@ public class BasicIndexingHelper {
 
         telemetry.addData("Transfer", "Front intake → Center (timed)");
         telemetry.addData("Duration", durationMs + "ms");
-        System.out.println("[BasicIndexingHelper]: TransferSequenceState.UN_PREPOSITIONING");
+        Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.UN_PREPOSITIONING");
     }
 
     /**
@@ -1173,7 +1175,7 @@ public class BasicIndexingHelper {
             telemetry.addData("⚠️ WARNING", "Transfer already in progress");
             return;
         }
-        System.out.println("[BasicIndexingHelper]: Starting transferBackIntakeToCenterTimed");
+        Dbg.d(LogGroup.TRANSFER, "Starting transferBackIntakeToCenterTimed");
 
         transferSequenceActive = true;
         transferSequenceState = TransferSequenceState.UN_PREPOSITIONING;
@@ -1185,7 +1187,7 @@ public class BasicIndexingHelper {
 
         telemetry.addData("Transfer", "Back intake → Center (timed)");
         telemetry.addData("Duration", durationMs + "ms");
-        System.out.println("[BasicIndexingHelper]: Started transferBackIntakeToCenterTimed");
+        Dbg.d(LogGroup.TRANSFER, "Started transferBackIntakeToCenterTimed");
     }
 
     /**
@@ -1224,7 +1226,7 @@ public class BasicIndexingHelper {
                     if (!isUptakeBusy()) {
                         transferSequenceState = TransferSequenceState.TRANSFERRING;
                         telemetry.addData("Transfer", "Front manual - Transferring");
-                        System.out.println("[BasicIndexingHelper]: TransferSequenceState.TRANSFERRING");
+                        Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.TRANSFERRING");
                     }
                 } else if (transferSequenceState == TransferSequenceState.TRANSFERRING) {
                     // Run intake and injectors while button is held
@@ -1245,7 +1247,7 @@ public class BasicIndexingHelper {
                     transferSequenceState = TransferSequenceState.PREPOSITIONING;
                     prePositionArtifacts();
                     telemetry.addData("Transfer", "Front manual - Pre-positioning");
-                    System.out.println("[BasicIndexingHelper]: TransferSequenceState.PREPOSITIONING");
+                    Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.PREPOSITIONING");
                 } else if (transferSequenceState == TransferSequenceState.PREPOSITIONING) {
                     // Check if pre-positioning is done
                     if (!isUptakeBusy()) {
@@ -1285,7 +1287,7 @@ public class BasicIndexingHelper {
                 // Un-pre-position first
                 unPrePositionArtifacts();
                 telemetry.addData("Transfer", "Back manual - Un-prepositioning");
-                System.out.println("[BasicIndexingHelper]: TransferSequenceState.UN_PREPOSITIONING");
+                Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.UN_PREPOSITIONING");
             } else if (currentTransferType.equals("BACK_MANUAL")) {
                 // Only proceed if this is OUR transfer
                 if (transferSequenceState == TransferSequenceState.UN_PREPOSITIONING) {
@@ -1293,7 +1295,7 @@ public class BasicIndexingHelper {
                     if (!isUptakeBusy()) {
                         transferSequenceState = TransferSequenceState.TRANSFERRING;
                         telemetry.addData("Transfer", "Back manual - Transferring");
-                        System.out.println("[BasicIndexingHelper]: TransferSequenceState.TRANSFERRING");
+                        Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.TRANSFERRING");
                     }
                 } else if (transferSequenceState == TransferSequenceState.TRANSFERRING) {
                     // Run intake and injectors while button is held
@@ -1314,7 +1316,7 @@ public class BasicIndexingHelper {
                     transferSequenceState = TransferSequenceState.PREPOSITIONING;
                     prePositionArtifacts();
                     telemetry.addData("Transfer", "Back manual - Pre-positioning");
-                    System.out.println("[BasicIndexingHelper]: TransferSequenceState.PREPOSITIONING");
+                    Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.PREPOSITIONING");
                 } else if (transferSequenceState == TransferSequenceState.PREPOSITIONING) {
                     // Check if pre-positioning is done
                     if (!isUptakeBusy()) {
@@ -1375,7 +1377,7 @@ public class BasicIndexingHelper {
 
             case TRANSFERRING:
                 // Wait for transfer to complete
-                System.out.println("[BasicIndexingHelper]: TRANSFERRING - Elapsed Time: " + (System.currentTimeMillis() - transferSequenceStartTime) + "ms");
+                Dbg.d(LogGroup.TRANSFER, "TRANSFERRING - Elapsed Time: %dms", (System.currentTimeMillis() - transferSequenceStartTime));
                 if (!isAnyIntakeBusy() && !isInjectorBusy()) {
                     transferSequenceState = TransferSequenceState.PREPOSITIONING;
 
@@ -1386,7 +1388,7 @@ public class BasicIndexingHelper {
 
             case PREPOSITIONING:
                 // Wait for pre-positioning to complete
-                System.out.println("[BasicIndexingHelper]: PREPOSITIONING");
+                Dbg.d(LogGroup.TRANSFER, "PREPOSITIONING");
                 if (!isUptakeBusy()) {
                     transferSequenceState = TransferSequenceState.COMPLETE;
                     transferSequenceActive = false;

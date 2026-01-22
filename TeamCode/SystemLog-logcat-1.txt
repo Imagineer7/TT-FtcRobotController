@@ -1,372 +1,963 @@
-12-21 23:31:50.740  1000  2321 I I2C     : Automatically initializing I2C device Rev2mDistanceSensor (USB (embedded); module 3; bus 2; addr7=0x29)
-12-21 23:31:50.740  1000  2321 D STMicroVL53L0X: : Checking to see if it's really a VL53L0X sensor...
-12-21 23:31:50.745  1000  2321 D STMicroVL53L0X: : Reg 0xC0 = ee (should be 0xEE)
-12-21 23:31:50.749  1000  2321 D STMicroVL53L0X: : Reg 0xC1 = aa (should be 0xAA)
-12-21 23:31:50.754  1000  2321 D STMicroVL53L0X: : Reg 0xC2 = 10 (should be 0x10)
-12-21 23:31:50.758  1000  2321 D STMicroVL53L0X: : Reg 0x51 = 0 (should be 0x0099)
-12-21 23:31:50.763  1000  2321 D STMicroVL53L0X: : Reg 0x61 = 0 (should be 0x0000)
-12-21 23:31:50.791  1000  2321 D STMicroVL53L0X: : initial sig rate lim (MCPS) 0.250000
-12-21 23:31:50.800  1000  2321 D STMicroVL53L0X: : adjusted sig rate lim (MCPS) 0.250000
-12-21 23:31:51.177  1000  2321 I I2C     : Automatically initializing I2C device Rev2mDistanceSensor (USB (embedded); module 173; bus 3; addr7=0x29)
-12-21 23:31:51.177  1000  2321 D STMicroVL53L0X: : Checking to see if it's really a VL53L0X sensor...
-12-21 23:31:51.180  1000  2321 D STMicroVL53L0X: : Reg 0xC0 = ee (should be 0xEE)
-12-21 23:31:51.182  1000  2321 D STMicroVL53L0X: : Reg 0xC1 = aa (should be 0xAA)
-12-21 23:31:51.185  1000  2321 D STMicroVL53L0X: : Reg 0xC2 = 10 (should be 0x10)
-12-21 23:31:51.188  1000  2321 D STMicroVL53L0X: : Reg 0x51 = 0 (should be 0x0099)
-12-21 23:31:51.190  1000  2321 D STMicroVL53L0X: : Reg 0x61 = 0 (should be 0x0000)
-12-21 23:31:51.208  1000  2321 D STMicroVL53L0X: : initial sig rate lim (MCPS) 0.250000
-12-21 23:31:51.212  1000  2321 D STMicroVL53L0X: : adjusted sig rate lim (MCPS) 0.250000
-12-21 23:31:51.431  1000  2321 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 173; bus 2; addr7=0x52)
-12-21 23:31:51.432  1000  2321 V BroadcomColorSensorImpl: internalInitialize()...
-12-21 23:31:51.439  1000  2321 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 23:31:51.440  1000  2321 V BroadcomColorSensorImpl: setGain(0x01)
-12-21 23:31:51.442  1000  2321 V BroadcomColorSensorImpl: setLEDParameters(0x37)
-12-21 23:31:51.445  1000  2321 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
-12-21 23:31:51.447  1000  2321 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
-12-21 23:31:51.451  1000  2321 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
-12-21 23:31:51.456  1000  2321 V BroadcomColorSensorImpl: enable() enabled=0x07...
-12-21 23:31:51.461  1000  2321 V BroadcomColorSensorImpl: ...enable() enabled=0x07
-12-21 23:31:51.466  1000  2321 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 23:31:51.466  1000  2321 V BroadcomColorSensorImpl: ...internalInitialize()
-12-21 23:31:51.467  1000  2321 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 3; bus 3; addr7=0x52)
-12-21 23:31:51.467  1000  2321 V BroadcomColorSensorImpl: internalInitialize()...
-12-21 23:31:51.476  1000  2321 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 23:31:51.477  1000  2321 V BroadcomColorSensorImpl: setGain(0x01)
-12-21 23:31:51.481  1000  2321 V BroadcomColorSensorImpl: setLEDParameters(0x37)
-12-21 23:31:51.485  1000  2321 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
-12-21 23:31:51.489  1000  2321 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
-12-21 23:31:51.494  1000  2321 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
-12-21 23:31:51.502  1000  2321 V BroadcomColorSensorImpl: enable() enabled=0x07...
-12-21 23:31:51.512  1000  2321 V BroadcomColorSensorImpl: ...enable() enabled=0x07
-12-21 23:31:51.518  1000  2321 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 23:31:51.518  1000  2321 V BroadcomColorSensorImpl: ...internalInitialize()
-12-21 23:31:51.519  1000  2321 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 173; bus 1; addr7=0x52)
-12-21 23:31:51.519  1000  2321 V BroadcomColorSensorImpl: internalInitialize()...
-12-21 23:31:51.526  1000  2321 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 23:31:51.526  1000  2321 V BroadcomColorSensorImpl: setGain(0x01)
-12-21 23:31:51.530  1000  2321 V BroadcomColorSensorImpl: setLEDParameters(0x37)
-12-21 23:31:51.533  1000  2321 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
-12-21 23:31:51.537  1000  2321 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
-12-21 23:31:51.541  1000  2321 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
-12-21 23:31:51.546  1000  2321 V BroadcomColorSensorImpl: enable() enabled=0x07...
-12-21 23:31:51.552  1000  2321 V BroadcomColorSensorImpl: ...enable() enabled=0x07
-12-21 23:31:51.557  1000  2321 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 23:31:51.557  1000  2321 V BroadcomColorSensorImpl: ...internalInitialize()
-12-21 23:31:51.557  1000  2321 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 3; bus 1; addr7=0x52)
-12-21 23:31:51.557  1000  2321 V BroadcomColorSensorImpl: internalInitialize()...
-12-21 23:31:51.567  1000  2321 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 23:31:51.567  1000  2321 V BroadcomColorSensorImpl: setGain(0x01)
-12-21 23:31:51.572  1000  2321 V BroadcomColorSensorImpl: setLEDParameters(0x37)
-12-21 23:31:51.576  1000  2321 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
-12-21 23:31:51.581  1000  2321 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
-12-21 23:31:51.585  1000  2321 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
-12-21 23:31:51.594  1000  2321 V BroadcomColorSensorImpl: enable() enabled=0x07...
-12-21 23:31:51.603  1000  2321 V BroadcomColorSensorImpl: ...enable() enabled=0x07
-12-21 23:31:51.609  1000  2321 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 23:31:51.609  1000  2321 V BroadcomColorSensorImpl: ...internalInitialize()
-12-21 23:31:51.609  1000  2321 I I2C     : Automatically initializing I2C device BHI260IMU (BHI260 IMU on USB (embedded); module 173; bus 0; addr7=0x28)
-12-21 23:31:51.611  1000  2321 V BHI260IMU: Suppressing I2C warnings while we check for a BHI260AP IMU
-12-21 23:31:51.614  1000  2321 V BHI260IMU: Found BHI260AP IMU
-12-21 23:31:51.627  1000  2321 D BHI260IMU: Firmware version: 20
-12-21 23:31:51.644  1000  2321 V BHI260IMU: Suppressing I2C warnings while we check for a BHI260AP IMU
-12-21 23:31:51.649  1000  2321 V BHI260IMU: Found BHI260AP IMU
-12-21 23:31:51.664  1000  2321 D BHI260IMU: Firmware version: 20
-12-21 23:31:54.497  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
-12-21 23:31:54.566  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 23:31:54.628  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 23:31:54.695  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 23:31:54.767  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 23:31:54.818  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 23:31:54.891  1000  2321 I System.out: [OpRunner] Starting operation: Collect[FRONT]
-12-21 23:31:54.891  1000  2321 I System.out: [CollectOp] doStart() called for FRONT
-12-21 23:31:54.892  1000  2321 I System.out: [CollectOp] Fast presence detected, starting hardware...
-12-21 23:31:54.892  1000  2321 I System.out: [CollectOp] Started FRONT intake hardware
-12-21 23:31:54.892  1000  2321 I System.out: [CollectOp] doStart() completed successfully
-12-21 23:31:54.892  1000  2321 I System.out: [OpRunner] STARTED successfully (#1)
-12-21 23:31:54.892  1000  2321 I System.out: [IndexingV3] Auto-collect FRONT (confidence=HIGH)
-12-21 23:31:54.980  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 23:31:55.060  1000  2321 I System.out: [CollectOp] Color checkpoint reached, stopping hardware
-12-21 23:31:55.068  1000  2321 I System.out: [CollectOp] → SETTLING state
-12-21 23:31:55.068  1000  2321 I System.out: [CollectOp] Hardware done before sampling, forcing completion
-12-21 23:31:55.295  1000  2321 I System.out: [CollectOp] Collection complete
-12-21 23:31:55.295  1000  2321 I System.out: [OpRunner] update() - stillRunning=false, op=Collect[FRONT]
-12-21 23:31:55.295  1000  2321 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
-12-21 23:31:55.295  1000  2321 I System.out: [CollectOp] doCommit() called
-12-21 23:31:55.295  1000  2321 I System.out: [CollectOp] Committed UNKNOWN to FRONT (conf=0.54)
-12-21 23:31:55.296  1000  2321 I System.out: [OpRunner] Commit complete
-12-21 23:31:55.296  1000  2321 I System.out: [OpRunner] Clearing operation, now idle
-12-21 23:31:55.296  1000  2321 I System.out: [IndexingV3] handleOperationComplete: Collect[FRONT], success=true
-12-21 23:31:55.296  1000  2321 I System.out: [IndexingV3] Collection completed, calling handlePostCollection()
-12-21 23:31:55.296  1000  2321 I System.out: [IndexingV3] handlePostCollection: artifactCount=1
-12-21 23:31:55.296  1000  2321 I System.out: [IndexingV3] 1st artifact - requesting transfer from FRONT
-12-21 23:31:55.296  1000  2321 I System.out: [OpRunner] Starting operation: Transfer[FRONT→CENTER]
-12-21 23:31:55.297  1000  2321 I System.out: [BasicIndexingHelper]: Starting transferFrontIntakeToCenterTimed
-12-21 23:31:55.297  1000  2321 I System.out: [BasicIndexingHelper]: TransferSequenceState.UN_PREPOSITIONING
-12-21 23:31:55.297  1000  2321 I System.out: [OpRunner] STARTED successfully (#2)
-12-21 23:31:55.297  1000  2321 I System.out: [IndexingV3] Transfer request SUCCESSFUL
-12-21 23:31:55.379  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:31:55.445  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:31:55.509  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:31:55.595  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:31:55.664  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:31:55.729  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:31:55.788  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:31:55.854  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:31:55.930  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:31:56.000  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:31:56.077  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:31:56.169  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:31:56.249  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:31:56.306  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 75ms
-12-21 23:31:56.309  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:31:56.374  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 143ms
-12-21 23:31:56.379  1000  2321 I System.out: [OpRunner] update() - stillRunning=false, op=Transfer[FRONT→CENTER]
-12-21 23:31:56.379  1000  2321 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
-12-21 23:31:56.380  1000  2321 I System.out: [OpRunner] Commit complete
-12-21 23:31:56.380  1000  2321 I System.out: [OpRunner] Clearing operation, now idle
-12-21 23:31:56.380  1000  2321 I System.out: [IndexingV3] handleOperationComplete: Transfer[FRONT→CENTER], success=true
-12-21 23:31:56.380  1000  2321 I System.out: [IndexingV3] Transfer completed
-12-21 23:31:56.381  1000  2321 I System.out: [IndexingV3] Reset FRONT perception after transfer
-12-21 23:31:56.456  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 225ms
-12-21 23:31:56.513  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 282ms
-12-21 23:31:56.517  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
-12-21 23:31:56.577  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 346ms
-12-21 23:31:56.582  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
-12-21 23:31:56.645  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 414ms
-12-21 23:31:56.650  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
-12-21 23:31:56.710  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 479ms
-12-21 23:31:56.725  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
-12-21 23:31:56.791  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 560ms
-12-21 23:31:56.812  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 23:31:56.872  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 641ms
-12-21 23:31:56.877  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=NONE not HIGH)
-12-21 23:31:56.944  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 713ms
-12-21 23:31:57.019  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 788ms
-12-21 23:31:57.084  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 853ms
-12-21 23:31:57.141  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 910ms
-12-21 23:31:57.218  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 987ms
-12-21 23:31:57.302  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1071ms
-12-21 23:31:57.390  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1159ms
-12-21 23:31:57.455  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1224ms
-12-21 23:31:57.538  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1307ms
-12-21 23:31:57.610  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1379ms
-12-21 23:31:57.675  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1444ms
-12-21 23:31:57.751  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1520ms
-12-21 23:31:57.832  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1601ms
-12-21 23:31:57.911  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1680ms
-12-21 23:31:57.984  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1753ms
-12-21 23:31:58.060  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1829ms
-12-21 23:31:58.128  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1896ms
-12-21 23:31:58.190  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1959ms
-12-21 23:31:58.282  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2051ms
-12-21 23:31:58.357  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2126ms
-12-21 23:31:58.424  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2193ms
-12-21 23:31:58.493  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2262ms
-12-21 23:31:58.571  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2340ms
-12-21 23:31:58.634  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2403ms
-12-21 23:31:58.704  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2473ms
-12-21 23:31:58.789  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2558ms
-12-21 23:31:58.880  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2649ms
-12-21 23:31:58.962  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:31:59.022  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:31:59.100  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:31:59.169  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:31:59.231  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:31:59.304  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:31:59.387  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:31:59.466  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:31:59.531  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:31:59.603  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:02.174  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 23:32:02.257  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 23:32:02.321  1000  2321 I System.out: [OpRunner] Starting operation: Collect[FRONT]
-12-21 23:32:02.321  1000  2321 I System.out: [CollectOp] doStart() called for FRONT
-12-21 23:32:02.321  1000  2321 I System.out: [CollectOp] Fast presence detected, starting hardware...
-12-21 23:32:02.322  1000  2321 I System.out: [CollectOp] Started FRONT intake hardware
-12-21 23:32:02.322  1000  2321 I System.out: [CollectOp] doStart() completed successfully
-12-21 23:32:02.322  1000  2321 I System.out: [OpRunner] STARTED successfully (#3)
-12-21 23:32:02.322  1000  2321 I System.out: [IndexingV3] Auto-collect FRONT (confidence=HIGH)
-12-21 23:32:02.394  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 23:32:02.456  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 23:32:02.525  1000  2321 I System.out: [CollectOp] Color checkpoint reached, stopping hardware
-12-21 23:32:02.533  1000  2321 I System.out: [CollectOp] → SETTLING state
-12-21 23:32:02.533  1000  2321 I System.out: [CollectOp] Hardware done before sampling, forcing completion
-12-21 23:32:02.783  1000  2321 I System.out: [CollectOp] Collection complete
-12-21 23:32:02.783  1000  2321 I System.out: [OpRunner] update() - stillRunning=false, op=Collect[FRONT]
-12-21 23:32:02.783  1000  2321 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
-12-21 23:32:02.783  1000  2321 I System.out: [CollectOp] doCommit() called
-12-21 23:32:02.784  1000  2321 I System.out: [CollectOp] Committed GREEN to FRONT (conf=0.70)
-12-21 23:32:02.785  1000  2321 I System.out: [OpRunner] Commit complete
-12-21 23:32:02.785  1000  2321 I System.out: [OpRunner] Clearing operation, now idle
-12-21 23:32:02.786  1000  2321 I System.out: [IndexingV3] handleOperationComplete: Collect[FRONT], success=true
-12-21 23:32:02.786  1000  2321 I System.out: [IndexingV3] Collection completed, calling handlePostCollection()
-12-21 23:32:02.786  1000  2321 I System.out: [IndexingV3] handlePostCollection: artifactCount=2
-12-21 23:32:02.786  1000  2321 I System.out: [IndexingV3] 2nd artifact - checking shot planner...
-12-21 23:32:02.786  1000  2321 I System.out: [IndexingV3] No swap needed, artifact stays in storage
-12-21 23:32:06.020  1000  2321 I System.out: [BasicFiringHelper]: startFiring() called - targetRPM=1100.0, preset=CUSTOM, keepAlive=true
-12-21 23:32:06.020  1000  2321 I System.out: [OpMode Debug]: requestFire returned true
-12-21 23:32:08.391  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:08.399  1000  2321 I System.out: [IndexingV3] Subsequent shot detected (0 → 1), clearing CENTER
-12-21 23:32:08.399  1000  2321 I System.out: [IndexingV3] Shot consumed from plan
-12-21 23:32:08.399  1000  2321 I System.out: [OpRunner] Starting operation: Transfer[FRONT→CENTER]
-12-21 23:32:08.400  1000  2321 I System.out: [BasicIndexingHelper]: Starting transferFrontIntakeToCenterTimed
-12-21 23:32:08.400  1000  2321 I System.out: [BasicIndexingHelper]: TransferSequenceState.UN_PREPOSITIONING
-12-21 23:32:08.400  1000  2321 I System.out: [OpRunner] STARTED successfully (#4)
-12-21 23:32:08.490  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:32:08.574  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:32:08.644  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:32:08.715  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:32:08.776  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:32:08.852  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:32:08.923  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:32:09.011  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:32:09.086  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:32:09.153  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:32:09.229  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:32:09.305  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:32:09.368  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 87ms
-12-21 23:32:09.378  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 23:32:09.440  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 159ms
-12-21 23:32:09.448  1000  2321 I System.out: [OpRunner] update() - stillRunning=false, op=Transfer[FRONT→CENTER]
-12-21 23:32:09.449  1000  2321 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
-12-21 23:32:09.451  1000  2321 I System.out: [OpRunner] Commit complete
-12-21 23:32:09.451  1000  2321 I System.out: [OpRunner] Clearing operation, now idle
-12-21 23:32:09.451  1000  2321 I System.out: [IndexingV3] handleOperationComplete: Transfer[FRONT→CENTER], success=true
-12-21 23:32:09.451  1000  2321 I System.out: [IndexingV3] Transfer completed
-12-21 23:32:09.452  1000  2321 I System.out: [IndexingV3] Reset FRONT perception after transfer
-12-21 23:32:09.453  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:09.520  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 239ms
-12-21 23:32:09.602  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 321ms
-12-21 23:32:09.610  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
-12-21 23:32:09.664  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 383ms
-12-21 23:32:09.671  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
-12-21 23:32:09.738  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 457ms
-12-21 23:32:09.746  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
-12-21 23:32:09.808  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 527ms
-12-21 23:32:09.829  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:09.839  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
-12-21 23:32:09.839  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:09.903  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 622ms
-12-21 23:32:09.916  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
-12-21 23:32:09.981  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 700ms
-12-21 23:32:09.989  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=NONE not HIGH)
-12-21 23:32:10.061  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 780ms
-12-21 23:32:10.144  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 863ms
-12-21 23:32:10.153  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:10.160  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:10.215  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 934ms
-12-21 23:32:10.292  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1011ms
-12-21 23:32:10.376  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1095ms
-12-21 23:32:10.457  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1176ms
-12-21 23:32:10.546  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1265ms
-12-21 23:32:10.551  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:10.558  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:10.638  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1357ms
-12-21 23:32:10.714  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1433ms
-12-21 23:32:10.780  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1499ms
-12-21 23:32:10.866  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1585ms
-12-21 23:32:10.876  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:10.883  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:10.958  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1677ms
-12-21 23:32:11.061  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1780ms
-12-21 23:32:11.149  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1868ms
-12-21 23:32:11.230  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1949ms
-12-21 23:32:11.235  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:11.243  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:11.302  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2021ms
-12-21 23:32:11.383  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2102ms
-12-21 23:32:11.459  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2178ms
-12-21 23:32:11.532  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2251ms
-12-21 23:32:11.632  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2351ms
-12-21 23:32:11.641  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:11.649  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:11.714  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2433ms
-12-21 23:32:11.797  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2516ms
-12-21 23:32:11.900  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2619ms
-12-21 23:32:11.976  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:12.053  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:12.131  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:12.194  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:12.282  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:12.378  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:12.458  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:12.532  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:12.536  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:12.544  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:12.593  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:12.688  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:12.759  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:12.844  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:12.853  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:12.868  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:12.940  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:13.032  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:13.091  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:13.163  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:13.242  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:13.247  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:13.255  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:13.315  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:13.399  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:13.478  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:13.559  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:13.568  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:13.575  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:13.646  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:13.725  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:13.808  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:13.880  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:13.887  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:13.895  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:13.971  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:14.069  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:14.149  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:14.216  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:14.226  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:14.233  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:14.290  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:14.376  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:14.447  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:14.513  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:14.613  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:14.619  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:14.623  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:14.692  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:14.769  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:14.833  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:14.910  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:14.982  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:14.990  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:14.997  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:15.069  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:15.162  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:15.237  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:15.300  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:15.305  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:15.313  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:15.377  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:15.463  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:15.529  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:15.606  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:15.697  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:15.707  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:15.715  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:15.785  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:15.858  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:15.927  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:16.005  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:16.083  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:16.088  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:16.095  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:16.174  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:16.264  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:16.340  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:16.398  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:16.408  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 23:32:16.417  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 23:32:16.480  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:16.506  1000  2321 I System.out: [IndexingV3] Burst firing cancelled by OpMode request
-12-21 23:32:16.590  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 23:32:18.859  1000  2321 E LynxI2cDeviceSynch: placeholder: readTimestamped
-12-21 23:32:18.859  1000  2321 E LynxI2cDeviceSynch: placeholder: readTimestamped
-12-21 23:32:23.377   791   791 D lvjinhua:  Failed while trying resolve alarm filter file, not exists
+12-21 15:26:42.576   994  1423 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:26:42.577   994  1423 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:26:42.577   994  1423 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:26:42.577   994  1423 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:26:42.577   994  1423 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:26:42.577   994  1423 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:26:42.578   994  1423 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:26:42.578   994  1423 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:42.578   994  1423 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:26:42.578   994  1423 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:42.578   994  1423 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:26:42.578   994  1423 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:42.579   994  1423 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:26:42.579   994  1423 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:42.579   994  1423 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:26:42.579   994  1423 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:26:42.579   994  1423 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:26:42.580   994  1423 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:26:42.581   994  1423 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:26:42.581   994  1423 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:26:42.581   994  1423 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:26:42.581   994  1423 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:26:42.581   994  1423 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:26:42.582   994  1423 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:26:42.582   994  1423 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:26:42.582   994  1423 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:26:42.582   994  1423 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:26:42.582   994  1423 W System.err: 	... 20 more
+12-21 15:26:42.937   994  1433 I TeamDbg : Global log level set to: DEBUG
+12-21 15:26:42.939   994  1433 I TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/I: ========================================
+12-21 15:26:42.939   994  1433 I TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/I:   INDEXING SYSTEM V3 - BASIC TEST
+12-21 15:26:42.939   994  1433 I TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/I: ========================================
+12-21 15:26:42.939   994  1433 I TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/I: Initializing hardware...
+12-21 15:26:43.050   994  1433 I I2C     : Automatically initializing I2C device Rev2mDistanceSensor (USB (embedded); module 3; bus 2; addr7=0x29)
+12-21 15:26:43.051   994  1433 D STMicroVL53L0X: : Checking to see if it's really a VL53L0X sensor...
+12-21 15:26:43.056   994  1433 D STMicroVL53L0X: : Reg 0xC0 = ee (should be 0xEE)
+12-21 15:26:43.060   994  1433 D STMicroVL53L0X: : Reg 0xC1 = aa (should be 0xAA)
+12-21 15:26:43.065   994  1433 D STMicroVL53L0X: : Reg 0xC2 = 10 (should be 0x10)
+12-21 15:26:43.070   994  1433 D STMicroVL53L0X: : Reg 0x51 = 0 (should be 0x0099)
+12-21 15:26:43.075   994  1433 D STMicroVL53L0X: : Reg 0x61 = 0 (should be 0x0000)
+12-21 15:26:43.108   994  1433 D STMicroVL53L0X: : initial sig rate lim (MCPS) 0.250000
+12-21 15:26:43.118   994  1433 D STMicroVL53L0X: : adjusted sig rate lim (MCPS) 0.250000
+12-21 15:26:43.555   994  1433 I I2C     : Automatically initializing I2C device Rev2mDistanceSensor (USB (embedded); module 173; bus 3; addr7=0x29)
+12-21 15:26:43.555   994  1433 D STMicroVL53L0X: : Checking to see if it's really a VL53L0X sensor...
+12-21 15:26:43.559   994  1433 D STMicroVL53L0X: : Reg 0xC0 = ee (should be 0xEE)
+12-21 15:26:43.563   994  1433 D STMicroVL53L0X: : Reg 0xC1 = aa (should be 0xAA)
+12-21 15:26:43.567   994  1433 D STMicroVL53L0X: : Reg 0xC2 = 10 (should be 0x10)
+12-21 15:26:43.570   994  1433 D STMicroVL53L0X: : Reg 0x51 = 0 (should be 0x0099)
+12-21 15:26:43.574   994  1433 D STMicroVL53L0X: : Reg 0x61 = 0 (should be 0x0000)
+12-21 15:26:43.596   994  1433 D STMicroVL53L0X: : initial sig rate lim (MCPS) 0.250000
+12-21 15:26:43.601   994  1433 D STMicroVL53L0X: : adjusted sig rate lim (MCPS) 0.250000
+12-21 15:26:43.821   994  1433 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 173; bus 2; addr7=0x52)
+12-21 15:26:43.821   994  1433 V BroadcomColorSensorImpl: internalInitialize()...
+12-21 15:26:43.833   994  1433 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2 
+12-21 15:26:43.834   994  1433 V BroadcomColorSensorImpl: setGain(0x01)
+12-21 15:26:43.838   994  1433 V BroadcomColorSensorImpl: setLEDParameters(0x37)
+12-21 15:26:43.842   994  1433 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
+12-21 15:26:43.845   994  1433 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
+12-21 15:26:43.849   994  1433 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
+12-21 15:26:43.855   994  1433 V BroadcomColorSensorImpl: enable() enabled=0x07...
+12-21 15:26:43.860   994  1433 V BroadcomColorSensorImpl: ...enable() enabled=0x07
+12-21 15:26:43.867   994  1433 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2 
+12-21 15:26:43.867   994  1433 V BroadcomColorSensorImpl: ...internalInitialize()
+12-21 15:26:43.869   994  1433 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 3; bus 3; addr7=0x52)
+12-21 15:26:43.869   994  1433 V BroadcomColorSensorImpl: internalInitialize()...
+12-21 15:26:43.880   994  1433 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2 
+12-21 15:26:43.880   994  1433 V BroadcomColorSensorImpl: setGain(0x01)
+12-21 15:26:43.886   994  1433 V BroadcomColorSensorImpl: setLEDParameters(0x37)
+12-21 15:26:43.890   994  1433 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
+12-21 15:26:43.895   994  1433 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
+12-21 15:26:43.899   994  1433 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
+12-21 15:26:43.908   994  1433 V BroadcomColorSensorImpl: enable() enabled=0x07...
+12-21 15:26:43.917   994  1433 V BroadcomColorSensorImpl: ...enable() enabled=0x07
+12-21 15:26:43.922   994  1433 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2 
+12-21 15:26:43.922   994  1433 V BroadcomColorSensorImpl: ...internalInitialize()
+12-21 15:26:43.923   994  1433 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 173; bus 1; addr7=0x52)
+12-21 15:26:43.923   994  1433 V BroadcomColorSensorImpl: internalInitialize()...
+12-21 15:26:43.931   994  1433 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2 
+12-21 15:26:43.932   994  1433 V BroadcomColorSensorImpl: setGain(0x01)
+12-21 15:26:43.935   994  1433 V BroadcomColorSensorImpl: setLEDParameters(0x37)
+12-21 15:26:43.938   994  1433 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
+12-21 15:26:43.941   994  1433 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
+12-21 15:26:43.944   994  1433 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
+12-21 15:26:43.950   994  1433 V BroadcomColorSensorImpl: enable() enabled=0x07...
+12-21 15:26:43.955   994  1433 V BroadcomColorSensorImpl: ...enable() enabled=0x07
+12-21 15:26:43.960   994  1433 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2 
+12-21 15:26:43.960   994  1433 V BroadcomColorSensorImpl: ...internalInitialize()
+12-21 15:26:43.961   994  1433 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 3; bus 1; addr7=0x52)
+12-21 15:26:43.961   994  1433 V BroadcomColorSensorImpl: internalInitialize()...
+12-21 15:26:43.971   994  1433 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2 
+12-21 15:26:43.971   994  1433 V BroadcomColorSensorImpl: setGain(0x01)
+12-21 15:26:43.976   994  1433 V BroadcomColorSensorImpl: setLEDParameters(0x37)
+12-21 15:26:43.981   994  1433 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
+12-21 15:26:43.986   994  1433 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
+12-21 15:26:43.990   994  1433 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
+12-21 15:26:44.000   994  1433 V BroadcomColorSensorImpl: enable() enabled=0x07...
+12-21 15:26:44.009   994  1433 V BroadcomColorSensorImpl: ...enable() enabled=0x07
+12-21 15:26:44.015   994  1433 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2 
+12-21 15:26:44.015   994  1433 V BroadcomColorSensorImpl: ...internalInitialize()
+12-21 15:26:44.016   994  1433 I I2C     : Automatically initializing I2C device BHI260IMU (BHI260 IMU on USB (embedded); module 173; bus 0; addr7=0x28)
+12-21 15:26:44.019   994  1433 V BHI260IMU: Suppressing I2C warnings while we check for a BHI260AP IMU
+12-21 15:26:44.021   994  1433 V BHI260IMU: Found BHI260AP IMU
+12-21 15:26:44.038   994  1433 D BHI260IMU: Firmware version: 20
+12-21 15:26:44.054   994  1433 V BHI260IMU: Suppressing I2C warnings while we check for a BHI260AP IMU
+12-21 15:26:44.057   994  1433 V BHI260IMU: Found BHI260AP IMU
+12-21 15:26:44.075   994  1433 D BHI260IMU: Firmware version: 20
+12-21 15:26:44.097   994  1433 D TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/D: Hardware initialized: true
+12-21 15:26:44.097   994  1433 I TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/I: Hardware initialization successful
+12-21 15:26:44.097   994  1433 D TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/D: Creating subsystems...
+12-21 15:26:44.620   994  1434 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:26:44.621   994  1434 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:26:44.621   994  1434 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:26:44.621   994  1434 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:26:44.622   994  1434 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:26:44.622   994  1434 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:26:44.622   994  1434 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:26:44.623   994  1434 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:44.623   994  1434 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:26:44.623   994  1434 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:44.623   994  1434 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:26:44.623   994  1434 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:44.623   994  1434 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:26:44.623   994  1434 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:44.624   994  1434 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:26:44.624   994  1434 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:26:44.624   994  1434 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:26:44.624   994  1434 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:26:44.625   994  1434 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:26:44.625   994  1434 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:26:44.626   994  1434 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:26:44.626   994  1434 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:26:44.626   994  1434 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:26:44.626   994  1434 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:26:44.626   994  1434 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:26:44.626   994  1434 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:26:44.626   994  1434 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:26:44.627   994  1434 W System.err: 	... 20 more
+12-21 15:26:44.738   994  1433 I TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/I: Subsystems created successfully
+12-21 15:26:44.739   994  1433 I TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/I: Systems enabled
+12-21 15:26:44.739   994  1433 I TeamDbg : [V3Test][V3BasicTest:INIT][0] TEST/I: Waiting for START...
+12-21 15:26:44.739   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][0] TEST/I: OpMode started - entering main loop
+12-21 15:26:46.268   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][19] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 15:26:46.344   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][20] PLANEX/D: Starting operation: Collect[FRONT]
+12-21 15:26:46.345   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][20] INTAKE/D: doStart() called for FRONT
+12-21 15:26:46.345   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][20] INTAKE/D: Fast presence detected, starting hardware...
+12-21 15:26:46.346   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][20] INTAKE/D: Started FRONT intake hardware
+12-21 15:26:46.346   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][20] INTAKE/D: doStart() completed successfully
+12-21 15:26:46.346   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][20] PLANEX/D: STARTED successfully (#1)
+12-21 15:26:46.347   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][20] INTAKE/D: Auto-collect FRONT (confidence=HIGH)
+12-21 15:26:46.433   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][21] PLANEX/D: update() - stillRunning=true, op=Collect[FRONT]
+12-21 15:26:46.523   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] INTAKE/D: Color checkpoint reached, stopping hardware
+12-21 15:26:46.531   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] INTAKE/D: → SETTLING state
+12-21 15:26:46.531   994  1433 W TeamDbg : [V3Test][V3BasicTest:RUN][22] INTAKE/W: Hardware done before sampling, forcing completion
+12-21 15:26:46.613   994  1434 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:26:46.614   994  1434 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:26:46.614   994  1434 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:26:46.614   994  1434 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:26:46.615   994  1434 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:26:46.615   994  1434 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:26:46.615   994  1434 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:26:46.615   994  1434 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:46.615   994  1434 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:26:46.615   994  1434 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:46.615   994  1434 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:26:46.616   994  1434 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:46.616   994  1434 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:26:46.616   994  1434 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:46.616   994  1434 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:26:46.617   994  1434 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:26:46.617   994  1434 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:26:46.617   994  1434 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:26:46.618   994  1434 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:26:46.618   994  1434 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:26:46.618   994  1434 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:26:46.618   994  1434 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:26:46.618   994  1434 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:26:46.618   994  1434 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:26:46.618   994  1434 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:26:46.618   994  1434 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:26:46.618   994  1434 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:26:46.619   994  1434 W System.err: 	... 20 more
+12-21 15:26:46.806   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] INTAKE/D: Collection complete
+12-21 15:26:46.807   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] PLANEX/D: update() - stillRunning=false, op=Collect[FRONT]
+12-21 15:26:46.807   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] PLANEX/D: Operation SUCCESSFUL, committing...
+12-21 15:26:46.807   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] INTAKE/D: doCommit() called
+12-21 15:26:46.807   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][22] INTAKE/I: Committed UNKNOWN (0.591607541590929) to FRONT
+12-21 15:26:46.809   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] PLANEX/D: Commit complete
+12-21 15:26:46.809   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] PLANEX/D: Clearing operation, now idle
+12-21 15:26:46.809   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] PLANEX/D: handleOperationComplete: Collect[FRONT], success=true
+12-21 15:26:46.810   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] INDEX/D: Collection completed, calling handlePostCollection()
+12-21 15:26:46.810   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] INDEX/D: handlePostCollection: artifactCount=1
+12-21 15:26:46.810   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] TRANSFER/D: 1st artifact - requesting transfer from FRONT
+12-21 15:26:46.810   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] PLANEX/D: Starting operation: Transfer[FRONT→CENTER]
+12-21 15:26:46.811   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] TRANSFER/D: Starting transferFrontIntakeToCenterTimed
+12-21 15:26:46.811   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] TRANSFER/D: TransferSequenceState.UN_PREPOSITIONING
+12-21 15:26:46.811   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] PLANEX/D: STARTED successfully (#2)
+12-21 15:26:46.812   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][22] TRANSFER/D: Transfer request SUCCESSFUL
+12-21 15:26:46.911   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][23] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:46.991   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][24] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:47.090   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][25] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:47.174   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][26] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:47.250   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][27] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:47.307   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][28] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:47.390   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][29] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:47.489   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][30] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:47.599   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][31] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:47.685   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][32] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:47.768   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][33] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:47.835   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][34] TRANSFER/D: TRANSFERRING - Elapsed Time: 87ms
+12-21 15:26:47.841   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][34] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:47.908   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][35] TRANSFER/D: TRANSFERRING - Elapsed Time: 160ms
+12-21 15:26:47.913   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][35] PLANEX/D: update() - stillRunning=false, op=Transfer[FRONT→CENTER]
+12-21 15:26:47.913   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][35] PLANEX/D: Operation SUCCESSFUL, committing...
+12-21 15:26:47.915   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][35] PLANEX/D: Commit complete
+12-21 15:26:47.916   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][35] PLANEX/D: Clearing operation, now idle
+12-21 15:26:47.916   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][35] PLANEX/D: handleOperationComplete: Transfer[FRONT→CENTER], success=true
+12-21 15:26:47.916   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][35] TRANSFER/D: Transfer completed
+12-21 15:26:47.916   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][35] INTAKE/D: Reset FRONT perception after transfer
+12-21 15:26:47.998   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][36] TRANSFER/D: TRANSFERRING - Elapsed Time: 250ms
+12-21 15:26:48.072   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][37] TRANSFER/D: TRANSFERRING - Elapsed Time: 324ms
+12-21 15:26:48.077   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][37] INTAKE/D: Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 15:26:48.156   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][38] TRANSFER/D: TRANSFERRING - Elapsed Time: 408ms
+12-21 15:26:48.171   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][38] INTAKE/D: Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 15:26:48.236   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][39] TRANSFER/D: TRANSFERRING - Elapsed Time: 488ms
+12-21 15:26:48.244   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][39] INTAKE/D: Skipping FRONT auto-collect (confidence=NONE not HIGH)
+12-21 15:26:48.310   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][40] TRANSFER/D: TRANSFERRING - Elapsed Time: 562ms
+12-21 15:26:48.388   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][41] TRANSFER/D: TRANSFERRING - Elapsed Time: 640ms
+12-21 15:26:48.456   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][42] TRANSFER/D: TRANSFERRING - Elapsed Time: 708ms
+12-21 15:26:48.546   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][43] TRANSFER/D: TRANSFERRING - Elapsed Time: 797ms
+12-21 15:26:48.616   994  1434 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:26:48.617   994  1434 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:26:48.617   994  1434 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:26:48.617   994  1434 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:26:48.617   994  1434 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:26:48.617   994  1434 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:26:48.618   994  1434 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:26:48.618   994  1434 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:48.618   994  1434 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:26:48.618   994  1434 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:48.618   994  1434 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:26:48.618   994  1434 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:48.618   994  1434 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:26:48.619   994  1434 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:48.619   994  1434 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:26:48.619   994  1434 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:26:48.619   994  1434 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:26:48.619   994  1434 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:26:48.620   994  1434 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:26:48.621   994  1434 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:26:48.621   994  1434 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:26:48.621   994  1434 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:26:48.621   994  1434 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:26:48.621   994  1434 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:26:48.621   994  1434 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:26:48.621   994  1434 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:26:48.621   994  1434 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:26:48.621   994  1434 W System.err: 	... 20 more
+12-21 15:26:48.649   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][44] TRANSFER/D: TRANSFERRING - Elapsed Time: 901ms
+12-21 15:26:48.717   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][45] TRANSFER/D: TRANSFERRING - Elapsed Time: 969ms
+12-21 15:26:48.795   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][46] TRANSFER/D: TRANSFERRING - Elapsed Time: 1046ms
+12-21 15:26:48.866   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][47] TRANSFER/D: TRANSFERRING - Elapsed Time: 1118ms
+12-21 15:26:48.970   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][48] TRANSFER/D: TRANSFERRING - Elapsed Time: 1222ms
+12-21 15:26:49.060   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][49] TRANSFER/D: TRANSFERRING - Elapsed Time: 1312ms
+12-21 15:26:49.153   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][50] TRANSFER/D: TRANSFERRING - Elapsed Time: 1404ms
+12-21 15:26:49.230   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][51] TRANSFER/D: TRANSFERRING - Elapsed Time: 1482ms
+12-21 15:26:49.313   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][52] TRANSFER/D: TRANSFERRING - Elapsed Time: 1564ms
+12-21 15:26:49.394   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][53] TRANSFER/D: TRANSFERRING - Elapsed Time: 1645ms
+12-21 15:26:49.489   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][54] TRANSFER/D: TRANSFERRING - Elapsed Time: 1740ms
+12-21 15:26:49.578   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][55] TRANSFER/D: TRANSFERRING - Elapsed Time: 1830ms
+12-21 15:26:49.676   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][56] TRANSFER/D: TRANSFERRING - Elapsed Time: 1928ms
+12-21 15:26:49.754   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][57] TRANSFER/D: TRANSFERRING - Elapsed Time: 2006ms
+12-21 15:26:49.825   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][58] TRANSFER/D: TRANSFERRING - Elapsed Time: 2076ms
+12-21 15:26:49.888   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][59] TRANSFER/D: TRANSFERRING - Elapsed Time: 2140ms
+12-21 15:26:49.952   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][60] TRANSFER/D: TRANSFERRING - Elapsed Time: 2204ms
+12-21 15:26:50.028   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][61] TRANSFER/D: TRANSFERRING - Elapsed Time: 2280ms
+12-21 15:26:50.103   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][62] TRANSFER/D: TRANSFERRING - Elapsed Time: 2355ms
+12-21 15:26:50.185   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][63] TRANSFER/D: TRANSFERRING - Elapsed Time: 2436ms
+12-21 15:26:50.251   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][64] TRANSFER/D: TRANSFERRING - Elapsed Time: 2503ms
+12-21 15:26:50.332   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][65] TRANSFER/D: TRANSFERRING - Elapsed Time: 2583ms
+12-21 15:26:50.405   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][66] TRANSFER/D: PREPOSITIONING
+12-21 15:26:50.485   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][67] TRANSFER/D: PREPOSITIONING
+12-21 15:26:50.557   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][68] TRANSFER/D: PREPOSITIONING
+12-21 15:26:50.618   994  1434 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:26:50.618   994  1434 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:26:50.619   994  1434 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:26:50.619   994  1434 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:26:50.619   994  1434 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:26:50.619   994  1434 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:26:50.619   994  1434 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:26:50.620   994  1434 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:50.620   994  1434 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:26:50.620   994  1434 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:50.621   994  1434 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:26:50.621   994  1434 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:50.621   994  1434 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:26:50.622   994  1434 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:50.622   994  1434 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:26:50.623   994  1434 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:26:50.623   994  1434 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:26:50.623   994  1434 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:26:50.624   994  1434 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:26:50.624   994  1434 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:26:50.624   994  1434 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:26:50.624   994  1434 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:26:50.624   994  1434 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:26:50.625   994  1434 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:26:50.625   994  1434 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:26:50.625   994  1434 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:26:50.625   994  1434 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:26:50.625   994  1434 W System.err: 	... 20 more
+12-21 15:26:50.642   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][69] TRANSFER/D: PREPOSITIONING
+12-21 15:26:50.720   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][70] TRANSFER/D: PREPOSITIONING
+12-21 15:26:50.780   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][71] TRANSFER/D: PREPOSITIONING
+12-21 15:26:50.867   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][72] TRANSFER/D: PREPOSITIONING
+12-21 15:26:50.939   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][73] TRANSFER/D: PREPOSITIONING
+12-21 15:26:51.014   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][74] TRANSFER/D: PREPOSITIONING
+12-21 15:26:51.641   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][82] INTAKE/D: Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 15:26:51.729   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][83] INTAKE/D: Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 15:26:51.803   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][84] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 15:26:51.901   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][85] PLANEX/D: Starting operation: Collect[FRONT]
+12-21 15:26:51.902   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][85] INTAKE/D: doStart() called for FRONT
+12-21 15:26:51.902   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][85] INTAKE/D: Fast presence detected, starting hardware...
+12-21 15:26:51.902   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][85] INTAKE/D: Started FRONT intake hardware
+12-21 15:26:51.903   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][85] INTAKE/D: doStart() completed successfully
+12-21 15:26:51.903   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][85] PLANEX/D: STARTED successfully (#3)
+12-21 15:26:51.904   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][85] INTAKE/D: Auto-collect FRONT (confidence=HIGH)
+12-21 15:26:51.996   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][86] PLANEX/D: update() - stillRunning=true, op=Collect[FRONT]
+12-21 15:26:52.082   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][87] INTAKE/D: Color checkpoint reached, stopping hardware
+12-21 15:26:52.088   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][87] INTAKE/D: → SETTLING state
+12-21 15:26:52.088   994  1433 W TeamDbg : [V3Test][V3BasicTest:RUN][87] INTAKE/W: Hardware done before sampling, forcing completion
+12-21 15:26:52.345   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][87] INTAKE/D: Collection complete
+12-21 15:26:52.346   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][87] PLANEX/D: update() - stillRunning=false, op=Collect[FRONT]
+12-21 15:26:52.346   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][87] PLANEX/D: Operation SUCCESSFUL, committing...
+12-21 15:26:52.346   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][87] INTAKE/D: doCommit() called
+12-21 15:26:52.347   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][87] INTAKE/I: Committed GREEN (0.720546281337738) to FRONT
+12-21 15:26:52.348   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][87] PLANEX/D: Commit complete
+12-21 15:26:52.349   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][87] PLANEX/D: Clearing operation, now idle
+12-21 15:26:52.349   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][87] PLANEX/D: handleOperationComplete: Collect[FRONT], success=true
+12-21 15:26:52.349   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][87] INDEX/D: Collection completed, calling handlePostCollection()
+12-21 15:26:52.349   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][87] INDEX/D: handlePostCollection: artifactCount=2
+12-21 15:26:52.350   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][87] SHOTPLAN/D: 2nd artifact - checking shot planner...
+12-21 15:26:52.350   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][87] SHOTPLAN/D: No swap needed, artifact stays in storage
+12-21 15:26:52.624   994  1437 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:26:52.624   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:26:52.624   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:26:52.625   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:26:52.625   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:26:52.625   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:26:52.625   994  1437 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:26:52.625   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:52.625   994  1437 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:26:52.625   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:52.625   994  1437 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:26:52.625   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:52.625   994  1437 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:26:52.625   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:52.626   994  1437 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:26:52.626   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:26:52.626   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:26:52.626   994  1437 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:26:52.627   994  1437 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:26:52.627   994  1437 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:26:52.627   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:26:52.627   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:26:52.627   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:26:52.627   994  1437 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:26:52.627   994  1437 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:26:52.627   994  1437 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:26:52.628   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:26:52.628   994  1437 W System.err: 	... 20 more
+12-21 15:26:54.654   994  1437 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:26:54.655   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:26:54.656   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:26:54.656   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:26:54.656   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:26:54.656   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:26:54.657   994  1437 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:26:54.657   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:54.657   994  1437 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:26:54.657   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:54.657   994  1437 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:26:54.657   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:54.658   994  1437 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:26:54.658   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:54.658   994  1437 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:26:54.659   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:26:54.659   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:26:54.659   994  1437 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:26:54.660   994  1437 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:26:54.661   994  1437 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:26:54.661   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:26:54.661   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:26:54.661   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:26:54.661   994  1437 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:26:54.661   994  1437 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:26:54.661   994  1437 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:26:54.661   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:26:54.661   994  1437 W System.err: 	... 20 more
+12-21 15:26:55.447   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][126] TEST/I: Fire button pressed - initiating firing sequence
+12-21 15:26:55.447   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][126] TEST/I: Starting firing with SHORT_RANGE preset (1100 RPM)
+12-21 15:26:55.448   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][126] FIRING/D: startFiring() called - targetRPM=1100, preset=CUSTOM, keepAlive=true
+12-21 15:26:55.448   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][126] TEST/D: requestFire returned: true
+12-21 15:26:55.449   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][126] TEST/I: Firing sequence started successfully
+12-21 15:26:55.526   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][127] TEST/D: Spinning up: 0 / 1100 RPM
+12-21 15:26:56.063   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][134] TEST/D: Spinning up: 916 / 1100 RPM
+12-21 15:26:56.568   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][140] TEST/D: Spinning up: 1460 / 1100 RPM
+12-21 15:26:56.653   994  1437 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:26:56.653   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:26:56.653   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:26:56.653   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:26:56.654   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:26:56.654   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:26:56.654   994  1437 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:26:56.654   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:56.654   994  1437 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:26:56.655   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:56.655   994  1437 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:26:56.655   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:56.655   994  1437 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:26:56.655   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:56.655   994  1437 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:26:56.655   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:26:56.655   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:26:56.655   994  1437 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:26:56.656   994  1437 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:26:56.656   994  1437 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:26:56.656   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:26:56.656   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:26:56.656   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:26:56.656   994  1437 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:26:56.657   994  1437 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:26:56.657   994  1437 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:26:56.657   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:26:56.657   994  1437 W System.err: 	... 20 more
+12-21 15:26:57.146   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][147] TEST/D: Spinning up: 1274 / 1100 RPM
+12-21 15:26:57.712   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][154] TEST/D: Spinning up: 1071 / 1100 RPM
+12-21 15:26:57.795   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][155] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 15:26:57.804   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][155] FIRING/D: Subsequent shot detected (0 → 1), clearing CENTER
+12-21 15:26:57.805   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][155] SHOTPLAN/D: Shot consumed from plan
+12-21 15:26:57.805   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][155] PLANEX/D: Starting operation: Transfer[FRONT→CENTER]
+12-21 15:26:57.805   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][155] TRANSFER/D: Starting transferFrontIntakeToCenterTimed
+12-21 15:26:57.805   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][155] TRANSFER/D: TransferSequenceState.UN_PREPOSITIONING
+12-21 15:26:57.806   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][155] PLANEX/D: STARTED successfully (#4)
+12-21 15:26:57.806   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][155] TEST/D: Transfer in progress...
+12-21 15:26:57.908   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][156] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:57.996   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][157] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:58.074   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][158] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:58.155   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][159] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:58.238   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][160] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:58.323   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][161] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:58.324   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][161] TEST/D: Transfer in progress...
+12-21 15:26:58.437   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][162] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:58.515   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][163] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:58.599   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][164] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:58.680   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][165] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:58.700   994  1437 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:26:58.701   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:26:58.702   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:26:58.702   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:26:58.702   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:26:58.702   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:26:58.702   994  1437 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:26:58.702   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:58.702   994  1437 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:26:58.703   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:58.703   994  1437 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:26:58.703   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:58.703   994  1437 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:26:58.703   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:26:58.704   994  1437 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:26:58.704   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:26:58.704   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:26:58.704   994  1437 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:26:58.705   994  1437 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:26:58.705   994  1437 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:26:58.705   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:26:58.706   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:26:58.706   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:26:58.706   994  1437 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:26:58.706   994  1437 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:26:58.706   994  1437 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:26:58.707   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:26:58.707   994  1437 W System.err: 	... 20 more
+12-21 15:26:58.769   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][166] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:58.846   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][167] TRANSFER/D: TRANSFERRING - Elapsed Time: 101ms
+12-21 15:26:58.855   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][167] PLANEX/D: update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 15:26:58.855   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][167] TEST/D: Transfer in progress...
+12-21 15:26:58.946   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][168] TRANSFER/D: TRANSFERRING - Elapsed Time: 201ms
+12-21 15:26:58.963   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][168] PLANEX/D: update() - stillRunning=false, op=Transfer[FRONT→CENTER]
+12-21 15:26:58.964   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][168] PLANEX/D: Operation SUCCESSFUL, committing...
+12-21 15:26:58.966   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][168] PLANEX/D: Commit complete
+12-21 15:26:58.966   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][168] PLANEX/D: Clearing operation, now idle
+12-21 15:26:58.967   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][168] PLANEX/D: handleOperationComplete: Transfer[FRONT→CENTER], success=true
+12-21 15:26:58.967   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][168] TRANSFER/D: Transfer completed
+12-21 15:26:58.967   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][168] INTAKE/D: Reset FRONT perception after transfer
+12-21 15:26:58.968   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][168] TEST/I: Ready for next shot - firing now
+12-21 15:26:58.968   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][168] TEST/D: Shooter RPM: 1218 / 1100
+12-21 15:26:58.969   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][168] FIRING/D: fireShot() called - feeding artifact
+12-21 15:26:59.044   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][169] TRANSFER/D: TRANSFERRING - Elapsed Time: 299ms
+12-21 15:26:59.061   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][169] TEST/D: Spinning up: 1214 / 1100 RPM
+12-21 15:26:59.131   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][170] TRANSFER/D: TRANSFERRING - Elapsed Time: 386ms
+12-21 15:26:59.140   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][170] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 15:26:59.206   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][171] TRANSFER/D: TRANSFERRING - Elapsed Time: 461ms
+12-21 15:26:59.216   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][171] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 15:26:59.293   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][172] TRANSFER/D: TRANSFERRING - Elapsed Time: 548ms
+12-21 15:26:59.321   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][172] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 15:26:59.331   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][172] INTAKE/D: Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 15:26:59.332   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][172] TEST/I: Ready for next shot - firing now
+12-21 15:26:59.332   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][172] TEST/D: Shooter RPM: 1184 / 1100
+12-21 15:26:59.333   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][172] FIRING/D: fireShot() called - feeding artifact
+12-21 15:26:59.414   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][173] TRANSFER/D: TRANSFERRING - Elapsed Time: 669ms
+12-21 15:26:59.429   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][173] INTAKE/D: Skipping FRONT auto-collect (confidence=NONE not HIGH)
+12-21 15:26:59.523   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][174] TRANSFER/D: TRANSFERRING - Elapsed Time: 778ms
+12-21 15:26:59.630   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][175] TRANSFER/D: TRANSFERRING - Elapsed Time: 885ms
+12-21 15:26:59.641   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][175] TEST/D: Spinning up: 1122 / 1100 RPM
+12-21 15:26:59.715   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][176] TRANSFER/D: TRANSFERRING - Elapsed Time: 970ms
+12-21 15:26:59.727   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][176] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 15:26:59.736   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][176] TEST/I: Ready for next shot - firing now
+12-21 15:26:59.738   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][176] TEST/D: Shooter RPM: 1105 / 1100
+12-21 15:26:59.738   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][176] FIRING/D: fireShot() called - feeding artifact
+12-21 15:26:59.823   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][177] TRANSFER/D: TRANSFERRING - Elapsed Time: 1078ms
+12-21 15:26:59.938   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][178] TRANSFER/D: TRANSFERRING - Elapsed Time: 1193ms
+12-21 15:27:00.030   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][179] TRANSFER/D: TRANSFERRING - Elapsed Time: 1285ms
+12-21 15:27:00.136   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][180] TRANSFER/D: TRANSFERRING - Elapsed Time: 1391ms
+12-21 15:27:00.142   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][180] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 15:27:00.151   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][180] TEST/I: Ready for next shot - firing now
+12-21 15:27:00.152   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][180] TEST/D: Shooter RPM: 1062 / 1100
+12-21 15:27:00.152   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][180] FIRING/D: fireShot() called - feeding artifact
+12-21 15:27:00.231   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][181] TRANSFER/D: TRANSFERRING - Elapsed Time: 1485ms
+12-21 15:27:00.251   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][181] TEST/D: Spinning up: 1071 / 1100 RPM
+12-21 15:27:00.356   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][182] TRANSFER/D: TRANSFERRING - Elapsed Time: 1610ms
+12-21 15:27:00.453   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][183] TRANSFER/D: TRANSFERRING - Elapsed Time: 1708ms
+12-21 15:27:00.458   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][183] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 15:27:00.467   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][183] TEST/I: Ready for next shot - firing now
+12-21 15:27:00.467   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][183] TEST/D: Shooter RPM: 1071 / 1100
+12-21 15:27:00.468   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][183] FIRING/D: fireShot() called - feeding artifact
+12-21 15:27:00.561   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][184] TRANSFER/D: TRANSFERRING - Elapsed Time: 1815ms
+12-21 15:27:00.669   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][185] TRANSFER/D: TRANSFERRING - Elapsed Time: 1923ms
+12-21 15:27:00.750   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][186] TRANSFER/D: TRANSFERRING - Elapsed Time: 2004ms
+12-21 15:27:00.758   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][186] TEST/D: Spinning up: 1124 / 1100 RPM
+12-21 15:27:00.800   994  1437 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:27:00.802   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:27:00.802   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:27:00.802   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:27:00.802   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:27:00.802   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:27:00.803   994  1437 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:27:00.803   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:00.804   994  1437 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:27:00.804   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:00.804   994  1437 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:27:00.804   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:00.804   994  1437 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:27:00.804   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:00.804   994  1437 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:27:00.805   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:27:00.805   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:27:00.805   994  1437 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:27:00.806   994  1437 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:27:00.806   994  1437 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:27:00.806   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:27:00.806   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:27:00.806   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:27:00.806   994  1437 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:27:00.806   994  1437 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:27:00.806   994  1437 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:27:00.807   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:27:00.807   994  1437 W System.err: 	... 20 more
+12-21 15:27:00.838   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][187] TRANSFER/D: TRANSFERRING - Elapsed Time: 2093ms
+12-21 15:27:00.847   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][187] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 15:27:00.854   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][187] TEST/I: Ready for next shot - firing now
+12-21 15:27:00.855   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][187] TEST/D: Shooter RPM: 1105 / 1100
+12-21 15:27:00.855   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][187] FIRING/D: fireShot() called - feeding artifact
+12-21 15:27:00.933   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][188] TRANSFER/D: TRANSFERRING - Elapsed Time: 2188ms
+12-21 15:27:01.031   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][189] TRANSFER/D: TRANSFERRING - Elapsed Time: 2286ms
+12-21 15:27:01.120   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][190] TRANSFER/D: TRANSFERRING - Elapsed Time: 2374ms
+12-21 15:27:01.204   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][191] TRANSFER/D: TRANSFERRING - Elapsed Time: 2459ms
+12-21 15:27:01.210   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][191] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 15:27:01.218   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][191] TEST/I: Ready for next shot - firing now
+12-21 15:27:01.218   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][191] TEST/D: Shooter RPM: 1119 / 1100
+12-21 15:27:01.219   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][191] FIRING/D: fireShot() called - feeding artifact
+12-21 15:27:01.277   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][192] TRANSFER/D: TRANSFERRING - Elapsed Time: 2532ms
+12-21 15:27:01.300   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][192] TEST/D: Spinning up: 1138 / 1100 RPM
+12-21 15:27:01.386   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][193] TRANSFER/D: TRANSFERRING - Elapsed Time: 2640ms
+12-21 15:27:01.484   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][194] TRANSFER/D: PREPOSITIONING
+12-21 15:27:01.560   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][195] TRANSFER/D: PREPOSITIONING
+12-21 15:27:01.656   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][196] TRANSFER/D: PREPOSITIONING
+12-21 15:27:01.749   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][197] TRANSFER/D: PREPOSITIONING
+12-21 15:27:01.828   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][198] TRANSFER/D: PREPOSITIONING
+12-21 15:27:01.846   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][198] TEST/D: Spinning up: 925 / 1100 RPM
+12-21 15:27:01.920   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][199] TRANSFER/D: PREPOSITIONING
+12-21 15:27:01.995   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][200] TRANSFER/D: PREPOSITIONING
+12-21 15:27:02.000   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][200] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 15:27:02.009   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][200] TEST/I: Ready for next shot - firing now
+12-21 15:27:02.009   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][200] TEST/D: Shooter RPM: 1071 / 1100
+12-21 15:27:02.010   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][200] FIRING/D: fireShot() called - feeding artifact
+12-21 15:27:02.084   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][201] TRANSFER/D: PREPOSITIONING
+12-21 15:27:02.174   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][202] TRANSFER/D: PREPOSITIONING
+12-21 15:27:02.266   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][203] TRANSFER/D: PREPOSITIONING
+12-21 15:27:02.344   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][204] TRANSFER/D: PREPOSITIONING
+12-21 15:27:02.355   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][204] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 15:27:02.363   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][204] TEST/I: Ready for next shot - firing now
+12-21 15:27:02.364   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][204] TEST/D: Shooter RPM: 1228 / 1100
+12-21 15:27:02.364   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][204] FIRING/D: fireShot() called - feeding artifact
+12-21 15:27:02.444   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][205] TRANSFER/D: PREPOSITIONING
+12-21 15:27:02.459   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][205] TEST/D: Spinning up: 1252 / 1100 RPM
+12-21 15:27:02.557   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][206] TRANSFER/D: PREPOSITIONING
+12-21 15:27:02.645   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][207] TRANSFER/D: PREPOSITIONING
+12-21 15:27:02.740   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][208] TRANSFER/D: PREPOSITIONING
+12-21 15:27:02.746   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][208] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 15:27:02.764   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][208] TEST/I: Ready for next shot - firing now
+12-21 15:27:02.765   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][208] TEST/D: Shooter RPM: 1218 / 1100
+12-21 15:27:02.765   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][208] FIRING/D: fireShot() called - feeding artifact
+12-21 15:27:02.831   994  1437 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:27:02.832   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:27:02.832   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:27:02.832   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:27:02.832   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:27:02.832   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:27:02.832   994  1437 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:27:02.832   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:02.834   994  1437 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:27:02.834   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:02.834   994  1437 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:27:02.835   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:02.835   994  1437 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:27:02.835   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:02.836   994  1437 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:27:02.836   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:27:02.836   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:27:02.837   994  1437 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:27:02.838   994  1437 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:27:02.838   994  1437 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:27:02.838   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:27:02.838   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:27:02.838   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:27:02.838   994  1437 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:27:02.838   994  1437 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:27:02.839   994  1437 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:27:02.839   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:27:02.839   994  1437 W System.err: 	... 20 more
+12-21 15:27:02.849   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][209] TRANSFER/D: PREPOSITIONING
+12-21 15:27:02.930   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][210] TRANSFER/D: PREPOSITIONING
+12-21 15:27:03.005   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][211] TRANSFER/D: PREPOSITIONING
+12-21 15:27:03.015   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][211] TEST/D: Spinning up: 1171 / 1100 RPM
+12-21 15:27:03.117   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][212] TRANSFER/D: PREPOSITIONING
+12-21 15:27:03.122   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][212] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 15:27:03.130   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][212] TEST/I: Ready for next shot - firing now
+12-21 15:27:03.130   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][212] TEST/D: Shooter RPM: 1145 / 1100
+12-21 15:27:03.131   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][212] FIRING/D: fireShot() called - feeding artifact
+12-21 15:27:03.197   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][213] TRANSFER/D: PREPOSITIONING
+12-21 15:27:03.300   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][214] TRANSFER/D: PREPOSITIONING
+12-21 15:27:03.402   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][215] TRANSFER/D: PREPOSITIONING
+12-21 15:27:03.470   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][216] TRANSFER/D: PREPOSITIONING
+12-21 15:27:03.479   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][216] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 15:27:03.487   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][216] TEST/I: Ready for next shot - firing now
+12-21 15:27:03.488   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][216] TEST/D: Shooter RPM: 1085 / 1100
+12-21 15:27:03.488   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][216] FIRING/D: fireShot() called - feeding artifact
+12-21 15:27:03.561   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][217] TRANSFER/D: PREPOSITIONING
+12-21 15:27:03.575   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][217] TEST/D: Spinning up: 1071 / 1100 RPM
+12-21 15:27:03.662   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][218] TRANSFER/D: PREPOSITIONING
+12-21 15:27:03.737   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][219] TRANSFER/D: PREPOSITIONING
+12-21 15:27:03.817   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][220] TRANSFER/D: PREPOSITIONING
+12-21 15:27:03.823   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][220] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 15:27:03.838   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][220] TEST/I: Ready for next shot - firing now
+12-21 15:27:03.838   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][220] TEST/D: Shooter RPM: 1084 / 1100
+12-21 15:27:03.839   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][220] FIRING/D: fireShot() called - feeding artifact
+12-21 15:27:03.930   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][221] TRANSFER/D: PREPOSITIONING
+12-21 15:27:04.014   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][222] TRANSFER/D: PREPOSITIONING
+12-21 15:27:04.100   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][223] TRANSFER/D: PREPOSITIONING
+12-21 15:27:04.115   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][223] TEST/D: Spinning up: 1109 / 1100 RPM
+12-21 15:27:04.201   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][224] TRANSFER/D: PREPOSITIONING
+12-21 15:27:04.212   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][224] FIRING/D: Shot fired - transitioning to READY_TO_FIRE
+12-21 15:27:04.222   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][224] TEST/I: Ready for next shot - firing now
+12-21 15:27:04.223   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][224] TEST/D: Shooter RPM: 1071 / 1100
+12-21 15:27:04.224   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][224] FIRING/D: fireShot() called - feeding artifact
+12-21 15:27:04.329   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][225] TRANSFER/D: PREPOSITIONING
+12-21 15:27:04.421   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][226] TRANSFER/D: PREPOSITIONING
+12-21 15:27:04.428   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][226] TEST/I: Fire button released - canceling firing sequence
+12-21 15:27:04.436   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][226] FIRING/I: Burst firing cancelled by OpMode request
+12-21 15:27:04.436   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][226] TEST/I: Firing sequence canceled
+12-21 15:27:04.487   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][227] TRANSFER/D: PREPOSITIONING
+12-21 15:27:04.835   994  1437 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:27:04.835   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:27:04.835   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:27:04.835   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:27:04.835   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:27:04.835   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:27:04.836   994  1437 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:27:04.836   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:04.836   994  1437 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:27:04.836   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:04.836   994  1437 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:27:04.836   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:04.836   994  1437 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:27:04.836   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:04.837   994  1437 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:27:04.837   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:27:04.837   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:27:04.837   994  1437 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:27:04.838   994  1437 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:27:04.838   994  1437 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:27:04.838   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:27:04.838   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:27:04.838   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:27:04.839   994  1437 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:27:04.839   994  1437 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:27:04.839   994  1437 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:27:04.839   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:27:04.839   994  1437 W System.err: 	... 20 more
+12-21 15:27:06.840   994  1437 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:27:06.841   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:27:06.841   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:27:06.841   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:27:06.841   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:27:06.841   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:27:06.842   994  1437 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:27:06.842   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:06.842   994  1437 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:27:06.842   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:06.842   994  1437 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:27:06.842   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:06.842   994  1437 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:27:06.843   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:06.844   994  1437 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:27:06.844   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:27:06.844   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:27:06.844   994  1437 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:27:06.846   994  1437 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:27:06.846   994  1437 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:27:06.846   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:27:06.847   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:27:06.847   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:27:06.847   994  1437 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:27:06.847   994  1437 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:27:06.847   994  1437 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:27:06.848   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:27:06.848   994  1437 W System.err: 	... 20 more
+12-21 15:27:08.874   994  1437 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:27:08.874   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:27:08.874   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:27:08.875   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:27:08.875   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:27:08.875   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:27:08.875   994  1437 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:27:08.875   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:08.875   994  1437 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:27:08.875   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:08.875   994  1437 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:27:08.876   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:08.876   994  1437 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:27:08.876   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:08.876   994  1437 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:27:08.876   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:27:08.877   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:27:08.877   994  1437 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:27:08.877   994  1437 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:27:08.877   994  1437 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:27:08.878   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:27:08.878   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:27:08.878   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:27:08.878   994  1437 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:27:08.878   994  1437 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:27:08.878   994  1437 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:27:08.878   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:27:08.878   994  1437 W System.err: 	... 20 more
+12-21 15:27:10.939   994  1437 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:27:10.939   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:27:10.939   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:27:10.940   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:27:10.940   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:27:10.940   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:27:10.941   994  1437 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:27:10.941   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:10.941   994  1437 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:27:10.941   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:10.941   994  1437 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:27:10.941   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:10.942   994  1437 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:27:10.942   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:10.942   994  1437 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:27:10.942   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:27:10.942   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:27:10.942   994  1437 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:27:10.943   994  1437 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:27:10.943   994  1437 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:27:10.944   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:27:10.944   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:27:10.944   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:27:10.944   994  1437 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:27:10.944   994  1437 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:27:10.945   994  1437 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:27:10.945   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:27:10.945   994  1437 W System.err: 	... 20 more
+12-21 15:27:11.310   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][313] INTAKE/D: Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 15:27:11.392   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][314] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 15:27:11.482   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][315] INTAKE/D: Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 15:27:11.553   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][316] PLANEX/D: Starting operation: Collect[FRONT]
+12-21 15:27:11.554   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][316] INTAKE/D: doStart() called for FRONT
+12-21 15:27:11.554   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][316] INTAKE/D: Fast presence detected, starting hardware...
+12-21 15:27:11.554   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][316] INTAKE/D: Started FRONT intake hardware
+12-21 15:27:11.554   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][316] INTAKE/D: doStart() completed successfully
+12-21 15:27:11.555   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][316] PLANEX/D: STARTED successfully (#5)
+12-21 15:27:11.555   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][316] INTAKE/D: Auto-collect FRONT (confidence=HIGH)
+12-21 15:27:11.634   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][317] PLANEX/D: update() - stillRunning=true, op=Collect[FRONT]
+12-21 15:27:11.709   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][318] INTAKE/D: Color checkpoint reached, stopping hardware
+12-21 15:27:11.718   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][318] INTAKE/D: → SETTLING state
+12-21 15:27:11.719   994  1433 W TeamDbg : [V3Test][V3BasicTest:RUN][318] INTAKE/W: Hardware done before sampling, forcing completion
+12-21 15:27:11.989   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][318] INTAKE/D: Collection complete
+12-21 15:27:11.989   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][318] PLANEX/D: update() - stillRunning=false, op=Collect[FRONT]
+12-21 15:27:11.990   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][318] PLANEX/D: Operation SUCCESSFUL, committing...
+12-21 15:27:11.990   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][318] INTAKE/D: doCommit() called
+12-21 15:27:11.991   994  1433 I TeamDbg : [V3Test][V3BasicTest:RUN][318] INTAKE/I: Committed UNKNOWN (0.5360112689435482) to FRONT
+12-21 15:27:11.993   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][318] PLANEX/D: Commit complete
+12-21 15:27:11.994   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][318] PLANEX/D: Clearing operation, now idle
+12-21 15:27:11.994   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][318] PLANEX/D: handleOperationComplete: Collect[FRONT], success=true
+12-21 15:27:11.994   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][318] INDEX/D: Collection completed, calling handlePostCollection()
+12-21 15:27:11.994   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][318] INDEX/D: handlePostCollection: artifactCount=2
+12-21 15:27:11.994   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][318] SHOTPLAN/D: 2nd artifact - checking shot planner...
+12-21 15:27:11.994   994  1433 D TeamDbg : [V3Test][V3BasicTest:RUN][318] SHOTPLAN/D: No swap needed, artifact stays in storage
+12-21 15:27:12.978   994  1437 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:27:12.979   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:27:12.979   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:27:12.979   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:27:12.979   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:27:12.979   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:27:12.979   994  1437 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:27:12.980   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:12.980   994  1437 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:27:12.980   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:12.980   994  1437 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:27:12.980   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:12.980   994  1437 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:27:12.980   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:12.980   994  1437 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:27:12.980   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:27:12.981   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:27:12.981   994  1437 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:27:12.981   994  1437 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:27:12.982   994  1437 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:27:12.982   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:27:12.983   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:27:12.983   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:27:12.983   994  1437 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:27:12.983   994  1437 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:27:12.983   994  1437 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:27:12.983   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:27:12.983   994  1437 W System.err: 	... 20 more
+12-21 15:27:15.021   994  1437 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:27:15.021   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:27:15.021   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:27:15.021   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:27:15.021   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:27:15.021   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:27:15.022   994  1437 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:27:15.022   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:15.022   994  1437 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:27:15.022   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:15.022   994  1437 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:27:15.022   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:15.022   994  1437 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:27:15.022   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:15.022   994  1437 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:27:15.022   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:27:15.023   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:27:15.023   994  1437 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:27:15.023   994  1437 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:27:15.023   994  1437 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:27:15.024   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:27:15.024   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:27:15.024   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:27:15.024   994  1437 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:27:15.024   994  1437 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:27:15.024   994  1437 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:27:15.024   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:27:15.024   994  1437 W System.err: 	... 20 more
+12-21 15:27:17.021   994  1437 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:27:17.021   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:27:17.021   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:27:17.021   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:27:17.021   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:27:17.022   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:27:17.022   994  1437 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:27:17.022   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:17.022   994  1437 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:27:17.022   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:17.022   994  1437 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:27:17.022   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:17.022   994  1437 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:27:17.022   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:17.022   994  1437 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:27:17.023   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:27:17.023   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:27:17.023   994  1437 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:27:17.024   994  1437 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:27:17.024   994  1437 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:27:17.025   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:27:17.025   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:27:17.025   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:27:17.025   994  1437 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:27:17.025   994  1437 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:27:17.025   994  1437 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:27:17.025   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:27:17.025   994  1437 W System.err: 	... 20 more
+12-21 15:27:17.820   994  1433 E LynxI2cDeviceSynch: placeholder: readStatusQuery
+12-21 15:27:17.822   994  1433 E LynxI2cDeviceSynch: placeholder: readTimestamped
+12-21 15:27:19.069   994  1437 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:27:19.070   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:27:19.070   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:27:19.070   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:27:19.071   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:27:19.071   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:27:19.071   994  1437 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:27:19.071   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:19.071   994  1437 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:27:19.071   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:19.071   994  1437 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:27:19.072   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:19.072   994  1437 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:27:19.072   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:19.072   994  1437 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:27:19.072   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:27:19.072   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:27:19.073   994  1437 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:27:19.073   994  1437 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:27:19.074   994  1437 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:27:19.074   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:27:19.074   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:27:19.074   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:27:19.074   994  1437 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:27:19.074   994  1437 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:27:19.074   994  1437 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:27:19.075   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:27:19.075   994  1437 W System.err: 	... 20 more
+12-21 15:27:19.778   799   799 D lvjinhua:  Failed while trying resolve alarm filter file, not exists
+12-21 15:27:21.106   994  1437 W System.err: java.net.ConnectException: Failed to connect to /172.29.0.1:5807
+12-21 15:27:21.107   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:297)
+12-21 15:27:21.107   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connect(RealConnection.kt:207)
+12-21 15:27:21.107   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findConnection(ExchangeFinder.kt:226)
+12-21 15:27:21.107   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.findHealthyConnection(ExchangeFinder.kt:106)
+12-21 15:27:21.107   994  1437 W System.err: 	at okhttp3.internal.connection.ExchangeFinder.find(ExchangeFinder.kt:74)
+12-21 15:27:21.107   994  1437 W System.err: 	at okhttp3.internal.connection.ConnectInterceptor.intercept(ConnectInterceptor.kt:32)
+12-21 15:27:21.107   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:21.108   994  1437 W System.err: 	at okhttp3.internal.cache.CacheInterceptor.intercept(CacheInterceptor.kt:95)
+12-21 15:27:21.108   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:21.108   994  1437 W System.err: 	at okhttp3.internal.http.BridgeInterceptor.intercept(BridgeInterceptor.kt:83)
+12-21 15:27:21.108   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:21.108   994  1437 W System.err: 	at okhttp3.internal.http.RetryAndFollowUpInterceptor.intercept(RetryAndFollowUpInterceptor.kt:76)
+12-21 15:27:21.108   994  1437 W System.err: 	at okhttp3.internal.http.RealInterceptorChain.proceed(RealInterceptorChain.kt:109)
+12-21 15:27:21.109   994  1437 W System.err: 	at okhttp3.internal.connection.RealCall.execute(RealCall.kt:154)
+12-21 15:27:21.109   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$HTTPSession.execute(NanoHTTPD.java:947)
+12-21 15:27:21.109   994  1437 W System.err: 	at fi.iki.elonen.NanoHTTPD$ClientHandler.run(NanoHTTPD.java:187)
+12-21 15:27:21.109   994  1437 W System.err: 	at java.lang.Thread.run(Thread.java:761)
+12-21 15:27:21.111   994  1437 W System.err: Caused by: java.net.ConnectException: Network is unreachable
+12-21 15:27:21.111   994  1437 W System.err: 	at java.net.PlainSocketImpl.socketConnect(Native Method)
+12-21 15:27:21.111   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:334)
+12-21 15:27:21.111   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connectToAddress(AbstractPlainSocketImpl.java:196)
+12-21 15:27:21.112   994  1437 W System.err: 	at java.net.AbstractPlainSocketImpl.connect(AbstractPlainSocketImpl.java:178)
+12-21 15:27:21.112   994  1437 W System.err: 	at java.net.SocksSocketImpl.connect(SocksSocketImpl.java:356)
+12-21 15:27:21.112   994  1437 W System.err: 	at java.net.Socket.connect(Socket.java:605)
+12-21 15:27:21.112   994  1437 W System.err: 	at okhttp3.internal.platform.AndroidPlatform.connectSocket(AndroidPlatform.kt:63)
+12-21 15:27:21.112   994  1437 W System.err: 	at okhttp3.internal.connection.RealConnection.connectSocket(RealConnection.kt:295)
+12-21 15:27:21.112   994  1437 W System.err: 	... 20 more

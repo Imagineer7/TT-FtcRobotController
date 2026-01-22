@@ -22,7 +22,7 @@ dependencies {
     implementation('com.pedropathing:telemetry:1.0.0') {
         exclude group: "com.acmerobotics.dashboard"
     }
-    implementation('com.bylazar:fullpanels:1.0.10') {
+    implementation('com.bylazar:fullpanels:1.0.12') {
         exclude group: "com.acmerobotics.dashboard"
     }
     implementation("com.bylazar:camerastream:1.0.0") {
