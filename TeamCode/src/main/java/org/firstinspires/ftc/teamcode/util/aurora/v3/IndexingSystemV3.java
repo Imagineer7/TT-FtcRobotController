@@ -577,10 +577,18 @@ public class IndexingSystemV3 {
                 Dbg.d(LogGroup.INTAKE, "Reset BACK perception after transfer");
             }
             
-            // If we deferred a transfer during burst firing, queue it now
-            if (deferredTransferNeeded && burstFiringActive) {
-                Dbg.d(LogGroup.FIRING, "Queuing deferred transfer");
-                queueNextShotInBurst();
+            // If we deferred a transfer, queue it now
+            // This happens when a shot fired while an operation was running
+            // We need to transfer the next artifact to CENTER regardless of burst mode state
+            if (deferredTransferNeeded) {
+                Dbg.d(LogGroup.FIRING, "Queuing deferred transfer (burstActive=%b)", burstFiringActive);
+                if (burstFiringActive) {
+                    queueNextShotInBurst();
+                } else {
+                    // Burst was cancelled but we still need to fill CENTER
+                    // Use auto-transfer logic in performAutomaticOperations
+                    Dbg.d(LogGroup.TRANSFER, "Burst cancelled, letting auto-transfer handle it");
+                }
                 deferredTransferNeeded = false;
             }
             
@@ -1206,6 +1214,9 @@ public class IndexingSystemV3 {
         if (burstFiringActive) {
             firingHelper.cancelFiring();
             burstFiringActive = false;
+            // Clear deferred transfer flag since we're cancelling burst mode
+            // If there's a pending transfer, the auto-transfer logic will handle it
+            deferredTransferNeeded = false;
             telemetry.addData("🛑 Burst Firing", "Cancelled");
             Dbg.i(LogGroup.FIRING, "Burst firing cancelled by OpMode request");
         }
