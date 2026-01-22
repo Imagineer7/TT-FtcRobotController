@@ -249,7 +249,7 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
                     // startFiring() handles spinup automatically and fires the first shot
                     // Keep-alive mode enabled - shooter stays spinning for rapid follow-up shots
                     // Use LONG_RANGE preset (2800 RPM)
-                    boolean started = indexing.requestFire(ShooterConfig.ShooterPreset.LONG_RANGE.getTargetRPM());
+                    boolean started = indexing.requestFire(ShooterConfig.ShooterPreset.SHORT_RANGE.getTargetRPM());
                     if (started) {
                         isFiring = true;
                     } else {

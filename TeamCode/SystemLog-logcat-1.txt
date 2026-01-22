@@ -1,301 +1,454 @@
 --------- beginning of main
-12-21 15:39:12.919  1925  1984 V ThreadPool: container(0x08d5b55f: default threadpool) removed id=113 TID=1984 count=2
-12-21 15:39:13.644  1925  1978 V ThreadPool: container(0x08d5b55f: default threadpool) removed id=107 TID=1978 count=1
-12-21 15:39:14.629  1925  1994 V ThreadPool: container(0x012c6b29: default scheduler) added id=185 TID=0 count=21
-12-21 15:39:15.923  1925  2029 V Robocol : received command: CMD_RUN_OP_MODE(10476) V3 Basic Test
-12-21 15:39:15.936  1925  2053 I System.out: PANELS: CORE: (Panels): Start of opMode
-12-21 15:39:15.939  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":0,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:15.940  1925  2053 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode RUNNING, V3 Basic Test
-12-21 15:39:15.940  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":0,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:15.943  1925  2053 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"startTimestamp":1640133555937,"status":"RUNNING"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:15.944  1925  2053 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"startTimestamp":1640133555937,"status":"RUNNING"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:15.952  1925  2033 V Robocol : sending CMD_NOTIFY_RUN_OP_MODE(563), attempt: 0
-12-21 15:39:16.192  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":254,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:16.193  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":254,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:16.445  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":507,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:16.446  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":507,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:16.698  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":760,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:16.699  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":760,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:16.950  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1012,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:16.951  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1012,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:17.203  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1265,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:17.204  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1265,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:17.456  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1518,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:17.457  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1518,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:17.709  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1770,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:17.710  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1770,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:17.961  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":2023,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:17.961  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":2023,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:18.213  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":2275,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:18.213  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":2275,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:18.465  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":2527,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:18.467  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":2527,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:18.719  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":2781,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:18.720  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":2781,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:18.802  1925  2017 I System.out: PANELS: PLUGINS/COM.BYLAZAR.BATTERY: (Plugin): Sending: {"data":12.559000000000001,"messageID":"battery","pluginID":"com.bylazar.battery"}
-12-21 15:39:18.803  1925  2017 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12.559000000000001,"messageID":"battery","pluginID":"com.bylazar.battery"}
-12-21 15:39:18.971  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":3033,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:18.972  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":3033,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:19.223  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":3285,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:19.224  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":3285,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:19.475  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":3537,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:19.476  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":3537,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:19.628  1925  1994 V ThreadPool: container(0x012c6b29: default scheduler) added id=186 TID=0 count=22
-12-21 15:39:19.727  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":3789,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:19.728  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":3789,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:19.812  1925  2075 I System.out: [OpRunner] Starting operation: Collect[FRONT]
-12-21 15:39:19.813  1925  2075 I System.out: [CollectOp] doStart() called for FRONT
-12-21 15:39:19.813  1925  2075 I System.out: [CollectOp] Fast presence detected, starting hardware...
-12-21 15:39:19.813  1925  2075 I System.out: [CollectOp] Started FRONT intake hardware
-12-21 15:39:19.813  1925  2075 I System.out: [CollectOp] doStart() completed successfully
-12-21 15:39:19.814  1925  2075 I System.out: [OpRunner] STARTED successfully (#1)
-12-21 15:39:19.814  1925  2075 I System.out: [IndexingV3] Auto-collect FRONT (confidence=MEDIUM)
-12-21 15:39:19.883  1925  2075 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:39:19.883  1925  2075 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:39:19.883  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:39:19.952  1925  2075 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:39:19.953  1925  2075 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:39:19.953  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:39:19.980  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":4042,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:19.980  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":4042,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:20.025  1925  2075 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:39:20.025  1925  2075 I System.out: [CollectOp] Color checkpoint reached, sampling...
-12-21 15:39:20.032  1925  2075 I System.out: [CollectOp] Stopped FRONT hardware for color sampling
-12-21 15:39:20.083  1925  2075 I System.out: [CollectOp] Artifact settled, starting color sampling
-12-21 15:39:20.232  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":4294,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:20.233  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":4294,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:20.259  1925  2075 I System.out: [CollectOp] Collected 3 color samples over 150ms
-12-21 15:39:20.259  1925  2075 I System.out: [CollectOp] Initial color sampled: UNKNOWN (conf=0.41)
-12-21 15:39:20.259  1925  2075 I System.out: [CollectOp] Low confidence detected, jiggling artifact to improve detection
-12-21 15:39:20.485  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":4546,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:20.486  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":4546,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:20.737  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":4799,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:20.738  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":4799,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:20.990  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":5052,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:20.991  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":5052,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:21.243  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":5305,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:21.244  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":5305,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:21.314  1925  2075 I System.out: [CollectOp] Jiggle complete (3 cycles), stopping hardware
-12-21 15:39:21.376  1925  2075 I System.out: [CollectOp] Re-sampling color after jiggle
-12-21 15:39:21.496  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":5558,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:21.497  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":5558,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:21.554  1925  2075 I System.out: [CollectOp] Collected 3 color samples after jiggle
-12-21 15:39:21.554  1925  2075 I System.out: [CollectOp] After jiggle color: UNKNOWN (conf=0.40)
-12-21 15:39:21.556  1925  2075 I System.out: [CollectOp] Final color sampled: UNKNOWN (conf=0.40)
-12-21 15:39:21.557  1925  2075 I System.out: [CollectOp] Hardware busy check: false
-12-21 15:39:21.557  1925  2075 I System.out: [CollectOp] Collection hardware complete, returning false (done)
-12-21 15:39:21.557  1925  2075 I System.out: [OpRunner] update() - stillRunning=false, op=Collect[FRONT]
-12-21 15:39:21.557  1925  2075 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
-12-21 15:39:21.558  1925  2075 I System.out: [CollectOp] doCommit() called
-12-21 15:39:21.558  1925  2075 I System.out: [CollectOp] Committed UNKNOWN to FRONT
-12-21 15:39:21.559  1925  2075 I System.out: [OpRunner] Commit complete
-12-21 15:39:21.559  1925  2075 I System.out: [OpRunner] Clearing operation, now idle
-12-21 15:39:21.559  1925  2075 I System.out: [IndexingV3] handleOperationComplete: Collect[FRONT], success=true
-12-21 15:39:21.559  1925  2075 I System.out: [IndexingV3] Collection completed, calling handlePostCollection()
-12-21 15:39:21.559  1925  2075 I System.out: [IndexingV3] handlePostCollection: artifactCount=1
-12-21 15:39:21.560  1925  2075 I System.out: [IndexingV3] 1st artifact - requesting transfer from FRONT
-12-21 15:39:21.564  1925  2075 I System.out: [OpRunner] Starting operation: Transfer[FRONT→CENTER]
-12-21 15:39:21.564  1925  2075 I System.out: [OpRunner] STARTED successfully (#2)
-12-21 15:39:21.564  1925  2075 I System.out: [IndexingV3] Transfer request SUCCESSFUL
-12-21 15:39:21.688  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:39:21.748  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":5810,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:21.749  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":5810,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:21.751  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:39:21.825  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:39:21.875  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:39:21.935  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:39:21.994  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:39:22.001  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":6062,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:22.001  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":6062,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:22.058  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:39:22.125  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:39:22.239  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:39:22.253  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":6315,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:22.254  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":6315,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:22.326  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:39:22.398  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:39:22.474  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:39:22.506  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":6567,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:22.507  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":6567,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:22.555  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 15:39:22.623  1925  2075 I System.out: [OpRunner] update() - stillRunning=false, op=Transfer[FRONT→CENTER]
-12-21 15:39:22.623  1925  2075 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
-12-21 15:39:22.625  1925  2075 I System.out: [OpRunner] Commit complete
-12-21 15:39:22.625  1925  2075 I System.out: [OpRunner] Clearing operation, now idle
-12-21 15:39:22.625  1925  2075 I System.out: [IndexingV3] handleOperationComplete: Transfer[FRONT→CENTER], success=true
-12-21 15:39:22.625  1925  2075 I System.out: [IndexingV3] Transfer completed
-12-21 15:39:22.626  1925  2075 I System.out: [IndexingV3] Reset FRONT perception after transfer
-12-21 15:39:22.758  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":6820,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:22.759  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":6820,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:22.804  1925  2075 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW too low)
-12-21 15:39:22.872  1925  2075 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW too low)
-12-21 15:39:22.935  1925  2075 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW too low)
-12-21 15:39:23.010  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":7072,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:23.011  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":7072,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:23.027  1925  2075 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=NONE too low)
-12-21 15:39:23.263  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":7324,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:23.264  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":7324,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:23.515  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":7577,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:23.516  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":7577,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:23.768  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":7829,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:23.770  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":7829,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:23.798  1925  2017 I System.out: PANELS: PLUGINS/COM.BYLAZAR.BATTERY: (Plugin): Sending: {"data":12.432,"messageID":"battery","pluginID":"com.bylazar.battery"}
-12-21 15:39:23.799  1925  2017 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12.432,"messageID":"battery","pluginID":"com.bylazar.battery"}
-12-21 15:39:24.021  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":8083,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:24.022  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":8083,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:24.274  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":8336,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:24.274  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":8336,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:24.526  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":8588,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:24.526  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":8588,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:24.628  1925  2065 V ThreadPool: container(0x012c6b29: default scheduler) added id=187 TID=0 count=23
-12-21 15:39:24.778  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":8840,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:24.778  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":8840,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:25.030  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":9092,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:25.030  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":9092,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:25.282  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":9344,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:25.283  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":9344,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:25.535  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":9597,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:25.535  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":9597,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:25.786  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":9849,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:25.787  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":9849,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:26.038  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":10100,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:26.039  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":10100,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:26.290  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":10352,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:26.291  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":10352,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:26.543  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":10604,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:26.544  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":10604,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:26.796  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":10857,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:26.797  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":10857,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:27.048  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":11110,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:27.049  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":11110,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:27.300  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":11362,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:27.301  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":11362,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:27.552  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":11614,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:27.553  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":11614,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:27.805  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":11866,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:27.806  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":11866,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:27.968  1925  2075 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW too low)
-12-21 15:39:28.046  1925  2075 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW too low)
-12-21 15:39:28.057  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":12119,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:28.058  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12119,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:28.162  1925  2075 I System.out: [OpRunner] Starting operation: Collect[FRONT]
-12-21 15:39:28.162  1925  2075 I System.out: [CollectOp] doStart() called for FRONT
-12-21 15:39:28.162  1925  2075 I System.out: [CollectOp] Fast presence detected, starting hardware...
-12-21 15:39:28.162  1925  2075 I System.out: [CollectOp] Started FRONT intake hardware
-12-21 15:39:28.163  1925  2075 I System.out: [CollectOp] doStart() completed successfully
-12-21 15:39:28.163  1925  2075 I System.out: [OpRunner] STARTED successfully (#3)
-12-21 15:39:28.163  1925  2075 I System.out: [IndexingV3] Auto-collect FRONT (confidence=MEDIUM)
-12-21 15:39:28.226  1925  2075 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:39:28.226  1925  2075 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:39:28.226  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:39:28.292  1925  2075 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:39:28.292  1925  2075 I System.out: [CollectOp] Hardware busy check: true
-12-21 15:39:28.292  1925  2075 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 15:39:28.310  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":12372,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:28.311  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12372,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:28.359  1925  2075 I System.out: [CollectOp] doUpdate() - colorSampled=false
-12-21 15:39:28.359  1925  2075 I System.out: [CollectOp] Color checkpoint reached, sampling...
-12-21 15:39:28.370  1925  2075 I System.out: [CollectOp] Stopped FRONT hardware for color sampling
-12-21 15:39:28.420  1925  2075 I System.out: [CollectOp] Artifact settled, starting color sampling
-12-21 15:39:28.562  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":12624,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:28.563  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12624,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:28.574  1925  2075 I System.out: [CollectOp] Collected 3 color samples over 150ms
-12-21 15:39:28.574  1925  2075 I System.out: [CollectOp] Initial color sampled: UNKNOWN (conf=0.41)
-12-21 15:39:28.574  1925  2075 I System.out: [CollectOp] Low confidence detected, jiggling artifact to improve detection
-12-21 15:39:28.797  1925  2017 I System.out: PANELS: PLUGINS/COM.BYLAZAR.BATTERY: (Plugin): Sending: {"data":12.563,"messageID":"battery","pluginID":"com.bylazar.battery"}
-12-21 15:39:28.798  1925  2017 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12.563,"messageID":"battery","pluginID":"com.bylazar.battery"}
-12-21 15:39:28.815  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":12876,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:28.816  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12876,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:29.068  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":13129,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:29.068  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":13129,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:29.320  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":13382,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:29.321  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":13382,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:29.573  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":13635,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:29.574  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":13635,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:29.615  1925  2075 I System.out: [CollectOp] Jiggle complete (3 cycles), stopping hardware
-12-21 15:39:29.632  1925  1998 V ThreadPool: container(0x012c6b29: default scheduler) added id=188 TID=0 count=24
-12-21 15:39:29.684  1925  2075 I System.out: [CollectOp] Re-sampling color after jiggle
-12-21 15:39:29.826  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":13887,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:29.826  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":13887,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:29.843  1925  2075 I System.out: [CollectOp] Collected 3 color samples after jiggle
-12-21 15:39:29.844  1925  2075 I System.out: [CollectOp] After jiggle color: UNKNOWN (conf=0.41)
-12-21 15:39:29.844  1925  2075 I System.out: [CollectOp] Final color sampled: UNKNOWN (conf=0.41)
-12-21 15:39:29.845  1925  2075 I System.out: [CollectOp] Hardware busy check: false
-12-21 15:39:29.845  1925  2075 I System.out: [CollectOp] Collection hardware complete, returning false (done)
-12-21 15:39:29.845  1925  2075 I System.out: [OpRunner] update() - stillRunning=false, op=Collect[FRONT]
-12-21 15:39:29.845  1925  2075 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
-12-21 15:39:29.846  1925  2075 I System.out: [CollectOp] doCommit() called
-12-21 15:39:29.846  1925  2075 I System.out: [CollectOp] Committed UNKNOWN to FRONT
-12-21 15:39:29.848  1925  2075 I System.out: [OpRunner] Commit complete
-12-21 15:39:29.848  1925  2075 I System.out: [OpRunner] Clearing operation, now idle
-12-21 15:39:29.848  1925  2075 I System.out: [IndexingV3] handleOperationComplete: Collect[FRONT], success=true
-12-21 15:39:29.848  1925  2075 I System.out: [IndexingV3] Collection completed, calling handlePostCollection()
-12-21 15:39:29.848  1925  2075 I System.out: [IndexingV3] handlePostCollection: artifactCount=2
-12-21 15:39:29.848  1925  2075 I System.out: [IndexingV3] 2nd artifact - checking shot planner...
-12-21 15:39:29.849  1925  2075 I System.out: [IndexingV3] No swap needed, artifact stays in storage
-12-21 15:39:30.078  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":14140,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:30.079  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":14140,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:30.331  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":14393,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:30.332  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":14393,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:30.583  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":14645,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:30.584  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":14645,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:30.835  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":14897,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:30.836  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":14897,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:31.088  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":15149,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:31.088  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":15149,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:31.315  2087  2087 I getprop : type=1400 audit(0.0:167): avc: denied { open } for path="/dev/__properties__/u:object_r:secureboot_prop:s0" dev="tmpfs" ino=8196 scontext=u:r:shell:s0 tcontext=u:object_r:secureboot_prop:s0 tclass=file permissive=1
-12-21 15:39:31.315  2087  2087 I getprop : type=1400 audit(0.0:168): avc: denied { getattr } for path="/dev/__properties__/u:object_r:secureboot_prop:s0" dev="tmpfs" ino=8196 scontext=u:r:shell:s0 tcontext=u:object_r:secureboot_prop:s0 tclass=file permissive=1
-12-21 15:39:31.315  2087  2087 I getprop : type=1400 audit(0.0:169): avc: denied { open } for path="/dev/__properties__/u:object_r:pppoe_prop:s0" dev="tmpfs" ino=8197 scontext=u:r:shell:s0 tcontext=u:object_r:pppoe_prop:s0 tclass=file permissive=1
-12-21 15:39:31.315  2087  2087 I getprop : type=1400 audit(0.0:170): avc: denied { getattr } for path="/dev/__properties__/u:object_r:pppoe_prop:s0" dev="tmpfs" ino=8197 scontext=u:r:shell:s0 tcontext=u:object_r:pppoe_prop:s0 tclass=file permissive=1
-12-21 15:39:31.340  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":15403,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:31.341  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":15403,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:31.368   942   942 I pool-2-thread-1: type=1400 audit(0.0:171): avc: denied { sendto } for path="/data/misc/wifi/hostapd/wlan0" scontext=u:r:platform_app:s0:c512,c768 tcontext=u:r:hostapd:s0 tclass=unix_dgram_socket permissive=1
-12-21 15:39:31.593  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":15654,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:31.594  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":15654,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:31.845  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":15907,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:31.846  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":15907,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:32.099  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":16160,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:32.099  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":16160,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:32.351  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":16413,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:32.351  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":16413,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:32.603  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":16665,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:32.604  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":16665,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:32.855  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":16917,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:32.856  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":16917,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:33.107  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":17169,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:33.108  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":17169,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:33.242  1925  2029 V Robocol : received command: CMD_INIT_OP_MODE(10701) $Stop$Robot$
-12-21 15:39:33.266  1925  2075 E LynxI2cDeviceSynch: placeholder: readStatusQuery
-12-21 15:39:33.279  1925  2075 D RobotCore: User runOpModeMethod exited
-12-21 15:39:33.280  1925  2075 V RobotCore: thread: ...terminating 'OpModeThread'
-12-21 15:39:33.280  1925  2075 V ThreadPool: container(0x0b1ecd59: OpModeExecutor) removed id=182 TID=2075 count=1
-12-21 15:39:33.282  1925  2053 I System.out: PANELS: CORE: (Panels): Stop of opMode
-12-21 15:39:33.283  1925  2053 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode STOPPED, V3 Basic Test
-12-21 15:39:33.284  1925  2053 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:33.285  1925  2053 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:33.285  1925  2053 I RobotCore: Attempting to switch to OpMode $Stop$Robot$
-12-21 15:39:33.288  1925  2053 I RobotCore: ******************** STOP - OPMODE /storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt ********************
-12-21 15:39:33.295  1925  2053 D HardwareMap: Clearing which device instances have been retrieved
-12-21 15:39:33.295  1925  2090 I RobotCore: saving match logcat to /storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt
-12-21 15:39:33.295  1925  2090 I RobotCore: logging command line: exec logcat -d -T '12-21 15:39:0.000' -f '/storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt' -n4 -v threadtime UsbRequestJNI:S UsbRequest:S art:W ThreadPool:W System:W ExtendedExtractor:W OMXClient:W MediaPlayer:W dalvikvm:W  *:V
-12-21 15:39:33.295  1925  2053 I System.out: PANELS: CORE: (Panels): Init of opMode
-12-21 15:39:33.296  1925  2053 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode INIT,
-12-21 15:39:33.298  1925  2053 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:33.298  1925  2053 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:33.300  1925  2053 V ThreadPool: container(0x06a7bf4e: OpModeExecutor) added id=192 TID=0 count=1
-12-21 15:39:33.301  1925  2093 V RobotCore: thread: 'OpModeThread' starting...
-12-21 15:39:33.302  1925  2053 I System.out: PANELS: CORE: (Panels): Start of opMode
-12-21 15:39:33.303  1925  2053 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode RUNNING,
-12-21 15:39:33.303  1925  2063 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":0,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:33.303  1925  2063 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":0,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:33.304  1925  2053 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:33.305  1925  2053 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
-12-21 15:39:33.311  1925  2033 V Robocol : sending CMD_NOTIFY_INIT_OP_MODE(796), attempt: 0
-12-21 15:39:33.311  1925  2033 V Robocol : sending CMD_NOTIFY_RUN_OP_MODE(797), attempt: 0
-12-21 15:39:33.330  1925  2093 V RobotCore: nack rec'd mod=173 msg#=0 ref#=0 reason=CANCELLED_FOR_SAFETY:259
-12-21 15:39:33.371  1925  2090 I RobotCore: Done running exec logcat -d -T '12-21 15:39:0.000' -f '/storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt' -n4 -v threadtime UsbRequestJNI:S UsbRequest:S art:W ThreadPool:W System:W ExtendedExtractor:W OMXClient:W MediaPlayer:W dalvikvm:W  *:V
-12-21 15:39:33.372  1925  2090 I RobotCore: exiting match logcat for /storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt
+12-21 21:42:34.114  1000  1183 V Robocol : received command: CMD_SET_MATCH_NUMBER(14735) 0
+12-21 21:42:34.116  1000  1183 V Robocol : received command: CMD_INIT_OP_MODE(14736) V3 Basic Test
+12-21 21:42:34.148  1000  1626 V RobotCore: thread: ...terminating 'OpModeThread'
+12-21 21:42:34.153  1000  1626 V ThreadPool: container(0x0d8de29c: OpModeExecutor) removed id=275 TID=1626 count=1
+12-21 21:42:34.154  1000  1208 I System.out: PANELS: CORE: (Panels): Stop of opMode
+12-21 21:42:34.155  1000  1208 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode STOPPED,
+12-21 21:42:34.158  1000  1208 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:34.160  1000  1208 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:34.161  1000  1208 I RobotCore: Attempting to switch to OpMode V3 Basic Test
+12-21 21:42:34.169  1000  1208 I RobotCore: ******************** START - OPMODE V3 Basic Test ********************
+12-21 21:42:34.389  1000  1208 D HardwareMap: Clearing which device instances have been retrieved
+12-21 21:42:34.389  1000  1208 D HardwareMap: Clearing which device instances have been retrieved
+12-21 21:42:34.390  1000  1208 I System.out: PANELS: CORE: (Panels): Init of opMode
+12-21 21:42:34.396  1000  1208 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode INIT, V3 Basic Test
+12-21 21:42:34.398  1000  1208 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"status":"INIT"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:34.400  1000  1208 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"status":"INIT"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:34.402  1000  1208 V ThreadPool: container(0x0d97168d: OpModeExecutor) added id=277 TID=0 count=1
+12-21 21:42:34.405  1000  1640 V RobotCore: thread: 'OpModeThread' starting...
+12-21 21:42:34.434  1000  1193 V Robocol : sending CMD_NOTIFY_INIT_OP_MODE(5102), attempt: 0
+12-21 21:42:34.510  1000  1640 I I2C     : Automatically initializing I2C device Rev2mDistanceSensor (USB (embedded); module 3; bus 2; addr7=0x29)
+12-21 21:42:34.510  1000  1640 D STMicroVL53L0X: : Checking to see if it's really a VL53L0X sensor...
+12-21 21:42:34.517  1000  1640 D STMicroVL53L0X: : Reg 0xC0 = ee (should be 0xEE)
+12-21 21:42:34.522  1000  1640 D STMicroVL53L0X: : Reg 0xC1 = aa (should be 0xAA)
+12-21 21:42:34.528  1000  1640 D STMicroVL53L0X: : Reg 0xC2 = 10 (should be 0x10)
+12-21 21:42:34.534  1000  1640 D STMicroVL53L0X: : Reg 0x51 = 0 (should be 0x0099)
+12-21 21:42:34.539  1000  1640 D STMicroVL53L0X: : Reg 0x61 = 0 (should be 0x0000)
+12-21 21:42:34.571  1000  1640 D STMicroVL53L0X: : initial sig rate lim (MCPS) 0.250000
+12-21 21:42:34.578  1000  1640 D STMicroVL53L0X: : adjusted sig rate lim (MCPS) 0.250000
+12-21 21:42:35.007  1000  1640 I I2C     : Automatically initializing I2C device Rev2mDistanceSensor (USB (embedded); module 173; bus 3; addr7=0x29)
+12-21 21:42:35.007  1000  1640 D STMicroVL53L0X: : Checking to see if it's really a VL53L0X sensor...
+12-21 21:42:35.011  1000  1640 D STMicroVL53L0X: : Reg 0xC0 = ee (should be 0xEE)
+12-21 21:42:35.014  1000  1640 D STMicroVL53L0X: : Reg 0xC1 = aa (should be 0xAA)
+12-21 21:42:35.018  1000  1640 D STMicroVL53L0X: : Reg 0xC2 = 10 (should be 0x10)
+12-21 21:42:35.021  1000  1640 D STMicroVL53L0X: : Reg 0x51 = 0 (should be 0x0099)
+12-21 21:42:35.024  1000  1640 D STMicroVL53L0X: : Reg 0x61 = 0 (should be 0x0000)
+12-21 21:42:35.047  1000  1640 D STMicroVL53L0X: : initial sig rate lim (MCPS) 0.250000
+12-21 21:42:35.053  1000  1640 D STMicroVL53L0X: : adjusted sig rate lim (MCPS) 0.250000
+12-21 21:42:35.285  1000  1640 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 173; bus 2; addr7=0x52)
+12-21 21:42:35.285  1000  1640 V BroadcomColorSensorImpl: internalInitialize()...
+12-21 21:42:35.293  1000  1640 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
+12-21 21:42:35.294  1000  1640 V BroadcomColorSensorImpl: setGain(0x01)
+12-21 21:42:35.297  1000  1640 V BroadcomColorSensorImpl: setLEDParameters(0x37)
+12-21 21:42:35.300  1000  1640 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
+12-21 21:42:35.303  1000  1640 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
+12-21 21:42:35.306  1000  1640 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
+12-21 21:42:35.312  1000  1640 V BroadcomColorSensorImpl: enable() enabled=0x07...
+12-21 21:42:35.318  1000  1640 V BroadcomColorSensorImpl: ...enable() enabled=0x07
+12-21 21:42:35.321  1000  1640 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
+12-21 21:42:35.322  1000  1640 V BroadcomColorSensorImpl: ...internalInitialize()
+12-21 21:42:35.323  1000  1640 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 3; bus 3; addr7=0x52)
+12-21 21:42:35.323  1000  1640 V BroadcomColorSensorImpl: internalInitialize()...
+12-21 21:42:35.334  1000  1640 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
+12-21 21:42:35.334  1000  1640 V BroadcomColorSensorImpl: setGain(0x01)
+12-21 21:42:35.339  1000  1640 V BroadcomColorSensorImpl: setLEDParameters(0x37)
+12-21 21:42:35.344  1000  1640 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
+12-21 21:42:35.348  1000  1640 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
+12-21 21:42:35.354  1000  1640 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
+12-21 21:42:35.363  1000  1640 V BroadcomColorSensorImpl: enable() enabled=0x07...
+12-21 21:42:35.372  1000  1640 V BroadcomColorSensorImpl: ...enable() enabled=0x07
+12-21 21:42:35.378  1000  1640 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
+12-21 21:42:35.378  1000  1640 V BroadcomColorSensorImpl: ...internalInitialize()
+12-21 21:42:35.378  1000  1640 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 173; bus 1; addr7=0x52)
+12-21 21:42:35.379  1000  1640 V BroadcomColorSensorImpl: internalInitialize()...
+12-21 21:42:35.386  1000  1640 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
+12-21 21:42:35.387  1000  1640 V BroadcomColorSensorImpl: setGain(0x01)
+12-21 21:42:35.390  1000  1640 V BroadcomColorSensorImpl: setLEDParameters(0x37)
+12-21 21:42:35.393  1000  1640 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
+12-21 21:42:35.396  1000  1640 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
+12-21 21:42:35.399  1000  1640 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
+12-21 21:42:35.404  1000  1640 V BroadcomColorSensorImpl: enable() enabled=0x07...
+12-21 21:42:35.410  1000  1640 V BroadcomColorSensorImpl: ...enable() enabled=0x07
+12-21 21:42:35.415  1000  1640 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
+12-21 21:42:35.415  1000  1640 V BroadcomColorSensorImpl: ...internalInitialize()
+12-21 21:42:35.416  1000  1640 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 3; bus 1; addr7=0x52)
+12-21 21:42:35.416  1000  1640 V BroadcomColorSensorImpl: internalInitialize()...
+12-21 21:42:35.426  1000  1640 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
+12-21 21:42:35.426  1000  1640 V BroadcomColorSensorImpl: setGain(0x01)
+12-21 21:42:35.432  1000  1640 V BroadcomColorSensorImpl: setLEDParameters(0x37)
+12-21 21:42:35.438  1000  1640 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
+12-21 21:42:35.442  1000  1640 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
+12-21 21:42:35.447  1000  1640 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
+12-21 21:42:35.456  1000  1640 V BroadcomColorSensorImpl: enable() enabled=0x07...
+12-21 21:42:35.466  1000  1640 V BroadcomColorSensorImpl: ...enable() enabled=0x07
+12-21 21:42:35.472  1000  1640 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
+12-21 21:42:35.472  1000  1640 V BroadcomColorSensorImpl: ...internalInitialize()
+12-21 21:42:35.473  1000  1640 I I2C     : Automatically initializing I2C device BHI260IMU (BHI260 IMU on USB (embedded); module 173; bus 0; addr7=0x28)
+12-21 21:42:35.475  1000  1640 V BHI260IMU: Suppressing I2C warnings while we check for a BHI260AP IMU
+12-21 21:42:35.479  1000  1640 V BHI260IMU: Found BHI260AP IMU
+12-21 21:42:35.494  1000  1640 D BHI260IMU: Firmware version: 20
+12-21 21:42:35.509  1000  1640 V BHI260IMU: Suppressing I2C warnings while we check for a BHI260AP IMU
+12-21 21:42:35.512  1000  1640 V BHI260IMU: Found BHI260AP IMU
+12-21 21:42:35.527  1000  1640 D BHI260IMU: Firmware version: 20
+12-21 21:42:36.315  1000  1183 V Robocol : received command: CMD_RUN_OP_MODE(14769) V3 Basic Test
+12-21 21:42:36.327  1000  1208 I System.out: PANELS: CORE: (Panels): Start of opMode
+12-21 21:42:36.329  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":0,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:36.330  1000  1208 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode RUNNING, V3 Basic Test
+12-21 21:42:36.330  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":0,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:36.332  1000  1208 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"startTimestamp":1640155356327,"status":"RUNNING"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:36.333  1000  1208 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"startTimestamp":1640155356327,"status":"RUNNING"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:36.355  1000  1193 V Robocol : sending CMD_NOTIFY_RUN_OP_MODE(5128), attempt: 0
+12-21 21:42:36.581  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":253,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:36.582  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":253,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:36.833  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":505,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:36.833  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":505,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:37.085  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":757,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:37.086  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":757,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:37.337  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1009,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:37.338  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1009,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:37.564  1000  1171 I System.out: PANELS: PLUGINS/COM.BYLAZAR.BATTERY: (Plugin): Sending: {"data":12.729000000000001,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 21:42:37.564  1000  1171 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12.729000000000001,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 21:42:37.589  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1261,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:37.589  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1261,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:37.840  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1513,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:37.841  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1513,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:38.092  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":1764,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:38.093  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":1764,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:38.344  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":2016,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:38.344  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":2016,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:38.379  1000  1640 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 21:42:38.442  1000  1640 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 21:42:38.519  1000  1640 I System.out: [OpRunner] Starting operation: Collect[FRONT]
+12-21 21:42:38.521  1000  1640 I System.out: [CollectOp] doStart() called for FRONT
+12-21 21:42:38.521  1000  1640 I System.out: [CollectOp] Fast presence detected, starting hardware...
+12-21 21:42:38.521  1000  1640 I System.out: [CollectOp] Started FRONT intake hardware
+12-21 21:42:38.521  1000  1640 I System.out: [CollectOp] doStart() completed successfully
+12-21 21:42:38.521  1000  1640 I System.out: [OpRunner] STARTED successfully (#1)
+12-21 21:42:38.521  1000  1640 I System.out: [IndexingV3] Auto-collect FRONT (confidence=HIGH)
+12-21 21:42:38.595  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":2268,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:38.596  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":2268,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:38.633  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
+12-21 21:42:38.702  1000  1640 I System.out: [CollectOp] Color checkpoint reached, stopping hardware
+12-21 21:42:38.708  1000  1640 I System.out: [CollectOp] → SETTLING state
+12-21 21:42:38.708  1000  1640 I System.out: [CollectOp] Hardware done before sampling, forcing completion
+12-21 21:42:38.847  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":2519,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:38.848  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":2519,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:38.973  1000  1640 I System.out: [CollectOp] Collection complete
+12-21 21:42:38.973  1000  1640 I System.out: [OpRunner] update() - stillRunning=false, op=Collect[FRONT]
+12-21 21:42:38.973  1000  1640 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
+12-21 21:42:38.974  1000  1640 I System.out: [CollectOp] doCommit() called
+12-21 21:42:38.974  1000  1640 I System.out: [CollectOp] Committed PURPLE to FRONT (conf=0.69)
+12-21 21:42:38.977  1000  1640 I System.out: [OpRunner] Commit complete
+12-21 21:42:38.978  1000  1640 I System.out: [OpRunner] Clearing operation, now idle
+12-21 21:42:38.978  1000  1640 I System.out: [IndexingV3] handleOperationComplete: Collect[FRONT], success=true
+12-21 21:42:38.978  1000  1640 I System.out: [IndexingV3] Collection completed, calling handlePostCollection()
+12-21 21:42:38.979  1000  1640 I System.out: [IndexingV3] handlePostCollection: artifactCount=1
+12-21 21:42:38.979  1000  1640 I System.out: [IndexingV3] 1st artifact - requesting transfer from FRONT
+12-21 21:42:38.979  1000  1640 I System.out: [OpRunner] Starting operation: Transfer[FRONT→CENTER]
+12-21 21:42:38.981  1000  1640 I System.out: [OpRunner] STARTED successfully (#2)
+12-21 21:42:38.981  1000  1640 I System.out: [IndexingV3] Transfer request SUCCESSFUL
+12-21 21:42:39.053  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:39.099  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":2771,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:39.099  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":2771,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:39.154  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:39.226  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:39.297  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:39.350  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":3022,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:39.351  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":3022,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:39.351  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:39.416  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:39.475  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:39.537  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:39.601  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":3274,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:39.602  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":3274,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:39.614  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:39.706  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:39.803  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:39.853  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":3525,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:39.854  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":3525,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:39.897  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:39.969  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:40.039  1000  1640 I System.out: [OpRunner] update() - stillRunning=false, op=Transfer[FRONT→CENTER]
+12-21 21:42:40.040  1000  1640 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
+12-21 21:42:40.041  1000  1640 I System.out: [OpRunner] Commit complete
+12-21 21:42:40.041  1000  1640 I System.out: [OpRunner] Clearing operation, now idle
+12-21 21:42:40.042  1000  1640 I System.out: [IndexingV3] handleOperationComplete: Transfer[FRONT→CENTER], success=true
+12-21 21:42:40.042  1000  1640 I System.out: [IndexingV3] Transfer completed
+12-21 21:42:40.042  1000  1640 I System.out: [IndexingV3] Reset FRONT perception after transfer
+12-21 21:42:40.105  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":3777,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:40.106  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":3777,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:40.212  1000  1640 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 21:42:40.301  1000  1640 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 21:42:40.357  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":4029,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:40.357  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":4029,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:40.372  1000  1640 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 21:42:40.451  1000  1640 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 21:42:40.519  1000  1640 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 21:42:40.577  1000  1640 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=NONE not HIGH)
+12-21 21:42:40.608  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":4281,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:40.609  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":4281,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:40.860  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":4532,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:40.861  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":4532,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:41.112  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":4784,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:41.113  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":4784,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:41.364  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":5036,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:41.365  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":5036,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:41.616  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":5288,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:41.617  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":5288,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:41.868  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":5540,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:41.869  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":5540,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:42.120  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":5792,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:42.121  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":5792,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:42.372  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":6044,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:42.373  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":6044,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:42.565  1000  1171 I System.out: PANELS: PLUGINS/COM.BYLAZAR.BATTERY: (Plugin): Sending: {"data":12.694,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 21:42:42.565  1000  1171 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12.694,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 21:42:42.624  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":6296,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:42.624  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":6296,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:42.875  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":6548,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:42.876  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":6548,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:43.127  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":6799,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:43.128  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":6799,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:43.379  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":7051,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:43.380  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":7051,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:43.631  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":7303,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:43.632  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":7303,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:43.883  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":7555,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:43.884  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":7555,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:44.135  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":7807,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:44.136  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":7807,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:44.387  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":8059,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:44.387  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":8059,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:44.518  1000  1011 I art     : Background sticky concurrent mark sweep GC freed 355884(10MB) AllocSpace objects, 73(4MB) LOS objects, 34% free, 29MB/45MB, paused 2.728ms total 104.850ms
+12-21 21:42:44.639  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":8311,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:44.640  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":8311,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:44.891  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":8563,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:44.892  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":8563,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:45.143  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":8815,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:45.143  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":8815,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:45.327  1000  1640 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 21:42:45.395  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":9067,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:45.396  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":9067,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:45.397  1000  1640 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 21:42:45.482  1000  1640 I System.out: [OpRunner] Starting operation: Collect[FRONT]
+12-21 21:42:45.483  1000  1640 I System.out: [CollectOp] doStart() called for FRONT
+12-21 21:42:45.483  1000  1640 I System.out: [CollectOp] Fast presence detected, starting hardware...
+12-21 21:42:45.483  1000  1640 I System.out: [CollectOp] Started FRONT intake hardware
+12-21 21:42:45.483  1000  1640 I System.out: [CollectOp] doStart() completed successfully
+12-21 21:42:45.484  1000  1640 I System.out: [OpRunner] STARTED successfully (#3)
+12-21 21:42:45.484  1000  1640 I System.out: [IndexingV3] Auto-collect FRONT (confidence=HIGH)
+12-21 21:42:45.574  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
+12-21 21:42:45.647  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":9319,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:45.648  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":9319,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:45.675  1000  1640 I System.out: [CollectOp] Color checkpoint reached, stopping hardware
+12-21 21:42:45.684  1000  1640 I System.out: [CollectOp] → SETTLING state
+12-21 21:42:45.685  1000  1640 I System.out: [CollectOp] Hardware done before sampling, forcing completion
+12-21 21:42:45.899  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":9571,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:45.899  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":9571,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:45.935  1000  1640 I System.out: [CollectOp] Collection complete
+12-21 21:42:45.935  1000  1640 I System.out: [OpRunner] update() - stillRunning=false, op=Collect[FRONT]
+12-21 21:42:45.935  1000  1640 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
+12-21 21:42:45.935  1000  1640 I System.out: [CollectOp] doCommit() called
+12-21 21:42:45.936  1000  1640 I System.out: [CollectOp] Committed GREEN to FRONT (conf=0.76)
+12-21 21:42:45.937  1000  1640 I System.out: [OpRunner] Commit complete
+12-21 21:42:45.938  1000  1640 I System.out: [OpRunner] Clearing operation, now idle
+12-21 21:42:45.938  1000  1640 I System.out: [IndexingV3] handleOperationComplete: Collect[FRONT], success=true
+12-21 21:42:45.938  1000  1640 I System.out: [IndexingV3] Collection completed, calling handlePostCollection()
+12-21 21:42:45.938  1000  1640 I System.out: [IndexingV3] handlePostCollection: artifactCount=2
+12-21 21:42:45.938  1000  1640 I System.out: [IndexingV3] 2nd artifact - checking shot planner...
+12-21 21:42:45.938  1000  1640 I System.out: [IndexingV3] No swap needed, artifact stays in storage
+12-21 21:42:46.150  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":9822,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:46.151  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":9822,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:46.402  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":10074,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:46.403  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":10074,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:46.654  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":10326,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:46.654  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":10326,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:46.905  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":10578,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:46.906  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":10578,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:47.157  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":10829,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:47.157  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":10829,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:47.409  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":11081,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:47.409  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":11081,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:47.565  1000  1171 I System.out: PANELS: PLUGINS/COM.BYLAZAR.BATTERY: (Plugin): Sending: {"data":12.716000000000001,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 21:42:47.566  1000  1171 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12.716000000000001,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 21:42:47.660  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":11332,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:47.661  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":11332,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:47.912  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":11584,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:47.912  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":11584,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:48.163  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":11836,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:48.164  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":11836,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:48.415  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":12087,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:48.416  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12087,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:48.667  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":12339,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:48.667  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12339,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:48.919  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":12591,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:48.920  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12591,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:49.171  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":12843,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:49.172  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12843,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:49.423  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":13096,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:49.424  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":13096,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:49.675  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":13347,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:49.676  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":13347,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:49.927  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":13599,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:49.927  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":13599,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:50.179  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":13851,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:50.180  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":13851,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:50.431  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":14103,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:50.431  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":14103,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:50.683  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":14355,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:50.683  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":14355,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:50.934  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":14607,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:50.935  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":14607,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:51.186  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":14858,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:51.187  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":14858,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:51.438  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":15110,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:51.438  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":15110,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:51.689  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":15361,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:51.689  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":15361,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:51.941  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":15613,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:51.941  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":15613,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:52.192  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":15864,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:52.193  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":15864,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:52.444  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":16116,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:52.444  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":16116,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:52.565  1000  1171 I System.out: PANELS: PLUGINS/COM.BYLAZAR.BATTERY: (Plugin): Sending: {"data":12.699,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 21:42:52.565  1000  1171 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12.699,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 21:42:52.696  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":16368,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:52.696  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":16368,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:52.947  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":16619,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:52.948  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":16619,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:53.123  1000  1640 I System.out: [IndexingV3] Subsequent shot detected (0 → 1), clearing CENTER
+12-21 21:42:53.123  1000  1640 I System.out: [IndexingV3] Shot consumed from plan
+12-21 21:42:53.123  1000  1640 I System.out: [OpRunner] Starting operation: Transfer[FRONT→CENTER]
+12-21 21:42:53.124  1000  1640 I System.out: [OpRunner] STARTED successfully (#4)
+12-21 21:42:53.124  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:53.199  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":16871,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:53.200  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":16871,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:53.239  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:53.340  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:53.420  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:53.451  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":17123,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:53.452  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":17123,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:53.496  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:53.575  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:53.669  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:53.703  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":17375,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:53.703  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":17375,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:53.759  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:53.869  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:53.955  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":17627,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:53.955  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":17627,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:53.962  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:54.054  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:54.136  1000  1640 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 21:42:54.207  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":17879,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:54.207  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":17879,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:54.224  1000  1640 I System.out: [OpRunner] update() - stillRunning=false, op=Transfer[FRONT→CENTER]
+12-21 21:42:54.224  1000  1640 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
+12-21 21:42:54.226  1000  1640 I System.out: [OpRunner] Commit complete
+12-21 21:42:54.226  1000  1640 I System.out: [OpRunner] Clearing operation, now idle
+12-21 21:42:54.226  1000  1640 I System.out: [IndexingV3] handleOperationComplete: Transfer[FRONT→CENTER], success=true
+12-21 21:42:54.226  1000  1640 I System.out: [IndexingV3] Transfer completed
+12-21 21:42:54.226  1000  1640 I System.out: [IndexingV3] Reset FRONT perception after transfer
+12-21 21:42:54.407  1000  1640 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 21:42:54.458  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":18131,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:54.459  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":18131,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:54.490  1000  1640 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 21:42:54.585  1000  1640 I System.out: [IndexingV3] Subsequent shot detected (1 → 2), clearing CENTER
+12-21 21:42:54.585  1000  1640 I System.out: [IndexingV3] Shot consumed from plan
+12-21 21:42:54.590  1000  1640 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 21:42:54.662  1000  1640 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 21:42:54.710  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":18382,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:54.711  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":18382,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:54.733  1000  1640 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 21:42:54.806  1000  1640 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=NONE not HIGH)
+12-21 21:42:54.962  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":18634,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:54.962  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":18634,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:55.214  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":18886,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:55.214  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":18886,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:55.466  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":19137,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:55.467  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":19137,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:55.718  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":19390,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:55.719  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":19390,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:55.970  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":19642,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:55.970  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":19642,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:56.221  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":19894,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:56.222  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":19894,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:56.473  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":20145,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:56.473  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":20145,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:56.724  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":20396,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:56.725  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":20396,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:56.976  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":20648,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:56.976  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":20648,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:57.227  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":20900,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:57.228  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":20900,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:57.479  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":21151,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:57.480  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":21151,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:57.565  1000  1171 I System.out: PANELS: PLUGINS/COM.BYLAZAR.BATTERY: (Plugin): Sending: {"data":12.655000000000001,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 21:42:57.566  1000  1171 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12.655000000000001,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 21:42:57.731  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":21404,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:57.732  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":21404,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:57.983  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":21655,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:57.984  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":21655,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:58.236  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":21907,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:58.237  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":21907,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:58.488  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":22160,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:58.489  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":22160,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:58.741  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":22413,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:58.741  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":22413,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:58.993  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":22665,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:58.994  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":22665,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:59.248  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":22918,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:59.249  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":22918,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:59.500  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":23172,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:59.500  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":23172,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:59.751  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":23424,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:42:59.752  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":23424,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:00.004  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":23676,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:00.005  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":23676,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:00.257  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":23929,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:00.258  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":23929,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:00.509  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":24181,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:00.510  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":24181,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:00.761  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":24433,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:00.761  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":24433,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:01.013  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":24685,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:01.014  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":24685,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:01.194  1000  1183 V Robocol : received command: CMD_INIT_OP_MODE(15157) $Stop$Robot$
+12-21 21:43:01.235  1000  1640 D RobotCore: User runOpModeMethod exited
+12-21 21:43:01.242  1000  1640 V RobotCore: thread: ...terminating 'OpModeThread'
+12-21 21:43:01.243  1000  1640 V ThreadPool: container(0x0d97168d: OpModeExecutor) removed id=277 TID=1640 count=1
+12-21 21:43:01.246  1000  1208 I System.out: PANELS: CORE: (Panels): Stop of opMode
+12-21 21:43:01.247  1000  1208 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode STOPPED, V3 Basic Test
+12-21 21:43:01.249  1000  1208 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:01.249  1000  1208 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"TELEOP","group":"V3 Testing","name":"V3 Basic Test","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:01.250  1000  1208 I RobotCore: Attempting to switch to OpMode $Stop$Robot$
+12-21 21:43:01.252  1000  1208 I RobotCore: ******************** STOP - OPMODE /storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt ********************
+12-21 21:43:01.260  1000  1644 I RobotCore: saving match logcat to /storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt
+12-21 21:43:01.260  1000  1208 D HardwareMap: Clearing which device instances have been retrieved
+12-21 21:43:01.260  1000  1644 I RobotCore: logging command line: exec logcat -d -T '12-21 21:42:34.000' -f '/storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt' -n4 -v threadtime UsbRequestJNI:S UsbRequest:S art:W ThreadPool:W System:W ExtendedExtractor:W OMXClient:W MediaPlayer:W dalvikvm:W  *:V
+12-21 21:43:01.260  1000  1208 D HardwareMap: Clearing which device instances have been retrieved
+12-21 21:43:01.261  1000  1208 I System.out: PANELS: CORE: (Panels): Init of opMode
+12-21 21:43:01.262  1000  1208 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode INIT,
+12-21 21:43:01.264  1000  1208 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:01.269  1000  1208 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:01.271  1000  1208 V ThreadPool: container(0x03173de0: OpModeExecutor) added id=281 TID=0 count=1
+12-21 21:43:01.272  1000  1647 V RobotCore: thread: 'OpModeThread' starting...
+12-21 21:43:01.274  1000  1208 I System.out: PANELS: CORE: (Panels): Start of opMode
+12-21 21:43:01.276  1000  1193 V Robocol : sending CMD_NOTIFY_INIT_OP_MODE(5523), attempt: 0
+12-21 21:43:01.276  1000  1208 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): New active OpMode RUNNING,
+12-21 21:43:01.276  1000  1220 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":0,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:01.277  1000  1220 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":0,"messageID":"deltaMs","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:01.279  1000  1208 I System.out: PANELS: PLUGINS/COM.BYLAZAR.OPMODECONTROL: (Plugin): Sending: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:01.279  1000  1208 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":{"opMode":{"autoTransition":"","defaultGroup":"$$$$$$$","flavour":"AUTONOMOUS","group":"","name":"","source":"ANDROID_STUDIO"},"status":"STOPPED"},"messageID":"activeOpMode","pluginID":"com.bylazar.opmodecontrol"}
+12-21 21:43:01.291  1000  1647 V RobotCore: nack rec'd mod=173 msg#=0 ref#=0 reason=CANCELLED_FOR_SAFETY:259
+12-21 21:43:01.309  1000  1011 I art     : Background sticky concurrent mark sweep GC freed 359960(10MB) AllocSpace objects, 70(4MB) LOS objects, 32% free, 30MB/45MB, paused 2.809ms total 115.022ms
+12-21 21:43:01.314  1000  1193 V Robocol : sending CMD_NOTIFY_RUN_OP_MODE(5525), attempt: 0
+12-21 21:43:01.322  1000  1647 V RobotCore: nack rec'd mod=3 msg#=0 ref#=0 reason=CANCELLED_FOR_SAFETY:259
+12-21 21:43:01.354  1000  1644 I RobotCore: Done running exec logcat -d -T '12-21 21:42:34.000' -f '/storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt' -n4 -v threadtime UsbRequestJNI:S UsbRequest:S art:W ThreadPool:W System:W ExtendedExtractor:W OMXClient:W MediaPlayer:W dalvikvm:W  *:V
+12-21 21:43:01.354  1000  1644 I RobotCore: exiting match logcat for /storage/emulated/0/FIRST/matchlogs/Match-0-V3_Basic_Test.txt
+12-21 21:43:02.564  1000  1171 I System.out: PANELS: PLUGINS/COM.BYLAZAR.BATTERY: (Plugin): Sending: {"data":12.843,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 21:43:02.565  1000  1171 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12.843,"messageID":"battery","pluginID":"com.bylazar.battery"}
 --------- beginning of system
-12-21 15:39:33.802   790   790 D lvjinhua:  Failed while trying resolve alarm filter file, not exists
-12-21 15:39:33.808  1925  2017 I System.out: PANELS: PLUGINS/COM.BYLAZAR.BATTERY: (Plugin): Sending: {"data":12.707,"messageID":"battery","pluginID":"com.bylazar.battery"}
-12-21 15:39:33.809  1925  2017 I System.out: PANELS: SOCKET: (Socket): Sent to all clients: {"data":12.707,"messageID":"battery","pluginID":"com.bylazar.battery"}
+12-21 21:43:02.756   791   791 D lvjinhua:  Failed while trying resolve alarm filter file, not exists
