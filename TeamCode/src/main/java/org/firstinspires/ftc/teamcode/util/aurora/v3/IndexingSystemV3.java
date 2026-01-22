@@ -329,20 +329,15 @@ public class IndexingSystemV3 {
      * 
      * Instead, we track FiringHelper's shot count and update the ledger when we detect
      * a new shot has actually fired.
+     * 
+     * CRITICAL FIX: The shot count increments when feeding completes (300ms uptake), but
+     * at that point the artifact has been physically pushed through the uptake into the shooter.
+     * The CENTER slot should be cleared immediately when the shot count increments, since the
+     * artifact has left the CENTER position. Any subsequent transfer will set CENTER again.
      */
     private void checkForSubsequentShotFired() {
         if (!burstFiringActive) {
             return;  // Not in burst mode, nothing to check
-        }
-        
-        // CRITICAL FIX: Don't process shot if transfer is still physically running!
-        // The runner.isBusy() check is not enough - the operation can complete but the
-        // physical transfer hardware sequence continues running in BasicIndexingHelper.
-        // We must check BOTH runner.isBusy() AND indexingHelper.isTransferActive()
-        if (runner.isBusy() || indexingHelper.isTransferActive()) {
-            // Transfer or other operation in progress - wait for it to complete
-            // before processing the shot and clearing the ledger
-            return;
         }
         
         // Check if shot count increased
@@ -355,6 +350,9 @@ public class IndexingSystemV3 {
                              lastKnownShotCount, currentShotCount);
 
             // Clear center slot (artifact was fired)
+            // This happens immediately when shot count increments, which occurs after the
+            // 300ms uptake feeding completes. At that point the artifact has been pushed
+            // through the uptake into the shooter and is no longer in the CENTER slot.
             ledger.setCenter(null);
             
             // Update tracking
@@ -690,6 +688,18 @@ public class IndexingSystemV3 {
     private void performAutomaticOperations() {
         // Issue 3 Fix: Add cooldown to prevent repeated auto-collections
         long currentTime = System.currentTimeMillis();
+        
+        // CRITICAL FIX: Auto-transfer to CENTER when empty and artifacts available
+        // This ensures CENTER is always filled when possible, not just during burst firing
+        if (!ledger.isCenterOccupied() && !burstFiringActive && !firingHelper.isFiring()) {
+            // CENTER is empty and we're not actively firing - try to fill it
+            SlotLedger.Slot transferSlot = shotPlanner.getNextTransferSlot(ledger);
+            if (transferSlot != null) {
+                Dbg.d(LogGroup.TRANSFER, "Auto-transfer to CENTER: %s → CENTER", transferSlot);
+                requestTransfer(transferSlot);
+                return;  // Skip other auto-operations this loop
+            }
+        }
         
         // Auto-collect ONLY if hunt mode enabled, intake eligible, AND presence confidence is sufficient
         // CRITICAL: Only collect on HIGH confidence to prevent false positives (hands, etc.)

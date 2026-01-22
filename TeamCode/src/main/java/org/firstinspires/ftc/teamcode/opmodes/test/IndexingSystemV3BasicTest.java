@@ -333,8 +333,8 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
                 }
             } else {
                 // Button still held - check if ready for next shot and fire it
-                // CRITICAL: Must check BOTH shooter ready AND no operations running
-                // Otherwise we may fire before transfer completes and artifact physically loads
+                // CRITICAL: Must check BOTH shooter ready AND no operations running AND center occupied
+                // FIX: Also check that we're NOT already feeding (prevents double-fire)
                 
                 // Check current state
                 boolean readyToFire = indexing.isReadyForNextShot() && 
@@ -348,9 +348,12 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
                     Dbg.i(LogGroup.TEST, "Ready for next shot - firing now");
                     Dbg.d(LogGroup.TEST, "Shooter RPM: %.0f / %.0f",
                           indexing.getShooterCurrentRPM(), indexing.getShooterTargetRPM());
+                    Dbg.d(LogGroup.TEST, "Center occupied: %b, Operation running: %b",
+                          indexing.getLedger().isCenterOccupied(), indexing.isOperationRunning());
                     telemetry.addLine("🔥 Firing next shot...");
                     // Fire the next shot (FiringHelper keeps shooter spinning)
-                    indexing.fireNextShot();
+                    boolean fired = indexing.fireNextShot();
+                    Dbg.d(LogGroup.TEST, "fireNextShot returned: %b", fired);
                 } else if (readyToFire) {
                     // Already fired this artifact, waiting for next
                     Dbg.everyMs(LogGroup.TEST, LogLevel.DEBUG, "wait_artifact", 1000,
