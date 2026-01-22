@@ -81,6 +81,7 @@ public class IndexingSystemV3 {
     private int consecutiveShotsFired;
     private int lastKnownShotCount;  // Track FiringHelper's shot count for ledger updates
     private ArtifactIdentity lastFiredArtifact;  // Track last fired artifact for debug telemetry
+    private boolean deferredTransferNeeded;  // True when shot fired but transfer deferred due to busy operation
     
     // Artifact tracking
     private int nextSequenceId;
@@ -174,6 +175,7 @@ public class IndexingSystemV3 {
         this.manualModeActive = false;
         this.huntEnabled = true;  // Hunt mode ON by default
         this.burstFiringActive = false;
+        this.deferredTransferNeeded = false;  // Initialize deferred transfer flag
         this.lastOperationCompleteTime = System.currentTimeMillis();
         this.consecutiveShotsFired = 0;
         this.lastKnownShotCount = 0;  // Initialize shot count tracker
@@ -330,10 +332,12 @@ public class IndexingSystemV3 {
      * Instead, we track FiringHelper's shot count and update the ledger when we detect
      * a new shot has actually fired.
      * 
-     * CRITICAL FIX: The shot count increments when feeding completes (300ms uptake), but
-     * at that point the artifact has been physically pushed through the uptake into the shooter.
-     * The CENTER slot should be cleared immediately when the shot count increments, since the
-     * artifact has left the CENTER position. Any subsequent transfer will set CENTER again.
+     * CRITICAL: Shot count increments IMMEDIATELY after 300ms uptake feeding completes.
+     * At that point, the artifact has been pushed through uptake into the shooter flywheel.
+     * We must clear the ledger IMMEDIATELY (artifact is physically gone from CENTER).
+     * 
+     * However, we queue the next transfer only when NO operations are running to avoid
+     * conflicts with ongoing transfers or collections.
      */
     private void checkForSubsequentShotFired() {
         if (!burstFiringActive) {
@@ -349,10 +353,8 @@ public class IndexingSystemV3 {
             Dbg.d(LogGroup.FIRING, "Subsequent shot detected (%d → %d), clearing CENTER",
                              lastKnownShotCount, currentShotCount);
 
-            // Clear center slot (artifact was fired)
-            // This happens immediately when shot count increments, which occurs after the
-            // 300ms uptake feeding completes. At that point the artifact has been pushed
-            // through the uptake into the shooter and is no longer in the CENTER slot.
+            // CRITICAL: Clear center slot IMMEDIATELY when shot fires
+            // The artifact has been physically pushed into the shooter, it's no longer in CENTER
             ledger.setCenter(null);
             
             // Update tracking
@@ -367,8 +369,14 @@ public class IndexingSystemV3 {
                 Dbg.d(LogGroup.SHOTPLAN, "Shot consumed from plan");
             }
             
-            // Queue next artifact transfer if available
-            queueNextShotInBurst();
+            // Queue next transfer ONLY if no operations running
+            // This prevents conflicts with ongoing transfers or collections
+            if (!runner.isBusy() && !indexingHelper.isTransferActive()) {
+                queueNextShotInBurst();
+            } else {
+                Dbg.d(LogGroup.FIRING, "Deferring next transfer queue (operation busy)");
+                deferredTransferNeeded = true;  // Will queue when operation completes
+            }
         }
     }
     
@@ -546,7 +554,12 @@ public class IndexingSystemV3 {
             // - 1st artifact: Transfer to center
             // - 2nd artifact: Check if swap needed (shot planning), otherwise stay in intake
             // - 3rd artifact: Stay in intake
-            handlePostCollection();
+            // IMPORTANT: Skip handlePostCollection if in burst firing mode - transfers handled by burst logic
+            if (!burstFiringActive) {
+                handlePostCollection();
+            } else {
+                Dbg.d(LogGroup.INDEXING, "Skipping handlePostCollection (burst firing active)");
+            }
             
         } else if (lastOp instanceof TransferOperation) {
             totalTransfers++;
@@ -562,6 +575,13 @@ public class IndexingSystemV3 {
             } else if (opName.contains("BACK")) {
                 backPerception.reset();
                 Dbg.d(LogGroup.INTAKE, "Reset BACK perception after transfer");
+            }
+            
+            // If we deferred a transfer during burst firing, queue it now
+            if (deferredTransferNeeded && burstFiringActive) {
+                Dbg.d(LogGroup.FIRING, "Queuing deferred transfer");
+                queueNextShotInBurst();
+                deferredTransferNeeded = false;
             }
             
         } else if (lastOp instanceof SwapOperation) {
@@ -689,8 +709,8 @@ public class IndexingSystemV3 {
         // Issue 3 Fix: Add cooldown to prevent repeated auto-collections
         long currentTime = System.currentTimeMillis();
         
-        // CRITICAL FIX: Auto-transfer to CENTER when empty and artifacts available
-        // This ensures CENTER is always filled when possible, not just during burst firing
+        // Auto-transfer to CENTER when empty (not in burst firing mode)
+        // Burst firing handles its own transfers via queueNextShotInBurst()
         if (!ledger.isCenterOccupied() && !burstFiringActive && !firingHelper.isFiring()) {
             // CENTER is empty and we're not actively firing - try to fill it
             SlotLedger.Slot transferSlot = shotPlanner.getNextTransferSlot(ledger);

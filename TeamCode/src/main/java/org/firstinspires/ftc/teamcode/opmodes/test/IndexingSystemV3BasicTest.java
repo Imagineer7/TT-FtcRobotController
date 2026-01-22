@@ -333,8 +333,8 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
                 }
             } else {
                 // Button still held - check if ready for next shot and fire it
-                // CRITICAL: Must check BOTH shooter ready AND no operations running AND center occupied
-                // FIX: Also check that we're NOT already feeding (prevents double-fire)
+                // CRITICAL: Must check BOTH shooter ready AND no operations running
+                // Otherwise we may fire before transfer completes and artifact physically loads
                 
                 // Check current state
                 boolean readyToFire = indexing.isReadyForNextShot() && 
