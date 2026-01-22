@@ -18,9 +18,9 @@ import org.firstinspires.ftc.teamcode.pedroPathing.PedroAutonomousBuilder;
 import org.firstinspires.ftc.teamcode.util.aurora.EnhancedDecodeHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
 
-@Autonomous(name = "Red Long Range", group = "Pedro Autonomous")
+@Autonomous(name = "Red Medium Range", group = "Pedro Autonomous")
 @Configurable // Panels
-public class RedLongRange extends OpMode {
+public class RedMedRange extends OpMode {
 
     private TelemetryManager panelsTelemetry;
     private Follower follower;
@@ -68,10 +68,10 @@ public class RedLongRange extends OpMode {
         autoBuilder = new PedroAutonomousBuilder(follower)
                 .withShooter(shooter)
 
-                // Example sequence - customize this for your autonomous!
+                .addWait(15.0)
                 .addPath(paths.Path1)
-                .addTurnToHeading(Math.toRadians(70))  // Convert degrees to radians
-                .addShootAction(3, ShooterConfig.ShooterPreset.LONG_RANGE)  // Fire 3 shots
+                //.addTurnToHeading(Math.toRadians(70))  // Convert degrees to radians
+                .addShootAction(4, ShooterConfig.ShooterPreset.MEDIUM_RANGE)  // Fire 3 shots
                 .addWait(1.0)
                 .addPath(paths.Path2);
     }
@@ -100,7 +100,7 @@ public class RedLongRange extends OpMode {
         // Log values to Panels and Driver Station
         panelsTelemetry.debug("Current Step", currentStep);
         panelsTelemetry.debug("Step Progress",
-            (autoBuilder.getCurrentStepIndex() + 1) + " / " + autoBuilder.getTotalSteps());
+                (autoBuilder.getCurrentStepIndex() + 1) + " / " + autoBuilder.getTotalSteps());
         panelsTelemetry.debug("X", String.format(java.util.Locale.US, "%.2f", x));
         panelsTelemetry.debug("Y", String.format(java.util.Locale.US, "%.2f", y));
         panelsTelemetry.debug("Heading", String.format(java.util.Locale.US, "%.1f°", Math.toDegrees(heading)));
@@ -129,17 +129,21 @@ public class RedLongRange extends OpMode {
             Path1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(87.229, 8.495), new Pose(84.535, 18.855))
+                            new BezierCurve(
+                                    new Pose(88.151, 7.919),
+                                    new Pose(79.563, 65.681),
+                                    new Pose(88.359, 95.861)
+                            )
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(65))
+                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(43))
                     .build();
 
             Path2 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(84.535, 18.855), new Pose(83.085, 34.601))
+                            new BezierLine(new Pose(88.359, 95.861), new Pose(82.315, 37.928))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(65), Math.toRadians(180))
+                    .setLinearHeadingInterpolation(Math.toRadians(43), Math.toRadians(0))
                     .build();
         }
     }

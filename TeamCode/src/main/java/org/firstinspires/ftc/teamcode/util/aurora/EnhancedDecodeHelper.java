@@ -267,10 +267,10 @@ public class EnhancedDecodeHelper {
                 odometry = hardwareMap.get(GoBildaPinpointDriver.class, "odo");
 
                 // Configure odometry with specified settings
-                // forwardPodY(-6.62) and strafePodX(4.71)
+                // forwardPodY(-2.83) and strafePodX(4.71)
                 // X pod (forward) offset = strafePodX = 4.71
                 // Y pod (strafe) offset = forwardPodY = -6.62
-                odometry.setOffsets(4.71, -6.62, DistanceUnit.INCH);
+                odometry.setOffsets(4.71, -2.83, DistanceUnit.INCH);
                 odometry.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD);
                 odometry.setEncoderDirections(
                         GoBildaPinpointDriver.EncoderDirection.FORWARD,

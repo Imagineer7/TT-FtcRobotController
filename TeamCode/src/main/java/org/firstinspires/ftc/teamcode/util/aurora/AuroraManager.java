@@ -272,16 +272,16 @@ public class AuroraManager {
         // Drive mode switching
         if (gamepad.dpad_up) {
             // Fine forward movement
-            driveSystem.setFineMovement(0.0, 0.3, 0.0); // Forward strafe
+            driveSystem.setFineMovement(0.0, 0.4, 0.0); // Forward strafe
         } else if (gamepad.dpad_down) {
             // Fine backward movement
-            driveSystem.setFineMovement(0.0, -0.3, 0.0); // Backward strafe
+            driveSystem.setFineMovement(0.0, -0.4, 0.0); // Backward strafe
         } else if (gamepad.dpad_left) {
             // Fine left strafe
-            driveSystem.setFineMovement(-0.3, 0.0, 0.0); // Left strafe
+            driveSystem.setFineMovement(-0.4, 0.0, 0.0); // Left strafe
         } else if (gamepad.dpad_right) {
             // Fine right strafe
-            driveSystem.setFineMovement(0.3, 0.0, 0.0); // Right strafe
+            driveSystem.setFineMovement(0.4, 0.0, 0.0); // Right strafe
         } else {
             // No fine movement
             driveSystem.setFineMovement(0.0, 0.0, 0.0);
@@ -290,10 +290,10 @@ public class AuroraManager {
         // Fine rotation control with bumpers
         if (gamepad.right_bumper) {
             // Fine clockwise rotation
-            driveSystem.setFineRotation(0.3); // Positive rotation
+            driveSystem.setFineRotation(0.5); // Positive rotation
         } else if (gamepad.left_bumper) {
             // Fine counter-clockwise rotation
-            driveSystem.setFineRotation(-0.3); // Negative rotation
+            driveSystem.setFineRotation(-0.5); // Negative rotation
         } else {
             // No fine rotation
             driveSystem.setFineRotation(0.0);
@@ -342,7 +342,7 @@ public class AuroraManager {
         ShooterConfig.ShooterPreset currentPreset = ShooterConfig.ShooterPreset.SHORT_RANGE; // default
 
         if (gamepad.y) {
-            currentPreset = ShooterConfig.ShooterPreset.SHORT_RANGE;
+            currentPreset = ShooterConfig.ShooterPreset.LONG_RANGE;
         } else if (gamepad.a) {
             currentPreset = ShooterConfig.ShooterPreset.SHORT_RANGE;
         } else if (gamepad.b) {
