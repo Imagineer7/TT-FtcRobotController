@@ -303,12 +303,14 @@ public class BasicFiringHelper {
                         // Shooter will stay spinning, waiting for external call to fire again
                         firingState = FiringState.READY_TO_FIRE;
                         telemetry.addData("Firing", "✅ Shot complete - Ready for next");
+                        System.out.println("[BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE");
                     } else {
                         // Normal mode: complete and stop
                         firingState = FiringState.COMPLETE;
                         firingActive = false;
                         shooter.stopMotors();
                         telemetry.addData("Firing", "✅ Complete");
+                        System.out.println("[BasicFiringHelper]: Shot fired - firing sequence complete");
                     }
                 }
                 break;
@@ -437,6 +439,7 @@ public class BasicFiringHelper {
         if (keepAlive) {
             telemetry.addData("Mode", "Keep-alive (continuous)");
         }
+        System.out.println("[BasicFiringHelper]: startFiring() called - targetRPM=" + rpm + ", preset=" + presetName + ", keepAlive=" + keepAlive);
 
         return true;
     }
@@ -467,6 +470,7 @@ public class BasicFiringHelper {
         firingState = FiringState.FEEDING;
         indexingHelper.setUptakeTimed(FEED_POWER, FEED_DURATION_MS);
         telemetry.addData("Firing", "✅ Firing shot (300ms)");
+        System.out.println("[BasicFiringHelper]: fireShot() called - feeding artifact");
         return true;
     }
 

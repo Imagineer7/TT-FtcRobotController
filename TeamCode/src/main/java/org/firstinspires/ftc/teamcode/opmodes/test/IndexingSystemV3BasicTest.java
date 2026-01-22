@@ -250,6 +250,7 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
                     // Keep-alive mode enabled - shooter stays spinning for rapid follow-up shots
                     // Use LONG_RANGE preset (2800 RPM)
                     boolean started = indexing.requestFire(ShooterConfig.ShooterPreset.SHORT_RANGE.getTargetRPM());
+                    System.out.println("[OpMode Debug]: requestFire returned " + started);
                     if (started) {
                         isFiring = true;
                     } else {

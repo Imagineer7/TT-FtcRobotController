@@ -334,7 +334,7 @@ public class IndexingSystemV3 {
         }
         
         // CRITICAL FIX: Don't process shot if transfer is still running!
-        // Otherwise we clear CENTER before the artifact physically arrives
+        // Otherwise, we clear CENTER before the artifact physically arrives
         if (runner.isBusy()) {
             // Transfer or other operation in progress - wait for it to complete
             // before processing the shot and clearing the ledger

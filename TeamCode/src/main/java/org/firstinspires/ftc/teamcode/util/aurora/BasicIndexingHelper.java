@@ -1132,6 +1132,7 @@ public class BasicIndexingHelper {
             telemetry.addData("⚠️ WARNING", "Transfer already in progress");
             return;
         }
+        System.out.println("[BasicIndexingHelper]: Starting transferFrontIntakeToCenterTimed");
 
         transferSequenceActive = true;
         transferSequenceState = TransferSequenceState.UN_PREPOSITIONING;
@@ -1143,6 +1144,7 @@ public class BasicIndexingHelper {
 
         telemetry.addData("Transfer", "Front intake → Center (timed)");
         telemetry.addData("Duration", durationMs + "ms");
+        System.out.println("[BasicIndexingHelper]: TransferSequenceState.UN_PREPOSITIONING");
     }
 
     /**
@@ -1171,6 +1173,7 @@ public class BasicIndexingHelper {
             telemetry.addData("⚠️ WARNING", "Transfer already in progress");
             return;
         }
+        System.out.println("[BasicIndexingHelper]: Starting transferBackIntakeToCenterTimed");
 
         transferSequenceActive = true;
         transferSequenceState = TransferSequenceState.UN_PREPOSITIONING;
@@ -1182,6 +1185,7 @@ public class BasicIndexingHelper {
 
         telemetry.addData("Transfer", "Back intake → Center (timed)");
         telemetry.addData("Duration", durationMs + "ms");
+        System.out.println("[BasicIndexingHelper]: Started transferBackIntakeToCenterTimed");
     }
 
     /**
@@ -1220,6 +1224,7 @@ public class BasicIndexingHelper {
                     if (!isUptakeBusy()) {
                         transferSequenceState = TransferSequenceState.TRANSFERRING;
                         telemetry.addData("Transfer", "Front manual - Transferring");
+                        System.out.println("[BasicIndexingHelper]: TransferSequenceState.TRANSFERRING");
                     }
                 } else if (transferSequenceState == TransferSequenceState.TRANSFERRING) {
                     // Run intake and injectors while button is held
@@ -1240,6 +1245,7 @@ public class BasicIndexingHelper {
                     transferSequenceState = TransferSequenceState.PREPOSITIONING;
                     prePositionArtifacts();
                     telemetry.addData("Transfer", "Front manual - Pre-positioning");
+                    System.out.println("[BasicIndexingHelper]: TransferSequenceState.PREPOSITIONING");
                 } else if (transferSequenceState == TransferSequenceState.PREPOSITIONING) {
                     // Check if pre-positioning is done
                     if (!isUptakeBusy()) {
@@ -1279,6 +1285,7 @@ public class BasicIndexingHelper {
                 // Un-pre-position first
                 unPrePositionArtifacts();
                 telemetry.addData("Transfer", "Back manual - Un-prepositioning");
+                System.out.println("[BasicIndexingHelper]: TransferSequenceState.UN_PREPOSITIONING");
             } else if (currentTransferType.equals("BACK_MANUAL")) {
                 // Only proceed if this is OUR transfer
                 if (transferSequenceState == TransferSequenceState.UN_PREPOSITIONING) {
@@ -1286,6 +1293,7 @@ public class BasicIndexingHelper {
                     if (!isUptakeBusy()) {
                         transferSequenceState = TransferSequenceState.TRANSFERRING;
                         telemetry.addData("Transfer", "Back manual - Transferring");
+                        System.out.println("[BasicIndexingHelper]: TransferSequenceState.TRANSFERRING");
                     }
                 } else if (transferSequenceState == TransferSequenceState.TRANSFERRING) {
                     // Run intake and injectors while button is held
@@ -1306,6 +1314,7 @@ public class BasicIndexingHelper {
                     transferSequenceState = TransferSequenceState.PREPOSITIONING;
                     prePositionArtifacts();
                     telemetry.addData("Transfer", "Back manual - Pre-positioning");
+                    System.out.println("[BasicIndexingHelper]: TransferSequenceState.PREPOSITIONING");
                 } else if (transferSequenceState == TransferSequenceState.PREPOSITIONING) {
                     // Check if pre-positioning is done
                     if (!isUptakeBusy()) {
@@ -1366,6 +1375,7 @@ public class BasicIndexingHelper {
 
             case TRANSFERRING:
                 // Wait for transfer to complete
+                System.out.println("[BasicIndexingHelper]: TRANSFERRING - Elapsed Time: " + (System.currentTimeMillis() - transferSequenceStartTime) + "ms");
                 if (!isAnyIntakeBusy() && !isInjectorBusy()) {
                     transferSequenceState = TransferSequenceState.PREPOSITIONING;
 
@@ -1376,6 +1386,7 @@ public class BasicIndexingHelper {
 
             case PREPOSITIONING:
                 // Wait for pre-positioning to complete
+                System.out.println("[BasicIndexingHelper]: PREPOSITIONING");
                 if (!isUptakeBusy()) {
                     transferSequenceState = TransferSequenceState.COMPLETE;
                     transferSequenceActive = false;
