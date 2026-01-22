@@ -250,7 +250,9 @@ public class IndexingSystemV3 {
         
         // Update watchdog (automatic safety enforcement)
         // Note: OpMode must call setWatchdogTriggerState() to update trigger state
-        watchdog.update(false, runner.isBusy(), manualModeActive);
+        // CRITICAL: Pass isOperationRunning() which includes physical hardware state,
+        // not just runner.isBusy() which only checks the operation state machine
+        watchdog.update(false, isOperationRunning(), manualModeActive);
         
         // Capture current operation before update (for completion handling)
         boolean isBusyNow = runner.isBusy();
@@ -1196,7 +1198,8 @@ public class IndexingSystemV3 {
      */
     public void setWatchdogTriggerState(boolean triggerPressed) {
         // Update watchdog with current trigger state
-        watchdog.update(triggerPressed, runner.isBusy(), manualModeActive);
+        // Pass isOperationRunning() to include physical hardware state
+        watchdog.update(triggerPressed, isOperationRunning(), manualModeActive);
     }
     
     /**
