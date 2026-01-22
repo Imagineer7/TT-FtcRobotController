@@ -333,9 +333,11 @@ public class IndexingSystemV3 {
             return;  // Not in burst mode, nothing to check
         }
         
-        // CRITICAL FIX: Don't process shot if transfer is still running!
-        // Otherwise, we clear CENTER before the artifact physically arrives
-        if (runner.isBusy()) {
+        // CRITICAL FIX: Don't process shot if transfer is still physically running!
+        // The runner.isBusy() check is not enough - the operation can complete but the
+        // physical transfer hardware sequence continues running in BasicIndexingHelper.
+        // We must check BOTH runner.isBusy() AND indexingHelper.isTransferActive()
+        if (runner.isBusy() || indexingHelper.isTransferActive()) {
             // Transfer or other operation in progress - wait for it to complete
             // before processing the shot and clearing the ledger
             return;
