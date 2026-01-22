@@ -82,6 +82,7 @@ public class IndexingSystemV3 {
     private int lastKnownShotCount;  // Track FiringHelper's shot count for ledger updates
     private ArtifactIdentity lastFiredArtifact;  // Track last fired artifact for debug telemetry
     private boolean deferredTransferNeeded;  // True when shot fired but transfer deferred due to busy operation
+    private boolean firingButtonHeld;  // Track firing button state for watchdog
     
     // Artifact tracking
     private int nextSequenceId;
@@ -249,10 +250,10 @@ public class IndexingSystemV3 {
         firingHelper.update();
         
         // Update watchdog (automatic safety enforcement)
-        // Note: OpMode must call setWatchdogTriggerState() to update trigger state
+        // Note: OpMode must call setFiringButtonHeld() to update trigger state
         // CRITICAL: Pass isOperationRunning() which includes physical hardware state,
         // not just runner.isBusy() which only checks the operation state machine
-        watchdog.update(false, isOperationRunning(), manualModeActive);
+        watchdog.update(firingButtonHeld, isOperationRunning(), manualModeActive);
         
         // Capture current operation before update (for completion handling)
         boolean isBusyNow = runner.isBusy();
@@ -1239,9 +1240,7 @@ public class IndexingSystemV3 {
      * @param triggerPressed true if fire trigger is pressed, false if released
      */
     public void setWatchdogTriggerState(boolean triggerPressed) {
-        // Update watchdog with current trigger state
-        // Pass isOperationRunning() to include physical hardware state
-        watchdog.update(triggerPressed, isOperationRunning(), manualModeActive);
+        setFiringButtonHeld(triggerPressed);
     }
     
     /**
