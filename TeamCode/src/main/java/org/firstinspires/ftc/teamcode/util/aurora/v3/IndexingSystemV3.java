@@ -1188,10 +1188,27 @@ public class IndexingSystemV3 {
      * Check if ready to fire the next shot (shooter spun up and waiting).
      * Use this after starting firing to know when you can fire the next shot.
      * 
+     * IMPORTANT: You should also check isOperationRunning() to ensure any transfers
+     * have completed before calling fireNextShot(). Otherwise you may fire before
+     * the artifact is physically loaded into CENTER.
+     * 
      * @return true if in READY_TO_FIRE state, false otherwise
      */
     public boolean isReadyForNextShot() {
         return firingHelper.isReadyForNextShot();
+    }
+    
+    /**
+     * Check if an operation is currently running (collect, transfer, swap, fire).
+     * Use this to determine if it's safe to start a new operation.
+     * 
+     * For burst firing, check this before calling fireNextShot() to ensure
+     * any transfer operations have completed and the artifact is physically in CENTER.
+     * 
+     * @return true if operation running, false if idle
+     */
+    public boolean isOperationRunning() {
+        return runner.isBusy();
     }
     
     /**

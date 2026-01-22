@@ -258,8 +258,10 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
                 }
             } else {
                 // Button still held - check if ready for next shot and fire it
-                if (indexing.isReadyForNextShot()) {
-                    // Shooter is spun up and ready for another shot
+                // CRITICAL: Must check BOTH shooter ready AND no operations running
+                // Otherwise we may fire before transfer completes and artifact physically loads
+                if (indexing.isReadyForNextShot() && !indexing.isOperationRunning()) {
+                    // Shooter is spun up, no transfer in progress
                     // Check if we have an artifact ready to fire
                     if (indexing.getLedger().isCenterOccupied()) {
                         telemetry.addLine("🔥 Firing next shot...");
@@ -268,6 +270,9 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
                     } else {
                         telemetry.addLine("⏳ Waiting for next artifact transfer...");
                     }
+                } else if (indexing.isOperationRunning()) {
+                    // Transfer or other operation in progress
+                    telemetry.addLine("⏳ Transfer in progress...");
                 } else {
                     // Still processing previous shot or spinning up
                     telemetry.addLine("⏳ Processing... " + 
