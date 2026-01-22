@@ -42,12 +42,16 @@ import org.firstinspires.ftc.teamcode.util.debug.LogLevel;
  *   X - Transfer FRONT → CENTER
  *   Y - Transfer BACK → CENTER
  *   
- *   LEFT BUMPER  - Hold to fire (spins up shooter, fires when ready, keep-alive mode)
  *   RIGHT BUMPER - Toggle hunt mode
  *   
  *   BACK - Eject FRONT
  *   START - Eject BACK
  * 
+ * GAMEPAD 2:
+ *   A - Hold to fire SHORT range (2000 RPM)
+ *   B - Hold to fire MID range (2300 RPM)
+ *   Y - Hold to fire LONG range (2800 RPM)
+ *
  * Test Sequence:
  * 1. Manual injection test
  *    - Press DPAD UP → should add Purple to FRONT
@@ -59,10 +63,11 @@ import org.firstinspires.ftc.teamcode.util.debug.LogLevel;
  *    - Verify FRONT empty, CENTER has Purple
  * 
  * 3. Fire test
- *    - Hold LEFT BUMPER → should spin up shooter
- *    - When ready → should automatically fire Purple from CENTER
+ *    - Hold GAMEPAD2 A (SHORT) → should spin up shooter to 2000 RPM
+ *    - When ready → should automatically fire artifact from CENTER
  *    - Keep holding → should transfer next artifact and fire again (keep-alive)
- *    - Release LEFT BUMPER → should stop shooter and cancel
+ *    - Release GAMEPAD2 A → should stop shooter and cancel
+ *    - Try GAMEPAD2 B (MID) and Y (LONG) for different RPM targets
  *    - Verify shooter stops, CENTER empty after firing
  * 
  * 4. Hunt mode test
@@ -101,7 +106,8 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     // Firing state tracking
     private boolean isFiring = false;  // True when firing sequence active
     private boolean lastReadyToFire = false;  // Track when ready-to-fire state changes (edge detection)
-    
+    private ShooterConfig.ShooterPreset currentFiringMode = null;  // Track which firing mode is active
+
     @Override
     public void runOpMode() {
         // Configure debug logging
@@ -301,8 +307,22 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     private void handleFire() {
         // Hold-to-fire behavior using FiringHelper's built-in keep-alive mode
         // FiringHelper automatically handles spinup, firing, and keeping shooter alive
-        boolean fireButtonHeld = gamepad1.left_bumper;
-        
+
+        // Detect which fire button is held and determine preset
+        ShooterConfig.ShooterPreset selectedPreset = null;
+        boolean fireButtonHeld = false;
+
+        if (gamepad2.a) {
+            selectedPreset = ShooterConfig.ShooterPreset.SHORT_RANGE;
+            fireButtonHeld = true;
+        } else if (gamepad2.b) {
+            selectedPreset = ShooterConfig.ShooterPreset.MID_RANGE;
+            fireButtonHeld = true;
+        } else if (gamepad2.y) {
+            selectedPreset = ShooterConfig.ShooterPreset.LONG_RANGE;
+            fireButtonHeld = true;
+        }
+
         // Update button state for FiringHelper to track
         indexing.setFiringButtonHeld(fireButtonHeld);
         
@@ -310,18 +330,19 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             // Button is being held
             if (!isFiring) {
                 // Just pressed - start firing sequence
+                currentFiringMode = selectedPreset;  // Store the mode
                 Dbg.i(LogGroup.TEST, "Fire button pressed - initiating firing sequence");
                 // FiringHelper will handle spinup automatically when we call startFiring()
                 if (!indexing.getLedger().isCenterOccupied()) {
                     Dbg.w(LogGroup.TEST, "Cannot fire: CENTER empty");
                     telemetry.addLine("❌ Cannot fire: CENTER empty");
                 } else {
-                    Dbg.i(LogGroup.TEST, "Starting firing with SHORT_RANGE preset (%.0f RPM)",
-                          ShooterConfig.ShooterPreset.SHORT_RANGE.getTargetRPM());
-                    telemetry.addLine("🔥 Starting firing sequence...");
+                    Dbg.i(LogGroup.TEST, "Starting firing with %s preset (%.0f RPM)",
+                          currentFiringMode.getName(), currentFiringMode.getTargetRPM());
+                    telemetry.addLine("🔥 Starting firing sequence (" + currentFiringMode.getName() + ")...");
                     // startFiring() handles spinup automatically and fires the first shot
                     // Keep-alive mode enabled - shooter stays spinning for rapid follow-up shots
-                    boolean started = indexing.requestFire(ShooterConfig.ShooterPreset.SHORT_RANGE.getTargetRPM());
+                    boolean started = indexing.requestFire(currentFiringMode.getTargetRPM());
                     Dbg.d(LogGroup.TEST, "requestFire returned: %s", started);
                     if (started) {
                         isFiring = true;
@@ -332,6 +353,19 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
                     }
                 }
             } else {
+                // Button still held - check if mode changed
+                if (selectedPreset != currentFiringMode) {
+                    // Mode changed while firing - cancel and restart with new mode
+                    Dbg.i(LogGroup.TEST, "Fire mode changed from %s to %s - restarting",
+                          currentFiringMode.getName(), selectedPreset.getName());
+                    telemetry.addLine("🔄 Switching to " + selectedPreset.getName() + "...");
+                    indexing.cancelBurstFiring();
+                    isFiring = false;
+                    lastReadyToFire = false;
+                    currentFiringMode = null;
+                    return;  // Will restart on next loop
+                }
+
                 // Button still held - check if ready for next shot and fire it
                 // CRITICAL: Must check BOTH shooter ready AND no operations running
                 // Otherwise we may fire before transfer completes and artifact physically loads
@@ -392,6 +426,7 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
                 indexing.cancelBurstFiring();
                 isFiring = false;
                 lastReadyToFire = false;  // Reset edge detection
+                currentFiringMode = null;  // Clear firing mode
                 Dbg.i(LogGroup.TEST, "Firing sequence canceled");
             }
         }
