@@ -97,6 +97,7 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     
     // Firing state tracking
     private boolean isFiring = false;  // True when firing sequence active
+    private boolean lastReadyToFire = false;  // Track when ready-to-fire state changes (edge detection)
     
     @Override
     public void runOpMode() {
@@ -261,25 +262,37 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
                 // Button still held - check if ready for next shot and fire it
                 // CRITICAL: Must check BOTH shooter ready AND no operations running
                 // Otherwise we may fire before transfer completes and artifact physically loads
-                if (indexing.isReadyForNextShot() && !indexing.isOperationRunning()) {
-                    // Shooter is spun up, no transfer in progress
-                    // Check if we have an artifact ready to fire
-                    if (indexing.getLedger().isCenterOccupied()) {
-                        telemetry.addLine("🔥 Firing next shot...");
-                        // Fire the next shot (FiringHelper keeps shooter spinning)
-                        indexing.fireNextShot();
-                    } else {
-                        telemetry.addLine("⏳ Waiting for next artifact transfer...");
-                    }
+                
+                // Check current state
+                boolean readyToFire = indexing.isReadyForNextShot() && 
+                                     !indexing.isOperationRunning() && 
+                                     indexing.getLedger().isCenterOccupied();
+                
+                // EDGE DETECTION: Only fire when state changes from false → true
+                // This prevents repeated firing of the same artifact
+                if (readyToFire && !lastReadyToFire) {
+                    // State just changed to ready - fire now
+                    telemetry.addLine("🔥 Firing next shot...");
+                    // Fire the next shot (FiringHelper keeps shooter spinning)
+                    indexing.fireNextShot();
+                } else if (readyToFire) {
+                    // Already fired this artifact, waiting for next
+                    telemetry.addLine("⏳ Shot fired, waiting for next artifact...");
                 } else if (indexing.isOperationRunning()) {
                     // Transfer or other operation in progress
                     telemetry.addLine("⏳ Transfer in progress...");
+                } else if (!indexing.getLedger().isCenterOccupied()) {
+                    // No artifact in center
+                    telemetry.addLine("⏳ Waiting for next artifact transfer...");
                 } else {
                     // Still processing previous shot or spinning up
                     telemetry.addLine("⏳ Processing... " + 
                         String.format("%.0f", indexing.getShooterCurrentRPM()) + " / " + 
                         String.format("%.0f", indexing.getShooterTargetRPM()) + " RPM");
                 }
+                
+                // Update edge detection state
+                lastReadyToFire = readyToFire;
             }
         } else {
             // Button released
@@ -289,6 +302,7 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
                 // Cancel firing through FiringHelper (stops shooter, completes any transfers)
                 indexing.cancelBurstFiring();
                 isFiring = false;
+                lastReadyToFire = false;  // Reset edge detection
             }
         }
     }
