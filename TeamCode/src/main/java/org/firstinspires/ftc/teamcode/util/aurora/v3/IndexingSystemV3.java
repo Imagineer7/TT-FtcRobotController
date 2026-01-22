@@ -333,6 +333,14 @@ public class IndexingSystemV3 {
             return;  // Not in burst mode, nothing to check
         }
         
+        // CRITICAL FIX: Don't process shot if transfer is still running!
+        // Otherwise we clear CENTER before the artifact physically arrives
+        if (runner.isBusy()) {
+            // Transfer or other operation in progress - wait for it to complete
+            // before processing the shot and clearing the ledger
+            return;
+        }
+        
         // Check if shot count increased
         int currentShotCount = firingHelper.getShotsFiredCount();
         if (currentShotCount > lastKnownShotCount) {
