@@ -1022,9 +1022,18 @@ public class IndexingSystemV3 {
             // Note: Firing will happen automatically after transfer completes
             // (via automatic operations or explicit request in next update)
         } else {
-            // No more artifacts - end burst
-            burstFiringActive = false;
-            firingHelper.cancelFiring();
+            // No artifacts in intakes to transfer
+            // If CENTER is occupied, keep burst active (still have artifact to fire)
+            // Only end burst if CENTER is also empty (truly no more artifacts)
+            if (!ledger.isCenterOccupied()) {
+                // No more artifacts anywhere - end burst
+                Dbg.d(LogGroup.FIRING, "No more artifacts to transfer or fire - ending burst");
+                burstFiringActive = false;
+                firingHelper.cancelFiring();
+            } else {
+                // CENTER still has artifact to fire - keep burst active
+                Dbg.d(LogGroup.FIRING, "No artifacts to transfer, but CENTER occupied - keeping burst active");
+            }
         }
     }
     
