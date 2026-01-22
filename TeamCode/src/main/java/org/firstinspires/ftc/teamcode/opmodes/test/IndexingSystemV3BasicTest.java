@@ -193,8 +193,8 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             boolean manualActive = gamepad2.dpad_left || gamepad2.dpad_right || gamepad2.dpad_up || gamepad2.dpad_down;
             indexing.setManualModeActive(manualActive);
 
-            // Update watchdog trigger state
-            indexing.setWatchdogTriggerState(gamepad1.right_trigger > 0.1);
+            // Update watchdog trigger state with correct fire button (left bumper)
+            indexing.setWatchdogTriggerState(gamepad1.left_bumper);
 
             // Update system
             // ⚠️ CRITICAL: indexing.update() calls firingHelper.update() internally,
