@@ -407,6 +407,14 @@ public class FireOperation extends BaseOperation {
     public boolean wasCancelledBeforeShot() {
         return wasCancelledBeforeShot;
     }
+    
+    /**
+     * Get the artifact that was fired (for telemetry).
+     * @return the fired artifact, or null if not available
+     */
+    public ArtifactIdentity getFiredArtifact() {
+        return firedArtifact;
+    }
 
     // ═══════════════════════════════════════════════════════════════════════
     // TELEMETRY

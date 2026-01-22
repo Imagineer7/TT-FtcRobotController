@@ -77,6 +77,8 @@ public class IndexingSystemV3 {
     private boolean burstFiringActive;
     private long lastOperationCompleteTime;
     private int consecutiveShotsFired;
+    private int lastKnownShotCount;  // Track FiringHelper's shot count for ledger updates
+    private ArtifactIdentity lastFiredArtifact;  // Track last fired artifact for debug telemetry
     
     // Artifact tracking
     private int nextSequenceId;
@@ -172,6 +174,8 @@ public class IndexingSystemV3 {
         this.burstFiringActive = false;
         this.lastOperationCompleteTime = System.currentTimeMillis();
         this.consecutiveShotsFired = 0;
+        this.lastKnownShotCount = 0;  // Initialize shot count tracker
+        this.lastFiredArtifact = null;  // No artifact fired yet
         this.nextSequenceId = 1;
         this.lastCompletedOperation = null;
         this.wasRunnerBusyLastUpdate = false;
@@ -240,6 +244,11 @@ public class IndexingSystemV3 {
         // This internally calls shooter.update() - DO NOT call shooter.update() separately!
         firingHelper.update();
         
+        // CRITICAL: Detect subsequent shots (keep-alive mode) and update ledger
+        // When fireNextShot() is called, it fires via FiringHelper without creating a FireOperation
+        // We must detect when the shot actually fires and update the ledger accordingly
+        checkForSubsequentShotFired();
+        
         // Update watchdog (automatic safety enforcement)
         // Note: OpMode must call setWatchdogTriggerState() to update trigger state
         watchdog.update(false, runner.isBusy(), manualModeActive);
@@ -307,6 +316,50 @@ public class IndexingSystemV3 {
         // This creates a "jiggling" effect that rotates artifacts slightly
         // Helps prevent sensor blind spots from holes in artifacts
         updateHuntingTransferServos();
+    }
+    
+    /**
+     * Check if a subsequent shot (non-FireOperation) has fired and update ledger.
+     * 
+     * When fireNextShot() is called, it fires directly via FiringHelper without creating
+     * a FireOperation. This avoids race conditions where FireOperation's doCommit() clears
+     * the CENTER slot before the artifact is even loaded.
+     * 
+     * Instead, we track FiringHelper's shot count and update the ledger when we detect
+     * a new shot has actually fired.
+     */
+    private void checkForSubsequentShotFired() {
+        if (!burstFiringActive) {
+            return;  // Not in burst mode, nothing to check
+        }
+        
+        // Check if shot count increased
+        int currentShotCount = firingHelper.getShotsFiredCount();
+        if (currentShotCount > lastKnownShotCount) {
+            // Shot fired! Get the artifact before clearing CENTER
+            ArtifactIdentity firedArtifact = ledger.getCenter();
+            
+            System.out.println("[IndexingV3] Subsequent shot detected (" + 
+                             lastKnownShotCount + " → " + currentShotCount + "), clearing CENTER");
+            
+            // Clear center slot (artifact was fired)
+            ledger.setCenter(null);
+            
+            // Update tracking
+            lastKnownShotCount = currentShotCount;
+            lastFiredArtifact = firedArtifact;  // Track for telemetry
+            consecutiveShotsFired++;
+            totalShots++;
+            
+            // Consume shot from plan
+            if (shotPlanner != null) {
+                shotPlanner.consumeShot();
+                System.out.println("[IndexingV3] Shot consumed from plan");
+            }
+            
+            // Queue next artifact transfer if available
+            queueNextShotInBurst();
+        }
     }
     
     /**
@@ -509,6 +562,7 @@ public class IndexingSystemV3 {
             if (!fireOp.wasCancelledBeforeShot()) {
                 totalShots++;
                 consecutiveShotsFired++;
+                lastFiredArtifact = fireOp.getFiredArtifact();  // Track for telemetry
                 System.out.println("[IndexingV3] Shot fired, total=" + totalShots);
                 
                 // If burst firing, queue next transfer if more shots needed
@@ -808,6 +862,8 @@ public class IndexingSystemV3 {
         if (started && keepAlive) {
             burstFiringActive = true;
             consecutiveShotsFired = 0;
+            // Initialize shot count tracking for subsequent shot detection
+            lastKnownShotCount = firingHelper.getShotsFiredCount();
         }
         
         return started;
@@ -1144,16 +1200,17 @@ public class IndexingSystemV3 {
      * 
      * This is used for subsequent shots after the first one in keep-alive mode.
      * 
-     * CRITICAL: This creates a FireOperation to properly update the ledger after firing.
-     * Direct firingHelper.fireShot() bypasses ledger updates!
+     * CRITICAL: This fires directly via FiringHelper without creating a FireOperation.
+     * The ledger is updated asynchronously when we detect the shot fired (via shot count).
+     * This avoids race conditions where FireOperation's doCommit() would clear CENTER
+     * before the artifact is even loaded from the transfer.
      * 
      * @return true if shot started, false if not ready
      */
     public boolean fireNextShot() {
-        // Must create a FireOperation to track shot and update ledger
-        // Direct hardware call bypasses ledger management!
-        // Pass null for shouldContinue - let user manage cancellation via cancelBurstFiring()
-        return requestFire(true, null);
+        // Fire directly via FiringHelper (don't create FireOperation)
+        // Ledger will be updated in checkForSubsequentShotFired() when shot actually fires
+        return firingHelper.fireShot();
     }
     
     /**
@@ -1218,6 +1275,8 @@ public class IndexingSystemV3 {
         telemetry.addData("Hunt Mode", huntEnabled ? "🔍 ON" : "💤 OFF");
         telemetry.addData("Manual Mode", manualModeActive ? "⚠️ YES" : "No");
         telemetry.addData("Burst Firing", burstFiringActive ? "🔥 YES (" + consecutiveShotsFired + ")" : "No");
+        telemetry.addData("Last Fired", lastFiredArtifact != null ? 
+            lastFiredArtifact.getColorClass() + " " + String.format("%.0f%%", lastFiredArtifact.getColorConfidence() * 100) : "None");
         telemetry.addLine();
         
         // Slot ledger
