@@ -1,271 +1,372 @@
-12-21 22:47:51.066  1000  2096 I I2C     : Automatically initializing I2C device Rev2mDistanceSensor (USB (embedded); module 3; bus 2; addr7=0x29)
-12-21 22:47:51.066  1000  2096 D STMicroVL53L0X: : Checking to see if it's really a VL53L0X sensor...
-12-21 22:47:51.071  1000  2096 D STMicroVL53L0X: : Reg 0xC0 = ee (should be 0xEE)
-12-21 22:47:51.076  1000  2096 D STMicroVL53L0X: : Reg 0xC1 = aa (should be 0xAA)
-12-21 22:47:51.081  1000  2096 D STMicroVL53L0X: : Reg 0xC2 = 10 (should be 0x10)
-12-21 22:47:51.087  1000  2096 D STMicroVL53L0X: : Reg 0x51 = 0 (should be 0x0099)
-12-21 22:47:51.092  1000  2096 D STMicroVL53L0X: : Reg 0x61 = 0 (should be 0x0000)
-12-21 22:47:51.123  1000  2096 D STMicroVL53L0X: : initial sig rate lim (MCPS) 0.250000
-12-21 22:47:51.131  1000  2096 D STMicroVL53L0X: : adjusted sig rate lim (MCPS) 0.250000
-12-21 22:47:51.508  1000  2096 I I2C     : Automatically initializing I2C device Rev2mDistanceSensor (USB (embedded); module 173; bus 3; addr7=0x29)
-12-21 22:47:51.508  1000  2096 D STMicroVL53L0X: : Checking to see if it's really a VL53L0X sensor...
-12-21 22:47:51.511  1000  2096 D STMicroVL53L0X: : Reg 0xC0 = ee (should be 0xEE)
-12-21 22:47:51.514  1000  2096 D STMicroVL53L0X: : Reg 0xC1 = aa (should be 0xAA)
-12-21 22:47:51.518  1000  2096 D STMicroVL53L0X: : Reg 0xC2 = 10 (should be 0x10)
-12-21 22:47:51.521  1000  2096 D STMicroVL53L0X: : Reg 0x51 = 0 (should be 0x0099)
-12-21 22:47:51.525  1000  2096 D STMicroVL53L0X: : Reg 0x61 = 0 (should be 0x0000)
-12-21 22:47:51.543  1000  2096 D STMicroVL53L0X: : initial sig rate lim (MCPS) 0.250000
-12-21 22:47:51.548  1000  2096 D STMicroVL53L0X: : adjusted sig rate lim (MCPS) 0.250000
-12-21 22:47:51.768  1000  2096 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 173; bus 2; addr7=0x52)
-12-21 22:47:51.768  1000  2096 V BroadcomColorSensorImpl: internalInitialize()...
-12-21 22:47:51.779  1000  2096 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 22:47:51.779  1000  2096 V BroadcomColorSensorImpl: setGain(0x01)
-12-21 22:47:51.783  1000  2096 V BroadcomColorSensorImpl: setLEDParameters(0x37)
-12-21 22:47:51.787  1000  2096 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
-12-21 22:47:51.790  1000  2096 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
-12-21 22:47:51.793  1000  2096 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
-12-21 22:47:51.800  1000  2096 V BroadcomColorSensorImpl: enable() enabled=0x07...
-12-21 22:47:51.806  1000  2096 V BroadcomColorSensorImpl: ...enable() enabled=0x07
-12-21 22:47:51.810  1000  2096 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 22:47:51.810  1000  2096 V BroadcomColorSensorImpl: ...internalInitialize()
-12-21 22:47:51.811  1000  2096 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 3; bus 3; addr7=0x52)
-12-21 22:47:51.811  1000  2096 V BroadcomColorSensorImpl: internalInitialize()...
-12-21 22:47:51.821  1000  2096 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 22:47:51.821  1000  2096 V BroadcomColorSensorImpl: setGain(0x01)
-12-21 22:47:51.826  1000  2096 V BroadcomColorSensorImpl: setLEDParameters(0x37)
-12-21 22:47:51.831  1000  2096 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
-12-21 22:47:51.836  1000  2096 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
-12-21 22:47:51.840  1000  2096 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
-12-21 22:47:51.849  1000  2096 V BroadcomColorSensorImpl: enable() enabled=0x07...
-12-21 22:47:51.858  1000  2096 V BroadcomColorSensorImpl: ...enable() enabled=0x07
-12-21 22:47:51.864  1000  2096 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 22:47:51.865  1000  2096 V BroadcomColorSensorImpl: ...internalInitialize()
-12-21 22:47:51.865  1000  2096 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 173; bus 1; addr7=0x52)
-12-21 22:47:51.865  1000  2096 V BroadcomColorSensorImpl: internalInitialize()...
-12-21 22:47:51.872  1000  2096 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 22:47:51.872  1000  2096 V BroadcomColorSensorImpl: setGain(0x01)
-12-21 22:47:51.876  1000  2096 V BroadcomColorSensorImpl: setLEDParameters(0x37)
-12-21 22:47:51.879  1000  2096 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
-12-21 22:47:51.882  1000  2096 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
-12-21 22:47:51.886  1000  2096 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
-12-21 22:47:51.892  1000  2096 V BroadcomColorSensorImpl: enable() enabled=0x07...
-12-21 22:47:51.898  1000  2096 V BroadcomColorSensorImpl: ...enable() enabled=0x07
-12-21 22:47:51.902  1000  2096 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 22:47:51.902  1000  2096 V BroadcomColorSensorImpl: ...internalInitialize()
-12-21 22:47:51.902  1000  2096 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 3; bus 1; addr7=0x52)
-12-21 22:47:51.902  1000  2096 V BroadcomColorSensorImpl: internalInitialize()...
-12-21 22:47:51.912  1000  2096 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 22:47:51.913  1000  2096 V BroadcomColorSensorImpl: setGain(0x01)
-12-21 22:47:51.918  1000  2096 V BroadcomColorSensorImpl: setLEDParameters(0x37)
-12-21 22:47:51.923  1000  2096 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
-12-21 22:47:51.929  1000  2096 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
-12-21 22:47:51.933  1000  2096 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
-12-21 22:47:51.942  1000  2096 V BroadcomColorSensorImpl: enable() enabled=0x07...
-12-21 22:47:51.950  1000  2096 V BroadcomColorSensorImpl: ...enable() enabled=0x07
-12-21 22:47:51.956  1000  2096 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
-12-21 22:47:51.956  1000  2096 V BroadcomColorSensorImpl: ...internalInitialize()
-12-21 22:47:51.957  1000  2096 I I2C     : Automatically initializing I2C device BHI260IMU (BHI260 IMU on USB (embedded); module 173; bus 0; addr7=0x28)
-12-21 22:47:51.959  1000  2096 V BHI260IMU: Suppressing I2C warnings while we check for a BHI260AP IMU
-12-21 22:47:51.962  1000  2096 V BHI260IMU: Found BHI260AP IMU
-12-21 22:47:51.978  1000  2096 D BHI260IMU: Firmware version: 20
-12-21 22:47:52.000  1000  2096 V BHI260IMU: Suppressing I2C warnings while we check for a BHI260AP IMU
-12-21 22:47:52.004  1000  2096 V BHI260IMU: Found BHI260AP IMU
-12-21 22:47:52.020  1000  2096 D BHI260IMU: Firmware version: 20
-12-21 22:47:54.263  1000  2096 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
-12-21 22:47:54.363  1000  2096 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 22:47:54.444  1000  2096 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 22:47:54.535  1000  2096 I System.out: [OpRunner] Starting operation: Collect[FRONT]
-12-21 22:47:54.535  1000  2096 I System.out: [CollectOp] doStart() called for FRONT
-12-21 22:47:54.535  1000  2096 I System.out: [CollectOp] Fast presence detected, starting hardware...
-12-21 22:47:54.535  1000  2096 I System.out: [CollectOp] Started FRONT intake hardware
-12-21 22:47:54.536  1000  2096 I System.out: [CollectOp] doStart() completed successfully
-12-21 22:47:54.536  1000  2096 I System.out: [OpRunner] STARTED successfully (#1)
-12-21 22:47:54.536  1000  2096 I System.out: [IndexingV3] Auto-collect FRONT (confidence=HIGH)
-12-21 22:47:54.616  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 22:47:54.681  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 22:47:54.741  1000  2096 I System.out: [CollectOp] Color checkpoint reached, stopping hardware
-12-21 22:47:54.747  1000  2096 I System.out: [CollectOp] → SETTLING state
-12-21 22:47:54.747  1000  2096 I System.out: [CollectOp] Hardware done before sampling, forcing completion
-12-21 22:47:54.993  1000  2096 I System.out: [CollectOp] Collection complete
-12-21 22:47:54.993  1000  2096 I System.out: [OpRunner] update() - stillRunning=false, op=Collect[FRONT]
-12-21 22:47:54.993  1000  2096 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
-12-21 22:47:54.995  1000  2096 I System.out: [CollectOp] doCommit() called
-12-21 22:47:54.995  1000  2096 I System.out: [CollectOp] Committed PURPLE to FRONT (conf=0.71)
-12-21 22:47:54.997  1000  2096 I System.out: [OpRunner] Commit complete
-12-21 22:47:54.998  1000  2096 I System.out: [OpRunner] Clearing operation, now idle
-12-21 22:47:54.999  1000  2096 I System.out: [IndexingV3] handleOperationComplete: Collect[FRONT], success=true
-12-21 22:47:54.999  1000  2096 I System.out: [IndexingV3] Collection completed, calling handlePostCollection()
-12-21 22:47:54.999  1000  2096 I System.out: [IndexingV3] handlePostCollection: artifactCount=1
-12-21 22:47:54.999  1000  2096 I System.out: [IndexingV3] 1st artifact - requesting transfer from FRONT
-12-21 22:47:55.003  1000  2096 I System.out: [OpRunner] Starting operation: Transfer[FRONT→CENTER]
-12-21 22:47:55.004  1000  2096 I System.out: [BasicIndexingHelper]: Starting transferFrontIntakeToCenterTimed
-12-21 22:47:55.004  1000  2096 I System.out: [BasicIndexingHelper]: TransferSequenceState.UN_PREPOSITIONING
-12-21 22:47:55.004  1000  2096 I System.out: [OpRunner] STARTED successfully (#2)
-12-21 22:47:55.004  1000  2096 I System.out: [IndexingV3] Transfer request SUCCESSFUL
-12-21 22:47:55.107  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:47:55.175  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:47:55.243  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:47:55.322  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:47:55.390  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:47:55.450  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:47:55.526  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:47:55.633  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:47:55.712  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:47:55.782  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:47:55.858  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:47:55.941  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:47:56.011  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 90ms
-12-21 22:47:56.016  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:47:56.088  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 167ms
-12-21 22:47:56.093  1000  2096 I System.out: [OpRunner] update() - stillRunning=false, op=Transfer[FRONT→CENTER]
-12-21 22:47:56.093  1000  2096 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
-12-21 22:47:56.095  1000  2096 I System.out: [OpRunner] Commit complete
-12-21 22:47:56.095  1000  2096 I System.out: [OpRunner] Clearing operation, now idle
-12-21 22:47:56.095  1000  2096 I System.out: [IndexingV3] handleOperationComplete: Transfer[FRONT→CENTER], success=true
-12-21 22:47:56.095  1000  2096 I System.out: [IndexingV3] Transfer completed
-12-21 22:47:56.095  1000  2096 I System.out: [IndexingV3] Reset FRONT perception after transfer
-12-21 22:47:56.180  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 259ms
-12-21 22:47:56.265  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 343ms
-12-21 22:47:56.270  1000  2096 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 22:47:56.337  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 416ms
-12-21 22:47:56.341  1000  2096 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 22:47:56.403  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 482ms
-12-21 22:47:56.408  1000  2096 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 22:47:56.477  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 556ms
-12-21 22:47:56.496  1000  2096 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 22:47:56.556  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 635ms
-12-21 22:47:56.561  1000  2096 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=NONE not HIGH)
-12-21 22:47:56.625  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 704ms
-12-21 22:47:56.709  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 788ms
-12-21 22:47:56.786  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 865ms
-12-21 22:47:56.847  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 926ms
-12-21 22:47:56.911  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 990ms
-12-21 22:47:56.999  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1078ms
-12-21 22:47:57.091  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1170ms
-12-21 22:47:57.149  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1228ms
-12-21 22:47:57.237  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1316ms
-12-21 22:47:57.327  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1406ms
-12-21 22:47:57.394  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1473ms
-12-21 22:47:57.462  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1541ms
-12-21 22:47:57.545  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1624ms
-12-21 22:47:57.634  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1713ms
-12-21 22:47:57.699  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1778ms
-12-21 22:47:57.800  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1879ms
-12-21 22:47:57.890  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1969ms
-12-21 22:47:57.949  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2028ms
-12-21 22:47:58.017  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2096ms
-12-21 22:47:58.105  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2184ms
-12-21 22:47:58.197  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2275ms
-12-21 22:47:58.263  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2342ms
-12-21 22:47:58.352  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2431ms
-12-21 22:47:58.424  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2502ms
-12-21 22:47:58.504  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2583ms
-12-21 22:47:58.596  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:47:58.658  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:47:58.732  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:47:58.804  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:47:58.897  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:47:58.979  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:47:59.045  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:47:59.141  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:47:59.218  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:48:00.659  1000  2096 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
-12-21 22:48:00.727  1000  2096 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
-12-21 22:48:00.792  1000  2096 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
-12-21 22:48:00.860  1000  2096 I System.out: [OpRunner] Starting operation: Collect[FRONT]
-12-21 22:48:00.860  1000  2096 I System.out: [CollectOp] doStart() called for FRONT
-12-21 22:48:00.860  1000  2096 I System.out: [CollectOp] Fast presence detected, starting hardware...
-12-21 22:48:00.860  1000  2096 I System.out: [CollectOp] Started FRONT intake hardware
-12-21 22:48:00.860  1000  2096 I System.out: [CollectOp] doStart() completed successfully
-12-21 22:48:00.860  1000  2096 I System.out: [OpRunner] STARTED successfully (#3)
-12-21 22:48:00.861  1000  2096 I System.out: [IndexingV3] Auto-collect FRONT (confidence=HIGH)
-12-21 22:48:00.930  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
-12-21 22:48:01.024  1000  2096 I System.out: [CollectOp] Color checkpoint reached, stopping hardware
-12-21 22:48:01.030  1000  2096 I System.out: [CollectOp] → SETTLING state
-12-21 22:48:01.030  1000  2096 I System.out: [CollectOp] Hardware done before sampling, forcing completion
-12-21 22:48:01.272  1000  2096 I System.out: [CollectOp] Collection complete
-12-21 22:48:01.273  1000  2096 I System.out: [OpRunner] update() - stillRunning=false, op=Collect[FRONT]
-12-21 22:48:01.273  1000  2096 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
-12-21 22:48:01.273  1000  2096 I System.out: [CollectOp] doCommit() called
-12-21 22:48:01.274  1000  2096 I System.out: [CollectOp] Committed UNKNOWN to FRONT (conf=0.54)
-12-21 22:48:01.276  1000  2096 I System.out: [OpRunner] Commit complete
-12-21 22:48:01.277  1000  2096 I System.out: [OpRunner] Clearing operation, now idle
-12-21 22:48:01.277  1000  2096 I System.out: [IndexingV3] handleOperationComplete: Collect[FRONT], success=true
-12-21 22:48:01.277  1000  2096 I System.out: [IndexingV3] Collection completed, calling handlePostCollection()
-12-21 22:48:01.277  1000  2096 I System.out: [IndexingV3] handlePostCollection: artifactCount=2
-12-21 22:48:01.277  1000  2096 I System.out: [IndexingV3] 2nd artifact - checking shot planner...
-12-21 22:48:01.277  1000  2096 I System.out: [IndexingV3] No swap needed, artifact stays in storage
-12-21 22:48:04.036  1000  2096 I System.out: [BasicFiringHelper]: startFiring() called - targetRPM=1100.0, preset=CUSTOM, keepAlive=true
-12-21 22:48:04.036  1000  2096 I System.out: [OpMode Debug]: requestFire returned true
-12-21 22:48:06.375  1000  2096 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 22:48:06.391  1000  2096 I System.out: [IndexingV3] Subsequent shot detected (0 → 1), clearing CENTER
-12-21 22:48:06.392  1000  2096 I System.out: [IndexingV3] Shot consumed from plan
-12-21 22:48:06.392  1000  2096 I System.out: [OpRunner] Starting operation: Transfer[FRONT→CENTER]
-12-21 22:48:06.392  1000  2096 I System.out: [BasicIndexingHelper]: Starting transferFrontIntakeToCenterTimed
-12-21 22:48:06.392  1000  2096 I System.out: [BasicIndexingHelper]: TransferSequenceState.UN_PREPOSITIONING
-12-21 22:48:06.394  1000  2096 I System.out: [OpRunner] STARTED successfully (#4)
-12-21 22:48:06.494  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:48:06.568  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:48:06.649  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:48:06.719  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:48:06.804  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:48:06.895  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:48:06.963  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:48:07.054  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:48:07.128  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:48:07.204  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:48:07.295  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:48:07.377  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 107ms
-12-21 22:48:07.385  1000  2096 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
-12-21 22:48:07.458  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 188ms
-12-21 22:48:07.475  1000  2096 I System.out: [OpRunner] update() - stillRunning=false, op=Transfer[FRONT→CENTER]
-12-21 22:48:07.475  1000  2096 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
-12-21 22:48:07.476  1000  2096 I System.out: [OpRunner] Commit complete
-12-21 22:48:07.476  1000  2096 I System.out: [OpRunner] Clearing operation, now idle
-12-21 22:48:07.476  1000  2096 I System.out: [IndexingV3] handleOperationComplete: Transfer[FRONT→CENTER], success=true
-12-21 22:48:07.477  1000  2096 I System.out: [IndexingV3] Transfer completed
-12-21 22:48:07.477  1000  2096 I System.out: [IndexingV3] Reset FRONT perception after transfer
-12-21 22:48:07.477  1000  2096 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
-12-21 22:48:07.561  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 291ms
-12-21 22:48:07.652  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 382ms
-12-21 22:48:07.733  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 463ms
-12-21 22:48:07.805  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 535ms
-12-21 22:48:07.827  1000  2096 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
-12-21 22:48:07.836  1000  2096 I System.out: [IndexingV3] Subsequent shot detected (1 → 2), clearing CENTER
-12-21 22:48:07.836  1000  2096 I System.out: [IndexingV3] Shot consumed from plan
-12-21 22:48:07.925  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 655ms
-12-21 22:48:07.996  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 726ms
-12-21 22:48:08.087  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 817ms
-12-21 22:48:08.147  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 876ms
-12-21 22:48:08.213  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 943ms
-12-21 22:48:08.278  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1008ms
-12-21 22:48:08.339  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1068ms
-12-21 22:48:08.449  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1179ms
-12-21 22:48:08.523  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1253ms
-12-21 22:48:08.611  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1341ms
-12-21 22:48:08.685  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1415ms
-12-21 22:48:08.753  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1483ms
-12-21 22:48:08.812  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1542ms
-12-21 22:48:08.881  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1611ms
-12-21 22:48:08.997  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1727ms
-12-21 22:48:09.071  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1801ms
-12-21 22:48:09.155  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1885ms
-12-21 22:48:09.218  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1947ms
-12-21 22:48:09.288  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2018ms
-12-21 22:48:09.352  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2082ms
-12-21 22:48:09.413  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2143ms
-12-21 22:48:09.519  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2249ms
-12-21 22:48:09.594  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2324ms
-12-21 22:48:09.702  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2431ms
-12-21 22:48:09.775  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2505ms
-12-21 22:48:09.850  1000  2096 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2580ms
-12-21 22:48:09.928  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:48:09.992  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:48:10.074  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:48:10.138  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:48:10.224  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:48:10.301  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:48:10.379  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:48:10.459  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:48:10.525  1000  2096 I System.out: [BasicIndexingHelper]: PREPOSITIONING
-12-21 22:48:14.300  1000  2096 E LynxI2cDeviceSynch: placeholder: readStatusQuery
+12-21 23:31:50.740  1000  2321 I I2C     : Automatically initializing I2C device Rev2mDistanceSensor (USB (embedded); module 3; bus 2; addr7=0x29)
+12-21 23:31:50.740  1000  2321 D STMicroVL53L0X: : Checking to see if it's really a VL53L0X sensor...
+12-21 23:31:50.745  1000  2321 D STMicroVL53L0X: : Reg 0xC0 = ee (should be 0xEE)
+12-21 23:31:50.749  1000  2321 D STMicroVL53L0X: : Reg 0xC1 = aa (should be 0xAA)
+12-21 23:31:50.754  1000  2321 D STMicroVL53L0X: : Reg 0xC2 = 10 (should be 0x10)
+12-21 23:31:50.758  1000  2321 D STMicroVL53L0X: : Reg 0x51 = 0 (should be 0x0099)
+12-21 23:31:50.763  1000  2321 D STMicroVL53L0X: : Reg 0x61 = 0 (should be 0x0000)
+12-21 23:31:50.791  1000  2321 D STMicroVL53L0X: : initial sig rate lim (MCPS) 0.250000
+12-21 23:31:50.800  1000  2321 D STMicroVL53L0X: : adjusted sig rate lim (MCPS) 0.250000
+12-21 23:31:51.177  1000  2321 I I2C     : Automatically initializing I2C device Rev2mDistanceSensor (USB (embedded); module 173; bus 3; addr7=0x29)
+12-21 23:31:51.177  1000  2321 D STMicroVL53L0X: : Checking to see if it's really a VL53L0X sensor...
+12-21 23:31:51.180  1000  2321 D STMicroVL53L0X: : Reg 0xC0 = ee (should be 0xEE)
+12-21 23:31:51.182  1000  2321 D STMicroVL53L0X: : Reg 0xC1 = aa (should be 0xAA)
+12-21 23:31:51.185  1000  2321 D STMicroVL53L0X: : Reg 0xC2 = 10 (should be 0x10)
+12-21 23:31:51.188  1000  2321 D STMicroVL53L0X: : Reg 0x51 = 0 (should be 0x0099)
+12-21 23:31:51.190  1000  2321 D STMicroVL53L0X: : Reg 0x61 = 0 (should be 0x0000)
+12-21 23:31:51.208  1000  2321 D STMicroVL53L0X: : initial sig rate lim (MCPS) 0.250000
+12-21 23:31:51.212  1000  2321 D STMicroVL53L0X: : adjusted sig rate lim (MCPS) 0.250000
+12-21 23:31:51.431  1000  2321 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 173; bus 2; addr7=0x52)
+12-21 23:31:51.432  1000  2321 V BroadcomColorSensorImpl: internalInitialize()...
+12-21 23:31:51.439  1000  2321 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
+12-21 23:31:51.440  1000  2321 V BroadcomColorSensorImpl: setGain(0x01)
+12-21 23:31:51.442  1000  2321 V BroadcomColorSensorImpl: setLEDParameters(0x37)
+12-21 23:31:51.445  1000  2321 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
+12-21 23:31:51.447  1000  2321 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
+12-21 23:31:51.451  1000  2321 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
+12-21 23:31:51.456  1000  2321 V BroadcomColorSensorImpl: enable() enabled=0x07...
+12-21 23:31:51.461  1000  2321 V BroadcomColorSensorImpl: ...enable() enabled=0x07
+12-21 23:31:51.466  1000  2321 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
+12-21 23:31:51.466  1000  2321 V BroadcomColorSensorImpl: ...internalInitialize()
+12-21 23:31:51.467  1000  2321 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 3; bus 3; addr7=0x52)
+12-21 23:31:51.467  1000  2321 V BroadcomColorSensorImpl: internalInitialize()...
+12-21 23:31:51.476  1000  2321 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
+12-21 23:31:51.477  1000  2321 V BroadcomColorSensorImpl: setGain(0x01)
+12-21 23:31:51.481  1000  2321 V BroadcomColorSensorImpl: setLEDParameters(0x37)
+12-21 23:31:51.485  1000  2321 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
+12-21 23:31:51.489  1000  2321 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
+12-21 23:31:51.494  1000  2321 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
+12-21 23:31:51.502  1000  2321 V BroadcomColorSensorImpl: enable() enabled=0x07...
+12-21 23:31:51.512  1000  2321 V BroadcomColorSensorImpl: ...enable() enabled=0x07
+12-21 23:31:51.518  1000  2321 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
+12-21 23:31:51.518  1000  2321 V BroadcomColorSensorImpl: ...internalInitialize()
+12-21 23:31:51.519  1000  2321 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 173; bus 1; addr7=0x52)
+12-21 23:31:51.519  1000  2321 V BroadcomColorSensorImpl: internalInitialize()...
+12-21 23:31:51.526  1000  2321 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
+12-21 23:31:51.526  1000  2321 V BroadcomColorSensorImpl: setGain(0x01)
+12-21 23:31:51.530  1000  2321 V BroadcomColorSensorImpl: setLEDParameters(0x37)
+12-21 23:31:51.533  1000  2321 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
+12-21 23:31:51.537  1000  2321 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
+12-21 23:31:51.541  1000  2321 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
+12-21 23:31:51.546  1000  2321 V BroadcomColorSensorImpl: enable() enabled=0x07...
+12-21 23:31:51.552  1000  2321 V BroadcomColorSensorImpl: ...enable() enabled=0x07
+12-21 23:31:51.557  1000  2321 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
+12-21 23:31:51.557  1000  2321 V BroadcomColorSensorImpl: ...internalInitialize()
+12-21 23:31:51.557  1000  2321 I I2C     : Automatically initializing I2C device RevColorSensorV3 (USB (embedded); module 3; bus 1; addr7=0x52)
+12-21 23:31:51.557  1000  2321 V BroadcomColorSensorImpl: internalInitialize()...
+12-21 23:31:51.567  1000  2321 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
+12-21 23:31:51.567  1000  2321 V BroadcomColorSensorImpl: setGain(0x01)
+12-21 23:31:51.572  1000  2321 V BroadcomColorSensorImpl: setLEDParameters(0x37)
+12-21 23:31:51.576  1000  2321 V BroadcomColorSensorImpl: setProximityPulseCount(0x20)
+12-21 23:31:51.581  1000  2321 V BroadcomColorSensorImpl: setPSMeasRate(0x1d)
+12-21 23:31:51.585  1000  2321 V BroadcomColorSensorImpl: setLSMeasRate(0x42)
+12-21 23:31:51.594  1000  2321 V BroadcomColorSensorImpl: enable() enabled=0x07...
+12-21 23:31:51.603  1000  2321 V BroadcomColorSensorImpl: ...enable() enabled=0x07
+12-21 23:31:51.609  1000  2321 V BroadcomColorSensorImpl: state: 07 37 20 1d 42 01 c2
+12-21 23:31:51.609  1000  2321 V BroadcomColorSensorImpl: ...internalInitialize()
+12-21 23:31:51.609  1000  2321 I I2C     : Automatically initializing I2C device BHI260IMU (BHI260 IMU on USB (embedded); module 173; bus 0; addr7=0x28)
+12-21 23:31:51.611  1000  2321 V BHI260IMU: Suppressing I2C warnings while we check for a BHI260AP IMU
+12-21 23:31:51.614  1000  2321 V BHI260IMU: Found BHI260AP IMU
+12-21 23:31:51.627  1000  2321 D BHI260IMU: Firmware version: 20
+12-21 23:31:51.644  1000  2321 V BHI260IMU: Suppressing I2C warnings while we check for a BHI260AP IMU
+12-21 23:31:51.649  1000  2321 V BHI260IMU: Found BHI260AP IMU
+12-21 23:31:51.664  1000  2321 D BHI260IMU: Firmware version: 20
+12-21 23:31:54.497  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 23:31:54.566  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 23:31:54.628  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 23:31:54.695  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 23:31:54.767  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 23:31:54.818  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 23:31:54.891  1000  2321 I System.out: [OpRunner] Starting operation: Collect[FRONT]
+12-21 23:31:54.891  1000  2321 I System.out: [CollectOp] doStart() called for FRONT
+12-21 23:31:54.892  1000  2321 I System.out: [CollectOp] Fast presence detected, starting hardware...
+12-21 23:31:54.892  1000  2321 I System.out: [CollectOp] Started FRONT intake hardware
+12-21 23:31:54.892  1000  2321 I System.out: [CollectOp] doStart() completed successfully
+12-21 23:31:54.892  1000  2321 I System.out: [OpRunner] STARTED successfully (#1)
+12-21 23:31:54.892  1000  2321 I System.out: [IndexingV3] Auto-collect FRONT (confidence=HIGH)
+12-21 23:31:54.980  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
+12-21 23:31:55.060  1000  2321 I System.out: [CollectOp] Color checkpoint reached, stopping hardware
+12-21 23:31:55.068  1000  2321 I System.out: [CollectOp] → SETTLING state
+12-21 23:31:55.068  1000  2321 I System.out: [CollectOp] Hardware done before sampling, forcing completion
+12-21 23:31:55.295  1000  2321 I System.out: [CollectOp] Collection complete
+12-21 23:31:55.295  1000  2321 I System.out: [OpRunner] update() - stillRunning=false, op=Collect[FRONT]
+12-21 23:31:55.295  1000  2321 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
+12-21 23:31:55.295  1000  2321 I System.out: [CollectOp] doCommit() called
+12-21 23:31:55.295  1000  2321 I System.out: [CollectOp] Committed UNKNOWN to FRONT (conf=0.54)
+12-21 23:31:55.296  1000  2321 I System.out: [OpRunner] Commit complete
+12-21 23:31:55.296  1000  2321 I System.out: [OpRunner] Clearing operation, now idle
+12-21 23:31:55.296  1000  2321 I System.out: [IndexingV3] handleOperationComplete: Collect[FRONT], success=true
+12-21 23:31:55.296  1000  2321 I System.out: [IndexingV3] Collection completed, calling handlePostCollection()
+12-21 23:31:55.296  1000  2321 I System.out: [IndexingV3] handlePostCollection: artifactCount=1
+12-21 23:31:55.296  1000  2321 I System.out: [IndexingV3] 1st artifact - requesting transfer from FRONT
+12-21 23:31:55.296  1000  2321 I System.out: [OpRunner] Starting operation: Transfer[FRONT→CENTER]
+12-21 23:31:55.297  1000  2321 I System.out: [BasicIndexingHelper]: Starting transferFrontIntakeToCenterTimed
+12-21 23:31:55.297  1000  2321 I System.out: [BasicIndexingHelper]: TransferSequenceState.UN_PREPOSITIONING
+12-21 23:31:55.297  1000  2321 I System.out: [OpRunner] STARTED successfully (#2)
+12-21 23:31:55.297  1000  2321 I System.out: [IndexingV3] Transfer request SUCCESSFUL
+12-21 23:31:55.379  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:31:55.445  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:31:55.509  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:31:55.595  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:31:55.664  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:31:55.729  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:31:55.788  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:31:55.854  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:31:55.930  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:31:56.000  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:31:56.077  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:31:56.169  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:31:56.249  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:31:56.306  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 75ms
+12-21 23:31:56.309  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:31:56.374  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 143ms
+12-21 23:31:56.379  1000  2321 I System.out: [OpRunner] update() - stillRunning=false, op=Transfer[FRONT→CENTER]
+12-21 23:31:56.379  1000  2321 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
+12-21 23:31:56.380  1000  2321 I System.out: [OpRunner] Commit complete
+12-21 23:31:56.380  1000  2321 I System.out: [OpRunner] Clearing operation, now idle
+12-21 23:31:56.380  1000  2321 I System.out: [IndexingV3] handleOperationComplete: Transfer[FRONT→CENTER], success=true
+12-21 23:31:56.380  1000  2321 I System.out: [IndexingV3] Transfer completed
+12-21 23:31:56.381  1000  2321 I System.out: [IndexingV3] Reset FRONT perception after transfer
+12-21 23:31:56.456  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 225ms
+12-21 23:31:56.513  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 282ms
+12-21 23:31:56.517  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 23:31:56.577  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 346ms
+12-21 23:31:56.582  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 23:31:56.645  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 414ms
+12-21 23:31:56.650  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 23:31:56.710  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 479ms
+12-21 23:31:56.725  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 23:31:56.791  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 560ms
+12-21 23:31:56.812  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 23:31:56.872  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 641ms
+12-21 23:31:56.877  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=NONE not HIGH)
+12-21 23:31:56.944  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 713ms
+12-21 23:31:57.019  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 788ms
+12-21 23:31:57.084  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 853ms
+12-21 23:31:57.141  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 910ms
+12-21 23:31:57.218  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 987ms
+12-21 23:31:57.302  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1071ms
+12-21 23:31:57.390  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1159ms
+12-21 23:31:57.455  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1224ms
+12-21 23:31:57.538  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1307ms
+12-21 23:31:57.610  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1379ms
+12-21 23:31:57.675  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1444ms
+12-21 23:31:57.751  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1520ms
+12-21 23:31:57.832  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1601ms
+12-21 23:31:57.911  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1680ms
+12-21 23:31:57.984  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1753ms
+12-21 23:31:58.060  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1829ms
+12-21 23:31:58.128  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1896ms
+12-21 23:31:58.190  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1959ms
+12-21 23:31:58.282  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2051ms
+12-21 23:31:58.357  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2126ms
+12-21 23:31:58.424  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2193ms
+12-21 23:31:58.493  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2262ms
+12-21 23:31:58.571  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2340ms
+12-21 23:31:58.634  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2403ms
+12-21 23:31:58.704  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2473ms
+12-21 23:31:58.789  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2558ms
+12-21 23:31:58.880  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2649ms
+12-21 23:31:58.962  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:31:59.022  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:31:59.100  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:31:59.169  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:31:59.231  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:31:59.304  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:31:59.387  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:31:59.466  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:31:59.531  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:31:59.603  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:02.174  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 23:32:02.257  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=MEDIUM not HIGH)
+12-21 23:32:02.321  1000  2321 I System.out: [OpRunner] Starting operation: Collect[FRONT]
+12-21 23:32:02.321  1000  2321 I System.out: [CollectOp] doStart() called for FRONT
+12-21 23:32:02.321  1000  2321 I System.out: [CollectOp] Fast presence detected, starting hardware...
+12-21 23:32:02.322  1000  2321 I System.out: [CollectOp] Started FRONT intake hardware
+12-21 23:32:02.322  1000  2321 I System.out: [CollectOp] doStart() completed successfully
+12-21 23:32:02.322  1000  2321 I System.out: [OpRunner] STARTED successfully (#3)
+12-21 23:32:02.322  1000  2321 I System.out: [IndexingV3] Auto-collect FRONT (confidence=HIGH)
+12-21 23:32:02.394  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
+12-21 23:32:02.456  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Collect[FRONT]
+12-21 23:32:02.525  1000  2321 I System.out: [CollectOp] Color checkpoint reached, stopping hardware
+12-21 23:32:02.533  1000  2321 I System.out: [CollectOp] → SETTLING state
+12-21 23:32:02.533  1000  2321 I System.out: [CollectOp] Hardware done before sampling, forcing completion
+12-21 23:32:02.783  1000  2321 I System.out: [CollectOp] Collection complete
+12-21 23:32:02.783  1000  2321 I System.out: [OpRunner] update() - stillRunning=false, op=Collect[FRONT]
+12-21 23:32:02.783  1000  2321 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
+12-21 23:32:02.783  1000  2321 I System.out: [CollectOp] doCommit() called
+12-21 23:32:02.784  1000  2321 I System.out: [CollectOp] Committed GREEN to FRONT (conf=0.70)
+12-21 23:32:02.785  1000  2321 I System.out: [OpRunner] Commit complete
+12-21 23:32:02.785  1000  2321 I System.out: [OpRunner] Clearing operation, now idle
+12-21 23:32:02.786  1000  2321 I System.out: [IndexingV3] handleOperationComplete: Collect[FRONT], success=true
+12-21 23:32:02.786  1000  2321 I System.out: [IndexingV3] Collection completed, calling handlePostCollection()
+12-21 23:32:02.786  1000  2321 I System.out: [IndexingV3] handlePostCollection: artifactCount=2
+12-21 23:32:02.786  1000  2321 I System.out: [IndexingV3] 2nd artifact - checking shot planner...
+12-21 23:32:02.786  1000  2321 I System.out: [IndexingV3] No swap needed, artifact stays in storage
+12-21 23:32:06.020  1000  2321 I System.out: [BasicFiringHelper]: startFiring() called - targetRPM=1100.0, preset=CUSTOM, keepAlive=true
+12-21 23:32:06.020  1000  2321 I System.out: [OpMode Debug]: requestFire returned true
+12-21 23:32:08.391  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:08.399  1000  2321 I System.out: [IndexingV3] Subsequent shot detected (0 → 1), clearing CENTER
+12-21 23:32:08.399  1000  2321 I System.out: [IndexingV3] Shot consumed from plan
+12-21 23:32:08.399  1000  2321 I System.out: [OpRunner] Starting operation: Transfer[FRONT→CENTER]
+12-21 23:32:08.400  1000  2321 I System.out: [BasicIndexingHelper]: Starting transferFrontIntakeToCenterTimed
+12-21 23:32:08.400  1000  2321 I System.out: [BasicIndexingHelper]: TransferSequenceState.UN_PREPOSITIONING
+12-21 23:32:08.400  1000  2321 I System.out: [OpRunner] STARTED successfully (#4)
+12-21 23:32:08.490  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:32:08.574  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:32:08.644  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:32:08.715  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:32:08.776  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:32:08.852  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:32:08.923  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:32:09.011  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:32:09.086  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:32:09.153  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:32:09.229  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:32:09.305  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:32:09.368  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 87ms
+12-21 23:32:09.378  1000  2321 I System.out: [OpRunner] update() - stillRunning=true, op=Transfer[FRONT→CENTER]
+12-21 23:32:09.440  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 159ms
+12-21 23:32:09.448  1000  2321 I System.out: [OpRunner] update() - stillRunning=false, op=Transfer[FRONT→CENTER]
+12-21 23:32:09.449  1000  2321 I System.out: [OpRunner] Operation SUCCESSFUL, committing...
+12-21 23:32:09.451  1000  2321 I System.out: [OpRunner] Commit complete
+12-21 23:32:09.451  1000  2321 I System.out: [OpRunner] Clearing operation, now idle
+12-21 23:32:09.451  1000  2321 I System.out: [IndexingV3] handleOperationComplete: Transfer[FRONT→CENTER], success=true
+12-21 23:32:09.451  1000  2321 I System.out: [IndexingV3] Transfer completed
+12-21 23:32:09.452  1000  2321 I System.out: [IndexingV3] Reset FRONT perception after transfer
+12-21 23:32:09.453  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:09.520  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 239ms
+12-21 23:32:09.602  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 321ms
+12-21 23:32:09.610  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 23:32:09.664  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 383ms
+12-21 23:32:09.671  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 23:32:09.738  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 457ms
+12-21 23:32:09.746  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 23:32:09.808  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 527ms
+12-21 23:32:09.829  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:09.839  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 23:32:09.839  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:09.903  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 622ms
+12-21 23:32:09.916  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=LOW not HIGH)
+12-21 23:32:09.981  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 700ms
+12-21 23:32:09.989  1000  2321 I System.out: [IndexingV3] Skipping FRONT auto-collect (confidence=NONE not HIGH)
+12-21 23:32:10.061  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 780ms
+12-21 23:32:10.144  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 863ms
+12-21 23:32:10.153  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:10.160  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:10.215  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 934ms
+12-21 23:32:10.292  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1011ms
+12-21 23:32:10.376  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1095ms
+12-21 23:32:10.457  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1176ms
+12-21 23:32:10.546  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1265ms
+12-21 23:32:10.551  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:10.558  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:10.638  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1357ms
+12-21 23:32:10.714  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1433ms
+12-21 23:32:10.780  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1499ms
+12-21 23:32:10.866  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1585ms
+12-21 23:32:10.876  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:10.883  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:10.958  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1677ms
+12-21 23:32:11.061  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1780ms
+12-21 23:32:11.149  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1868ms
+12-21 23:32:11.230  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 1949ms
+12-21 23:32:11.235  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:11.243  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:11.302  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2021ms
+12-21 23:32:11.383  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2102ms
+12-21 23:32:11.459  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2178ms
+12-21 23:32:11.532  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2251ms
+12-21 23:32:11.632  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2351ms
+12-21 23:32:11.641  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:11.649  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:11.714  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2433ms
+12-21 23:32:11.797  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2516ms
+12-21 23:32:11.900  1000  2321 I System.out: [BasicIndexingHelper]: TRANSFERRING - Elapsed Time: 2619ms
+12-21 23:32:11.976  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:12.053  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:12.131  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:12.194  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:12.282  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:12.378  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:12.458  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:12.532  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:12.536  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:12.544  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:12.593  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:12.688  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:12.759  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:12.844  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:12.853  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:12.868  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:12.940  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:13.032  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:13.091  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:13.163  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:13.242  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:13.247  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:13.255  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:13.315  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:13.399  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:13.478  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:13.559  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:13.568  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:13.575  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:13.646  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:13.725  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:13.808  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:13.880  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:13.887  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:13.895  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:13.971  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:14.069  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:14.149  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:14.216  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:14.226  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:14.233  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:14.290  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:14.376  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:14.447  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:14.513  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:14.613  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:14.619  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:14.623  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:14.692  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:14.769  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:14.833  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:14.910  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:14.982  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:14.990  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:14.997  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:15.069  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:15.162  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:15.237  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:15.300  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:15.305  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:15.313  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:15.377  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:15.463  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:15.529  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:15.606  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:15.697  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:15.707  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:15.715  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:15.785  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:15.858  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:15.927  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:16.005  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:16.083  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:16.088  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:16.095  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:16.174  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:16.264  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:16.340  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:16.398  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:16.408  1000  2321 I System.out: [BasicFiringHelper]: Shot fired - transitioning to READY_TO_FIRE
+12-21 23:32:16.417  1000  2321 I System.out: [BasicFiringHelper]: fireShot() called - feeding artifact
+12-21 23:32:16.480  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:16.506  1000  2321 I System.out: [IndexingV3] Burst firing cancelled by OpMode request
+12-21 23:32:16.590  1000  2321 I System.out: [BasicIndexingHelper]: PREPOSITIONING
+12-21 23:32:18.859  1000  2321 E LynxI2cDeviceSynch: placeholder: readTimestamped
+12-21 23:32:18.859  1000  2321 E LynxI2cDeviceSynch: placeholder: readTimestamped
+12-21 23:32:23.377   791   791 D lvjinhua:  Failed while trying resolve alarm filter file, not exists
