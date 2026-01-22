@@ -1,14 +1,16 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
-import org.firstinspires.ftc.teamcode.util.aurora.IndexingSystem;
+import org.firstinspires.ftc.teamcode.util.aurora.IndexingSystemOld;
 import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.Artifact;
 import org.firstinspires.ftc.teamcode.util.aurora.FiringSequenceCoordinator;
+import org.firstinspires.ftc.teamcode.util.aurora.SystemMonitor;
 
 /**
  * FullSystemTest - Comprehensive test OpMode for complete indexing and shooting system
@@ -75,17 +77,18 @@ import org.firstinspires.ftc.teamcode.util.aurora.FiringSequenceCoordinator;
  *   [L-BUMPER + DPAD] - RPM adjustment mode:
  *     LB+UP/DOWN: ±100 RPM, LB+LEFT/RIGHT: ±500 RPM
  */
+@Deprecated
 @TeleOp(name = "🚀 Full System Test", group = "Testing")
+@Disabled
 public class FullSystemTest extends LinearOpMode {
 
     // Hardware and Systems
     private AuroraHardwareConfig hardware;
-    private IndexingSystem indexingSystem;
+    private IndexingSystemOld indexingSystem;
     private IndexingConfig indexingConfig;
     private Shooter shooter;
     private ShooterConfig shooterConfig;
     private FiringSequenceCoordinator firingCoordinator;
-    private org.firstinspires.ftc.teamcode.util.debug.DebugLogger debugLogger;
 
     // System State Tracking
     private enum SystemMode {
@@ -145,13 +148,10 @@ public class FullSystemTest extends LinearOpMode {
 
         shooterConfig = new ShooterConfig();
 
-        // Initialize debug logger first (shared across all systems)
-        debugLogger = new org.firstinspires.ftc.teamcode.util.debug.DebugLogger();
-
         // Initialize systems with shared debug logger
-        shooter = new Shooter(hardware, shooterConfig, telemetry, debugLogger);
-        indexingSystem = new IndexingSystem(hardware, indexingConfig, shooter, telemetry);
-        firingCoordinator = new FiringSequenceCoordinator(indexingSystem, shooter, debugLogger);
+        shooter = new Shooter(hardware, shooterConfig, telemetry);
+        indexingSystem = new IndexingSystemOld(hardware, indexingConfig, shooter, telemetry);
+        firingCoordinator = new FiringSequenceCoordinator(indexingSystem, shooter);
 
         waitForStart();
 
@@ -176,10 +176,8 @@ public class FullSystemTest extends LinearOpMode {
             // Update system mode based on current state
             updateSystemMode();
 
-            // Display debug telemetry
-            firingCoordinator.getDebugLogger().displayOnTelemetry(telemetry);
-            // Update debug telemetry display
-            debugLogger.displayOnTelemetry(telemetry);
+            // Display SystemMonitor on telemetry
+            SystemMonitor.displayOnTelemetry(telemetry);
             telemetry.update();
 
             // Performance tracking
@@ -210,7 +208,7 @@ public class FullSystemTest extends LinearOpMode {
                 Artifact.Location.UNKNOWN,
                 0
             );
-            indexingSystem.onArtifactDetected(artifact, IndexingSystem.IntakeSource.FRONT);
+            indexingSystem.onArtifactDetected(artifact, IndexingSystemOld.IntakeSource.FRONT);
         }
         lastA1 = gamepad1.a;
 
@@ -221,7 +219,7 @@ public class FullSystemTest extends LinearOpMode {
                 Artifact.Location.UNKNOWN,
                 0
             );
-            indexingSystem.onArtifactDetected(artifact, IndexingSystem.IntakeSource.BACK);
+            indexingSystem.onArtifactDetected(artifact, IndexingSystemOld.IntakeSource.BACK);
         }
         lastB1 = gamepad1.b;
 
@@ -265,16 +263,10 @@ public class FullSystemTest extends LinearOpMode {
         }
         lastStart1 = gamepad1.start;
 
-        // [BACK] - Cycle debug display mode
-        if (gamepad1.back && !lastBack1) {
-            cycleDebugDisplayMode();
-        }
+        // [BACK] - No longer used (was for cycling debug display modes)
         lastBack1 = gamepad1.back;
         
-        // [DPAD RIGHT] - Cycle through pages in BY_CLASS mode
-        if (gamepad1.dpad_right && !lastDpadRight1) {
-            debugLogger.cycleClassPage();
-        }
+        // [DPAD RIGHT] - No longer used (was for cycling debug pages)
         lastDpadRight1 = gamepad1.dpad_right;
 
         // [L-STICK] - Toggle manual push mode
@@ -309,7 +301,7 @@ public class FullSystemTest extends LinearOpMode {
     private void updateSystemMode() {
         if (firingCoordinator.isFiringActive()) {
             currentMode = SystemMode.FIRING_SEQUENCE;
-        } else if (indexingSystem.getCurrentState() == IndexingSystem.SystemState.ERROR ||
+        } else if (indexingSystem.getCurrentState() == IndexingSystemOld.SystemState.ERROR ||
                    shooter.isError()) {
             currentMode = SystemMode.ERROR;
         } else if (indexingSystem.isOperationInProgress()) {
@@ -498,8 +490,8 @@ public class FullSystemTest extends LinearOpMode {
 
             boolean indexingSystemControlling = indexingSystem.isUptakeServoPrePositioned() ||
                                               indexingSystem.isOperationInProgress() ||
-                                              indexingSystem.getCurrentState() == IndexingSystem.SystemState.FIRING ||
-                                              indexingSystem.getCurrentState() == IndexingSystem.SystemState.PUSHING;
+                                              indexingSystem.getCurrentState() == IndexingSystemOld.SystemState.FIRING ||
+                                              indexingSystem.getCurrentState() == IndexingSystemOld.SystemState.PUSHING;
 
             if (indexingSystemControlling) {
                 // IndexingSystem is controlling servos - do not interfere
@@ -533,21 +525,6 @@ public class FullSystemTest extends LinearOpMode {
         lastDpadRight2 = gamepad2.dpad_right;
     }
 
-    /**
-     * Cycle through debug display modes
-     */
-    private void cycleDebugDisplayMode() {
-        org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode currentMode = debugLogger.getDisplayMode();
-
-        // Get the next display mode by cycling through the enum
-        org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode[] modes =
-            org.firstinspires.ftc.teamcode.util.debug.DebugLogger.DisplayMode.values();
-
-        int currentIndex = currentMode.ordinal();
-        int nextIndex = (currentIndex + 1) % modes.length;
-
-        debugLogger.setDisplayMode(modes[nextIndex]);
-    }
 
     /**
      * Update performance metrics

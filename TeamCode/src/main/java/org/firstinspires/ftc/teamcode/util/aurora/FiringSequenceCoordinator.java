@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.util.aurora;
 
-import org.firstinspires.ftc.teamcode.util.debug.DebugLogger;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -14,11 +13,11 @@ import java.util.Map;
  * - Managing shot counts and timing
  * - Safety timeouts
  */
+@Deprecated
 public class FiringSequenceCoordinator {
 
-    private final IndexingSystem indexingSystem;
+    private final IndexingSystemOld indexingSystem;
     private final Shooter shooter;
-    private final DebugLogger debugLogger;
 
     // Firing sequence state
     private boolean firingSequenceActive = false;
@@ -35,34 +34,11 @@ public class FiringSequenceCoordinator {
      * @param indexingSystem The indexing system to coordinate
      * @param shooter The shooter to coordinate
      */
-    public FiringSequenceCoordinator(IndexingSystem indexingSystem, Shooter shooter) {
-        this(indexingSystem, shooter, null);
-    }
-
-    /**
-     * Create a new FiringSequenceCoordinator with shared debug logger
-     *
-     * @param indexingSystem The indexing system to coordinate
-     * @param shooter The shooter to coordinate
-     * @param debugLogger Shared debug logger instance (or null to create new)
-     */
-    public FiringSequenceCoordinator(IndexingSystem indexingSystem, Shooter shooter, DebugLogger debugLogger) {
+    public FiringSequenceCoordinator(IndexingSystemOld indexingSystem, Shooter shooter) {
         this.indexingSystem = indexingSystem;
         this.shooter = shooter;
-        this.debugLogger = debugLogger != null ? debugLogger : new DebugLogger();
         
-        // Register all boolean checks for tracking
-        debugLogger.registerCheck("firingSequenceActive", "Firing sequence is active");
-        debugLogger.registerCheck("hasArtifacts", "Has artifacts to fire");
-        debugLogger.registerCheck("shooterReady", "Shooter is ready to fire");
-        debugLogger.registerCheck("shooterEnabled", "Shooter is enabled");
-        debugLogger.registerCheck("shooterAtTargetRPM", "Shooter at target RPM");
-        debugLogger.registerCheck("shooterStabilized", "Shooter RPM stabilized");
-        debugLogger.registerCheck("indexingReady", "Indexing system ready");
-        debugLogger.registerCheck("noOperation", "No operation in progress");
-        debugLogger.registerCheck("canStartFiring", "All conditions met to start");
-
-        // Initialize live variables so they're visible immediately
+        // Initialize live variables
         initializeLiveVariables();
     }
 
@@ -87,14 +63,7 @@ public class FiringSequenceCoordinator {
         vars.put("indexingOpInProgress", false);
         vars.put("indexingState", "IDLE");
 
-        debugLogger.updateLiveVars(vars);
-    }
-    
-    /**
-     * Get the debug logger for display
-     */
-    public DebugLogger getDebugLogger() {
-        return debugLogger;
+        SystemMonitor.setAll(vars);
     }
 
     /**
@@ -110,7 +79,6 @@ public class FiringSequenceCoordinator {
         boolean noOperation = !indexingSystem.isOperationInProgress();
 
         // Update all boolean checks with detailed reasons
-        debugLogger.updateCheck("hasArtifacts", hasArtifacts, "Count: " + indexingSystem.getArtifactCount());
         
         // Enhanced shooter ready check with detailed breakdown
         // CRITICAL: Use Shooter methods, NOT DecodeHelper directly, to match isReadyToFire() logic
@@ -122,45 +90,14 @@ public class FiringSequenceCoordinator {
         // Also query DecodeHelper directly for comparison/debugging
         boolean decodeAtTarget = shooter.getDecodeHelper().isAtTargetRPM();
         boolean decodeStabilized = shooter.getDecodeHelper().isStabilized();
-        if (shooterAtTargetRPM != decodeAtTarget || shooterStabilized != decodeStabilized) {
-            debugLogger.warning("MISMATCH", String.format(
-                "Shooter vs DecodeHelper mismatch! Shooter(atTarget=%s, stable=%s) vs Decode(atTarget=%s, stable=%s)",
-                shooterAtTargetRPM, shooterStabilized, decodeAtTarget, decodeStabilized));
-        }
-        
-        debugLogger.updateCheck("shooterEnabled", shooterEnabled);
-        debugLogger.updateCheck("shooterAtTargetRPM", shooterAtTargetRPM, 
-            String.format("current=%.0f, target=%.0f, %s", shooter.getCurrentRPM(), shooter.getTargetRPM(), stabilizationInfo));
-        debugLogger.updateCheck("shooterStabilized", shooterStabilized, stabilizationInfo);
-        
-        if (!shooterReady) {
-            String reason = String.format("enabled=%s, atTargetRPM=%s, stabilized=%s, currentRPM=%.0f, targetRPM=%.0f, %s", 
-                shooterEnabled, shooterAtTargetRPM, shooterStabilized, shooter.getCurrentRPM(), shooter.getTargetRPM(), stabilizationInfo);
-            debugLogger.updateCheck("shooterReady", shooterReady, reason);
-        } else {
-            debugLogger.updateCheck("shooterReady", shooterReady, "Ready to fire");
-        }
-        
-        debugLogger.updateCheck("indexingReady", indexingReady);
-        debugLogger.updateCheck("noOperation", noOperation);
         
         boolean canStart = hasArtifacts && notFiring && shooterReady && indexingReady && noOperation;
-        debugLogger.updateCheck("canStartFiring", canStart);
         
-        // Log the boolean tree with sub-conditions for shooterReady
-        Map<String, Boolean> conditions = new LinkedHashMap<>();
-        conditions.put("hasArtifacts", hasArtifacts);
-        conditions.put("notFiring", notFiring);
-        conditions.put("shooterReady", shooterReady);
-        if (!shooterReady) {
-            // Expand shooter ready into sub-conditions
-            conditions.put("  └─ shooterEnabled", shooterEnabled);
-            conditions.put("  └─ shooterAtTargetRPM", shooterAtTargetRPM);
-            conditions.put("  └─ shooterStabilized", shooterStabilized);
-        }
-        conditions.put("indexingReady", indexingReady);
-        conditions.put("noOperation", noOperation);
-        debugLogger.logBooleanTree("canStartFiring", conditions, canStart);
+        // Update SystemMonitor
+        SystemMonitor.set("canStartFiring", canStart);
+        SystemMonitor.set("shooterReady", shooterReady);
+        SystemMonitor.set("shooterAtTargetRPM", shooterAtTargetRPM);
+        SystemMonitor.set("shooterStabilized", shooterStabilized);
 
         return canStart;
     }
@@ -171,26 +108,23 @@ public class FiringSequenceCoordinator {
      * @return true if firing sequence started successfully
      */
     public boolean startFiring() {
-        debugLogger.info("FIRING", "startFiring() called");
 
         if (indexingSystem.getArtifactCount() == 0) {
-            debugLogger.warning("FIRING", "Cannot start - no artifacts");
             return false;
         }
 
         // CRITICAL: Track the moment firingSequenceActive is set to true
-        debugLogger.info("FIRING", "🔥 SETTING firingSequenceActive = TRUE");
         firingSequenceActive = true;
-        debugLogger.updateCheck("firingSequenceActive", true, "Set by startFiring()");
+        
+        // Notify indexing system that firing sequence is active
+        indexingSystem.setFiringSequenceActive(true);
         
         firingSequenceStartTime = System.currentTimeMillis();
         currentShotNumber = 1;
 
-        debugLogger.info("FIRING", "Firing sequence started successfully");
 
         // Ensure shooter is spinning up
         if (!shooter.isAtTargetRPM()) {
-            debugLogger.debug("FIRING", "Calling shooter.spinUp()");
             shooter.spinUp();
         }
 
@@ -209,43 +143,31 @@ public class FiringSequenceCoordinator {
         // Update live variables
         updateLiveVariables();
 
-        debugLogger.debug("FIRING", "update() - FIRING ACTIVE");
 
         // Check if we still have artifacts to fire
         if (indexingSystem.getArtifactCount() == 0) {
-            debugLogger.info("FIRING", "No more artifacts - completing");
             completeFiring();
             return;
         }
 
         // Wait for shooter to be ready
         if (!shooter.isAtTargetRPM()) {
-            debugLogger.debug("FIRING", "Waiting for shooter", 
-                String.format("Current: %.0f RPM, Target: %.0f RPM", 
-                    shooter.getCurrentRPM(), shooter.getTargetRPM()));
             return; // Wait for shooter to spin up
         }
 
-        debugLogger.debug("FIRING", "Shooter ready! Checking indexing system");
-
         // Check if indexing system is ready to fire
         if (indexingSystem.isReadyToFire() && !indexingSystem.isOperationInProgress()) {
-            debugLogger.info("FIRING", "🔥 FIRING NOW!");
             // Fire the current shot
             boolean fired = indexingSystem.onFireSignal();
-            debugLogger.info("FIRING", "onFireSignal() returned: " + fired);
             if (fired) {
                 currentShotNumber++;
             }
-        } else {
-            debugLogger.debug("FIRING", "Indexing system not ready");
         }
 
         // Safety timeout
         long elapsed = System.currentTimeMillis() - firingSequenceStartTime;
         if (elapsed > firingTimeoutMs) {
-            debugLogger.warning("FIRING", "Timeout reached - completing", 
-                String.format("Elapsed: %.1fs", elapsed / 1000.0));
+            SystemMonitor.logNow(String.format("Firing timeout after %.1fs", elapsed / 1000.0));
             completeFiring();
         }
     }
@@ -273,7 +195,7 @@ public class FiringSequenceCoordinator {
         vars.put("indexingOpInProgress", indexingSystem.isOperationInProgress());
         vars.put("indexingState", indexingSystem.getCurrentState().toString());
 
-        debugLogger.updateLiveVars(vars);
+        SystemMonitor.setAll(vars);
     }
 
     /**
@@ -298,9 +220,11 @@ public class FiringSequenceCoordinator {
      * Complete the firing sequence
      */
     public void completeFiring() {
-        debugLogger.info("FIRING", "🛑 SETTING firingSequenceActive = FALSE");
         firingSequenceActive = false;
-        debugLogger.updateCheck("firingSequenceActive", false, "Set by completeFiring()");
+        
+        // Notify indexing system that firing sequence is inactive
+        indexingSystem.setFiringSequenceActive(false);
+        
         currentShotNumber = 1;
     }
 
@@ -308,7 +232,6 @@ public class FiringSequenceCoordinator {
      * Cancel the firing sequence
      */
     public void cancelFiring() {
-        debugLogger.warning("FIRING", "🛑 Firing cancelled");
         completeFiring();
     }
 
@@ -357,6 +280,8 @@ public class FiringSequenceCoordinator {
      */
     public void reset() {
         firingSequenceActive = false;
+        // Notify indexing system
+        indexingSystem.setFiringSequenceActive(false);
         currentShotNumber = 1;
     }
 }

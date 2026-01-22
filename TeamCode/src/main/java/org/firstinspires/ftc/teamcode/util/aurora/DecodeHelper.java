@@ -70,6 +70,11 @@ public class DecodeHelper {
     private boolean rpmStabilized = false;
     private boolean transitioningFromWarmup = false;  // Prevents premature shooting after warmup
 
+    // RPM history for variance-based stabilization (250ms window at 10ms updates)
+    private final double[] rpmHistory = new double[25];
+    private int rpmHistoryIndex = 0;
+    private int rpmHistoryFillCount = 0;
+
     // Sync error tracking for improved detection
     private final ElapsedTime syncErrorTimer = new ElapsedTime();
     private double syncErrorAccumulator = 0;
@@ -367,46 +372,53 @@ public class DecodeHelper {
     /**
      * Check if shooter is at target RPM and update stabilization state.
      * 
-     * COMPLETELY REWRITTEN - Ultra-simple logic:
-     * 1. Both motors must be within tolerance (no sync error check)
-     * 2. Must stay in tolerance for stabilization duration
-     * 3. No complex state machines or debouncing
+     * Uses variance-based stabilization:
+     * 1. Both motors must be within tolerance (instant check)
+     * 2. Mean RPM over 250ms window must be near target
+     * 3. RPM variance must be low (stdDev < 50) indicating stability
+     *
+     * This approach tolerates brief RPM drops without full reset.
      */
     private void checkIfAtTarget(double target, double tolerance) {
-        long currentTime = System.currentTimeMillis();
-        
-        // STEP 1: Check if BOTH motors are within tolerance (ignore sync for now)
+        // Update RPM history for variance calculation
+        rpmHistory[rpmHistoryIndex] = averageRPM;
+        rpmHistoryIndex = (rpmHistoryIndex + 1) % rpmHistory.length;
+        if (rpmHistoryFillCount < rpmHistory.length) {
+            rpmHistoryFillCount++;
+        }
+
+        // Check if CURRENT RPM at target (instant check for state transitions)
         boolean leftInTolerance = Math.abs(leftRPM - target) <= tolerance;
         boolean rightInTolerance = Math.abs(rightRPM - target) <= tolerance;
-        boolean bothMotorsInTolerance = leftInTolerance && rightInTolerance;
-        
-        // Calculate errors and elapsed time
-        double leftError = Math.abs(leftRPM - target);
-        double rightError = Math.abs(rightRPM - target);
-        long elapsed = stabilizationStartTime > 0 ? Math.max(0, currentTime - stabilizationStartTime) : 0;
-        
-        // STEP 2: Update atTargetRPM based on ONLY motor tolerance (removed sync check)
-        boolean wasAtTarget = atTargetRPM;
-        atTargetRPM = bothMotorsInTolerance;
-        
-        // STEP 3: Handle stabilization timing
-        if (bothMotorsInTolerance) {
-            // Motors in tolerance - start timer if not started
-            if (stabilizationStartTime == 0) {
-                stabilizationStartTime = currentTime;
-                rpmStabilized = false;
-            } else {
-                // Timer running - check if enough time has passed
-                if (!rpmStabilized && elapsed >= ShooterConfig.RPM_STABILIZATION_TIME_MS) {
-                    rpmStabilized = true;
-                }
+        atTargetRPM = leftInTolerance && rightInTolerance;
+
+        // Calculate variance-based stabilization (requires full history buffer)
+        if (rpmHistoryFillCount >= rpmHistory.length) {
+            // Calculate mean and variance using standard formulas
+            double sum = 0, sumSquares = 0;
+            for (double rpm : rpmHistory) {
+                sum += rpm;
+                sumSquares += rpm * rpm;
+            }
+            double mean = sum / rpmHistory.length;
+            double variance = (sumSquares / rpmHistory.length) - (mean * mean);
+            double stdDev = Math.sqrt(Math.abs(variance)); // abs() for numerical safety
+
+            // Stabilized if mean is near target AND low variance (low oscillation)
+            boolean meanAtTarget = Math.abs(mean - target) <= tolerance;
+            boolean lowVariance = stdDev < 50; // Threshold: 50 RPM standard deviation
+            rpmStabilized = meanAtTarget && lowVariance;
+
+            // Track stabilization start time for public API compatibility
+            if (rpmStabilized && stabilizationStartTime == 0) {
+                stabilizationStartTime = System.currentTimeMillis();
+            } else if (!rpmStabilized) {
+                stabilizationStartTime = 0;
             }
         } else {
-            // Motors out of tolerance - reset everything
-            if (stabilizationStartTime > 0 || rpmStabilized) {
-                stabilizationStartTime = 0;
-                rpmStabilized = false;
-            }
+            // Not enough history yet - can't determine stability
+            rpmStabilized = false;
+            stabilizationStartTime = 0;
         }
     }
 
@@ -469,6 +481,10 @@ public class DecodeHelper {
 
     /**
      * Spin up to target RPM
+     *
+     * Safe to call repeatedly - only resets PID when transitioning from non-spinning states.
+     * This allows calling spinUp() every loop to maintain SPINNING_UP state without
+     * breaking PID integral accumulation.
      */
     public void spinUp() {
         if (targetRPM == 0) {
@@ -480,13 +496,27 @@ public class DecodeHelper {
             transitioningFromWarmup = true;
         }
 
+        // Only reset PID controllers when transitioning FROM idle/error states
+        // This prevents destroying PID integral when called repeatedly
+        boolean needsPIDReset = (currentState == ShooterState.IDLE ||
+                                 currentState == ShooterState.ERROR);
+
+        // Always set state to SPINNING_UP (maintains state if already spinning)
         currentState = ShooterState.SPINNING_UP;
-        spinUpTimer.reset();
-        stabilizationTimer.reset();
-        leftPID.reset();
-        rightPID.reset();
-        atTargetRPM = false;
-        rpmStabilized = false;
+
+        // Only reset timers and PID when actually starting fresh
+        if (needsPIDReset) {
+            spinUpTimer.reset();
+            stabilizationTimer.reset();
+            leftPID.reset();
+            rightPID.reset();
+            atTargetRPM = false;
+            rpmStabilized = false;
+
+            // Clear RPM history for fresh stabilization tracking
+            rpmHistoryFillCount = 0;
+        }
+        // If already spinning, leave PID integral intact - critical for stability!
     }
 
     /**

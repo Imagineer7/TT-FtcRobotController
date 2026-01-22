@@ -1,5 +1,8 @@
 package org.firstinspires.ftc.teamcode.util.aurora;
 
+import org.firstinspires.ftc.teamcode.util.debug.Dbg;
+import org.firstinspires.ftc.teamcode.util.debug.LogGroup;
+
 /**
  * PlannerExecutor - Executor component for physically rearranging artifacts
  *
@@ -30,6 +33,7 @@ package org.firstinspires.ftc.teamcode.util.aurora;
  * - NORMAL mode: Intake is empty, rollers return to normal intake behavior
  * - Empty intakes automatically return to normal intake mode
  */
+@Deprecated
 public class PlannerExecutor {
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -114,10 +118,19 @@ public class PlannerExecutor {
     public boolean update(int artifactCount) {
         long currentTime = System.currentTimeMillis();
 
-        // Reset lockout if artifact count changes
+        // Reset lockout and FAILED state if artifact count changes
+        // This allows the system to recover from previous failures
         if (artifactCount != lastArtifactCount) {
             rearrangementLockout = false;
             lastArtifactCount = artifactCount;
+            
+            // Auto-recover from FAILED state when artifact count changes
+            if (state == ExecutorState.FAILED) {
+                Dbg.i(LogGroup.PLANNEREX, "Auto-recovering from FAILED state (artifact count changed to %d)", artifactCount);
+                state = ExecutorState.IDLE;
+                operationStartTime = 0;
+                pendingDesiredCenter = null;
+            }
         }
 
         // Check for timeout if operation in progress
@@ -125,6 +138,7 @@ public class PlannerExecutor {
             long elapsed = currentTime - operationStartTime;
             if (elapsed > config.getOperationTimeoutMs()) {
                 // Timeout - abort operation
+                Dbg.w(LogGroup.PLANNEREX, "Operation timeout - entering FAILED state");
                 abortOperation();
                 return false;
             }

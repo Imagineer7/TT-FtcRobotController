@@ -10,6 +10,7 @@ package org.firstinspires.ftc.teamcode.util.aurora;
  *
  * Artifacts are immutable once created to ensure consistent state tracking.
  */
+@Deprecated
 public class Artifact {
 
     // ═══════════════════════════════════════════════════════════════════════
