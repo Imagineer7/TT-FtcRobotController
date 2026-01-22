@@ -556,11 +556,21 @@ public class IndexingSystemV3 {
             // - 1st artifact: Transfer to center
             // - 2nd artifact: Check if swap needed (shot planning), otherwise stay in intake
             // - 3rd artifact: Stay in intake
-            // IMPORTANT: Skip handlePostCollection if in burst firing mode - transfers handled by burst logic
-            if (!burstFiringActive) {
+            // 
+            // IMPORTANT: During burst firing, skip only the 1st artifact transfer logic
+            // (burst firing manages CENTER transfers). But still handle 2nd/3rd artifacts
+            // (they need to be added to storage or swapped).
+            // 
+            // The collected artifact is already in the ledger, so we just need to decide
+            // whether to transfer/swap it or leave it in the intake.
+            if (!burstFiringActive || ledger.getArtifactCount() >= 2) {
+                // Call handlePostCollection if:
+                // - Not in burst mode (normal operation), OR
+                // - In burst mode but this is 2nd or 3rd artifact (handle storage/swap logic)
                 handlePostCollection();
             } else {
-                Dbg.d(LogGroup.INDEXING, "Skipping handlePostCollection (burst firing active)");
+                // In burst mode and this is 1st artifact - skip to avoid conflict with burst transfers
+                Dbg.d(LogGroup.INDEXING, "Skipping handlePostCollection for 1st artifact (burst firing active)");
             }
             
         } else if (lastOp instanceof TransferOperation) {
@@ -724,6 +734,17 @@ public class IndexingSystemV3 {
         if (!ledger.isCenterOccupied() && !burstFiringActive && !firingHelper.isFiring()) {
             // CENTER is empty and we're not actively firing - try to fill it
             SlotLedger.Slot transferSlot = shotPlanner.getNextTransferSlot(ledger);
+            
+            if (transferSlot == null) {
+                // Shot planner doesn't have a next shot (plan exhausted)
+                // Fall back to any available artifact
+                if (ledger.isFrontOccupied()) {
+                    transferSlot = SlotLedger.Slot.FRONT;
+                } else if (ledger.isBackOccupied()) {
+                    transferSlot = SlotLedger.Slot.BACK;
+                }
+            }
+            
             if (transferSlot != null) {
                 Dbg.d(LogGroup.TRANSFER, "Auto-transfer to CENTER: %s → CENTER", transferSlot);
                 requestTransfer(transferSlot);
@@ -982,6 +1003,18 @@ public class IndexingSystemV3 {
     private void queueNextShotInBurst() {
         // Determine which slot to transfer next
         SlotLedger.Slot nextSlot = shotPlanner.getNextTransferSlot(ledger);
+        
+        if (nextSlot == null) {
+            // Shot planner doesn't have a next shot (plan exhausted)
+            // Fall back to any available artifact (handles mid-burst collections)
+            if (ledger.isFrontOccupied()) {
+                nextSlot = SlotLedger.Slot.FRONT;
+                Dbg.d(LogGroup.FIRING, "Shot plan exhausted, using FRONT artifact");
+            } else if (ledger.isBackOccupied()) {
+                nextSlot = SlotLedger.Slot.BACK;
+                Dbg.d(LogGroup.FIRING, "Shot plan exhausted, using BACK artifact");
+            }
+        }
         
         if (nextSlot != null) {
             // Transfer artifact to center
