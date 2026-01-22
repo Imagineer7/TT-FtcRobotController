@@ -244,11 +244,6 @@ public class IndexingSystemV3 {
         // This internally calls shooter.update() - DO NOT call shooter.update() separately!
         firingHelper.update();
         
-        // CRITICAL: Detect subsequent shots (keep-alive mode) and update ledger
-        // When fireNextShot() is called, it fires via FiringHelper without creating a FireOperation
-        // We must detect when the shot actually fires and update the ledger accordingly
-        checkForSubsequentShotFired();
-        
         // Update watchdog (automatic safety enforcement)
         // Note: OpMode must call setWatchdogTriggerState() to update trigger state
         watchdog.update(false, runner.isBusy(), manualModeActive);
@@ -267,6 +262,11 @@ public class IndexingSystemV3 {
             handleOperationComplete();
         }
         wasRunnerBusyLastUpdate = runner.isBusy();
+        
+        // CRITICAL: Check for subsequent shots AFTER operations complete and ledger updates
+        // This ensures transfers have committed their ledger changes before we process shots
+        // Otherwise we clear CENTER before the transfer has even set it!
+        checkForSubsequentShotFired();
         
         // Update shot planner
         shotPlanner.update(ledger, manualModeActive);
