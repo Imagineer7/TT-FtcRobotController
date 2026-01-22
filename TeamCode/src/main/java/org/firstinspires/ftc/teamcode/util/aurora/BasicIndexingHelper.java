@@ -1249,11 +1249,17 @@ public class BasicIndexingHelper {
                     telemetry.addData("Transfer", "Front manual - Pre-positioning");
                     Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.PREPOSITIONING");
                 } else if (transferSequenceState == TransferSequenceState.PREPOSITIONING) {
-                    // Check if pre-positioning is done
+                    // Wait for pre-positioning to complete (uptake timed movement)
+                    // The uptake servos are running for PREPOSITION_DURATION_MS (400ms)
+                    // We wait for them to finish, then transfer is complete
                     if (!isUptakeBusy()) {
+                        // Prepositioning complete - artifact is positioned and ready to fire
                         transferSequenceState = TransferSequenceState.COMPLETE;
                         transferSequenceActive = false;
                         currentTransferType = "NONE";
+                        Dbg.d(LogGroup.TRANSFER, "PREPOSITIONING complete - transfer finished");
+                    } else {
+                        Dbg.d(LogGroup.TRANSFER, "PREPOSITIONING (waiting for uptake timer)");
                     }
                 } else if (transferSequenceState == TransferSequenceState.UN_PREPOSITIONING) {
                     // Button released before transfer started - abort
@@ -1387,13 +1393,18 @@ public class BasicIndexingHelper {
                 break;
 
             case PREPOSITIONING:
-                // Wait for pre-positioning to complete
-                Dbg.d(LogGroup.TRANSFER, "PREPOSITIONING");
+                // Wait for pre-positioning to complete (uptake timed movement)
+                // The uptake servos are running for PREPOSITION_DURATION_MS (400ms)
+                // We wait for them to finish, then transfer is complete
                 if (!isUptakeBusy()) {
+                    // Prepositioning complete - artifact is positioned and ready to fire
                     transferSequenceState = TransferSequenceState.COMPLETE;
                     transferSequenceActive = false;
                     currentTransferType = "NONE";
                     telemetry.addData("Transfer", "✅ Complete");
+                    Dbg.d(LogGroup.TRANSFER, "PREPOSITIONING complete - transfer finished");
+                } else {
+                    Dbg.d(LogGroup.TRANSFER, "PREPOSITIONING (waiting for uptake timer)");
                 }
                 break;
 

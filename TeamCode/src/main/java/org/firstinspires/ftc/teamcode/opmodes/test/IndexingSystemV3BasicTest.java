@@ -193,8 +193,8 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             boolean manualActive = gamepad2.dpad_left || gamepad2.dpad_right || gamepad2.dpad_up || gamepad2.dpad_down;
             indexing.setManualModeActive(manualActive);
 
-            // Update watchdog trigger state
-            indexing.setWatchdogTriggerState(gamepad1.right_trigger > 0.1);
+            // Update watchdog trigger state with correct fire button (left bumper)
+            indexing.setWatchdogTriggerState(gamepad1.left_bumper);
 
             // Update system
             // ⚠️ CRITICAL: indexing.update() calls firingHelper.update() internally,
@@ -348,9 +348,12 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
                     Dbg.i(LogGroup.TEST, "Ready for next shot - firing now");
                     Dbg.d(LogGroup.TEST, "Shooter RPM: %.0f / %.0f",
                           indexing.getShooterCurrentRPM(), indexing.getShooterTargetRPM());
+                    Dbg.d(LogGroup.TEST, "Center occupied: %b, Operation running: %b",
+                          indexing.getLedger().isCenterOccupied(), indexing.isOperationRunning());
                     telemetry.addLine("🔥 Firing next shot...");
                     // Fire the next shot (FiringHelper keeps shooter spinning)
-                    indexing.fireNextShot();
+                    boolean fired = indexing.fireNextShot();
+                    Dbg.d(LogGroup.TEST, "fireNextShot returned: %b", fired);
                 } else if (readyToFire) {
                     // Already fired this artifact, waiting for next
                     Dbg.everyMs(LogGroup.TEST, LogLevel.DEBUG, "wait_artifact", 1000,

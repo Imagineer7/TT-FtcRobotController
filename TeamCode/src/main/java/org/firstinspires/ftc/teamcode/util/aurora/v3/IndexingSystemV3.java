@@ -81,6 +81,8 @@ public class IndexingSystemV3 {
     private int consecutiveShotsFired;
     private int lastKnownShotCount;  // Track FiringHelper's shot count for ledger updates
     private ArtifactIdentity lastFiredArtifact;  // Track last fired artifact for debug telemetry
+    private boolean deferredTransferNeeded;  // True when shot fired but transfer deferred due to busy operation
+    private boolean firingButtonHeld;  // Track firing button state for watchdog
     
     // Artifact tracking
     private int nextSequenceId;
@@ -174,6 +176,7 @@ public class IndexingSystemV3 {
         this.manualModeActive = false;
         this.huntEnabled = true;  // Hunt mode ON by default
         this.burstFiringActive = false;
+        this.deferredTransferNeeded = false;  // Initialize deferred transfer flag
         this.lastOperationCompleteTime = System.currentTimeMillis();
         this.consecutiveShotsFired = 0;
         this.lastKnownShotCount = 0;  // Initialize shot count tracker
@@ -247,8 +250,10 @@ public class IndexingSystemV3 {
         firingHelper.update();
         
         // Update watchdog (automatic safety enforcement)
-        // Note: OpMode must call setWatchdogTriggerState() to update trigger state
-        watchdog.update(false, runner.isBusy(), manualModeActive);
+        // Note: OpMode must call setFiringButtonHeld() to update trigger state
+        // CRITICAL: Pass isOperationRunning() which includes physical hardware state,
+        // not just runner.isBusy() which only checks the operation state machine
+        watchdog.update(firingButtonHeld, isOperationRunning(), manualModeActive);
         
         // Capture current operation before update (for completion handling)
         boolean isBusyNow = runner.isBusy();
@@ -329,20 +334,17 @@ public class IndexingSystemV3 {
      * 
      * Instead, we track FiringHelper's shot count and update the ledger when we detect
      * a new shot has actually fired.
+     * 
+     * CRITICAL: Shot count increments IMMEDIATELY after 300ms uptake feeding completes.
+     * At that point, the artifact has been pushed through uptake into the shooter flywheel.
+     * We must clear the ledger IMMEDIATELY (artifact is physically gone from CENTER).
+     * 
+     * However, we queue the next transfer only when NO operations are running to avoid
+     * conflicts with ongoing transfers or collections.
      */
     private void checkForSubsequentShotFired() {
         if (!burstFiringActive) {
             return;  // Not in burst mode, nothing to check
-        }
-        
-        // CRITICAL FIX: Don't process shot if transfer is still physically running!
-        // The runner.isBusy() check is not enough - the operation can complete but the
-        // physical transfer hardware sequence continues running in BasicIndexingHelper.
-        // We must check BOTH runner.isBusy() AND indexingHelper.isTransferActive()
-        if (runner.isBusy() || indexingHelper.isTransferActive()) {
-            // Transfer or other operation in progress - wait for it to complete
-            // before processing the shot and clearing the ledger
-            return;
         }
         
         // Check if shot count increased
@@ -354,7 +356,8 @@ public class IndexingSystemV3 {
             Dbg.d(LogGroup.FIRING, "Subsequent shot detected (%d → %d), clearing CENTER",
                              lastKnownShotCount, currentShotCount);
 
-            // Clear center slot (artifact was fired)
+            // CRITICAL: Clear center slot IMMEDIATELY when shot fires
+            // The artifact has been physically pushed into the shooter, it's no longer in CENTER
             ledger.setCenter(null);
             
             // Update tracking
@@ -369,8 +372,14 @@ public class IndexingSystemV3 {
                 Dbg.d(LogGroup.SHOTPLAN, "Shot consumed from plan");
             }
             
-            // Queue next artifact transfer if available
-            queueNextShotInBurst();
+            // Queue next transfer ONLY if no operations running
+            // This prevents conflicts with ongoing transfers or collections
+            if (!runner.isBusy() && !indexingHelper.isTransferActive()) {
+                queueNextShotInBurst();
+            } else {
+                Dbg.d(LogGroup.FIRING, "Deferring next transfer queue (operation busy)");
+                deferredTransferNeeded = true;  // Will queue when operation completes
+            }
         }
     }
     
@@ -548,7 +557,22 @@ public class IndexingSystemV3 {
             // - 1st artifact: Transfer to center
             // - 2nd artifact: Check if swap needed (shot planning), otherwise stay in intake
             // - 3rd artifact: Stay in intake
-            handlePostCollection();
+            // 
+            // IMPORTANT: During burst firing, skip only the 1st artifact transfer logic
+            // (burst firing manages CENTER transfers). But still handle 2nd/3rd artifacts
+            // (they need to be added to storage or swapped).
+            // 
+            // The collected artifact is already in the ledger, so we just need to decide
+            // whether to transfer/swap it or leave it in the intake.
+            if (!burstFiringActive || ledger.getArtifactCount() >= 2) {
+                // Call handlePostCollection if:
+                // - Not in burst mode (normal operation), OR
+                // - In burst mode but this is 2nd or 3rd artifact (handle storage/swap logic)
+                handlePostCollection();
+            } else {
+                // In burst mode and this is 1st artifact - skip to avoid conflict with burst transfers
+                Dbg.d(LogGroup.INDEXING, "Skipping handlePostCollection for 1st artifact (burst firing active)");
+            }
             
         } else if (lastOp instanceof TransferOperation) {
             totalTransfers++;
@@ -564,6 +588,21 @@ public class IndexingSystemV3 {
             } else if (opName.contains("BACK")) {
                 backPerception.reset();
                 Dbg.d(LogGroup.INTAKE, "Reset BACK perception after transfer");
+            }
+            
+            // If we deferred a transfer, queue it now
+            // This happens when a shot fired while an operation was running
+            // We need to transfer the next artifact to CENTER regardless of burst mode state
+            if (deferredTransferNeeded) {
+                Dbg.d(LogGroup.FIRING, "Queuing deferred transfer (burstActive=%b)", burstFiringActive);
+                if (burstFiringActive) {
+                    queueNextShotInBurst();
+                } else {
+                    // Burst was cancelled but we still need to fill CENTER
+                    // Use auto-transfer logic in performAutomaticOperations
+                    Dbg.d(LogGroup.TRANSFER, "Burst cancelled, letting auto-transfer handle it");
+                }
+                deferredTransferNeeded = false;
             }
             
         } else if (lastOp instanceof SwapOperation) {
@@ -690,6 +729,29 @@ public class IndexingSystemV3 {
     private void performAutomaticOperations() {
         // Issue 3 Fix: Add cooldown to prevent repeated auto-collections
         long currentTime = System.currentTimeMillis();
+        
+        // Auto-transfer to CENTER when empty (not in burst firing mode)
+        // Burst firing handles its own transfers via queueNextShotInBurst()
+        if (!ledger.isCenterOccupied() && !burstFiringActive && !firingHelper.isFiring()) {
+            // CENTER is empty and we're not actively firing - try to fill it
+            SlotLedger.Slot transferSlot = shotPlanner.getNextTransferSlot(ledger);
+            
+            if (transferSlot == null) {
+                // Shot planner doesn't have a next shot (plan exhausted)
+                // Fall back to any available artifact
+                if (ledger.isFrontOccupied()) {
+                    transferSlot = SlotLedger.Slot.FRONT;
+                } else if (ledger.isBackOccupied()) {
+                    transferSlot = SlotLedger.Slot.BACK;
+                }
+            }
+            
+            if (transferSlot != null) {
+                Dbg.d(LogGroup.TRANSFER, "Auto-transfer to CENTER: %s → CENTER", transferSlot);
+                requestTransfer(transferSlot);
+                return;  // Skip other auto-operations this loop
+            }
+        }
         
         // Auto-collect ONLY if hunt mode enabled, intake eligible, AND presence confidence is sufficient
         // CRITICAL: Only collect on HIGH confidence to prevent false positives (hands, etc.)
@@ -943,15 +1005,36 @@ public class IndexingSystemV3 {
         // Determine which slot to transfer next
         SlotLedger.Slot nextSlot = shotPlanner.getNextTransferSlot(ledger);
         
+        if (nextSlot == null) {
+            // Shot planner doesn't have a next shot (plan exhausted)
+            // Fall back to any available artifact (handles mid-burst collections)
+            if (ledger.isFrontOccupied()) {
+                nextSlot = SlotLedger.Slot.FRONT;
+                Dbg.d(LogGroup.FIRING, "Shot plan exhausted, using FRONT artifact");
+            } else if (ledger.isBackOccupied()) {
+                nextSlot = SlotLedger.Slot.BACK;
+                Dbg.d(LogGroup.FIRING, "Shot plan exhausted, using BACK artifact");
+            }
+        }
+        
         if (nextSlot != null) {
             // Transfer artifact to center
             requestTransfer(nextSlot);
             // Note: Firing will happen automatically after transfer completes
             // (via automatic operations or explicit request in next update)
         } else {
-            // No more artifacts - end burst
-            burstFiringActive = false;
-            firingHelper.cancelFiring();
+            // No artifacts in intakes to transfer
+            // If CENTER is occupied, keep burst active (still have artifact to fire)
+            // Only end burst if CENTER is also empty (truly no more artifacts)
+            if (!ledger.isCenterOccupied()) {
+                // No more artifacts anywhere - end burst
+                Dbg.d(LogGroup.FIRING, "No more artifacts to transfer or fire - ending burst");
+                burstFiringActive = false;
+                firingHelper.cancelFiring();
+            } else {
+                // CENTER still has artifact to fire - keep burst active
+                Dbg.d(LogGroup.FIRING, "No artifacts to transfer, but CENTER occupied - keeping burst active");
+            }
         }
     }
     
@@ -1157,8 +1240,7 @@ public class IndexingSystemV3 {
      * @param triggerPressed true if fire trigger is pressed, false if released
      */
     public void setWatchdogTriggerState(boolean triggerPressed) {
-        // Update watchdog with current trigger state
-        watchdog.update(triggerPressed, runner.isBusy(), manualModeActive);
+        setFiringButtonHeld(triggerPressed);
     }
     
     /**
@@ -1176,6 +1258,9 @@ public class IndexingSystemV3 {
         if (burstFiringActive) {
             firingHelper.cancelFiring();
             burstFiringActive = false;
+            // Clear deferred transfer flag since we're cancelling burst mode
+            // If there's a pending transfer, the auto-transfer logic will handle it
+            deferredTransferNeeded = false;
             telemetry.addData("🛑 Burst Firing", "Cancelled");
             Dbg.i(LogGroup.FIRING, "Burst firing cancelled by OpMode request");
         }
@@ -1217,10 +1302,13 @@ public class IndexingSystemV3 {
      * For burst firing, check this before calling fireNextShot() to ensure
      * any transfer operations have completed and the artifact is physically in CENTER.
      * 
-     * @return true if operation running, false if idle
+     * CRITICAL: This checks BOTH the operation runner AND the physical hardware state.
+     * The runner can finish while hardware (timed movements in BasicIndexingHelper) is still active.
+     * 
+     * @return true if operation running OR hardware still active, false if completely idle
      */
     public boolean isOperationRunning() {
-        return runner.isBusy();
+        return runner.isBusy() || indexingHelper.isTransferActive();
     }
     
     /**
