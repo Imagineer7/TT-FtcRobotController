@@ -1247,10 +1247,13 @@ public class IndexingSystemV3 {
      * For burst firing, check this before calling fireNextShot() to ensure
      * any transfer operations have completed and the artifact is physically in CENTER.
      * 
-     * @return true if operation running, false if idle
+     * CRITICAL: This checks BOTH the operation runner AND the physical hardware state.
+     * The runner can finish while hardware (timed movements in BasicIndexingHelper) is still active.
+     * 
+     * @return true if operation running OR hardware still active, false if completely idle
      */
     public boolean isOperationRunning() {
-        return runner.isBusy();
+        return runner.isBusy() || indexingHelper.isTransferActive();
     }
     
     /**
