@@ -199,14 +199,15 @@ public class BasicFiringHelper {
     }
 
     /**
-     * Update ejection - only maintain shooter spinup
+     * Update ejection - no action needed
      * Motor/servo power set once in startEjection() and left to run
+     * Shooter maintains RPM automatically via shooter.update()
      */
     private void updateEjection() {
         if (!ejectionActive) return;
 
-        // Only maintain shooter - motors/servos run from initial setPower() call
-        shooter.spinUp();
+        // Nothing to do - shooter.update() maintains RPM automatically
+        // Motors and servos were set to run continuously in startEjection()
     }
 
     /**
@@ -218,20 +219,14 @@ public class BasicFiringHelper {
 
         switch (firingState) {
             case SPINNING_UP:
-                // Call spinUp() every loop to keep shooter stable
-                // This prevents RPM fluctuations and keeps the shooter spinning reliably
-                boolean spinUpSuccess = shooter.spinUp();
+                // DO NOT call shooter.spinUp() here repeatedly!
+                // It was already called once in startFiring() to initiate the spinup.
+                // DecodeHelper.update() handles all RPM control and state transitions automatically.
+                // Calling spinUp() repeatedly is unnecessary and was based on a misunderstanding.
 
-                // DEBUG: Log detailed state information
-                telemetry.addData("DEBUG targetRPM", targetRPM);
-                telemetry.addData("DEBUG shooter.getTargetRPM()", shooter.getTargetRPM());
-                telemetry.addData("DEBUG shooter.getState()", shooter.getState());
-                telemetry.addData("DEBUG shooter.isEnabled()", shooter.isEnabled());
-                telemetry.addData("DEBUG spinUp() returned", spinUpSuccess);
-                telemetry.addData("DEBUG firingActive", firingActive);
-                telemetry.addData("DEBUG ejectionActive", ejectionActive);
-                telemetry.addData("DEBUG Left Motor Power", hardware.getLeftShooterMotor().getPower());
-                telemetry.addData("DEBUG Right Motor Power", hardware.getRightShooterMotor().getPower());
+                // The shooter will automatically transition from SPINNING_UP -> READY when:
+                // 1. RPM reaches target (within tolerance)
+                // 2. RPM is stabilized (consistent over time)
 
                 // Wait for shooter to reach target RPM and stabilize
                 long elapsed = System.currentTimeMillis() - firingStartTime;
@@ -286,9 +281,13 @@ public class BasicFiringHelper {
                 break;
 
             case FEEDING:
-                // CRITICAL: Call spinUp() every loop to maintain shooter RPM during feeding
-                // Without this, shooter loses speed during the 300ms feed period
-                shooter.spinUp();
+                // CRITICAL: DO NOT call shooter.spinUp() here!
+                // DecodeHelper.update() automatically maintains RPM in all states
+                // Calling spinUp() during feeding causes state to reset back to SPINNING_UP
+                // which destroys PID stability and causes RPM oscillations
+                //
+                // The shooter's update() method applies PID control in ALL states including FIRING/RECOVERY
+                // We just need to wait for uptake to finish
 
                 // Wait for uptake to finish feeding
                 if (!indexingHelper.isUptakeBusy()) {
@@ -318,15 +317,22 @@ public class BasicFiringHelper {
                 break;
 
             case READY_TO_FIRE:
-                // Shooter is spinning, waiting for next fire command
-                // Call spinUp() every loop to maintain shooter stability
-                shooter.spinUp();
+                // CRITICAL: Shooter is spinning and waiting for next fire command
+                // DO NOT call shooter.spinUp() here - it forces state back to SPINNING_UP!
+                // The DecodeHelper.update() automatically maintains RPM in READY state
+                // Calling spinUp() causes oscillation by forcing unnecessary state transitions
 
-                // Keep shooter alive at target RPM
-                if (!shooter.isReadyToFire()) {
-                    // Shooter lost RPM, ensure target is set
-                    shooter.setTargetRPM(targetRPM);
-                    telemetry.addData("Firing", "⚠️ Maintaining RPM");
+                // Display status
+                telemetry.addData("Firing", "✅ Ready for next shot");
+                telemetry.addData("  Current RPM", String.format("%.0f", shooter.getCurrentRPM()));
+                telemetry.addData("  Target RPM", String.format("%.0f", targetRPM));
+                telemetry.addData("  Delta", String.format("%.0f", Math.abs(targetRPM - shooter.getCurrentRPM())));
+                telemetry.addData("  Shooter State", shooter.getState());
+
+                // Check if button released - stop shooter when button released
+                if (!buttonHeld) {
+                    telemetry.addData("Firing", "⏹️ Button released - stopping shooter");
+                    cancelFiring();
                 }
                 break;
 

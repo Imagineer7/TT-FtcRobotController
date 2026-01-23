@@ -43,7 +43,7 @@ import org.firstinspires.ftc.teamcode.util.debug.LogGroup;
  * if (gamepad1.x) indexing.requestFire();
  * </pre>
  * 
- * @author Copilot (AI Assistant)
+ * @author FTC 26581 Tundra Tech
  * @version 3.0
  * @since 2026-01-20
  */
