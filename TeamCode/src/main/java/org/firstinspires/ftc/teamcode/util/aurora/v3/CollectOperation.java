@@ -36,6 +36,7 @@ public class CollectOperation extends BaseOperation {
     private final IndexingConfig config;
     private final SlotLedger.Slot targetSlot;
     private final int sequenceId;
+    private final boolean skipColorDetection;
 
     private ArtifactIdentity collectedArtifact;
     private boolean colorSampled;
@@ -86,6 +87,7 @@ public class CollectOperation extends BaseOperation {
      * @param config IndexingConfig for parameters
      * @param targetSlot Which slot to collect into (FRONT or BACK)
      * @param sequenceId Unique sequence ID for this artifact
+     * @param skipColorDetection If true, skips color detection and collects as UNKNOWN immediately
      * @param telemetry Telemetry for logging
      */
     public CollectOperation(SlotLedger ledger,
@@ -94,6 +96,7 @@ public class CollectOperation extends BaseOperation {
                            IndexingConfig config,
                            SlotLedger.Slot targetSlot,
                            int sequenceId,
+                           boolean skipColorDetection,
                            Telemetry telemetry) {
         super(telemetry, COLLECTION_TIMEOUT_MS);
         this.ledger = ledger;
@@ -102,6 +105,7 @@ public class CollectOperation extends BaseOperation {
         this.config = config;
         this.targetSlot = targetSlot;
         this.sequenceId = sequenceId;
+        this.skipColorDetection = skipColorDetection;
         this.collectedArtifact = null;
         this.colorSampled = false;
         this.edgeDetectTime = 0;
@@ -169,6 +173,33 @@ public class CollectOperation extends BaseOperation {
         // Non-blocking state machine for color sampling
         // Called repeatedly in loop - processes one step per call
         
+        // FAST PATH: If skipColorDetection is enabled, bypass color sampling
+        if (skipColorDetection && samplingState == SamplingState.WAITING_HARDWARE_DELAY) {
+            long currentTime = System.currentTimeMillis();
+            long elapsedSinceEdge = currentTime - edgeDetectTime;
+            
+            // Wait for hardware checkpoint (same as normal mode)
+            if (elapsedSinceEdge >= COLOR_CLASSIFICATION_DELAY_MS) {
+                Dbg.d(LogGroup.INTAKE, "Skip mode: Hardware checkpoint reached, creating UNKNOWN artifact");
+                
+                // Stop hardware
+                stopHardware();
+                
+                // Create UNKNOWN artifact immediately (full confidence since we're not trying to detect)
+                collectedArtifact = ArtifactIdentity.createUnknown(sequenceId);
+                colorSampled = true;
+                
+                // Skip directly to COMPLETE
+                samplingState = SamplingState.COMPLETE;
+                Dbg.i(LogGroup.INTAKE, "Skip mode: Collected as UNKNOWN (no color detection)");
+                setStatusMessage("Collected UNKNOWN (skip mode)");
+            } else {
+                long remaining = COLOR_CLASSIFICATION_DELAY_MS - elapsedSinceEdge;
+                setStatusMessage("Fast collect (" + remaining + "ms)");
+            }
+        }
+        
+        // Normal path: full color detection with sampling states
         long currentTime = System.currentTimeMillis();
         long elapsedInState = currentTime - samplingStateStartTime;
         
@@ -417,9 +448,9 @@ public class CollectOperation extends BaseOperation {
         }
         
         // CRITICAL: Validate color confidence before committing
-        // Only commit if confidence meets minimum threshold
+        // Skip validation if skipColorDetection is enabled (we intentionally create UNKNOWN with 0.0 confidence)
         double confidence = collectedArtifact.getColorConfidence();
-        if (confidence < MIN_COLOR_CONFIDENCE) {
+        if (!skipColorDetection && confidence < MIN_COLOR_CONFIDENCE) {
             logWarn("Color confidence too low (" + String.format("%.2f", confidence) + 
                    " < " + MIN_COLOR_CONFIDENCE + "), REJECTING collection");
             Dbg.w(LogGroup.INTAKE, "REJECTED: Color confidence %.2f below threshold", confidence);
@@ -482,6 +513,7 @@ public class CollectOperation extends BaseOperation {
         super.addTelemetry();
         
         telemetry.addData("Target Slot", targetSlot);
+        telemetry.addData("Skip Color Detection", skipColorDetection);
         telemetry.addData("Color Sampled", colorSampled);
         
         if (colorSampled && collectedArtifact != null) {

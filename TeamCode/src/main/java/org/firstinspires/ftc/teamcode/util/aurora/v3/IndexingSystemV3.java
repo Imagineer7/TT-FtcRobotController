@@ -74,6 +74,7 @@ public class IndexingSystemV3 {
     private boolean enabled;
     private boolean manualModeActive;
     private boolean huntEnabled;  // Hunt mode: auto-collect when artifacts detected
+    private boolean skipColorDetection;  // Skip color detection mode: collect as UNKNOWN immediately (default: true)
     
     // Burst firing state
     private boolean burstFiringActive;
@@ -175,6 +176,7 @@ public class IndexingSystemV3 {
         this.enabled = false;
         this.manualModeActive = false;
         this.huntEnabled = true;  // Hunt mode ON by default
+        this.skipColorDetection = true;  // Skip color detection ON by default (fast collection mode)
         this.burstFiringActive = false;
         this.deferredTransferNeeded = false;  // Initialize deferred transfer flag
         this.lastOperationCompleteTime = System.currentTimeMillis();
@@ -754,38 +756,45 @@ public class IndexingSystemV3 {
         }
         
         // Auto-collect ONLY if hunt mode enabled, intake eligible, AND presence confidence is sufficient
-        // CRITICAL: Only collect on HIGH confidence to prevent false positives (hands, etc.)
-        // HIGH = 3+ sensors agree, ensuring real artifact presence
+        // CRITICAL: Require HIGH confidence normally to prevent false positives (hands, etc.)
+        // However, when skip mode is ON, color sensors aren't updated, so accept MEDIUM confidence
+        // HIGH = 3+ sensors agree, MEDIUM = 2 sensors agree
         if (huntEnabled && isIntakeHuntEligible(SlotLedger.Slot.FRONT) && 
             frontPerception.getFastPresence() &&
             (currentTime - lastFrontAutoCollectTime) >= AUTO_COLLECT_COOLDOWN_MS) {
             
-            // Check presence confidence - REQUIRE HIGH (3+ sensors detect)
+            // Check presence confidence
             IntakePerception.PresenceConfidence confidence = frontPerception.getPresenceConfidence();
-            if (confidence == IntakePerception.PresenceConfidence.HIGH) {
+            IntakePerception.PresenceConfidence requiredConfidence = skipColorDetection ? 
+                IntakePerception.PresenceConfidence.MEDIUM : IntakePerception.PresenceConfidence.HIGH;
+            
+            if (confidence.ordinal() >= requiredConfidence.ordinal()) {
                 if (requestCollect(SlotLedger.Slot.FRONT)) {
                     lastFrontAutoCollectTime = currentTime;
-                    Dbg.d(LogGroup.INTAKE, "Auto-collect FRONT (confidence=%s)", confidence);
+                    Dbg.d(LogGroup.INTAKE, "Auto-collect FRONT (confidence=%s, required=%s)", confidence, requiredConfidence);
                 }
             } else {
-                // Not HIGH confidence - skip (likely hand, temporary object, or poor sensor view)
-                Dbg.d(LogGroup.INTAKE, "Skipping FRONT auto-collect (confidence=%s not HIGH)", confidence);
+                // Not sufficient confidence - skip
+                Dbg.d(LogGroup.INTAKE, "Skipping FRONT auto-collect (confidence=%s, required=%s)", confidence, requiredConfidence);
             }
         }
         if (huntEnabled && isIntakeHuntEligible(SlotLedger.Slot.BACK) && 
             backPerception.getFastPresence() &&
             (currentTime - lastBackAutoCollectTime) >= AUTO_COLLECT_COOLDOWN_MS) {
             
-            // Check presence confidence - REQUIRE HIGH (3+ sensors detect)
+            // Check presence confidence
             IntakePerception.PresenceConfidence confidence = backPerception.getPresenceConfidence();
-            if (confidence == IntakePerception.PresenceConfidence.HIGH) {
+            IntakePerception.PresenceConfidence requiredConfidence = skipColorDetection ? 
+                IntakePerception.PresenceConfidence.MEDIUM : IntakePerception.PresenceConfidence.HIGH;
+            
+            if (confidence.ordinal() >= requiredConfidence.ordinal()) {
                 if (requestCollect(SlotLedger.Slot.BACK)) {
                     lastBackAutoCollectTime = currentTime;
-                    Dbg.d(LogGroup.INTAKE, "Auto-collect BACK (confidence=%s)", confidence);
+                    Dbg.d(LogGroup.INTAKE, "Auto-collect BACK (confidence=%s, required=%s)", confidence, requiredConfidence);
                 }
             } else {
-                // Not HIGH confidence - skip (likely hand, temporary object, or poor sensor view)
-                Dbg.d(LogGroup.INTAKE, "Skipping BACK auto-collect (confidence=%s not HIGH)", confidence);
+                // Not sufficient confidence - skip
+                Dbg.d(LogGroup.INTAKE, "Skipping BACK auto-collect (confidence=%s, required=%s)", confidence, requiredConfidence);
             }
         }
         
@@ -813,7 +822,7 @@ public class IndexingSystemV3 {
         IntakePerception perception = (slot == SlotLedger.Slot.FRONT) ? frontPerception : backPerception;
         
         CollectOperation op = new CollectOperation(
-            ledger, perception, indexingHelper, config, slot, nextSequenceId++, telemetry
+            ledger, perception, indexingHelper, config, slot, nextSequenceId++, skipColorDetection, telemetry
         );
         
         return runner.start(op);
@@ -1082,6 +1091,46 @@ public class IndexingSystemV3 {
      */
     public boolean isHuntEnabled() {
         return huntEnabled;
+    }
+    
+    /**
+     * Set skip color detection mode (fast collection mode).
+     * 
+     * When enabled: Artifacts collected immediately as UNKNOWN after presence detection.
+     *               Faster collection (~200ms vs ~1400ms) but no color classification.
+     * 
+     * When disabled: Full color detection with sampling, jiggling if needed.
+     *                Slower but provides accurate color classification.
+     * 
+     * Default: ON (enabled) for fastest collection speed.
+     * 
+     * @param enabled true to skip color detection (fast mode), false for full color detection
+     */
+    public void setSkipColorDetection(boolean enabled) {
+        this.skipColorDetection = enabled;
+        Dbg.i(LogGroup.INTAKE, "Skip color detection: %s", enabled ? "ON (fast mode)" : "OFF (full detection)");
+        telemetry.addData("Fast Collect Mode", enabled ? "⚡ ON (Skip Color)" : "🎨 OFF (Detect Color)");
+    }
+    
+    /**
+     * Toggle skip color detection mode.
+     * 
+     * @return new skip mode state (true = skip ON/fast mode, false = skip OFF/full detection)
+     */
+    public boolean toggleSkipColorDetection() {
+        skipColorDetection = !skipColorDetection;
+        Dbg.i(LogGroup.INTAKE, "Skip color detection toggled: %s", skipColorDetection ? "ON (fast)" : "OFF (full)");
+        telemetry.addData("Fast Collect Mode", skipColorDetection ? "⚡ ON (Skip Color)" : "🎨 OFF (Detect Color)");
+        return skipColorDetection;
+    }
+    
+    /**
+     * Check if skip color detection mode is enabled.
+     * 
+     * @return true if skip mode ON (fast collection), false if OFF (full color detection)
+     */
+    public boolean isSkipColorDetection() {
+        return skipColorDetection;
     }
     
     /**

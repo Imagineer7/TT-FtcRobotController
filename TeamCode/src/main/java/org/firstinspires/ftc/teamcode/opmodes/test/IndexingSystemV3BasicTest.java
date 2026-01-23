@@ -43,6 +43,7 @@ import org.firstinspires.ftc.teamcode.util.debug.LogLevel;
  *   Y - Transfer BACK → CENTER
  *   
  *   RIGHT BUMPER - Toggle hunt mode
+ *   LEFT BUMPER  - Toggle fast collect mode (skip color detection)
  *   
  *   BACK - Eject FRONT
  *   START - Eject BACK
@@ -225,6 +226,9 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             
             // Handle hunt mode toggle
             handleHuntMode();
+            
+            // Handle fast collect mode toggle
+            handleFastCollectMode();
             
             // Handle telemetry page navigation
             handleTelemetryNavigation();
@@ -460,6 +464,18 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
                 telemetry.addLine("🔍 Hunt mode ENABLED");
             } else {
                 telemetry.addLine("💤 Hunt mode DISABLED");
+            }
+        }
+    }
+    
+    private void handleFastCollectMode() {
+        if (gamepad1.left_bumper && !lastLeftBumper) {
+            boolean newState = indexing.toggleSkipColorDetection();
+            Dbg.i(LogGroup.TEST, "Fast collect mode toggled: %s", newState ? "ENABLED" : "DISABLED");
+            if (newState) {
+                telemetry.addLine("⚡ Fast collect mode ENABLED (skip color detection)");
+            } else {
+                telemetry.addLine("🎨 Fast collect mode DISABLED (detect color)");
             }
         }
     }

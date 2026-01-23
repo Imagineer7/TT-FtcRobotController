@@ -36,6 +36,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.v3.SlotLedger;
  *   LEFT BUMPER  - Set motif to "PPG"
  *   RIGHT BUMPER - Set motif to "PGP"
  *   LEFT TRIGGER - Set motif to "GPP"
+ *   RIGHT TRIGGER - Toggle fast collect mode (skip color detection)
  *   
  *   BACK - Clear all slots
  *   START - Toggle burst firing mode
@@ -105,6 +106,7 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
     private boolean lastDpadUp1, lastDpadDown1, lastDpadLeft1, lastDpadRight1;
     private boolean lastA1, lastB1, lastX1, lastY1;
     private boolean lastLeftBumper1, lastRightBumper1;
+    private boolean lastLeftTrigger1, lastRightTrigger1;
     private boolean lastBack1, lastStart1;
     private boolean lastDpadUp2, lastDpadDown2;
     private boolean lastA2, lastB2, lastX2, lastY2;
@@ -277,9 +279,19 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
         }
         
         // LEFT TRIGGER - GPP
-        if (gamepad1.left_trigger > 0.5 && !(gamepad1.left_trigger > 0.5)) {
+        if (gamepad1.left_trigger > 0.5 && !lastLeftTrigger1) {
             indexing.setMotifPattern("GPP");
             telemetry.addLine("🎯 Motif set to GPP");
+        }
+        
+        // RIGHT TRIGGER - Toggle fast collect mode
+        if (gamepad1.right_trigger > 0.5 && !lastRightTrigger1) {
+            boolean newState = indexing.toggleSkipColorDetection();
+            if (newState) {
+                telemetry.addLine("⚡ Fast collect mode ENABLED (skip color detection)");
+            } else {
+                telemetry.addLine("🎨 Fast collect mode DISABLED (detect color)");
+            }
         }
     }
     
@@ -416,6 +428,8 @@ public class IndexingSystemV3AdvancedTest extends LinearOpMode {
         lastY1 = gamepad1.y;
         lastLeftBumper1 = gamepad1.left_bumper;
         lastRightBumper1 = gamepad1.right_bumper;
+        lastLeftTrigger1 = gamepad1.left_trigger > 0.5;
+        lastRightTrigger1 = gamepad1.right_trigger > 0.5;
         lastBack1 = gamepad1.back;
         lastStart1 = gamepad1.start;
         lastDpadUp2 = gamepad2.dpad_up;
