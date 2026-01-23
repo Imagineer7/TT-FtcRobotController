@@ -756,38 +756,45 @@ public class IndexingSystemV3 {
         }
         
         // Auto-collect ONLY if hunt mode enabled, intake eligible, AND presence confidence is sufficient
-        // CRITICAL: Only collect on HIGH confidence to prevent false positives (hands, etc.)
-        // HIGH = 3+ sensors agree, ensuring real artifact presence
+        // CRITICAL: Require HIGH confidence normally to prevent false positives (hands, etc.)
+        // However, when skip mode is ON, color sensors aren't updated, so accept MEDIUM confidence
+        // HIGH = 3+ sensors agree, MEDIUM = 2 sensors agree
         if (huntEnabled && isIntakeHuntEligible(SlotLedger.Slot.FRONT) && 
             frontPerception.getFastPresence() &&
             (currentTime - lastFrontAutoCollectTime) >= AUTO_COLLECT_COOLDOWN_MS) {
             
-            // Check presence confidence - REQUIRE HIGH (3+ sensors detect)
+            // Check presence confidence
             IntakePerception.PresenceConfidence confidence = frontPerception.getPresenceConfidence();
-            if (confidence == IntakePerception.PresenceConfidence.HIGH) {
+            IntakePerception.PresenceConfidence requiredConfidence = skipColorDetection ? 
+                IntakePerception.PresenceConfidence.MEDIUM : IntakePerception.PresenceConfidence.HIGH;
+            
+            if (confidence.ordinal() >= requiredConfidence.ordinal()) {
                 if (requestCollect(SlotLedger.Slot.FRONT)) {
                     lastFrontAutoCollectTime = currentTime;
-                    Dbg.d(LogGroup.INTAKE, "Auto-collect FRONT (confidence=%s)", confidence);
+                    Dbg.d(LogGroup.INTAKE, "Auto-collect FRONT (confidence=%s, required=%s)", confidence, requiredConfidence);
                 }
             } else {
-                // Not HIGH confidence - skip (likely hand, temporary object, or poor sensor view)
-                Dbg.d(LogGroup.INTAKE, "Skipping FRONT auto-collect (confidence=%s not HIGH)", confidence);
+                // Not sufficient confidence - skip
+                Dbg.d(LogGroup.INTAKE, "Skipping FRONT auto-collect (confidence=%s, required=%s)", confidence, requiredConfidence);
             }
         }
         if (huntEnabled && isIntakeHuntEligible(SlotLedger.Slot.BACK) && 
             backPerception.getFastPresence() &&
             (currentTime - lastBackAutoCollectTime) >= AUTO_COLLECT_COOLDOWN_MS) {
             
-            // Check presence confidence - REQUIRE HIGH (3+ sensors detect)
+            // Check presence confidence
             IntakePerception.PresenceConfidence confidence = backPerception.getPresenceConfidence();
-            if (confidence == IntakePerception.PresenceConfidence.HIGH) {
+            IntakePerception.PresenceConfidence requiredConfidence = skipColorDetection ? 
+                IntakePerception.PresenceConfidence.MEDIUM : IntakePerception.PresenceConfidence.HIGH;
+            
+            if (confidence.ordinal() >= requiredConfidence.ordinal()) {
                 if (requestCollect(SlotLedger.Slot.BACK)) {
                     lastBackAutoCollectTime = currentTime;
-                    Dbg.d(LogGroup.INTAKE, "Auto-collect BACK (confidence=%s)", confidence);
+                    Dbg.d(LogGroup.INTAKE, "Auto-collect BACK (confidence=%s, required=%s)", confidence, requiredConfidence);
                 }
             } else {
-                // Not HIGH confidence - skip (likely hand, temporary object, or poor sensor view)
-                Dbg.d(LogGroup.INTAKE, "Skipping BACK auto-collect (confidence=%s not HIGH)", confidence);
+                // Not sufficient confidence - skip
+                Dbg.d(LogGroup.INTAKE, "Skipping BACK auto-collect (confidence=%s, required=%s)", confidence, requiredConfidence);
             }
         }
         

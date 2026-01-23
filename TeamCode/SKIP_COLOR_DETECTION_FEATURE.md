@@ -14,14 +14,18 @@ The Skip Color Detection feature allows the Indexing System V3 to collect artifa
 
 #### Fast Collection Mode (Skip ON - Default)
 - **Speed**: ~200ms per artifact
-- **Color**: All artifacts collected as `UNKNOWN`
+- **Color**: All artifacts collected as `UNKNOWN` with 0.0 confidence (intentional)
 - **Process**: Detect presence → Wait 150ms (hardware settle) → Stop hardware → Collect as UNKNOWN
+- **Auto-Collect**: Requires MEDIUM confidence (2+ sensors) instead of HIGH
+- **Confidence Check**: Bypassed in commit phase (UNKNOWN artifacts with 0.0 confidence are accepted)
 - **Use Case**: Rapid collection during matches where color doesn't matter or will be determined later
 
 #### Full Detection Mode (Skip OFF)
 - **Speed**: ~1400ms per artifact (includes jiggling for low confidence)
 - **Color**: Full color classification (PURPLE, GREEN, or UNKNOWN)
 - **Process**: Complete 5-state sampling machine with jiggling
+- **Auto-Collect**: Requires HIGH confidence (3+ sensors) for safety
+- **Confidence Check**: Enforced (minimum 0.5 confidence required)
 - **Use Case**: When accurate color classification is required for shot planning
 
 ### States Bypassed in Fast Mode
@@ -87,11 +91,12 @@ CollectOperation(
    if (skipColorDetection && samplingState == WAITING_HARDWARE_DELAY) {
        // Wait for hardware checkpoint (150ms)
        // Stop hardware
-       // Create UNKNOWN artifact
+       // Create UNKNOWN artifact with 0.0 confidence
        // Skip to COMPLETE state
    }
    ```
-4. **Telemetry**: Added "Skip Color Detection" field
+4. **Confidence Check Bypass**: When `skipColorDetection` is true, the minimum confidence validation is skipped in `doCommit()`, allowing UNKNOWN artifacts with 0.0 confidence to be committed
+5. **Telemetry**: Added "Skip Color Detection" field
 
 ### Changes to IndexingSystemV3.java
 
@@ -101,7 +106,8 @@ CollectOperation(
    - `toggleSkipColorDetection()`
    - `isSkipColorDetection()`
 3. **requestCollect()**: Passes skip flag to CollectOperation
-4. **Logging**: Debug logs for mode changes
+4. **Auto-Collect Confidence**: When skip mode is ON, auto-collect accepts MEDIUM confidence (2+ sensors) instead of HIGH (3+ sensors), since color sensors aren't updated in skip mode
+5. **Logging**: Debug logs for mode changes and confidence requirements
 
 ## Performance Comparison
 
@@ -198,6 +204,11 @@ Potential improvements for future versions:
 - `FIRING_SYSTEM_USAGE.md` - Integration with firing system
 
 ## Version History
+
+- **v3.1.1** (2026-01-23): Fixed confidence validation issues
+  - Fixed: Confidence check now bypassed when skip mode is ON (allows UNKNOWN with 0.0 confidence)
+  - Fixed: Auto-collect now accepts MEDIUM confidence when skip mode is ON (color sensors not updated)
+  - Improved: Better debug logging showing required vs actual confidence
 
 - **v3.1** (2026-01-23): Initial implementation of skip color detection feature
   - Added skipColorDetection flag to CollectOperation

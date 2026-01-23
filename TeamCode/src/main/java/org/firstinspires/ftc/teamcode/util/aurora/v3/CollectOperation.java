@@ -448,9 +448,9 @@ public class CollectOperation extends BaseOperation {
         }
         
         // CRITICAL: Validate color confidence before committing
-        // Only commit if confidence meets minimum threshold
+        // Skip validation if skipColorDetection is enabled (we intentionally create UNKNOWN with 0.0 confidence)
         double confidence = collectedArtifact.getColorConfidence();
-        if (confidence < MIN_COLOR_CONFIDENCE) {
+        if (!skipColorDetection && confidence < MIN_COLOR_CONFIDENCE) {
             logWarn("Color confidence too low (" + String.format("%.2f", confidence) + 
                    " < " + MIN_COLOR_CONFIDENCE + "), REJECTING collection");
             Dbg.w(LogGroup.INTAKE, "REJECTED: Color confidence %.2f below threshold", confidence);
