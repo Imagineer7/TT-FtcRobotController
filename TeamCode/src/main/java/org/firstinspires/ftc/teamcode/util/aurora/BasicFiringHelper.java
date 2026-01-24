@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.util.debug.LogGroup;
  * BasicFiringHelper - Non-blocking firing and ejection control
  *
  * This helper class provides:
- * - Non-blocking firing sequences (spin up → feed → fire)
+ * - Non-blocking firing sequences (spin up → wait for ready → fire on command)
  * - RPM preset management (high, medium, low range)
  * - Keep-alive mode (shooter stays spinning for rapid follow-up shots)
  * - Ejection sequences (clear artifacts from robot)
@@ -16,14 +16,14 @@ import org.firstinspires.ftc.teamcode.util.debug.LogGroup;
  * - Cancel operations mid-sequence
  *
  * Firing Sequence:
- * 1. Spin up shooter to target RPM
- * 2. Wait for shooter ready (at target + stable)
- * 3. Feed artifact with uptake servos (300ms)
- * 4. Complete (or transition to READY_TO_FIRE if keep-alive mode)
+ * 1. Call startFiring() to spin up shooter to target RPM
+ * 2. Wait for shooter ready (at target + stable) - transitions to READY_TO_FIRE state
+ * 3. Call fireShot() to feed artifact with uptake servos (1000ms)
+ * 4. Complete (or return to READY_TO_FIRE if keep-alive mode)
  *
  * Keep-Alive Mode:
- * When enabled, shooter stays spinning after first shot.
- * Use fireShot() or startFiring() to trigger subsequent shots.
+ * When enabled, shooter stays spinning after shots.
+ * Use fireShot() to trigger shots while shooter is ready.
  * Call cancelFiring() to stop the shooter.
  *
  * Ejection Sequence:
@@ -31,18 +31,20 @@ import org.firstinspires.ftc.teamcode.util.debug.LogGroup;
  * - Run shooter at low speed (safe ejection from center)
  * - Run uptake forward (push artifact out through shooter)
  *
- * Usage Pattern (Single Shot):
+ * Usage Pattern (Manual Control):
  *   BasicFiringHelper firingHelper = new BasicFiringHelper(shooter, indexingHelper, hardware, telemetry);
  *
- *   // Start single shot (shooter stops after)
+ *   // Start spinning up shooter
  *   firingHelper.startFiring(ShooterConfig.RPM_HIGH_BASKET, "HIGH", false);
  *
  *   // In loop
  *   firingHelper.update();
  *
- *   // Check if complete
- *   if (!firingHelper.isFiring()) {
- *       // Ready for next shot
+ *   // Wait for ready, then fire when desired
+ *   if (firingHelper.isReadyForNextShot()) {
+ *       if (gamepad1.a) {
+ *           firingHelper.fireShot();  // Actually fire the shot
+ *       }
  *   }
  *
  * Usage Pattern (Keep-Alive / Multiple Shots):
@@ -52,11 +54,11 @@ import org.firstinspires.ftc.teamcode.util.debug.LogGroup;
  *   // In loop
  *   firingHelper.update();
  *
- *   // Wait for ready
+ *   // Wait for ready, then fire shots on demand
  *   if (firingHelper.isReadyForNextShot()) {
- *       // Fire subsequent shots
+ *       // Fire shots as needed
  *       if (gamepad1.a) {
- *           firingHelper.fireShot();  // Fire another shot
+ *           firingHelper.fireShot();  // Fire a shot
  *       }
  *   }
  *
@@ -74,7 +76,7 @@ public class BasicFiringHelper {
     private final AuroraHardwareConfig hardware;
 
     // Global timeout (milliseconds)
-    private static final long GLOBAL_TIMEOUT = 15000; // 15 seconds max for any firing operation
+    private static final long GLOBAL_TIMEOUT = 30000; // 30 seconds max for any firing operation
 
     // Firing constants
     private static final long FEED_DURATION_MS = 1000; // Uptake feed time
@@ -246,10 +248,9 @@ public class BasicFiringHelper {
                 }
 
                 if (canFire) {
-                    // Shooter ready - start feeding
-                    firingState = FiringState.FEEDING;
-                    indexingHelper.setUptakeTimed(FEED_POWER, FEED_DURATION_MS);
-                    telemetry.addData("Firing", "✅ Feeding artifact (300ms)");
+                    // Shooter ready - transition to READY_TO_FIRE (wait for explicit fireShot() call)
+                    firingState = FiringState.READY_TO_FIRE;
+                    telemetry.addData("Firing", "✅ Shooter ready - call fireShot() to fire");
                     telemetry.addData("  Ready Status", isReady ? "FULLY READY" : "AT TARGET RPM");
                 } else {
                     // Still spinning up - show detailed debug info
@@ -348,12 +349,12 @@ public class BasicFiringHelper {
 
     /**
      * Start firing sequence with specified RPM
-     * Non-blocking - will complete automatically
+     * Non-blocking - spins up shooter and waits in READY_TO_FIRE state
      *
      * Sequence:
      * 1. Spin up shooter to target RPM
-     * 2. Wait for shooter ready
-     * 3. Feed artifact (300ms)
+     * 2. Wait for shooter ready (transitions to READY_TO_FIRE)
+     * 3. Call fireShot() to actually feed and fire artifact
      *
      * @param rpm Target RPM for shooter
      * @return true if started successfully, false if already firing
@@ -378,7 +379,7 @@ public class BasicFiringHelper {
      * Recommended method - uses preset configuration from ShooterConfig
      *
      * @param preset ShooterConfig.ShooterPreset to use
-     * @param keepAlive If true, shooter stays spinning after first shot
+     * @param keepAlive If true, shooter stays spinning after shots (use fireShot() for subsequent shots)
      * @return true if started successfully
      */
     public boolean startFiringWithPreset(ShooterConfig.ShooterPreset preset, boolean keepAlive) {
@@ -397,10 +398,12 @@ public class BasicFiringHelper {
 
     /**
      * Start firing sequence with specified RPM, preset name, and keep-alive mode
+     * Spins up shooter to target RPM and transitions to READY_TO_FIRE state
+     * Call fireShot() to actually fire when ready
      *
      * @param rpm Target RPM for shooter
      * @param presetName Name of preset for telemetry
-     * @param keepAlive If true, shooter stays spinning after first shot for rapid follow-up shots
+     * @param keepAlive If true, shooter stays spinning after shots for rapid follow-up (call fireShot() repeatedly)
      * @return true if started successfully, false if already firing
      */
     public boolean startFiring(double rpm, String presetName, boolean keepAlive) {
@@ -492,7 +495,7 @@ public class BasicFiringHelper {
 
     /**
      * Check if ready to fire another shot (in READY_TO_FIRE state)
-     * Use this to know when you can call startFiring() for a follow-up shot
+     * Use this to know when you can call fireShot() to trigger a shot
      *
      * @return true if shooter is spun up and waiting for next shot
      */
@@ -503,7 +506,7 @@ public class BasicFiringHelper {
     /**
      * Start firing with long range preset (2800 RPM)
      * For shots from far distance
-     * Uses keep-alive mode - shooter stays spinning while button held
+     * Uses keep-alive mode - shooter stays spinning, call fireShot() to fire
      * @return true if started successfully
      */
     public boolean startFiringLongRange() {
@@ -515,7 +518,7 @@ public class BasicFiringHelper {
     /**
      * Start firing with mid-range preset (2300 RPM)
      * For shots from medium distance
-     * Uses keep-alive mode - shooter stays spinning while button held
+     * Uses keep-alive mode - shooter stays spinning, call fireShot() to fire
      * @return true if started successfully
      */
     public boolean startFiringMidRange() {
@@ -527,7 +530,7 @@ public class BasicFiringHelper {
     /**
      * Start firing with short range preset (1100 RPM)
      * For shots from close distance
-     * Uses keep-alive mode - shooter stays spinning while button held
+     * Uses keep-alive mode - shooter stays spinning, call fireShot() to fire
      * @return true if started successfully
      */
     public boolean startFiringShortRange() {

@@ -3,11 +3,13 @@ package org.firstinspires.ftc.teamcode.opmodes;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.AutoGyroTurret;
 import org.firstinspires.ftc.teamcode.util.aurora.BasicIndexingHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.BasicFiringHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.IntelMechanumDrive;
+import org.firstinspires.ftc.teamcode.util.aurora.LimelightVisionHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.Localization;
 import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
@@ -32,8 +34,9 @@ import org.firstinspires.ftc.teamcode.util.aurora.v3.IntakePerception;
  *   TURRET CONTROLS (Auto-Gyro):
  *   - A Button:      Set turret target to current robot heading (point forward)
  *   - B Button:      Enable/disable auto-gyro mode (toggle)
- *   - X Button:      Reset turret to forward (0° robot-relative)
- *   - Y Button:      Set turret to default field heading (0° = North)
+ *   - X Button:      Manual Limelight update (sync pose when near AprilTag)
+ *   - Y Button:      Toggle between AprilTag targets (Blue tag 20 @ 54° / Red tag 24 @ -54°)
+ *   - D-Pad Left:    Reset turret to forward (0° robot-relative)
  *
  * GAMEPAD 2 - FIRING AND INDEXING:
  *   Hold to fire:
@@ -63,6 +66,22 @@ import org.firstinspires.ftc.teamcode.util.aurora.v3.IntakePerception;
 @TeleOp(name="Manual Intake & Shooting", group="Competition")
 public class ManualIntakeAndShootingOpMode extends LinearOpMode {
 
+    // AprilTag target headings (field-relative - used as fallback when no pose update)
+    private static final double BLUE_TAG_20_HEADING = 54.0;   // Blue alliance tag
+    private static final double RED_TAG_24_HEADING = -54.0;   // Red alliance tag
+
+    // AprilTag field coordinates (from official field specs)
+    // Tag 20 (Blue): -1.482m, -1.413m, 0.749m, Yaw 54°
+    // Tag 24 (Red): -1.482m, 1.413m, 0.749m, Yaw -54°
+    // Converted to inches (1m = 39.3701 inches)
+    private static final double BLUE_TAG_X = -1.482 * 39.3701;  // -58.35 inches
+    private static final double BLUE_TAG_Y = -1.413 * 39.3701;  // -55.62 inches
+    private static final double RED_TAG_X = -1.482 * 39.3701;   // -58.35 inches
+    private static final double RED_TAG_Y = 1.413 * 39.3701;    // 55.62 inches (ORIGINAL VALUE RESTORED)
+
+    // Pose update tracking
+    private boolean poseUpdatedWithLimelight = false;  // Track if pose has been updated via Limelight
+
     // Hardware and helpers
     private AuroraHardwareConfig hardware;
     private BasicIndexingHelper indexingHelper;
@@ -75,6 +94,9 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
     // Intake perception for artifact detection
     private IntakePerception frontIntakePerception;
     private IntakePerception backIntakePerception;
+
+    // AprilTag target toggle state
+    private boolean targetingBlueTag = true;  // Start with Blue tag 20
 
     // Button state tracking for edge detection
     private boolean lastButtonA = false;
@@ -126,11 +148,43 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
         drive = new IntelMechanumDrive(hardware, gamepad1);
 
         // Initialize localization for robot heading
+        telemetry.addLine("Initializing localization...");
+        telemetry.update();
+
         localization = new Localization(hardwareMap);
+
+        // Check and display initialization status
+        telemetry.addLine();
+        telemetry.addLine("═══ LOCALIZATION STATUS ═══");
+
         if (!localization.isOdometryInitialized()) {
-            telemetry.addData("⚠ WARN", "Odometry not available - turret heading may be inaccurate");
+            telemetry.addData("⚠ Odometry", "Not available - turret heading may be inaccurate");
+        } else {
+            telemetry.addData("✅ Odometry", "Initialized successfully");
         }
+
+        if (!localization.isLimelightInitialized()) {
+            telemetry.addData("❌ Limelight", "NOT INITIALIZED");
+            String error = localization.getLimelightInitializationError();
+            if (error != null) {
+                telemetry.addData("  Error", error);
+            }
+            telemetry.addData("  Expected", "Device 'limelight' (Limelight3A)");
+            telemetry.addData("  Action", "Check Driver Station hardware config");
+        } else {
+            telemetry.addData("✅ Limelight", "Initialized successfully");
+        }
+
+        telemetry.addLine("═══════════════════════════════════");
+        telemetry.update();
+
+        // Pause for 2 seconds so driver can see the status
+        //sleep(2000);
+
         localization.resetPosition();
+
+        // Set Limelight to MANUAL mode - updates only when explicitly requested
+        localization.setLimelightUpdateMode(Localization.LimelightUpdateMode.MANUAL);
 
         // Initialize auto-gyro turret
         autoGyroTurret = new AutoGyroTurret(hardwareMap, telemetry);
@@ -180,8 +234,9 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
         telemetry.addLine("  TURRET (Auto-Gyro):");
         telemetry.addLine("  A: Set to robot heading");
         telemetry.addLine("  B: Enable/Disable auto-gyro");
-        telemetry.addLine("  X: Reset to forward");
-        telemetry.addLine("  Y: Set to North (0°)");
+        telemetry.addLine("  X: Manual Limelight update");
+        telemetry.addLine("  Y: Toggle AprilTag target");
+        telemetry.addLine("  D-Pad Left: Reset turret forward");
         telemetry.addLine();
         telemetry.addLine("GAMEPAD 2 - FIRING & INDEXING");
         telemetry.addLine("  A (Hold): Short Range Fire");
@@ -222,9 +277,9 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             frontIntakePerception.update();
             backIntakePerception.update();
 
-            // Update localization for robot heading
+            // Update localization for robot heading (MANUAL mode - Limelight only on X button)
             if (localization != null) {
-                localization.update();
+                localization.update();  // Updates odometry, Limelight only when manually triggered
             }
 
             // Get current robot heading for turret control
@@ -258,19 +313,72 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             }
             lastBButton = gamepad1.b;
 
-            // X Button - Reset turret to forward (robot-relative 0°)
+            // X Button - Manual Limelight update (sync pose when near AprilTag)
             if (gamepad1.x && !lastXButton) {
-                autoGyroTurret.resetToForward(robotHeading);
-                autoGyroTurret.enable();
-                telemetry.addLine("⬆️ Turret: Reset to forward");
+                boolean success = localization.updateWithLimelight();
+                if (success) {
+                    poseUpdatedWithLimelight = true;  // Enable calculated turret angles
+                    telemetry.addLine("✅ Limelight: Pose updated successfully");
+                } else {
+                    telemetry.addLine("⚠️ Limelight: Update failed (check conditions)");
+                }
             }
             lastXButton = gamepad1.x;
 
-            // Y Button - Set turret to default field heading (North = 0°)
+            // Y Button - Toggle between AprilTag targets (Blue tag 20 @ 54° and Red tag 24 @ -54°)
             if (gamepad1.y && !lastYButton) {
-                autoGyroTurret.setFieldRelativeHeading(0.0, robotHeading);
+                // Toggle target
+                targetingBlueTag = !targetingBlueTag;
+
+                double targetHeading;
+                String tagName = targetingBlueTag ? "Blue Tag 20" : "Red Tag 24";
+
+                // If pose has been updated with Limelight at least once, calculate angle from robot to tag
+                if (poseUpdatedWithLimelight && localization.isOdometryInitialized()) {
+                    // Get current robot position (in rotated Limelight coordinate system)
+                    double robotXRotated = localization.getX(DistanceUnit.INCH);
+                    double robotYRotated = localization.getY(DistanceUnit.INCH);
+
+                    // Apply inverse 180° rotation to convert robot position back to field coordinate system
+                    // Since Limelight data was rotated 180°, we need to rotate it back to match AprilTag coords
+                    // Inverse of 180° rotation is another 180° rotation: x' = -x, y' = -y
+                    double robotX = -robotXRotated;
+                    double robotY = -robotYRotated;
+
+                    // Get target tag coordinates (in original field coordinate system)
+                    double tagX = targetingBlueTag ? BLUE_TAG_X : RED_TAG_X;
+                    double tagY = targetingBlueTag ? BLUE_TAG_Y : RED_TAG_Y;
+
+                    // Calculate angle from robot to target tag
+                    double deltaX = tagX - robotX;
+                    double deltaY = tagY - robotY;
+
+                    // Calculate angle in degrees (atan2 returns radians)
+                    // atan2(y, x) gives angle from positive X-axis
+                    targetHeading = Math.toDegrees(Math.atan2(deltaY, deltaX));
+
+                    // Add 180° to flip turret around (front of turret instead of back)
+                    targetHeading += 180.0;
+
+                    // Calculate distance for telemetry
+                    double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+                    telemetry.addLine(String.format("🎯 Turret: Target %s (calculated)", tagName));
+                    telemetry.addLine(String.format("   Angle: %.1f° | Distance: %.1f in", targetHeading, distance));
+                    telemetry.addLine(String.format("   Robot: (%.1f, %.1f) → Tag: (%.1f, %.1f)",
+                                                    robotX, robotY, tagX, tagY));
+                } else {
+                    // Fallback to fixed heading if pose hasn't been updated yet
+                    targetHeading = targetingBlueTag ? BLUE_TAG_20_HEADING : RED_TAG_24_HEADING;
+                    telemetry.addLine(String.format("🎯 Turret: Target %s (%.0f° fixed)", tagName, targetHeading));
+                    if (!poseUpdatedWithLimelight) {
+                        telemetry.addLine("   ⚠️ Using fixed angle - press X near tag to enable calculated angles");
+                    }
+                }
+
+                // Set turret to calculated or fixed target heading
+                autoGyroTurret.setFieldRelativeHeading(targetHeading, robotHeading);
                 autoGyroTurret.enable();
-                telemetry.addLine("🧭 Turret: Set to North (0°)");
             }
             lastYButton = gamepad1.y;
 
@@ -300,9 +408,17 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
                 rotate = gamepad2.left_stick_x;
             }
 
-            // D-Pad fine movement controls (low power for precise positioning)
+            // D-Pad controls
             final double FINE_MOVE_POWER = 0.5;  // 50% power for precise control
 
+            // D-Pad Left - Reset turret to forward
+            if (gamepad1.dpad_left) {
+                autoGyroTurret.resetToForward(robotHeading);
+                autoGyroTurret.enable();
+                telemetry.addLine("⬆️ Turret: Reset to forward");
+            }
+
+            // D-Pad Up/Down/Right - Fine movement controls (low power for precise positioning)
             if (gamepad1.dpad_up) {
                 forward = FINE_MOVE_POWER;  // Move forward slowly
             }
@@ -311,9 +427,6 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             }
             if (gamepad1.dpad_right) {
                 strafe = FINE_MOVE_POWER;  // Strafe right slowly
-            }
-            if (gamepad1.dpad_left) {
-                strafe = -FINE_MOVE_POWER;  // Strafe left slowly
             }
 
             drive.setMechanumPowers(forward, strafe, rotate);
@@ -597,17 +710,102 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             telemetry.addData("Back Intake", backStatus);
             telemetry.addData("", "");
 
+            telemetry.addData("═══ LIMELIGHT DEBUG ═══", "");
+            if (localization != null && localization.isLimelightInitialized()) {
+                LimelightVisionHelper limelight = localization.getLimelight();
+                boolean hasTarget = limelight.hasTarget();
+
+                telemetry.addData("Status", "✅ ONLINE");
+                telemetry.addData("Has Target", hasTarget ? "✅ YES" : "❌ NO");
+
+                if (hasTarget) {
+                    // AprilTag detection info
+                    telemetry.addData("Target X", String.format("%.2f°", limelight.getTargetX()));
+                    telemetry.addData("Target Y", String.format("%.2f°", limelight.getTargetY()));
+                    telemetry.addData("Target Area", String.format("%.2f%%", limelight.getTargetArea()));
+
+                    // Data quality indicators
+                    boolean dataFresh = localization.isVisionDataFresh();
+                    boolean dataQualityGood = localization.isVisionDataQualityGood();
+                    long dataAge = localization.getVisionDataAge();
+
+                    telemetry.addData("Data Fresh", dataFresh ? "✅ YES" : "⚠️ STALE");
+                    telemetry.addData("Data Quality", dataQualityGood ? "✅ GOOD" : "⚠️ POOR");
+                    telemetry.addData("Data Age", String.format("%d ms", dataAge));
+
+                    // Heading stability tracking
+                    boolean headingStable = localization.isLimelightHeadingStable();
+                    int stableCount = localization.getStableHeadingCount();
+                    boolean odometryUpdated = localization.wasOdometryUpdatedByLimelight();
+
+                    // Velocity check for accurate updates
+                    double velocityMM = localization.getVelocityMagnitude(DistanceUnit.MM);
+                    boolean velocityLow = localization.isVelocityLowForUpdate();
+
+                    telemetry.addData("Heading Stable", headingStable ? "✅ YES" : "❌ NO");
+                    telemetry.addData("Stable Count", stableCount + "/10");
+
+                    // Velocity status
+                    telemetry.addData("Robot Velocity", String.format("%.1f mm/s", velocityMM));
+                    telemetry.addData("Velocity OK", velocityLow ? "✅ YES (< 100mm/s)" : "⚠️ TOO FAST");
+
+                    if (headingStable) {
+                        double stableHeading = localization.getStableLimelightHeading(AngleUnit.DEGREES);
+                        telemetry.addData("Stable Heading", String.format("%.1f°", stableHeading));
+
+                        if (velocityLow) {
+                            telemetry.addData("Using LL Heading", "✅ YES (stable + slow)");
+                            telemetry.addData("Odometry Updated", odometryUpdated ? "✅ YES (synced)" : "⚠️ Jump too large");
+                        } else {
+                            telemetry.addData("Using LL Heading", "⚠️ SKIPPED (moving too fast)");
+                            telemetry.addData("Odometry Updated", "❌ NO (velocity too high)");
+                        }
+                    } else {
+                        telemetry.addData("Using LL Heading", "❌ NO (not stable)");
+                        telemetry.addData("Odometry Updated", "❌ NO");
+                    }
+
+                    // Robot pose from Limelight
+                    org.firstinspires.ftc.robotcore.external.navigation.Pose3D visionPose = limelight.getRobotPose();
+                    if (visionPose != null) {
+                        telemetry.addData("Vision X", String.format("%.1f mm", visionPose.getPosition().x));
+                        telemetry.addData("Vision Y", String.format("%.1f mm", visionPose.getPosition().y));
+                        telemetry.addData("Vision Yaw", String.format("%.1f°", visionPose.getOrientation().getYaw()));
+
+                        // Distance to target (approximate using Z)
+                        double distMM = Math.abs(visionPose.getPosition().z);
+                        double distFeet = distMM / 304.8;
+                        telemetry.addData("Target Dist", String.format("%.1f ft (%.0f mm)", distFeet, distMM));
+                    } else {
+                        telemetry.addData("Vision Pose", "❌ NULL");
+                    }
+                } else {
+                    telemetry.addData("Info", "No AprilTags visible");
+                }
+            } else if (localization != null) {
+                telemetry.addData("Status", "❌ NOT INITIALIZED");
+                String error = localization.getLimelightInitializationError();
+                if (error != null) {
+                    telemetry.addData("Error", error);
+                }
+                telemetry.addData("Expected", "Device 'limelight' (Limelight3A)");
+                telemetry.addData("Fix", "Configure in Driver Station");
+            } else {
+                telemetry.addData("Status", "❌ LOCALIZATION NULL");
+            }
+            telemetry.addData("", "");
+
             telemetry.addData("═══ ACTIVE CONTROLS ═══", "");
             // Gamepad 1 - Turret
             if (gamepad1.a) telemetry.addLine("🎯 GP1 A - Set Robot Heading");
             if (gamepad1.b) telemetry.addLine("🔄 GP1 B - Toggle Auto-Gyro");
-            if (gamepad1.x) telemetry.addLine("⬆️ GP1 X - Reset Forward");
-            if (gamepad1.y) telemetry.addLine("🧭 GP1 Y - Set North");
+            if (gamepad1.x) telemetry.addLine("📡 GP1 X - Manual Limelight Update");
+            if (gamepad1.y) telemetry.addLine("🧭 GP1 Y - Toggle AprilTag Target");
             // Gamepad 1 - Drive
             if (gamepad1.guide) telemetry.addLine("🔘 GP1 Guide - Toggle Ejection");
             if (gamepad1.dpad_up) telemetry.addLine("⬆️ GP1 DPad Up - Fine Fwd");
             if (gamepad1.dpad_down) telemetry.addLine("⬇️ GP1 DPad Down - Fine Back");
-            if (gamepad1.dpad_left) telemetry.addLine("⬅️ GP1 DPad Left - Fine Strafe L");
+            if (gamepad1.dpad_left) telemetry.addLine("⬅️ GP1 DPad Left - Reset Turret");
             if (gamepad1.dpad_right) telemetry.addLine("➡️ GP1 DPad Right - Fine Strafe R");
             if (gamepad1.right_bumper) telemetry.addLine("🔼 GP1 RB - Front Intake");
             if (gamepad1.left_bumper) telemetry.addLine("🔽 GP1 LB - Back Intake");

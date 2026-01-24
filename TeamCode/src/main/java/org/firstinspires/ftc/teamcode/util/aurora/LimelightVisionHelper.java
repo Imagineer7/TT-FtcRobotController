@@ -26,7 +26,8 @@ public class LimelightVisionHelper {
     
     // Hardware
     private Limelight3A limelight;
-    
+    private String initializationError = null;
+
     // Configuration constants
     private static final String LIMELIGHT_NAME = "limelight";
     private static final int POSITIONING_PIPELINE = 3;
@@ -56,8 +57,13 @@ public class LimelightVisionHelper {
             limelight = hardwareMap.get(Limelight3A.class, LIMELIGHT_NAME);
             limelight.pipelineSwitch(POSITIONING_PIPELINE);
             limelight.start();
+            initializationError = null;
+        } catch (IllegalArgumentException e) {
+            limelight = null;
+            initializationError = "Device '" + LIMELIGHT_NAME + "' not found in hardware map. Check Driver Station configuration.";
         } catch (Exception e) {
             limelight = null;
+            initializationError = "Failed to initialize: " + e.getClass().getSimpleName() + " - " + e.getMessage();
         }
     }
     
@@ -68,6 +74,14 @@ public class LimelightVisionHelper {
         return limelight != null;
     }
     
+    /**
+     * Get initialization error message if initialization failed
+     * @return Error message, or null if initialization succeeded
+     */
+    public String getInitializationError() {
+        return initializationError;
+    }
+
     /**
      * Check if any valid targets are visible
      */

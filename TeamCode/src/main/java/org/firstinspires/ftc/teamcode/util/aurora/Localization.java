@@ -19,13 +19,30 @@ import org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver;
  * 
  * The Pinpoint provides fast, continuous position updates using odometry pods and IMU.
  * The Limelight provides absolute position corrections when AprilTags are visible.
+ *
+ * Update Modes:
+ * - AUTOMATIC: Limelight updates applied automatically when conditions are met
+ * - MANUAL: Limelight updates only when explicitly requested via updateWithLimelight()
+ * - DISABLED: No Limelight updates, odometry only
  */
 public class Localization {
     
+    /**
+     * Update mode for Limelight sensor fusion
+     */
+    public enum LimelightUpdateMode {
+        AUTOMATIC,  // Auto-update when conditions met (default)
+        MANUAL,     // Only update on manual call
+        DISABLED    // No Limelight updates
+    }
+
     // Hardware
     private GoBildaPinpointDriver odometry;
     private LimelightVisionHelper limelight;
     
+    // Update mode
+    private LimelightUpdateMode updateMode = LimelightUpdateMode.AUTOMATIC;
+
     // Configuration constants
     private static final String ODOMETRY_NAME = "odo";
 
@@ -42,8 +59,21 @@ public class Localization {
 
     // Sensor fusion parameters
     private static final double LIMELIGHT_UPDATE_INTERVAL_MS = 500; // minimum time between vision corrections
+    private static final double LIMELIGHT_MAX_DISTANCE_MM = 1219; // 4 feet in mm - only trust close targets
+    private static final double HEADING_STABILITY_THRESHOLD_DEG = 4.0; // degrees - heading must be within this range
+    private static final int HEADING_STABILITY_COUNT = 10; // number of consistent readings needed
+    private static final double POSE_JUMP_THRESHOLD_MM = 300; // mm - max position jump allowed
+    private static final double MAX_VELOCITY_FOR_UPDATE_MM_PER_SEC = 10; // mm/s - max velocity to allow Limelight updates
+
     private long lastLimelightUpdateTime = 0;
     
+    // Limelight heading stability tracking
+    private double lastLimelightHeading = 0.0;
+    private int stableHeadingCount = 0;
+    private boolean limelightHeadingStable = false;
+    private double stableLimelightHeading = 0.0;
+    private boolean odometryUpdatedByLimelight = false;  // Track if pose was updated this loop
+
     // Position tracking
     private Pose2D currentPose;
     private boolean odometryInitialized = false;
@@ -127,23 +157,103 @@ public class Localization {
     }
     
     /**
+     * Get Limelight initialization error message
+     * @return Error message if Limelight failed to initialize, null otherwise
+     */
+    public String getLimelightInitializationError() {
+        if (limelight != null) {
+            return limelight.getInitializationError();
+        }
+        return "Limelight object is null";
+    }
+
+    /**
      * Update localization data
      * Call this method once per loop to update position tracking
      * 
      * This method:
      * 1. Updates odometry position
-     * 2. Checks if vision correction is available and needed
-     * 3. Applies vision correction if appropriate
+     * 2. Always tracks Limelight heading stability (for telemetry and manual updates)
+     * 3. If in AUTOMATIC mode: Applies Limelight updates when conditions met
+     * 4. If in MANUAL mode: Only updates odometry (call updateWithLimelight() to use vision)
+     * 5. If in DISABLED mode: Only updates odometry
      */
     public void update() {
-        // Always update odometry
+        // Reset update flag
+        odometryUpdatedByLimelight = false;
+
+        // Always update odometry first
         if (odometryInitialized && odometry != null) {
             odometry.update();
             currentPose = odometry.getPosition();
         }
         
-        // Periodically correct with Limelight if available
-        if (shouldUpdateWithLimelight()) {
+        // Always check and track Limelight heading stability (needed for manual updates and telemetry)
+        // This runs regardless of mode so stability info is always available
+        updateLimelightHeadingStability();
+
+        // Only do automatic Limelight updates if in AUTOMATIC mode
+        if (updateMode != LimelightUpdateMode.AUTOMATIC) {
+            return;  // Skip automatic Limelight updates
+        }
+
+
+        // If Limelight has stable heading within range AND robot is moving slowly, use it AND update odometry
+        if (limelightHeadingStable && shouldUseLimelightHeading() && isVelocityLowEnoughForUpdate()) {
+            // Get the full Limelight pose
+            Pose3D visionPose3D = limelight.getRobotPose();
+            if (visionPose3D != null) {
+                // Apply 180-degree rotation to correct field orientation
+                // Rotation: new_x = -old_x, new_y = -old_y
+                double rawX = visionPose3D.getPosition().x;
+                double rawY = visionPose3D.getPosition().y;
+                double rotatedX = -rawX;
+                double rotatedY = -rawY;
+
+                // Create 2D pose from Limelight data with rotated coordinates
+                Pose2D limelightPose = new Pose2D(
+                    DistanceUnit.MM,
+                    rotatedX,
+                    rotatedY,
+                    AngleUnit.RADIANS,
+                    stableLimelightHeading  // Use the stable heading we've been tracking
+                );
+
+                // Check if position change is reasonable (not a huge jump)
+                double currentX = currentPose.getX(DistanceUnit.MM);
+                double currentY = currentPose.getY(DistanceUnit.MM);
+                double dx = limelightPose.getX(DistanceUnit.MM) - currentX;
+                double dy = limelightPose.getY(DistanceUnit.MM) - currentY;
+                double positionJump = Math.sqrt(dx*dx + dy*dy);
+
+                if (positionJump <= POSE_JUMP_THRESHOLD_MM) {
+                    // Position change is reasonable - update odometry to match Limelight
+                    // This ensures smooth handoff when we lose sight of AprilTag
+                    setPosition(limelightPose);
+                    currentPose = limelightPose;
+                    odometryUpdatedByLimelight = true;  // Mark that we updated odometry
+                } else {
+                    // Position jump too large - only use heading, keep position from odometry
+                    currentPose = new Pose2D(
+                        DistanceUnit.MM,
+                        currentX,
+                        currentY,
+                        AngleUnit.RADIANS,
+                        stableLimelightHeading
+                    );
+                }
+            } else {
+                // Fallback: just override heading if pose is null
+                currentPose = new Pose2D(
+                    DistanceUnit.MM,
+                    currentPose.getX(DistanceUnit.MM),
+                    currentPose.getY(DistanceUnit.MM),
+                    AngleUnit.RADIANS,
+                    stableLimelightHeading
+                );
+            }
+        } else if (shouldUpdateWithLimelight()) {
+            // Fallback: Apply full pose correction if conditions are met
             applyLimelightCorrection();
         }
     }
@@ -160,9 +270,85 @@ public class Localization {
     }
     
     /**
-     * Force a vision correction update
+     * Set the Limelight update mode
+     * @param mode Update mode (AUTOMATIC, MANUAL, or DISABLED)
+     */
+    public void setLimelightUpdateMode(LimelightUpdateMode mode) {
+        this.updateMode = mode;
+    }
+
+    /**
+     * Get the current Limelight update mode
+     * @return Current update mode
+     */
+    public LimelightUpdateMode getLimelightUpdateMode() {
+        return updateMode;
+    }
+
+    /**
+     * Manually trigger a Limelight update
+     * This method respects all safety checks (velocity, distance, stability, etc.)
+     * Use this when in MANUAL mode to explicitly request a vision correction
+     *
+     * @return true if update was applied, false if conditions not met
+     */
+    public boolean updateWithLimelight() {
+        if (!limelightInitialized || limelight == null) {
+            return false;
+        }
+
+        // Reset flag
+        odometryUpdatedByLimelight = false;
+
+        // Check and track heading stability
+        updateLimelightHeadingStability();
+
+        // Try to apply update with all safety checks
+        if (limelightHeadingStable && shouldUseLimelightHeading() && isVelocityLowEnoughForUpdate()) {
+            // Get the full Limelight pose
+            Pose3D visionPose3D = limelight.getRobotPose();
+            if (visionPose3D != null) {
+                // Apply 180-degree rotation to correct field orientation
+                // Rotation: new_x = -old_x, new_y = -old_y
+                double rawX = visionPose3D.getPosition().x;
+                double rawY = visionPose3D.getPosition().y;
+                double rotatedX = -rawX;
+                double rotatedY = -rawY;
+
+                // Create 2D pose from Limelight data with rotated coordinates
+                Pose2D limelightPose = new Pose2D(
+                    DistanceUnit.MM,
+                    rotatedX,
+                    rotatedY,
+                    AngleUnit.RADIANS,
+                    stableLimelightHeading
+                );
+
+                // Check if position change is reasonable
+                double currentX = currentPose.getX(DistanceUnit.MM);
+                double currentY = currentPose.getY(DistanceUnit.MM);
+                double dx = limelightPose.getX(DistanceUnit.MM) - currentX;
+                double dy = limelightPose.getY(DistanceUnit.MM) - currentY;
+                double positionJump = Math.sqrt(dx*dx + dy*dy);
+
+                if (positionJump <= POSE_JUMP_THRESHOLD_MM) {
+                    // Update odometry to match Limelight
+                    setPosition(limelightPose);
+                    currentPose = limelightPose;
+                    odometryUpdatedByLimelight = true;
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Force a vision correction update (bypasses mode check)
      * Use this when you know the robot is in a good position to see AprilTags
-     * 
+     * Still respects safety checks (velocity, distance, stability)
+     *
      * @return true if correction was applied, false otherwise
      */
     public boolean forceVisionCorrection() {
@@ -363,6 +549,60 @@ public class Localization {
     }
     
     /**
+     * Check if Limelight heading is stable
+     * @return true if heading has been consistent over multiple readings
+     */
+    public boolean isLimelightHeadingStable() {
+        return limelightHeadingStable;
+    }
+
+    /**
+     * Get the stable Limelight heading (if stable)
+     * @param unit Angle unit to return
+     * @return Stable heading, or 0 if not stable
+     */
+    public double getStableLimelightHeading(AngleUnit unit) {
+        if (!limelightHeadingStable) return 0.0;
+        return unit.fromRadians(stableLimelightHeading);
+    }
+
+    /**
+     * Get the number of consecutive stable heading readings
+     * @return Count of stable readings (0-N)
+     */
+    public int getStableHeadingCount() {
+        return stableHeadingCount;
+    }
+
+    /**
+     * Check if odometry was updated with Limelight pose this loop
+     * @return true if odometry pose was corrected with Limelight data
+     */
+    public boolean wasOdometryUpdatedByLimelight() {
+        return odometryUpdatedByLimelight;
+    }
+
+    /**
+     * Get current robot velocity magnitude
+     * @param unit Distance unit to return
+     * @return Velocity magnitude in unit/sec
+     */
+    public double getVelocityMagnitude(DistanceUnit unit) {
+        if (odometry == null) return 0.0;
+        double vx = odometry.getVelX(unit);
+        double vy = odometry.getVelY(unit);
+        return Math.sqrt(vx*vx + vy*vy);
+    }
+
+    /**
+     * Check if robot velocity is low enough for Limelight updates
+     * @return true if velocity is within safe threshold
+     */
+    public boolean isVelocityLowForUpdate() {
+        return isVelocityLowEnoughForUpdate();
+    }
+
+    /**
      * Stop all sensors (call when OpMode ends)
      */
     public void stop() {
@@ -406,12 +646,40 @@ public class Localization {
         Pose3D visionPose3D = limelight.getRobotPose();
         if (visionPose3D == null) return false;
         
-        // Convert 3D pose to 2D pose for odometry
+        // Calculate distance to target (approximate using Z distance)
+        double distanceToTarget = Math.abs(visionPose3D.getPosition().z);
+
+        // Only apply full pose correction if within maximum distance and position won't jump too much
+        if (distanceToTarget > LIMELIGHT_MAX_DISTANCE_MM) {
+            return false;
+        }
+
+        // Check if position jump would be too large (indicates bad reading)
+        double currentX = currentPose.getX(DistanceUnit.MM);
+        double currentY = currentPose.getY(DistanceUnit.MM);
+
+        // Apply 180-degree rotation to correct field orientation
+        // Rotation: new_x = -old_x, new_y = -old_y
+        double rawX = visionPose3D.getPosition().x;
+        double rawY = visionPose3D.getPosition().y;
+        double rotatedX = -rawX;
+        double rotatedY = -rawY;
+
+        double dx = rotatedX - currentX;
+        double dy = rotatedY - currentY;
+        double positionJump = Math.sqrt(dx*dx + dy*dy);
+
+        if (positionJump > POSE_JUMP_THRESHOLD_MM) {
+            // Position jump too large - likely bad reading, skip
+            return false;
+        }
+
+        // Convert 3D pose to 2D pose for odometry with rotated coordinates
         // Limelight uses field coordinates, which matches our needs
         Pose2D visionPose2D = new Pose2D(
             DistanceUnit.MM,
-            visionPose3D.getPosition().x,
-            visionPose3D.getPosition().y,
+            rotatedX,
+            rotatedY,
             AngleUnit.RADIANS,
             visionPose3D.getOrientation().getYaw()
         );
@@ -423,5 +691,96 @@ public class Localization {
         lastLimelightUpdateTime = System.currentTimeMillis();
         
         return true;
+    }
+
+    /**
+     * Update Limelight heading stability tracking
+     * Checks if heading is consistent over multiple readings
+     */
+    private void updateLimelightHeadingStability() {
+        if (!limelightInitialized || limelight == null || !limelight.hasTarget()) {
+            // No target - reset stability tracking
+            stableHeadingCount = 0;
+            limelightHeadingStable = false;
+            return;
+        }
+
+        Pose3D visionPose = limelight.getRobotPose();
+        if (visionPose == null) {
+            stableHeadingCount = 0;
+            limelightHeadingStable = false;
+            return;
+        }
+
+        double currentHeading = visionPose.getOrientation().getYaw(AngleUnit.DEGREES);
+
+        // Check if heading is stable (within threshold of last reading)
+        double headingDiff = Math.abs(currentHeading - lastLimelightHeading);
+
+        // Handle wraparound (e.g., 359° to 1° is only 2° difference)
+        if (headingDiff > 180) {
+            headingDiff = 360 - headingDiff;
+        }
+
+        if (headingDiff <= HEADING_STABILITY_THRESHOLD_DEG) {
+            // Heading is stable - increment counter
+            stableHeadingCount++;
+
+            if (stableHeadingCount >= HEADING_STABILITY_COUNT) {
+                // We have enough stable readings
+                limelightHeadingStable = true;
+                stableLimelightHeading = AngleUnit.RADIANS.fromDegrees(currentHeading);
+            }
+        } else {
+            // Heading changed too much - reset
+            stableHeadingCount = 0;
+            limelightHeadingStable = false;
+        }
+
+        lastLimelightHeading = currentHeading;
+    }
+
+    /**
+     * Check if we should use Limelight heading directly
+     * @return true if Limelight heading is stable and target is within range
+     */
+    private boolean shouldUseLimelightHeading() {
+        if (!limelightInitialized || limelight == null || !limelight.hasTarget()) {
+            return false;
+        }
+
+        // Check data quality
+        if (!limelight.isDataFresh() || !limelight.isDataQualityGood()) {
+            return false;
+        }
+
+        Pose3D visionPose = limelight.getRobotPose();
+        if (visionPose == null) {
+            return false;
+        }
+
+        // Check distance to target (using Z distance as approximation)
+        double distanceToTarget = Math.abs(visionPose.getPosition().z);
+
+        // Only use Limelight heading if target is within maximum distance
+        return distanceToTarget <= LIMELIGHT_MAX_DISTANCE_MM;
+    }
+
+    /**
+     * Check if robot velocity is low enough for accurate Limelight updates
+     * @return true if robot is moving slowly enough
+     */
+    private boolean isVelocityLowEnoughForUpdate() {
+        if (odometry == null) return false;
+
+        // Get velocity components
+        double vx = odometry.getVelX(DistanceUnit.MM);
+        double vy = odometry.getVelY(DistanceUnit.MM);
+
+        // Calculate total velocity magnitude
+        double velocityMagnitude = Math.sqrt(vx*vx + vy*vy);
+
+        // Only allow updates if moving slowly
+        return velocityMagnitude <= MAX_VELOCITY_FOR_UPDATE_MM_PER_SEC;
     }
 }
