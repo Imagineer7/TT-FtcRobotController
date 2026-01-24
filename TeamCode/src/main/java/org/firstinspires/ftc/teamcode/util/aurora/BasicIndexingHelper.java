@@ -1217,7 +1217,7 @@ public class BasicIndexingHelper {
                 currentTransferType = "FRONT_MANUAL";
 
                 // Un-pre-position first
-                unPrePositionArtifacts();
+                //unPrePositionArtifacts(); //disabled for now. same for other manual transfer
                 telemetry.addData("Transfer", "Front manual - Un-prepositioning");
             } else if (currentTransferType.equals("FRONT_MANUAL")) {
                 // Only proceed if this is OUR transfer
@@ -1245,7 +1245,7 @@ public class BasicIndexingHelper {
 
                     // Start pre-positioning
                     transferSequenceState = TransferSequenceState.PREPOSITIONING;
-                    prePositionArtifacts();
+                    //prePositionArtifacts();
                     telemetry.addData("Transfer", "Front manual - Pre-positioning");
                     Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.PREPOSITIONING");
                 } else if (transferSequenceState == TransferSequenceState.PREPOSITIONING) {
@@ -1291,7 +1291,7 @@ public class BasicIndexingHelper {
                 currentTransferType = "BACK_MANUAL";
 
                 // Un-pre-position first
-                unPrePositionArtifacts();
+                //unPrePositionArtifacts();
                 telemetry.addData("Transfer", "Back manual - Un-prepositioning");
                 Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.UN_PREPOSITIONING");
             } else if (currentTransferType.equals("BACK_MANUAL")) {
@@ -1320,7 +1320,7 @@ public class BasicIndexingHelper {
 
                     // Start pre-positioning
                     transferSequenceState = TransferSequenceState.PREPOSITIONING;
-                    prePositionArtifacts();
+                    //prePositionArtifacts();
                     telemetry.addData("Transfer", "Back manual - Pre-positioning");
                     Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.PREPOSITIONING");
                 } else if (transferSequenceState == TransferSequenceState.PREPOSITIONING) {

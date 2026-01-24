@@ -77,7 +77,7 @@ public class BasicFiringHelper {
     private static final long GLOBAL_TIMEOUT = 15000; // 15 seconds max for any firing operation
 
     // Firing constants
-    private static final long FEED_DURATION_MS = 300; // Uptake feed time
+    private static final long FEED_DURATION_MS = 1000; // Uptake feed time
     private static final double FEED_POWER = 1.0;     // Full power for feeding
     private static final long SHOOTER_READY_TIMEOUT = 10000; // 10 seconds to reach target RPM
     private static final long MIN_SPINUP_TIME = 2000; // Minimum 2 seconds before checking ready
@@ -329,11 +329,9 @@ public class BasicFiringHelper {
                 telemetry.addData("  Delta", String.format("%.0f", Math.abs(targetRPM - shooter.getCurrentRPM())));
                 telemetry.addData("  Shooter State", shooter.getState());
 
-                // Check if button released - stop shooter when button released
-                if (!buttonHeld) {
-                    telemetry.addData("Firing", "⏹️ Button released - stopping shooter");
-                    cancelFiring();
-                }
+                // Shooter continues spinning in keep-alive mode
+                // Only X button (cancelFiring) will stop it
+                // This allows transfers to work while shooter is ready
                 break;
 
             case COMPLETE:

@@ -11,6 +11,8 @@ import org.firstinspires.ftc.teamcode.util.aurora.IntelMechanumDrive;
 import org.firstinspires.ftc.teamcode.util.aurora.Localization;
 import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
+import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
+import org.firstinspires.ftc.teamcode.util.aurora.v3.IntakePerception;
 
 /**
  * ManualIntakeAndShootingOpMode - Full manual control for intake and shooting
@@ -70,8 +72,14 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
     private AutoGyroTurret autoGyroTurret;
     private Localization localization;
 
-    // Button state tracking for firing
-    private boolean firingButtonPressed = false;
+    // Intake perception for artifact detection
+    private IntakePerception frontIntakePerception;
+    private IntakePerception backIntakePerception;
+
+    // Button state tracking for edge detection
+    private boolean lastButtonA = false;
+    private boolean lastButtonB = false;
+    private boolean lastButtonY = false;
 
     // Button edge detection for ejection toggle
     private boolean lastGuideButton = false;
@@ -127,13 +135,36 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
         // Initialize auto-gyro turret
         autoGyroTurret = new AutoGyroTurret(hardwareMap, telemetry);
 
-        // Enable auto-gyro by default and set to forward (robot heading)
+        // Enable auto-gyro by default and reset to forward (with 180° offset for correct orientation)
         double initialHeading = 0.0;
         if (localization.isOdometryInitialized()) {
             initialHeading = localization.getHeading(AngleUnit.DEGREES);
         }
-        autoGyroTurret.setFieldRelativeHeading(initialHeading, initialHeading);
+        autoGyroTurret.resetToForward(initialHeading);
         autoGyroTurret.enable();
+
+        // Initialize IntakePerception for both intakes
+        IndexingConfig indexingConfig = new IndexingConfig();
+
+        // Front intake perception
+        frontIntakePerception = new IntakePerception(
+            IntakePerception.IntakeSide.FRONT,
+            hardware.getFrontDistanceSensor(),        // Laser sensor
+            hardware.getFrontLeftDistanceSensor(),    // REV 2m ToF sensor
+            hardware.getFrontRightColorSensor(),      // Outward color sensor
+            hardware.getFrontLeftColorSensor(),       // Mouth color sensor
+            indexingConfig
+        );
+
+        // Back intake perception
+        backIntakePerception = new IntakePerception(
+            IntakePerception.IntakeSide.BACK,
+            hardware.getBackDistanceSensor(),         // Laser sensor
+            hardware.getBackRightDistanceSensor(),    // REV 2m ToF sensor
+            hardware.getBackRightColorSensor(),       // Outward color sensor (note: reused)
+            hardware.getLeftRightColorSensor(),       // Mouth color sensor
+            indexingConfig
+        );
 
         telemetry.addLine("✅ Initialization complete!");
         telemetry.addData("Turret", "Auto-gyro ENABLED by default");
@@ -187,6 +218,10 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             indexingHelper.update();
             firingHelper.update();
 
+            // Update intake perception to refresh sensor data
+            frontIntakePerception.update();
+            backIntakePerception.update();
+
             // Update localization for robot heading
             if (localization != null) {
                 localization.update();
@@ -206,7 +241,7 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             if (gamepad1.a && !lastAButton) {
                 // Set turret to point in the same direction the robot is currently facing
                 // This makes the field-relative target = current robot heading
-                autoGyroTurret.setFieldRelativeHeading(robotHeading, robotHeading);
+                autoGyroTurret.setFieldRelativeHeading(robotHeading+180, robotHeading+180);
                 autoGyroTurret.enable();
                 telemetry.addLine(String.format("🎯 Turret: Set to robot heading (%.1f°)", robotHeading));
             }
@@ -330,54 +365,59 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             lastBackButton = currentBackButton;
 
             // ═══════════════════════════════════════════════════════════════
-            // GAMEPAD 2 - FIRING CONTROLS (HOLD TO FIRE)
-            // ═══════════════════════════════════════════════════════════════
-
-            // Track if any firing button is pressed
-            firingButtonPressed = gamepad2.a || gamepad2.b || gamepad2.y;
-            firingHelper.setButtonHeld(firingButtonPressed);
+            // GAMEPAD 2 - FIRING CONTROLS (EDGE DETECTION)
+            // ═══════════════════════════════════════════════════════════
+            // Press A/B/Y to start firing or fire next shot
+            // Shooter stays spinning after button release (keep-alive mode)
+            // Press X to stop shooter completely
 
             // Check if turret is busy (moving/settling) - don't fire if busy
             boolean turretBusy = autoGyroTurret.isBusy();
 
-            // Short Range (A button) - hold to fire
-            if (gamepad2.a) {
+            // Short Range (A button) - press to fire
+            boolean currentButtonA = gamepad2.a;
+            if (currentButtonA && !lastButtonA) {  // Button just pressed
                 if (turretBusy) {
                     telemetry.addLine("⏳ Turret busy - waiting to fire...");
                 } else if (!firingHelper.isFiring()) {
                     firingHelper.startFiringShortRange();
-                    telemetry.addLine("🔥 Starting Short Range firing");
+                    telemetry.addLine("🔥 Started Short Range firing");
                 } else if (firingHelper.isReadyForNextShot()) {
                     firingHelper.startFiringShortRange();
                     telemetry.addLine("🔥 Firing next shot (Short Range)");
                 }
             }
+            lastButtonA = currentButtonA;
 
-            // Mid-Range (B button) - hold to fire
-            if (gamepad2.b) {
+            // Mid-Range (B button) - press to fire
+            boolean currentButtonB = gamepad2.b;
+            if (currentButtonB && !lastButtonB) {  // Button just pressed
                 if (turretBusy) {
                     telemetry.addLine("⏳ Turret busy - waiting to fire...");
                 } else if (!firingHelper.isFiring()) {
                     firingHelper.startFiringMidRange();
-                    telemetry.addLine("🔥 Starting Mid Range firing");
+                    telemetry.addLine("🔥 Started Mid Range firing");
                 } else if (firingHelper.isReadyForNextShot()) {
                     firingHelper.startFiringMidRange();
                     telemetry.addLine("🔥 Firing next shot (Mid Range)");
                 }
             }
+            lastButtonB = currentButtonB;
 
-            // Long Range (Y button) - hold to fire
-            if (gamepad2.y) {
+            // Long Range (Y button) - press to fire
+            boolean currentButtonY = gamepad2.y;
+            if (currentButtonY && !lastButtonY) {  // Button just pressed
                 if (turretBusy) {
                     telemetry.addLine("⏳ Turret busy - waiting to fire...");
                 } else if (!firingHelper.isFiring()) {
                     firingHelper.startFiringLongRange();
-                    telemetry.addLine("🔥 Starting Long Range firing");
+                    telemetry.addLine("🔥 Started Long Range firing");
                 } else if (firingHelper.isReadyForNextShot()) {
                     firingHelper.startFiringLongRange();
                     telemetry.addLine("🔥 Firing next shot (Long Range)");
                 }
             }
+            lastButtonY = currentButtonY;
 
             // X button - Stop all shooter/firing systems
             if (gamepad2.x) {
@@ -393,11 +433,57 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
 
             // Manual transfer controls - allow during firing, but not during ejection
             if (!firingHelper.isEjecting()) {
+                // Declare both transfer states at the top so they're available for cross-checking
+                boolean frontTransferActive = gamepad2.dpad_up;
+                boolean backTransferActive = gamepad2.dpad_down;
+
                 // DPad Up - Manual transfer front to center (hold button)
-                indexingHelper.transferFrontIntakeToCenterManual(gamepad2.dpad_up);
+                indexingHelper.transferFrontIntakeToCenterManual(frontTransferActive);
+
+                // When front transfer is active, check if back intake has artifact
+                if (frontTransferActive) {
+                    // Check back intake for artifact (minimum MEDIUM confidence)
+                    IntakePerception.PresenceConfidence backConfidence = backIntakePerception.getPresenceConfidence();
+                    boolean backHasArtifact = (backConfidence == IntakePerception.PresenceConfidence.MEDIUM ||
+                                              backConfidence == IntakePerception.PresenceConfidence.HIGH);
+
+                    if (!backHasArtifact) {
+                        // No artifact in back intake - run back transfer backward to help clear path
+                        indexingHelper.setBackTransferPower(1.0);
+                        telemetry.addData("🔄 Back Transfer", "Running backward (no artifact detected)");
+                    } else {
+                        // Artifact detected in back intake - stop back transfer
+                        indexingHelper.setBackTransferPower(0);
+                        telemetry.addData("⚠️ Back Intake", "Artifact detected - transfer stopped");
+                    }
+                } else if (!backTransferActive) {
+                    // Front transfer not active AND back transfer not active - ensure back transfer is stopped
+                    indexingHelper.setBackTransferPower(0);
+                }
 
                 // DPad Down - Manual transfer back to center (hold button)
-                indexingHelper.transferBackIntakeToCenterManual(gamepad2.dpad_down);
+                indexingHelper.transferBackIntakeToCenterManual(backTransferActive);
+
+                // When back transfer is active, check if front intake has artifact
+                if (backTransferActive) {
+                    // Check front intake for artifact (minimum MEDIUM confidence)
+                    IntakePerception.PresenceConfidence frontConfidence = frontIntakePerception.getPresenceConfidence();
+                    boolean frontHasArtifact = (frontConfidence == IntakePerception.PresenceConfidence.MEDIUM ||
+                                               frontConfidence == IntakePerception.PresenceConfidence.HIGH);
+
+                    if (!frontHasArtifact) {
+                        // No artifact in front intake - run front transfer backward to help clear path
+                        indexingHelper.setFrontTransferPower(1.0);
+                        telemetry.addData("🔄 Front Transfer", "Running backward (no artifact detected)");
+                    } else {
+                        // Artifact detected in front intake - stop front transfer
+                        indexingHelper.setFrontTransferPower(0);
+                        telemetry.addData("⚠️ Front Intake", "Artifact detected - transfer stopped");
+                    }
+                } else if (!frontTransferActive) {
+                    // Back transfer not active AND front transfer not active - ensure front transfer is stopped
+                    indexingHelper.setFrontTransferPower(0);
+                }
             }
 
             // Uptake manual controls - only when not busy with timed movements or firing
@@ -469,7 +555,6 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
                 telemetry.addData("Current RPM", String.format("%.0f", shooter.getCurrentRPM()));
                 telemetry.addData("Ready for Next", firingHelper.isReadyForNextShot() ? "YES ✅" : "NO");
             }
-            telemetry.addData("Button Held", firingButtonPressed ? "YES" : "NO");
             telemetry.addData("", "");
 
             telemetry.addData("═══ SHOOTER ═══", "");
@@ -498,6 +583,18 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             }
             telemetry.addData("Any Busy", indexingHelper.isAnyBusy() ? "YES" : "NO");
             telemetry.addData("Ejection", firingHelper.isEjecting() ? "ACTIVE ⚠️" : "IDLE");
+            telemetry.addData("", "");
+
+            telemetry.addData("═══ PERCEPTION ═══", "");
+            // Front intake perception
+            IntakePerception.PresenceConfidence frontConf = frontIntakePerception.getPresenceConfidence();
+            String frontStatus = getConfidenceIcon(frontConf) + " " + frontConf.toString();
+            telemetry.addData("Front Intake", frontStatus);
+
+            // Back intake perception
+            IntakePerception.PresenceConfidence backConf = backIntakePerception.getPresenceConfidence();
+            String backStatus = getConfidenceIcon(backConf) + " " + backConf.toString();
+            telemetry.addData("Back Intake", backStatus);
             telemetry.addData("", "");
 
             telemetry.addData("═══ ACTIVE CONTROLS ═══", "");
@@ -543,5 +640,23 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
 
         telemetry.addLine("🛑 OpMode stopped - all systems disabled");
         telemetry.update();
+    }
+
+    /**
+     * Get icon for presence confidence level
+     */
+    private String getConfidenceIcon(IntakePerception.PresenceConfidence confidence) {
+        switch (confidence) {
+            case NONE:
+                return "⚪";  // Empty circle - no artifact
+            case LOW:
+                return "🟡";  // Yellow - low confidence
+            case MEDIUM:
+                return "🟠";  // Orange - medium confidence
+            case HIGH:
+                return "🟢";  // Green - high confidence
+            default:
+                return "❓";  // Unknown
+        }
     }
 }

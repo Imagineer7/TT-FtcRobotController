@@ -52,6 +52,26 @@ public class AutoGyroTurret {
     /** Default settling time after wraparound movement (milliseconds) */
     private static final long DEFAULT_SETTLING_TIME_MS = 1500;
 
+    /**
+     * Wraparound deadband - Minimum wraparound movement required to trigger wraparound
+     * This prevents tiny movements from triggering wraparound near 0°/360° boundary.
+     * Example: With 50° deadband:
+     *   - 359° -> 1° (wrap would be 2°): 2° < 50° → NO wraparound, use direct
+     *   - 340° -> 20° (wrap would be 40°): 40° < 50° → NO wraparound, use direct
+     *   - 330° -> 30° (wrap would be 60°): 60° > 50° → YES wraparound allowed
+     * Only allows wraparound if the wraparound movement itself exceeds this threshold.
+     * Higher values = less sensitive, more stable near boundary.
+     */
+    private static final double DEFAULT_WRAPAROUND_DEADBAND = 50.0; // degrees
+
+    /**
+     * Hysteresis threshold for path switching
+     * Once a path (direct or wraparound) is chosen, it takes this much MORE savings
+     * to switch to the other path. This prevents oscillation when paths are nearly equal.
+     * Example: With 10° hysteresis, if using direct path, wraparound needs to save 10° more to switch.
+     */
+    private static final double DEFAULT_PATH_HYSTERESIS = 20.0; // degrees
+
     // ═══════════════════════════════════════════════════════════════════════
     // HARDWARE REFERENCES
     // ═══════════════════════════════════════════════════════════════════════
@@ -76,8 +96,17 @@ public class AutoGyroTurret {
     /** Lock-on mode: continuously updates turret position */
     private boolean lockOnMode = true;
 
-    /** Last known robot heading for change detection */
+    /** Last known robot heading for change detection (normalized to 0-360) */
     private double lastRobotHeading = 0.0;
+
+    /** Last RAW robot heading before normalization (for boundary crossing detection) */
+    private double lastRawRobotHeading = 0.0;
+
+    /** Hysteresis for boundary crossing - degrees past boundary required to accept crossing */
+    private static final double BOUNDARY_CROSSING_HYSTERESIS = 15.0; // degrees
+
+    /** Flag indicating we're near the 0°/360° boundary and using hysteresis */
+    private boolean usingBoundaryCrossingHysteresis = false;
 
     /** Initial turret position when field heading was set */
     private double initialTurretPosition = 0.0;
@@ -88,11 +117,20 @@ public class AutoGyroTurret {
     /** Settling time after wraparound movement (milliseconds) */
     private long settlingTimeMs = DEFAULT_SETTLING_TIME_MS;
 
+    /** Wraparound deadband (degrees) - minimum wraparound movement to allow wraparound */
+    private double wraparoundDeadband = DEFAULT_WRAPAROUND_DEADBAND;
+
+    /** Path hysteresis (degrees) - stickiness to prevent oscillation */
+    private double pathHysteresis = DEFAULT_PATH_HYSTERESIS;
+
     /** Timestamp when wraparound movement started (0 = not moving) */
     private long wraparoundStartTime = 0;
 
     /** Flag to prevent repeated wraparound timing triggers */
     private boolean isCurrentlyWrapping = false;
+
+    /** Last path choice: true = wraparound, false = direct */
+    private boolean lastPathWasWraparound = false;
 
     // ═══════════════════════════════════════════════════════════════════════
     // CONSTRUCTOR
@@ -145,13 +183,26 @@ public class AutoGyroTurret {
             return;
         }
 
+        // Store original for debugging
+        double originalRobotHeading = currentRobotHeading;
+
+        // CRITICAL FIX: Normalize robot heading with boundary crossing hysteresis
+        // This handles IMU output in -180 to +180 range and prevents oscillation at boundary
+        currentRobotHeading = normalizeRobotHeadingWithHysteresis(currentRobotHeading);
+
+        // Debug: Log if we're using hysteresis
+        if (usingBoundaryCrossingHysteresis) {
+            log(String.format("⚠ Hysteresis active: raw %.1f°, normalized held at %.1f°",
+                originalRobotHeading, currentRobotHeading));
+        }
+
         // Calculate required robot-relative turret angle
         double requiredTurretAngle = calculateRobotRelativeAngle(
             fieldRelativeTargetHeading,
             currentRobotHeading
         );
 
-        // Apply shortest path calculation
+        // Apply the shortest path calculation
         double targetAngle = calculateShortestPath(
             currentTurretAngle,
             requiredTurretAngle
@@ -225,8 +276,9 @@ public class AutoGyroTurret {
      * @param currentRobotHeading Current robot heading for immediate positioning
      */
     public void setFieldRelativeHeading(double fieldHeading, double currentRobotHeading) {
-        // Normalize to 0-360 range
+        // Normalize both angles to 0-360 range
         fieldRelativeTargetHeading = normalizeAngle360(fieldHeading);
+        currentRobotHeading = normalizeAngle360(currentRobotHeading);
         lastRobotHeading = currentRobotHeading;
 
         // Store initial position for reference
@@ -248,6 +300,9 @@ public class AutoGyroTurret {
      * @param currentRobotHeading Current robot heading
      */
     public void lockCurrentHeading(double currentRobotHeading) {
+        // Normalize robot heading to 0-360 range
+        currentRobotHeading = normalizeAngle360(currentRobotHeading);
+
         double currentTurretAngle = getTurretAngle();
         double fieldHeading = currentTurretAngle + currentRobotHeading;
         setFieldRelativeHeading(fieldHeading, currentRobotHeading);
@@ -266,6 +321,9 @@ public class AutoGyroTurret {
     public void pointAtFieldPosition(double targetX, double targetY,
                                      double robotX, double robotY,
                                      double currentRobotHeading) {
+        // Normalize robot heading to 0-360 range
+        currentRobotHeading = normalizeAngle360(currentRobotHeading);
+
         // Calculate angle to target (field-relative)
         double deltaX = targetX - robotX;
         double deltaY = targetY - robotY;
@@ -286,6 +344,10 @@ public class AutoGyroTurret {
      * @return Required turret angle relative to robot (0-360° range)
      */
     private double calculateRobotRelativeAngle(double fieldHeading, double robotHeading) {
+        // Ensure both angles are normalized to 0-360° range
+        fieldHeading = normalizeAngle360(fieldHeading);
+        robotHeading = normalizeAngle360(robotHeading);
+
         // Robot-relative angle = field heading - robot heading
         double robotRelative = fieldHeading - robotHeading;
 
@@ -294,18 +356,35 @@ public class AutoGyroTurret {
     }
 
     /**
-     * Calculate shortest path from current position to target in 0-360° range
+     * Calculate the shortest path from current position to target in 0-360° range
      *
      * With 360° tuned mode:
      * - Turret can be at any position 0-360°
      * - We can wrap around (360° = 0°) for shortest path
      * - Example: To go from 350° to 10°, it's shorter to go +20° (wrap) than -340°
      *
+     * Wraparound Deadband:
+     * - Only allows wraparound if the wraparound movement itself exceeds deadband
+     * - Prevents tiny movements from triggering wraparound near boundary
+     * - Example: With 30° deadband:
+     *   * 359° -> 1°: direct=2°, wrap=358° → wrap too large, use direct (2°) ✓
+     *   * 1° -> 359°: direct=358°, wrap=2° → wrap < 30°, use direct (358°) ✓
+     *   * 340° -> 20°: direct=40°, wrap=320° → wrap too large, use direct (40°) ✓
+     *   * 20° -> 340°: direct=320°, wrap=40° → wrap > 30°, wraparound allowed ✓
+     * - This allows wraparound for significant boundary crossings only
+     *
+     * Path Hysteresis:
+     * - Prevents oscillation when direct and wraparound paths are nearly equal
+     * - Once a path is chosen, it "sticks" until the other path is significantly better
+     * - Example: With 20° hysteresis, need 20° better to switch paths
+     *
      * Algorithm:
      * 1. Normalize target to 0-360° range
      * 2. Calculate direct delta and wraparound delta
-     * 3. Choose shortest path
-     * 4. Apply to current position, normalizing result to 0-360°
+     * 3. Check if wraparound movement exceeds deadband threshold
+     * 4. If wraparound < deadband: NEVER wraparound (use direct)
+     * 5. If wraparound >= deadband: Apply hysteresis to choose path
+     * 6. Apply chosen delta, normalizing result to 0-360°
      *
      * @param currentAngle Current turret angle (0-360°)
      * @param targetAngle Desired turret angle (can be any value, will be normalized)
@@ -331,18 +410,60 @@ public class AutoGyroTurret {
             wraparoundDelta = directDelta + 360.0;
         }
 
-        // Choose the shortest path
+        // Get absolute values for comparison
+        double absDirectDelta = Math.abs(directDelta);
+        double absWraparoundDelta = Math.abs(wraparoundDelta);
+
+        // Choose the path based on deadband and hysteresis
         double chosenDelta;
         boolean willWrapAround = false;
 
-        if (Math.abs(directDelta) <= Math.abs(wraparoundDelta)) {
+        // KEY LOGIC: Only allow wraparound if the wraparound movement itself exceeds deadband
+        // This prevents tiny movements from triggering wraparound near the boundary
+        if (absWraparoundDelta < wraparoundDeadband) {
+            // Wraparound movement is too small - always use direct path
             chosenDelta = directDelta;
+            log(String.format("Direct (wraparound too small): %.1f° -> %.1f° (wrap: %.1f° < %.1f° deadband, using direct: %.1f°)",
+                currentAngle, targetAngle, absWraparoundDelta, wraparoundDeadband, absDirectDelta));
         } else {
-            chosenDelta = wraparoundDelta;
-            willWrapAround = true;
-            log(String.format("Wraparound: %.1f° -> %.1f° (delta: %.1f°)",
-                currentAngle, targetAngle, wraparoundDelta));
+            // Wraparound movement exceeds deadband - apply hysteresis to choose path
+            double effectiveHysteresis = pathHysteresis;
+
+            // Check if we should switch paths based on hysteresis
+            if (lastPathWasWraparound) {
+                // Currently using wraparound - need significant benefit to switch to direct
+                if (absDirectDelta < absWraparoundDelta - effectiveHysteresis) {
+                    // Direct is significantly shorter
+                    chosenDelta = directDelta;
+                    log(String.format("Switch to Direct: %.1f° -> %.1f° (direct: %.1f° << wrap: %.1f°)",
+                        currentAngle, targetAngle, absDirectDelta, absWraparoundDelta));
+                } else {
+                    // Stay on wraparound
+                    chosenDelta = wraparoundDelta;
+                    willWrapAround = true;
+                    log(String.format("Stay Wraparound: %.1f° -> %.1f° (wrap: %.1f° vs direct: %.1f°)",
+                        currentAngle, targetAngle, absWraparoundDelta, absDirectDelta));
+                }
+            } else {
+                // Currently using direct path - need significant benefit to switch to wraparound
+                if (absWraparoundDelta < absDirectDelta - effectiveHysteresis) {
+                    // Wraparound is significantly shorter
+                    chosenDelta = wraparoundDelta;
+                    willWrapAround = true;
+                    log(String.format("Switch to Wraparound: %.1f° -> %.1f° (wrap: %.1f° << direct: %.1f°)",
+                        currentAngle, targetAngle, absWraparoundDelta, absDirectDelta));
+                } else {
+                    // Stay on direct
+                    chosenDelta = directDelta;
+                    log(String.format("Stay Direct: %.1f° -> %.1f° (direct: %.1f° vs wrap: %.1f°)",
+                        currentAngle, targetAngle, absDirectDelta, absWraparoundDelta));
+                }
+            }
         }
+
+
+        // Update last path choice for next iteration's hysteresis
+        lastPathWasWraparound = willWrapAround;
 
         // Start wraparound timing if this is a new wraparound movement
         // Only trigger once per wraparound operation
@@ -356,9 +477,7 @@ public class AutoGyroTurret {
         }
 
         // Apply delta and normalize result
-        double resultAngle = normalizeAngle360(currentAngle + chosenDelta);
-
-        return resultAngle;
+        return normalizeAngle360(currentAngle + chosenDelta);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -381,6 +500,95 @@ public class AutoGyroTurret {
         while (angle < 0) angle += 360;
         while (angle >= 360) angle -= 360;
         return angle;
+    }
+
+    /**
+     * Smart normalization with boundary crossing hysteresis
+     * Prevents oscillation when robot heading bounces around 0°/360° boundary
+     *
+     * @param rawHeading Raw robot heading (may be in -180 to +180 range)
+     * @return Normalized heading (0-360 range) with hysteresis applied
+     */
+    private double normalizeRobotHeadingWithHysteresis(double rawHeading) {
+        // Simple normalization first
+        double normalized = normalizeAngle360(rawHeading);
+
+        // If this is the first call, just accept it
+        if (lastRawRobotHeading == 0.0 && lastRobotHeading == 0.0) {
+            lastRawRobotHeading = rawHeading;
+            lastRobotHeading = normalized;
+            return normalized;
+        }
+
+        // Calculate how much the raw heading changed
+        double rawDelta = rawHeading - lastRawRobotHeading;
+
+        // Detect if raw heading crossed ±180° boundary
+        boolean rawHeadingCrossedBoundary = Math.abs(rawDelta) > 180;
+
+        // If raw heading crossed boundary (e.g., 179° → -179°)
+        if (rawHeadingCrossedBoundary) {
+            // Calculate what the normalized heading would be
+            double potentialNormalized = normalizeAngle360(rawHeading);
+
+            // Check if this would cause a large jump in normalized heading
+            double normalizedDelta = potentialNormalized - lastRobotHeading;
+
+            // Normalize the delta to -180 to +180 range to get shortest angle
+            while (normalizedDelta > 180) normalizedDelta -= 360;
+            while (normalizedDelta <= -180) normalizedDelta += 360;
+
+            double absNormalizedDelta = Math.abs(normalizedDelta);
+
+            // If the normalized jump is large (> 180°), we're at the boundary
+            if (absNormalizedDelta > 180) {
+                // Determine which side of boundary we're on
+                boolean crossingFromNegativeToPositive = (lastRawRobotHeading < -90 && rawHeading > 90);
+                boolean crossingFromPositiveToNegative = (lastRawRobotHeading > 90 && rawHeading < -90);
+
+                if (crossingFromNegativeToPositive || crossingFromPositiveToNegative) {
+                    // We're crossing the ±180° boundary
+                    // Check if we've moved far enough past the boundary to accept the crossing
+
+                    if (crossingFromNegativeToPositive) {
+                        // Raw heading went from negative (e.g., -179°) to positive (e.g., 179°)
+                        // Normalized: 181° → 179°
+                        // Only accept if raw heading is > (180° - hysteresis) OR < (-180° + hysteresis)
+                        if (rawHeading > (180.0 - BOUNDARY_CROSSING_HYSTERESIS)) {
+                            // Not far enough past boundary, hold old normalized value
+                            usingBoundaryCrossingHysteresis = true;
+                            log(String.format("Boundary hysteresis: holding normalized %.1f° (raw: %.1f° not past threshold)",
+                                lastRobotHeading, rawHeading));
+                            return lastRobotHeading; // Don't accept crossing yet
+                        }
+                    } else {
+                        // Raw heading went from positive to negative
+                        // Only accept if raw heading is < -(180° - hysteresis) OR > (180° - hysteresis)
+                        if (rawHeading < -(180.0 - BOUNDARY_CROSSING_HYSTERESIS)) {
+                            // Not far enough past boundary, hold old normalized value
+                            usingBoundaryCrossingHysteresis = true;
+                            log(String.format("Boundary hysteresis: holding normalized %.1f° (raw: %.1f° not past threshold)",
+                                lastRobotHeading, rawHeading));
+                            return lastRobotHeading; // Don't accept crossing yet
+                        }
+                    }
+
+                    // If we get here, we've moved far enough past boundary to accept the crossing
+                    usingBoundaryCrossingHysteresis = false;
+                    log(String.format("Boundary crossing accepted: raw %.1f° → %.1f° (normalized: %.1f° → %.1f°)",
+                        lastRawRobotHeading, rawHeading, lastRobotHeading, potentialNormalized));
+                }
+            }
+        } else {
+            // Normal small movement, no boundary crossing
+            usingBoundaryCrossingHysteresis = false;
+        }
+
+        // Update tracking variables
+        lastRawRobotHeading = rawHeading;
+        lastRobotHeading = normalized;
+
+        return normalized;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -436,11 +644,17 @@ public class AutoGyroTurret {
 
     /**
      * Reset to center position pointing forward
+     * Adds 180° offset so turret servo at position 0.5 (180°) faces forward
      * @param currentRobotHeading Current robot heading
      */
     public void resetToForward(double currentRobotHeading) {
-        setFieldRelativeHeading(currentRobotHeading, currentRobotHeading);
-        log("Reset to forward");
+        // Normalize robot heading to 0-360 range
+        currentRobotHeading = normalizeAngle360(currentRobotHeading);
+
+        // Add 180° offset so turret is at position 0.5 (facing forward)
+        double forwardHeading = normalizeAngle360(currentRobotHeading + 180.0);
+        setFieldRelativeHeading(forwardHeading, currentRobotHeading);
+        log("Reset to forward (with 180° offset for correct orientation)");
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -466,6 +680,9 @@ public class AutoGyroTurret {
      * @param currentRobotHeading Current robot heading for calculation
      */
     public boolean isAtTarget(double currentRobotHeading) {
+        // Normalize robot heading to 0-360 range
+        currentRobotHeading = normalizeAngle360(currentRobotHeading);
+
         double requiredAngle = calculateRobotRelativeAngle(
             fieldRelativeTargetHeading,
             currentRobotHeading
@@ -537,6 +754,8 @@ public class AutoGyroTurret {
      * @param currentRobotHeading Current robot heading
      */
     public double getCurrentFieldHeading(double currentRobotHeading) {
+        // Normalize robot heading to 0-360 range
+        currentRobotHeading = normalizeAngle360(currentRobotHeading);
         return normalizeAngle360(getTurretAngle() + currentRobotHeading);
     }
 
@@ -546,6 +765,8 @@ public class AutoGyroTurret {
      * @return Error in degrees (positive = target is clockwise)
      */
     public double getHeadingError(double currentRobotHeading) {
+        // Normalize robot heading to 0-360 range
+        currentRobotHeading = normalizeAngle360(currentRobotHeading);
         double currentFieldHeading = getCurrentFieldHeading(currentRobotHeading);
         return normalizeAngle180(fieldRelativeTargetHeading - currentFieldHeading);
     }
@@ -588,6 +809,48 @@ public class AutoGyroTurret {
         return settlingTimeMs;
     }
 
+    /**
+     * Set wraparound deadband - minimum wraparound movement required to allow wraparound
+     * This prevents tiny movements from triggering wraparound near the 0°/360° boundary.
+     * Example: With 30° deadband, wraparound only happens if the wraparound movement itself is > 30°.
+     * This allows wraparound for significant boundary crossings (e.g., 40° wraparound) while blocking
+     * tiny movements (e.g., 2° wraparound).
+     *
+     * @param degrees Deadband threshold in degrees (default: 30.0°)
+     */
+    public void setWraparoundDeadband(double degrees) {
+        this.wraparoundDeadband = degrees;
+        log(String.format("Wraparound deadband set to %.1f°", degrees));
+    }
+
+    /**
+     * Get current wraparound deadband configuration
+     * @return Deadband threshold in degrees
+     */
+    public double getWraparoundDeadband() {
+        return wraparoundDeadband;
+    }
+
+    /**
+     * Set path hysteresis - prevents oscillation between direct and wraparound paths
+     * Once a path is chosen, the other path must be better by this amount to switch.
+     * This solves jittering when paths are nearly equal.
+     *
+     * @param degrees Hysteresis amount in degrees (default: 10.0°)
+     */
+    public void setPathHysteresis(double degrees) {
+        this.pathHysteresis = degrees;
+        log(String.format("Path hysteresis set to %.1f°", degrees));
+    }
+
+    /**
+     * Get current path hysteresis configuration
+     * @return Hysteresis amount in degrees
+     */
+    public double getPathHysteresis() {
+        return pathHysteresis;
+    }
+
     // ═══════════════════════════════════════════════════════════════════════
     // STATUS DISPLAY
     // ═══════════════════════════════════════════════════════════════════════
@@ -597,6 +860,8 @@ public class AutoGyroTurret {
      * @param currentRobotHeading Current robot heading for calculations
      */
     public String getStatusSummary(double currentRobotHeading) {
+        // Normalize robot heading to 0-360 range
+        currentRobotHeading = normalizeAngle360(currentRobotHeading);
         String busyStatus = isBusy() ? String.format(" | BUSY (%dms)", getRemainingBusyTime()) : "";
         return String.format("AutoGyro: %s | Target: %.1f° field | Current: %.1f° field | Error: %.1f° | Turret: %.1f°%s",
             enabled ? "ON" : "OFF",
@@ -613,6 +878,9 @@ public class AutoGyroTurret {
      * @param currentRobotHeading Current robot heading for calculations
      */
     public void addTelemetry(double currentRobotHeading) {
+        // Normalize robot heading to 0-360 range
+        currentRobotHeading = normalizeAngle360(currentRobotHeading);
+
         telemetry.addData("AutoGyro Mode", enabled ? "ENABLED" : "DISABLED");
         telemetry.addData("Field Target", "%.1f°", fieldRelativeTargetHeading);
         telemetry.addData("Field Current", "%.1f°", getCurrentFieldHeading(currentRobotHeading));
