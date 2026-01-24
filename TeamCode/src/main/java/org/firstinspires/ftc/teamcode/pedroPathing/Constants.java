@@ -15,12 +15,12 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 public class Constants {
     /**
      * Robot mass in kilograms (for centripetal force compensation)
-     * Tip: Stand on a scale with your robot, then subtract your weight
+     * Aurora Lightning robot mass: ~25 lbs = 11.34 kg
      */
     public static FollowerConstants followerConstants = new FollowerConstants()
             .forwardZeroPowerAcceleration(-35.66)
             .lateralZeroPowerAcceleration(-55.63)
-            .mass(9); // Update this with your robot's actual mass in kg
+            .mass(11.34); // 25 lbs robot mass
 
     /**
      * Path constraints: (maxPower, maxAccel, maxDecel, maxAngularVelocity)
@@ -30,16 +30,19 @@ public class Constants {
 
     /**
      * Mecanum drivetrain configuration
-     * Motor names match your existing Aurora Lightning setup:
-     * - frontLeft, frontRight, backLeft, backRight
-     * TODO: Test motor directions and adjust if needed during tuning
+     * Motor names EXACTLY match AuroraHardwareConfig:
+     * - "Left Front" (REVERSED, BRAKE)
+     * - "Right Front" (FORWARD, BRAKE)
+     * - "Left Back" (REVERSED, BRAKE)
+     * - "Right Back" (FORWARD, BRAKE)
+     * All motors: RUN_WITHOUT_ENCODER (for odometry)
      */
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1)
-            .rightFrontMotorName("frontRight")
-            .rightRearMotorName("backRight")
-            .leftRearMotorName("backLeft")
-            .leftFrontMotorName("frontLeft")
+            .rightFrontMotorName("Right Front")
+            .rightRearMotorName("Right Back")
+            .leftRearMotorName("Left Back")
+            .leftFrontMotorName("Left Front")
             .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
@@ -49,28 +52,24 @@ public class Constants {
 
     /**
      * Pinpoint Odometry Computer Configuration
-     * Settings match your existing OdoHelper.java configuration:
-     * - X_OFFSET: -154mm (-6.06 inches) - Forward pod is 154mm BEHIND center
-     * - Y_OFFSET: 0mm (0 inches) - Strafe pod is at center
+     * Values from verified Localization.java Aurora Lightning setup:
+     * - Forward Pod Y Offset: -6.06 inches (154mm BEHIND robot center)
+     * - Strafe Pod X Offset: 0 inches (at robot center)
      * - Pod Type: goBILDA_4_BAR_POD
-     * - Hardware config name: "odo"
-     * - Both encoders: FORWARD direction
+     * - Hardware name: "odo" (matches AuroraHardwareConfig.ODOMETRY_COMPUTER)
+     * - Forward encoder: FORWARD direction (X increases when moving forward)
+     * - Strafe encoder: REVERSED direction (Y increases when moving left)
      *
-     * NOTE: These are the verified settings from your Aurora Lightning system.
-     * Pedro Pathing uses different offset naming:
-     * - forwardPodY = Y offset of forward encoder (your X_OFFSET converted)
-     * - strafePodX = X offset of strafe encoder (your Y_OFFSET converted)
+     * NOTE: Pedro Pathing coordinate system matches FTC field coordinates
+     * Run "Localization Test" to verify: Forward = X+, Left = Y+, CCW = heading+
      */
     public static PinpointConstants localizerConstants = new PinpointConstants()
-            .forwardPodY(-2.83)
-            .strafePodX(4.71)
+            .forwardPodY(-6.06)  // Forward pod is 6.06" behind center (verified from Localization.java)
+            .strafePodX(0.0)     // Strafe pod at center (verified from Localization.java)
             .distanceUnit(DistanceUnit.INCH)
-            .hardwareMapName("OdometryPinpointComputer")  // Matches your hardware config
-            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED)  // Strafe pod reversed so Y increases when moving left
-            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD); // Forward pod forward so X increases when moving forward
-    // Forward encoder direction is FORWARD by default
-    // Strafe encoder is REVERSED to correct localization direction
-    // Run "Localization Test" to verify: Forward = X increases, Left = Y increases
+            .hardwareMapName("odo")  // EXACT match to AuroraHardwareConfig.ODOMETRY_COMPUTER
+            .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
+            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);
 
     /**
      * Creates a Follower instance with the configured constants

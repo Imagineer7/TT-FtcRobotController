@@ -298,6 +298,7 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
                 // This makes the field-relative target = current robot heading
                 autoGyroTurret.setFieldRelativeHeading(robotHeading+180, robotHeading+180);
                 autoGyroTurret.enable();
+                poseUpdatedWithLimelight = false;
                 telemetry.addLine(String.format("🎯 Turret: Set to robot heading (%.1f°)", robotHeading));
             }
             lastAButton = gamepad1.a;
