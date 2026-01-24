@@ -27,13 +27,19 @@ public class Localization {
     private LimelightVisionHelper limelight;
     
     // Configuration constants
-    private static final String ODOMETRY_NAME = "Odometry Pinpoint Computer";
+    private static final String ODOMETRY_NAME = "odo";
 
-    // Odometry pod offsets (from requirements: strafe X pod offset is 0mm, forward Y pod offset is 201.857mm)
-    // Note: These differ from AuroraHardwareConfig which uses inches. Requirements specify mm.
-    private static final double STRAFE_X_POD_OFFSET = 0.0; // mm - left/right offset
-    private static final double FORWARD_Y_POD_OFFSET = 201.857; // mm - forward/back offset
-    
+    // Odometry pod offsets relative to robot center
+    // Based on GoBILDA Pinpoint coordinate system:
+    // - X pod (measures FORWARD motion): Left of center = positive, Right = negative
+    // - Y pod (measures STRAFE motion): Forward of center = positive, Backward = negative
+    //
+    // Physical configuration:
+    // - X pod (forward-measuring): 0mm sideways offset (centered left-right)
+    // - Y pod (strafe-measuring): 201.857mm forward of center
+    private static final double X_POD_OFFSET = 201.857; // mm - X pod sideways offset (centered)
+    private static final double Y_POD_OFFSET = 0.0; // mm - Y pod forward offset
+
     // Sensor fusion parameters
     private static final double LIMELIGHT_UPDATE_INTERVAL_MS = 500; // minimum time between vision corrections
     private long lastLimelightUpdateTime = 0;
@@ -72,8 +78,11 @@ public class Localization {
             odometry = hardwareMap.get(GoBildaPinpointDriver.class, ODOMETRY_NAME);
             
             // Configure odometry offsets
-            odometry.setOffsets(STRAFE_X_POD_OFFSET, FORWARD_Y_POD_OFFSET, DistanceUnit.MM);
-            
+            // setOffsets(xPodOffset, yPodOffset) where:
+            // - xPodOffset = sideways offset of forward-measuring pod
+            // - yPodOffset = forward offset of strafe-measuring pod
+            odometry.setOffsets(X_POD_OFFSET, Y_POD_OFFSET, DistanceUnit.MM);
+
             // Configure encoder directions
             // Forward (X) pod should increase when robot moves forward
             // Strafe (Y) pod should increase when robot moves left

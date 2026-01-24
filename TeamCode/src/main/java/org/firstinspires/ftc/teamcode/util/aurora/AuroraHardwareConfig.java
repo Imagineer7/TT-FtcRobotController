@@ -90,7 +90,7 @@ public class AuroraHardwareConfig {
 
     // Sensors
     public static final String IMU_SENSOR = "imu";
-    public static final String ODOMETRY_COMPUTER = "OdometryPinpointComputer";
+    public static final String ODOMETRY_COMPUTER = "odo";
 
     // ═══════════════════════════════════════════════════════════════════════
     // HARDWARE CONFIGURATION PARAMETERS
@@ -98,9 +98,9 @@ public class AuroraHardwareConfig {
 
     // IMU Orientation Configuration
     public static final RevHubOrientationOnRobot.LogoFacingDirection IMU_LOGO_DIRECTION =
-        RevHubOrientationOnRobot.LogoFacingDirection.LEFT;
+        RevHubOrientationOnRobot.LogoFacingDirection.RIGHT;
     public static final RevHubOrientationOnRobot.UsbFacingDirection IMU_USB_DIRECTION =
-        RevHubOrientationOnRobot.UsbFacingDirection.FORWARD;
+        RevHubOrientationOnRobot.UsbFacingDirection.UP;
 
     // Odometry Pod Offsets (in inches from robot center)
     private static final double ODOMETRY_X_OFFSET = 4.71;   // Right from center

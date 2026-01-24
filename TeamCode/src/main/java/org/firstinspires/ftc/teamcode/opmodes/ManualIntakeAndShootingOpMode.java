@@ -2,10 +2,13 @@ package org.firstinspires.ftc.teamcode.opmodes;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
+import org.firstinspires.ftc.teamcode.util.aurora.AutoGyroTurret;
 import org.firstinspires.ftc.teamcode.util.aurora.BasicIndexingHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.BasicFiringHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.IntelMechanumDrive;
+import org.firstinspires.ftc.teamcode.util.aurora.Localization;
 import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
 
@@ -15,7 +18,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
  * This OpMode provides complete manual control over the robot's drive, intake,
  * and shooting systems using the BasicIndexingHelper and BasicFiringHelper classes.
  *
- * GAMEPAD 1 - DRIVE:
+ * GAMEPAD 1 - DRIVE & TURRET:
  *   - Left Stick Y:  Forward/backward movement
  *   - Left Stick X:  Strafe left/right
  *   - Right Stick X: Rotation
@@ -23,6 +26,12 @@ import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
  *   - Right Bumper:  Run front intake forward
  *   - Left Bumper:   Run back intake forward
  *   - Guide Button:  Toggle ejection on/off
+ *
+ *   TURRET CONTROLS (Auto-Gyro):
+ *   - A Button:      Set turret target to current robot heading (point forward)
+ *   - B Button:      Enable/disable auto-gyro mode (toggle)
+ *   - X Button:      Reset turret to forward (0° robot-relative)
+ *   - Y Button:      Set turret to default field heading (0° = North)
  *
  * GAMEPAD 2 - FIRING AND INDEXING:
  *   Hold to fire:
@@ -58,6 +67,8 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
     private Shooter shooter;
     private BasicFiringHelper firingHelper;
     private IntelMechanumDrive drive;
+    private AutoGyroTurret autoGyroTurret;
+    private Localization localization;
 
     // Button state tracking for firing
     private boolean firingButtonPressed = false;
@@ -68,6 +79,12 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
     // Driver two control
     private boolean driverTwoEnabled = false;
     private boolean lastBackButton = false;
+
+    // Turret button edge detection (gamepad1)
+    private boolean lastAButton = false;
+    private boolean lastBButton = false;
+    private boolean lastXButton = false;
+    private boolean lastYButton = false;
 
     @Override
     public void runOpMode() {
@@ -100,15 +117,40 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
         // Create drive system
         drive = new IntelMechanumDrive(hardware, gamepad1);
 
+        // Initialize localization for robot heading
+        localization = new Localization(hardwareMap);
+        if (!localization.isOdometryInitialized()) {
+            telemetry.addData("⚠ WARN", "Odometry not available - turret heading may be inaccurate");
+        }
+        localization.resetPosition();
+
+        // Initialize auto-gyro turret
+        autoGyroTurret = new AutoGyroTurret(hardwareMap, telemetry);
+
+        // Enable auto-gyro by default and set to forward (robot heading)
+        double initialHeading = 0.0;
+        if (localization.isOdometryInitialized()) {
+            initialHeading = localization.getHeading(AngleUnit.DEGREES);
+        }
+        autoGyroTurret.setFieldRelativeHeading(initialHeading, initialHeading);
+        autoGyroTurret.enable();
+
         telemetry.addLine("✅ Initialization complete!");
+        telemetry.addData("Turret", "Auto-gyro ENABLED by default");
         telemetry.addLine();
         telemetry.addLine("═══════════════════════════════════");
-        telemetry.addLine("GAMEPAD 1 - DRIVE");
+        telemetry.addLine("GAMEPAD 1 - DRIVE & TURRET");
         telemetry.addLine("  Left Stick: Move");
         telemetry.addLine("  Right Stick X: Rotate");
         telemetry.addLine("  D-Pad: Fine Movement (50% power)");
         telemetry.addLine("  Right/Left Bumper: Intakes");
         telemetry.addLine("  Guide Button: Toggle Ejection");
+        telemetry.addLine();
+        telemetry.addLine("  TURRET (Auto-Gyro):");
+        telemetry.addLine("  A: Set to robot heading");
+        telemetry.addLine("  B: Enable/Disable auto-gyro");
+        telemetry.addLine("  X: Reset to forward");
+        telemetry.addLine("  Y: Set to North (0°)");
         telemetry.addLine();
         telemetry.addLine("GAMEPAD 2 - FIRING & INDEXING");
         telemetry.addLine("  A (Hold): Short Range Fire");
@@ -144,6 +186,62 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             // NOTE: shooter.update() is called inside firingHelper.update() - don't call twice!
             indexingHelper.update();
             firingHelper.update();
+
+            // Update localization for robot heading
+            if (localization != null) {
+                localization.update();
+            }
+
+            // Get current robot heading for turret control
+            double robotHeading = 0.0;
+            if (localization != null && localization.isOdometryInitialized()) {
+                robotHeading = localization.getHeading(AngleUnit.DEGREES);
+            }
+
+            // ═══════════════════════════════════════════════════════════════
+            // GAMEPAD 1 - TURRET CONTROLS (AUTO-GYRO)
+            // ═══════════════════════════════════════════════════════════════
+
+            // A Button - Set current robot heading as turret target (point forward)
+            if (gamepad1.a && !lastAButton) {
+                // Set turret to point in the same direction the robot is currently facing
+                // This makes the field-relative target = current robot heading
+                autoGyroTurret.setFieldRelativeHeading(robotHeading, robotHeading);
+                autoGyroTurret.enable();
+                telemetry.addLine(String.format("🎯 Turret: Set to robot heading (%.1f°)", robotHeading));
+            }
+            lastAButton = gamepad1.a;
+
+            // B Button - Toggle auto-gyro mode on/off
+            if (gamepad1.b && !lastBButton) {
+                boolean newState = autoGyroTurret.toggle();
+                if (newState) {
+                    telemetry.addLine("✅ Turret: Auto-gyro ENABLED");
+                } else {
+                    telemetry.addLine("❌ Turret: Auto-gyro DISABLED (servo at 0°)");
+                }
+            }
+            lastBButton = gamepad1.b;
+
+            // X Button - Reset turret to forward (robot-relative 0°)
+            if (gamepad1.x && !lastXButton) {
+                autoGyroTurret.resetToForward(robotHeading);
+                autoGyroTurret.enable();
+                telemetry.addLine("⬆️ Turret: Reset to forward");
+            }
+            lastXButton = gamepad1.x;
+
+            // Y Button - Set turret to default field heading (North = 0°)
+            if (gamepad1.y && !lastYButton) {
+                autoGyroTurret.setFieldRelativeHeading(0.0, robotHeading);
+                autoGyroTurret.enable();
+                telemetry.addLine("🧭 Turret: Set to North (0°)");
+            }
+            lastYButton = gamepad1.y;
+
+            // Update turret to maintain field-relative heading (if enabled)
+            // If disabled, this will set servo to position 0 (0° / forward)
+            autoGyroTurret.update(robotHeading);
 
             // ═══════════════════════════════════════════════════════════════
             // GAMEPAD 1 - DRIVE CONTROLS
@@ -239,9 +337,14 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             firingButtonPressed = gamepad2.a || gamepad2.b || gamepad2.y;
             firingHelper.setButtonHeld(firingButtonPressed);
 
+            // Check if turret is busy (moving/settling) - don't fire if busy
+            boolean turretBusy = autoGyroTurret.isBusy();
+
             // Short Range (A button) - hold to fire
             if (gamepad2.a) {
-                if (!firingHelper.isFiring()) {
+                if (turretBusy) {
+                    telemetry.addLine("⏳ Turret busy - waiting to fire...");
+                } else if (!firingHelper.isFiring()) {
                     firingHelper.startFiringShortRange();
                     telemetry.addLine("🔥 Starting Short Range firing");
                 } else if (firingHelper.isReadyForNextShot()) {
@@ -252,7 +355,9 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
 
             // Mid-Range (B button) - hold to fire
             if (gamepad2.b) {
-                if (!firingHelper.isFiring()) {
+                if (turretBusy) {
+                    telemetry.addLine("⏳ Turret busy - waiting to fire...");
+                } else if (!firingHelper.isFiring()) {
                     firingHelper.startFiringMidRange();
                     telemetry.addLine("🔥 Starting Mid Range firing");
                 } else if (firingHelper.isReadyForNextShot()) {
@@ -263,7 +368,9 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
 
             // Long Range (Y button) - hold to fire
             if (gamepad2.y) {
-                if (!firingHelper.isFiring()) {
+                if (turretBusy) {
+                    telemetry.addLine("⏳ Turret busy - waiting to fire...");
+                } else if (!firingHelper.isFiring()) {
                     firingHelper.startFiringLongRange();
                     telemetry.addLine("🔥 Starting Long Range firing");
                 } else if (firingHelper.isReadyForNextShot()) {
@@ -372,6 +479,17 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             telemetry.addData("State", shooter.getState());
             telemetry.addData("", "");
 
+            telemetry.addData("═══ TURRET (AUTO-GYRO) ═══", "");
+            telemetry.addData("Mode", autoGyroTurret.isEnabled() ? "ENABLED ✅" : "DISABLED (Servo @ 0°)");
+            telemetry.addData("Busy", autoGyroTurret.isBusy() ? "YES ⏳" : "NO");
+            if (autoGyroTurret.isEnabled()) {
+                telemetry.addData("Field Target", String.format("%.1f°", autoGyroTurret.getFieldRelativeHeading()));
+                telemetry.addData("Field Current", String.format("%.1f°", autoGyroTurret.getCurrentFieldHeading(robotHeading)));
+                telemetry.addData("At Target", autoGyroTurret.isAtTarget(robotHeading) ? "YES ✅" : "NO");
+            }
+            telemetry.addData("Robot Heading", String.format("%.1f°", robotHeading));
+            telemetry.addData("", "");
+
             telemetry.addData("═══ INDEXING ═══", "");
             telemetry.addData("Transfer Active", indexingHelper.isTransferActive() ? "YES" : "NO");
             if (indexingHelper.isTransferActive()) {
@@ -383,7 +501,12 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             telemetry.addData("", "");
 
             telemetry.addData("═══ ACTIVE CONTROLS ═══", "");
-            // Gamepad 1
+            // Gamepad 1 - Turret
+            if (gamepad1.a) telemetry.addLine("🎯 GP1 A - Set Robot Heading");
+            if (gamepad1.b) telemetry.addLine("🔄 GP1 B - Toggle Auto-Gyro");
+            if (gamepad1.x) telemetry.addLine("⬆️ GP1 X - Reset Forward");
+            if (gamepad1.y) telemetry.addLine("🧭 GP1 Y - Set North");
+            // Gamepad 1 - Drive
             if (gamepad1.guide) telemetry.addLine("🔘 GP1 Guide - Toggle Ejection");
             if (gamepad1.dpad_up) telemetry.addLine("⬆️ GP1 DPad Up - Fine Fwd");
             if (gamepad1.dpad_down) telemetry.addLine("⬇️ GP1 DPad Down - Fine Back");

@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
+import org.firstinspires.ftc.teamcode.util.aurora.IntelMechanumDrive;
 import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.v3.ArtifactIdentity;
@@ -29,9 +30,11 @@ import org.firstinspires.ftc.teamcode.util.debug.LogLevel;
  * Controls:
  * 
  * GAMEPAD 1:
- *   LEFT STICK Y  - Control intake rollers manually (testing)
- *   RIGHT STICK Y - Control uptake manually (testing)
- *   
+ *   DRIVE:
+ *   RIGHT STICK Y - Forward/backward movement
+ *   RIGHT STICK X - Strafe left/right
+ *   LEFT STICK X  - Rotation
+ *
  *   DPAD UP    - Add PURPLE to FRONT (manual injection)
  *   DPAD DOWN  - Add GREEN to FRONT (manual injection)
  *   DPAD LEFT  - Add PURPLE to BACK (manual injection)
@@ -95,6 +98,7 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     
     // Subsystems
     private IndexingSystemV3 indexing;
+    private IntelMechanumDrive drive;
     // Note: Shooter is managed internally by IndexingSystemV3 - OpModes should NOT access it directly
     
     // Button state tracking
@@ -169,6 +173,9 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
         Shooter shooter = new Shooter(hardware, shooterConfig, telemetry);
         indexing = new IndexingSystemV3(hardware, indexingConfig, shooter, telemetry);
         
+        // Initialize drive system
+        drive = new IntelMechanumDrive(hardware, gamepad1);
+
         Dbg.i(LogGroup.TEST, "Subsystems created successfully");
 
         // Enable systems
@@ -209,6 +216,17 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             indexing.update();
             // shooter.update();  // ❌ REMOVED - would cause duplicate call and pulsing
             
+            // ═══════════════════════════════════════════════════════════════
+            // DRIVE CONTROLS (GAMEPAD 1)
+            // ═══════════════════════════════════════════════════════════════
+
+            // Robot-centric drive (relative to robot's orientation)
+            double forward = -gamepad1.right_stick_y;  // Note: Y-axis is inverted
+            double strafe = gamepad1.right_stick_x;
+            double rotate = gamepad1.left_stick_x;
+
+            drive.setMechanumPowers(forward, strafe, rotate);
+
             // Handle manual injection
             handleManualInjection();
             

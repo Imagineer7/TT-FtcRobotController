@@ -82,17 +82,23 @@ Servo Size 	Standard
 Direction with Increasing PWM Signal 	Clockwise
  */
 
-//Turret gear has 108 teeth
-//Servo gear has 37 teeth
-//Gear ratio is 108/37 = 2.92
-//So for every full rotation of the turret, the servo needs to rotate 2.92 times.
+//Turret gear has 108 teeth (larger - output/driven)
+//Servo gear has 37 teeth (smaller - on servo shaft/driver)
+//Gear ratio is 108/37 = 2.92 (speed reduction - turret rotates SLOWER than servo)
+//So for every full rotation of the servo, the turret rotates ONLY 1/2.92 = 0.343 times.
 //For 360 degrees of turret rotation, servo needs to rotate 360 * 2.92 = 1051.4 degrees.
-//With a 300 degree max rotation servo, we would need multiple rotations of the servo to achieve full turret rotation.
-//With a 5 turn (1800 degree) servo, we can achieve full turret rotation with some margin.
+//Servo to turret ratio in degrees is 1 degree servo = 0.343 degrees turret (1/2.92)
+//Turret to servo ratio in degrees is 1 degree turret = 2.92 degrees servo
+//Servo position is set from 0.0 to 1.0, so mapping servo position to degrees of turret rotation: 0.0 = 0deg servo, 1.0 = 1800deg servo (for 5 turn servo).
+//So for 5 turn servo, turret angle = (servo position * 1800) / 2.92
+//For 300 degree servo, turret angle = (servo position * 300) / 2.92
+//For continuous rotation servo, we will need to track position using timed movements.
+//With a 300 degree max rotation servo, we can achieve about 102.7 degrees of turret rotation (300 / 2.92).
+//With a 5 turn (1800 degree) servo, we can achieve about 616.4 degrees of turret rotation (1800 / 2.92) - more than one full 360° rotation.
 //We will need to implement a way to track the servo position to know the turret angle.
 
-//In position mode on a 300 degree servo, we can only achieve about 102.7 degrees of turret rotation before hitting the servo limits.
-//In position mode on a 5 turn servo, we can achieve full 360 degree turret rotation with room to spare.
+//In position mode on a 300 degree servo, we can achieve about 102.7 degrees of turret rotation (limited range).
+//In position mode on a 5 turn servo, we can achieve full 360 degree turret rotation with margin (616.4° available).
 
 //So implement both options in the code, with a way to switch between continuous rotation mode and position mode depending on the servo type used.
 //Use a variable at the top of the class to set the mode. CONTINUOUS_ROTATION_MODE, POSITION_MODE, 5_TURN_MODE
@@ -128,15 +134,16 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * different servo types and operating modes.
  *
  * Hardware Specifications:
- * - Turret gear: 108 teeth
- * - Servo gear: 37 teeth
- * - Gear ratio: 2.92 (servo must rotate 2.92x for full turret rotation)
- * - For 360° turret rotation: servo needs 1051.4° rotation
+ * - Turret gear: 108 teeth (output/driven - larger)
+ * - Servo gear: 37 teeth (on servo shaft/driver - smaller)
+ * - Gear ratio: 2.92 (servo rotates FASTER/MORE than turret - speed reduction to turret)
+ * - For 360° turret rotation: servo needs 1051.4° rotation (360 × 2.92)
  *
  * Supported Servo Modes:
- * - POSITION_MODE_300: Standard 300° servo (limited to ~103° turret rotation)
- * - POSITION_MODE_2_25TURN: 2.25-turn 810° servo without travel tuner (~277° turret rotation)
- * - POSITION_MODE_5TURN: 5-turn 1800° position servo with travel tuner (full 360° turret rotation)
+ * - POSITION_MODE_300: Standard 300° servo (up to ~102.7° turret rotation)
+ * - POSITION_MODE_360_TUNED: Servo with travel tuner calibrated for FULL 360° turret rotation (servo pos 0.0=0° turret, 1.0=360° turret)
+ * - POSITION_MODE_2_25TURN: 2.25-turn 810° servo without travel tuner (up to ~277° turret rotation)
+ * - POSITION_MODE_5TURN: 5-turn 1800° position servo without travel tuner (up to ~616° turret rotation)
  * - CONTINUOUS_ROTATION: CR servo with time-based position estimation
  */
 public class Turret {
@@ -150,13 +157,14 @@ public class Turret {
      */
     public enum TurretMode {
         POSITION_MODE_300,       // Standard 300° position servo (limited rotation)
+        POSITION_MODE_360_TUNED, // 5-turn servo with travel tuner calibrated to exactly 360° (optimal!)
         POSITION_MODE_2_25TURN,  // 2.25-turn 810° servo without travel tuner (~277° turret rotation)
-        POSITION_MODE_5TURN,     // 5-turn 1800° position servo with travel tuner (full rotation)
+        POSITION_MODE_5TURN,     // 5-turn 1800° position servo without travel tuner (full rotation)
         CONTINUOUS_ROTATION      // Continuous rotation with time-based tracking
     }
 
     /** CONFIGURE THIS: Set the mode for your servo type */
-    private static final TurretMode SERVO_MODE = TurretMode.POSITION_MODE_5TURN;
+    private static final TurretMode SERVO_MODE = TurretMode.POSITION_MODE_360_TUNED;
 
     // ═══════════════════════════════════════════════════════════════════════
     // HARDWARE CONSTANTS
@@ -165,21 +173,23 @@ public class Turret {
     /** Servo device name in robot configuration */
     public static final String TURRET_SERVO_NAME = "TurretLeft";
 
-    /** Gear ratio: turret teeth / servo teeth */
-    private static final double GEAR_RATIO = 108.0 / 37.0; // = 2.92
+    /** Gear ratio: turret teeth / servo teeth (speed reduction - servo rotates faster) */
+    private static final double GEAR_RATIO = 108.0 / 37.0; // = 2.92 - servo must rotate 2.92× more than turret
 
     /** Servo degrees needed for full turret rotation */
-    private static final double SERVO_DEGREES_PER_TURRET_ROTATION = 360.0 * GEAR_RATIO; // = 1051.4°
+    private static final double SERVO_DEGREES_PER_TURRET_ROTATION = 360.0 * GEAR_RATIO; // = 1051.4° servo for 360° turret
 
     /** Maximum servo travel in each mode */
     private static final double SERVO_MAX_POSITION_300 = 300.0;
+    private static final double SERVO_MAX_POSITION_360_TUNED = 360.0 * GEAR_RATIO;  // Travel tuner pre-compensates for gear ratio: direct 360° turret = 1051.4° servo
     private static final double SERVO_MAX_POSITION_2_25TURN = 810.0;  // 2.25 turns without travel tuner
     private static final double SERVO_MAX_POSITION_5TURN = 1800.0;
 
     /** Maximum turret rotation in each mode */
-    private static final double MAX_TURRET_ANGLE_300 = SERVO_MAX_POSITION_300 / GEAR_RATIO; // ~103°
+    private static final double MAX_TURRET_ANGLE_300 = SERVO_MAX_POSITION_300 / GEAR_RATIO; // ~102.7°
+    private static final double MAX_TURRET_ANGLE_360_TUNED = 360.0; // Travel tuner calibrated for full 360° turret rotation!
     private static final double MAX_TURRET_ANGLE_2_25TURN = SERVO_MAX_POSITION_2_25TURN / GEAR_RATIO; // ~277°
-    private static final double MAX_TURRET_ANGLE_5TURN = SERVO_MAX_POSITION_5TURN / GEAR_RATIO; // ~617°
+    private static final double MAX_TURRET_ANGLE_5TURN = SERVO_MAX_POSITION_5TURN / GEAR_RATIO; // ~616°
 
     // ═══════════════════════════════════════════════════════════════════════
     // TUNING PARAMETERS
@@ -309,18 +319,22 @@ public class Turret {
 
     /**
      * Update position tracking for position servo modes
+     * Reads actual servo position and converts to turret angle
      */
     private void updatePositionServoTracking() {
-        // Position servos handle movement automatically
-        // Sync our tracking with actual servo position
+        // Read actual servo position (0.0 to 1.0)
         double servoPosition = positionServo.getPosition();
-        double servoDegrees = servoPosition * getMaxServoTravel();
 
-        // Account for centering offset
-        double centerServoDegrees = getMaxServoTravel() / 2.0;
-        double offsetServoDegrees = servoDegrees - centerServoDegrees;
-
-        currentTurretAngle = servoDegreesToTurretDegrees(offsetServoDegrees);
+        if (SERVO_MODE == TurretMode.POSITION_MODE_360_TUNED) {
+            // Direct mapping: turret angle = servo position × 360
+            currentTurretAngle = servoPosition * 360.0;
+        } else {
+            // Gear ratio-based calculation for other modes
+            double servoDegrees = servoPosition * getMaxServoTravel();
+            double centerServoDegrees = getMaxServoTravel() / 2.0;
+            double offsetServoDegrees = servoDegrees - centerServoDegrees;
+            currentTurretAngle = servoDegreesToTurretDegrees(offsetServoDegrees);
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -352,21 +366,29 @@ public class Turret {
 
     /**
      * Set angle using position servo
+     *
+     * With 360° tuned mode:
+     * - Servo travel tuner pre-compensates for 2.92 gear ratio
+     * - Direct mapping: servo position 0.0→1.0 = 0°→360° turret rotation
+     * - Simple formula: servoPosition = turretAngle / 360.0
      */
     private void setAnglePosition(double turretAngle) {
-        // Convert turret angle to servo degrees
-        double servoDegrees = turretDegreesToServoDegrees(turretAngle);
+        double servoPosition;
 
-        // Center the servo position around 0.5 for symmetrical control
-        // This allows equal rotation in both directions from center
-        double maxTravel = getMaxServoTravel();
-        double centerServoDegrees = maxTravel / 2.0;
-        double offsetServoDegrees = servoDegrees + centerServoDegrees;
+        if (SERVO_MODE == TurretMode.POSITION_MODE_360_TUNED) {
+            // Direct mapping: travel tuner has pre-compensated for gear ratio
+            // servo position 0.0 = 0° turret, 0.5 = 180° turret, 1.0 = 360° turret
+            servoPosition = turretAngle / 360.0;
+        } else {
+            // Gear ratio-based calculation for other modes
+            double servoDegrees = turretDegreesToServoDegrees(turretAngle);
+            double maxTravel = getMaxServoTravel();
+            double centerServoDegrees = maxTravel / 2.0;
+            double offsetServoDegrees = servoDegrees + centerServoDegrees;
+            servoPosition = offsetServoDegrees / maxTravel;
+        }
 
-        // Convert to 0.0-1.0 servo position
-        double servoPosition = offsetServoDegrees / maxTravel;
-
-        // Clamp to valid range (should already be valid from clampAngle, but safety check)
+        // Clamp to valid range
         servoPosition = Math.max(0.0, Math.min(1.0, servoPosition));
 
         positionServo.setPosition(servoPosition);
@@ -665,6 +687,7 @@ public class Turret {
 
     /**
      * Convert turret degrees to servo degrees
+     * Servo (small gear) must rotate MORE than turret (large gear)
      */
     private double turretDegreesToServoDegrees(double turretDegrees) {
         return turretDegrees * GEAR_RATIO;
@@ -672,6 +695,7 @@ public class Turret {
 
     /**
      * Convert servo degrees to turret degrees
+     * Turret (large gear) rotates LESS than servo (small gear)
      */
     private double servoDegreesToTurretDegrees(double servoDegrees) {
         return servoDegrees / GEAR_RATIO;
@@ -684,6 +708,8 @@ public class Turret {
         switch (SERVO_MODE) {
             case POSITION_MODE_5TURN:
                 return SERVO_MAX_POSITION_5TURN;
+            case POSITION_MODE_360_TUNED:
+                return SERVO_MAX_POSITION_360_TUNED;
             case POSITION_MODE_2_25TURN:
                 return SERVO_MAX_POSITION_2_25TURN;
             case POSITION_MODE_300:
@@ -700,6 +726,8 @@ public class Turret {
             return 360.0; // Full rotation
         } else if (SERVO_MODE == TurretMode.POSITION_MODE_5TURN) {
             return MAX_TURRET_ANGLE_5TURN;
+        } else if (SERVO_MODE == TurretMode.POSITION_MODE_360_TUNED) {
+            return MAX_TURRET_ANGLE_360_TUNED;
         } else if (SERVO_MODE == TurretMode.POSITION_MODE_2_25TURN) {
             return MAX_TURRET_ANGLE_2_25TURN;
         } else {
