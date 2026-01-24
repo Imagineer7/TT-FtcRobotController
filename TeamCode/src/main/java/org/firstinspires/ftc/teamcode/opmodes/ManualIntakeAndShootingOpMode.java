@@ -382,6 +382,35 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             }
             lastYButton = gamepad1.y;
 
+            // Continuous turret angle update: Recalculate angle to target as robot moves
+            // Only when pose has been updated and turret is enabled
+            if (poseUpdatedWithLimelight && autoGyroTurret.isEnabled() && localization.isOdometryInitialized()) {
+                // Get current robot position (in rotated Limelight coordinate system)
+                double robotXRotated = localization.getX(DistanceUnit.INCH);
+                double robotYRotated = localization.getY(DistanceUnit.INCH);
+
+                // Apply inverse 180° rotation to convert back to field coordinate system
+                double robotX = -robotXRotated;
+                double robotY = -robotYRotated;
+
+                // Get target tag coordinates
+                double tagX = targetingBlueTag ? BLUE_TAG_X : RED_TAG_X;
+                double tagY = targetingBlueTag ? BLUE_TAG_Y : RED_TAG_Y;
+
+                // Calculate angle from robot to target tag
+                double deltaX = tagX - robotX;
+                double deltaY = tagY - robotY;
+
+                // Calculate field-relative angle
+                double targetHeading = Math.toDegrees(Math.atan2(deltaY, deltaX));
+
+                // Add 180° to flip turret around (front instead of back)
+                targetHeading += 180.0;
+
+                // Update turret to point at target
+                autoGyroTurret.setFieldRelativeHeading(targetHeading, robotHeading);
+            }
+
             // Update turret to maintain field-relative heading (if enabled)
             // If disabled, this will set servo to position 0 (0° / forward)
             autoGyroTurret.update(robotHeading);
