@@ -65,9 +65,10 @@ public class IndexingSystemV3 {
     private final BasicIndexingHelper indexingHelper;
     private final BasicFiringHelper firingHelper;
     
-    // Perception (one per intake)
+    // Perception (one per intake + center slot)
     private final IntakePerception frontPerception;
     private final IntakePerception backPerception;
+    private final IntakePerception.CenterSlotPerception centerPerception;
     
     // ========== State ==========
     private SystemState currentState;
@@ -151,23 +152,31 @@ public class IndexingSystemV3 {
         // Initialize watchdog
         this.watchdog = new KeepAliveWatchdog(firingHelper, telemetry);
         
-        // Initialize perception (IntakeSide enum, sensors, config)
-        // CRITICAL: Must match sensor wiring - CENTER sensors are outward-facing, RIGHT sensors are at mouth
+        // Initialize perception for intakes (IntakeSide enum, sensors, config)
+        // New sensor layout:
+        // - goBILDA distance sensor (confirmation)
+        // - REV Color V3 sensors (primary detection via color + proximity)
         this.frontPerception = new IntakePerception(
             IntakePerception.IntakeSide.FRONT,
-            hardware.getFrontDistanceSensor(),
-            hardware.getFrontLeftDistanceSensor(),
-            hardware.getFrontCenterColorSensor(),  // Outward-facing color sensor
-            hardware.getFrontRightColorSensor(),   // Mouth-mounted color sensor
+            hardware.getFrontDistanceSensor(),          // goBILDA confirmation
+            hardware.getFrontIntakeColorPrimary(),      // Primary REV Color V3
+            hardware.getFrontIntakeColorSecondary(),    // Secondary REV Color V3
             config
         );
         
         this.backPerception = new IntakePerception(
             IntakePerception.IntakeSide.BACK,
-            hardware.getBackDistanceSensor(),
-            hardware.getBackRightDistanceSensor(),
-            hardware.getBackCenterColorSensor(),   // Outward-facing color sensor
-            hardware.getBackRightColorSensor(),    // Mouth-mounted color sensor (note: same as distance sensor)
+            hardware.getBackDistanceSensor(),           // goBILDA confirmation
+            hardware.getBackIntakeColorPrimary(),       // Primary REV Color V3
+            hardware.getBackIntakeColorSecondary(),     // Secondary REV Color V3
+            config
+        );
+        
+        // Initialize center slot perception
+        this.centerPerception = new IntakePerception.CenterSlotPerception(
+            hardware.getCenterDistanceSensor(),         // goBILDA center distance
+            hardware.getCenterColorLeft(),              // Left REV Color V3
+            hardware.getCenterColorRight(),             // Right REV Color V3
             config
         );
         
@@ -308,6 +317,7 @@ public class IndexingSystemV3 {
         // Always update perception - needed for color sampling during operations
         frontPerception.update();
         backPerception.update();
+        centerPerception.update();  // Update center slot perception
         
         // During operations: skip hunt-mode hardware control (operation has control)
         if (runner.isBusy()) {
@@ -1491,11 +1501,12 @@ public class IndexingSystemV3 {
         telemetry.addData("Roller Busy", indexingHelper.isFrontRollerBusy() ? "✓ YES" : "No");
         telemetry.addData("Transfer Busy", indexingHelper.isFrontTransferBusy() ? "✓ YES" : "No");
         
-        // Raw sensor hints
-        telemetry.addData("Raw: FrontBlocked", frontPerception.isFrontBlocked() ? "✓" : "✗");
-        telemetry.addData("Raw: MouthOccupied", frontPerception.isMouthOccupied() ? "✓" : "✗");
-        telemetry.addData("Raw: ColorOutward", frontPerception.colorSeesArtifact_Outward() ? "✓" : "✗");
-        telemetry.addData("Raw: ColorMouth", frontPerception.colorSeesArtifact_Mouth() ? "✓" : "✗");
+        // Raw sensor hints (updated for new sensor layout)
+        telemetry.addData("Raw: Confirmation", frontPerception.isConfirmationDetected() ? "✓" : "✗");
+        telemetry.addData("Raw: PrimaryProx", frontPerception.isPrimaryProximityDetected() ? "✓" : "✗");
+        telemetry.addData("Raw: SecondaryProx", frontPerception.isSecondaryProximityDetected() ? "✓" : "✗");
+        telemetry.addData("Raw: PrimaryColor", frontPerception.colorSeesArtifact_Primary() ? "✓" : "✗");
+        telemetry.addData("Raw: SecondaryColor", frontPerception.colorSeesArtifact_Secondary() ? "✓" : "✗");
         telemetry.addLine();
         
         // Back intake perception
@@ -1509,11 +1520,12 @@ public class IndexingSystemV3 {
         telemetry.addData("Roller Busy", indexingHelper.isBackRollerBusy() ? "✓ YES" : "No");
         telemetry.addData("Transfer Busy", indexingHelper.isBackTransferBusy() ? "✓ YES" : "No");
         
-        // Raw sensor hints
-        telemetry.addData("Raw: FrontBlocked", backPerception.isFrontBlocked() ? "✓" : "✗");
-        telemetry.addData("Raw: MouthOccupied", backPerception.isMouthOccupied() ? "✓" : "✗");
-        telemetry.addData("Raw: ColorOutward", backPerception.colorSeesArtifact_Outward() ? "✓" : "✗");
-        telemetry.addData("Raw: ColorMouth", backPerception.colorSeesArtifact_Mouth() ? "✓" : "✗");
+        // Raw sensor hints (updated for new sensor layout)
+        telemetry.addData("Raw: Confirmation", backPerception.isConfirmationDetected() ? "✓" : "✗");
+        telemetry.addData("Raw: PrimaryProx", backPerception.isPrimaryProximityDetected() ? "✓" : "✗");
+        telemetry.addData("Raw: SecondaryProx", backPerception.isSecondaryProximityDetected() ? "✓" : "✗");
+        telemetry.addData("Raw: PrimaryColor", backPerception.colorSeesArtifact_Primary() ? "✓" : "✗");
+        telemetry.addData("Raw: SecondaryColor", backPerception.colorSeesArtifact_Secondary() ? "✓" : "✗");
         telemetry.addLine();
     }
     

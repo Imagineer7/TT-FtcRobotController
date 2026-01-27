@@ -10,17 +10,23 @@ import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
  * IntakePerception - Sensor fusion for a single intake (front or back)
  *
  * This class fuses multiple sensors per intake to produce derived signals:
- * - frontBlocked (outward laser distance sensor)
- * - mouthOccupied (REV 2m ToF sensor with hysteresis)
+ * - primaryProximity (REV Color V3 proximity detection - primary)
+ * - secondaryProximity (REV Color V3 proximity detection - secondary)
+ * - confirmationDistance (goBILDA distance sensor - confirmation)
  * - colorSeesArtifact (color sensor confidence)
  * - artifactHint (combined presence signal)
  * - presenceConfidence (LOW/MED/HIGH)
  *
  * Key principles:
+ * - REV Color V3 sensors (using proximity) are primary detectors
+ * - goBILDA distance sensor is confirmation signal
  * - Sensors provide hints, not truth
- * - Hysteresis prevents oscillation
  * - Debounce ensures stable signals
  * - Color classification only at stable checkpoints
+ *
+ * Hardware Layout:
+ * - 2× REV Color Sensor V3 (primary detection via color + proximity)
+ * - 1× goBILDA distance sensor (confirmation)
  */
 public class IntakePerception {
 
@@ -54,21 +60,20 @@ public class IntakePerception {
     private final IndexingConfig config;
 
     // Hardware sensors
-    private final AnalogInput laserSensor;              // 0-3.3V = 0-1000mm
-    private final DistanceSensor revSensor;             // REV 2m ToF
-    private final NormalizedColorSensor outwardColorSensor;  // Outward-facing
-    private final NormalizedColorSensor mouthColorSensor;    // Mouth-mounted
+    private final AnalogInput confirmationSensor;           // goBILDA distance (confirmation)
+    private final NormalizedColorSensor primaryColorSensor;    // Primary REV Color V3 (color + proximity)
+    private final NormalizedColorSensor secondaryColorSensor;  // Secondary REV Color V3 (color + proximity)
 
     // Derived signal state
-    private boolean frontBlocked;
-    private boolean mouthOccupied;
-    private boolean colorSeesArtifact_outward;
-    private boolean colorSeesArtifact_mouth;
+    private boolean confirmationDetected;        // goBILDA distance sensor
+    private boolean primaryProximityDetected;    // REV Color V3 proximity (primary)
+    private boolean secondaryProximityDetected;  // REV Color V3 proximity (secondary)
+    private boolean colorSeesArtifact_primary;   // Primary color confidence
+    private boolean colorSeesArtifact_secondary; // Secondary color confidence
 
-    // Hysteresis state for REV sensor
-    private boolean revSensorHysteresisState;  // Current state (occupied or not)
-    private double revSensorBaseline;          // Calibrated baseline distance
-
+    // Hysteresis state (not needed anymore but kept for compatibility)
+    private boolean hysteresisState;  // General hysteresis state
+    
     // Debounce state
     private long lastRawHintChangeTime;     // When raw hint last changed
     private boolean fastPresence;           // Fast-debounced presence (30ms)
@@ -80,28 +85,19 @@ public class IntakePerception {
     private double lastColorConfidence;
     private boolean samplingEnabled;        // Gates color re-sampling to checkpoints
     
-    // Baseline calibration state
-    private long lastBaselineUpdateTime;
-    private int emptyReadingCount;
-    
     // Manual override state (for testing/operator override)
     private boolean forcedDetectionActive;
     private ArtifactIdentity.ColorClass forcedColor;
 
-    // Constants (will be moved to config)
-    private static final double LASER_THRESHOLD_CM = 10.0;  // Artifact detected when < 10cm
-    private static final double REV_HYSTERESIS_ENTER_DELTA = 7.0;  // cm below baseline to enter occupied state
-    private static final double REV_HYSTERESIS_EXIT_DELTA = 3.0;   // cm below baseline to exit occupied state
+    // Constants
+    private static final double CONFIRMATION_THRESHOLD_CM = 10.0;  // Artifact detected when < 10cm (goBILDA)
+    private static final double PROXIMITY_THRESHOLD_CM = 5.0;       // REV Color V3 proximity threshold
     private static final double MAX_LASER_VOLTS = 3.3;
     private static final double MAX_LASER_DISTANCE_MM = 1000.0;
     
     // Debounce timing
     private static final long EDGE_DETECTION_DEBOUNCE_MS = 30;    // Fast response for entry/exit
     private static final long STABLE_PRESENCE_DEBOUNCE_MS = 100;  // Confirm still present
-    
-    // Baseline calibration
-    private static final long BASELINE_UPDATE_INTERVAL_MS = 500;  // Check every 500ms
-    private static final int EMPTY_READINGS_REQUIRED = 5;         // Need 5 consecutive empty readings
 
     // ═══════════════════════════════════════════════════════════════════════
     // CONSTRUCTOR
@@ -111,31 +107,29 @@ public class IntakePerception {
      * Create a new IntakePerception for one intake
      *
      * @param side Which intake (FRONT or BACK)
-     * @param laserSensor Outward-facing laser distance sensor
-     * @param revSensor REV 2m ToF distance sensor (across mouth)
-     * @param outwardColorSensor Color sensor next to laser
-     * @param mouthColorSensor Color sensor opposite REV sensor
+     * @param confirmationSensor goBILDA distance sensor (confirmation)
+     * @param primaryColorSensor Primary REV Color V3 sensor (color + proximity)
+     * @param secondaryColorSensor Secondary REV Color V3 sensor (color + proximity)
      * @param config IndexingConfig for thresholds
      */
     public IntakePerception(IntakeSide side,
-                           AnalogInput laserSensor,
-                           DistanceSensor revSensor,
-                           NormalizedColorSensor outwardColorSensor,
-                           NormalizedColorSensor mouthColorSensor,
+                           AnalogInput confirmationSensor,
+                           NormalizedColorSensor primaryColorSensor,
+                           NormalizedColorSensor secondaryColorSensor,
                            IndexingConfig config) {
         this.side = side;
-        this.laserSensor = laserSensor;
-        this.revSensor = revSensor;
-        this.outwardColorSensor = outwardColorSensor;
-        this.mouthColorSensor = mouthColorSensor;
+        this.confirmationSensor = confirmationSensor;
+        this.primaryColorSensor = primaryColorSensor;
+        this.secondaryColorSensor = secondaryColorSensor;
         this.config = config;
 
         // Initialize state
-        this.frontBlocked = false;
-        this.mouthOccupied = false;
-        this.colorSeesArtifact_outward = false;
-        this.colorSeesArtifact_mouth = false;
-        this.revSensorHysteresisState = false;
+        this.confirmationDetected = false;
+        this.primaryProximityDetected = false;
+        this.secondaryProximityDetected = false;
+        this.colorSeesArtifact_primary = false;
+        this.colorSeesArtifact_secondary = false;
+        this.hysteresisState = false;
         this.fastPresence = false;
         this.stablePresence = false;
         this.lastRawHint = false;
@@ -143,13 +137,25 @@ public class IntakePerception {
         this.lastColorClass = ArtifactIdentity.ColorClass.UNKNOWN;
         this.lastColorConfidence = 0.0;
         this.samplingEnabled = false;
-        this.lastBaselineUpdateTime = System.currentTimeMillis();
-        this.emptyReadingCount = 0;
         this.forcedDetectionActive = false;
         this.forcedColor = ArtifactIdentity.ColorClass.UNKNOWN;
-
-        // Calibrate REV sensor baseline
-        calibrateRevSensorBaseline();
+    }
+    
+    /**
+     * DEPRECATED: Old constructor for backward compatibility
+     * Maps old sensor parameters to new layout
+     * 
+     * @deprecated Use new constructor with updated sensor layout
+     */
+    @Deprecated
+    public IntakePerception(IntakeSide side,
+                           AnalogInput laserSensor,
+                           DistanceSensor revSensor,  // REMOVED - ignored
+                           NormalizedColorSensor outwardColorSensor,
+                           NormalizedColorSensor mouthColorSensor,
+                           IndexingConfig config) {
+        // Call new constructor, mapping old sensors to new ones
+        this(side, laserSensor, outwardColorSensor, mouthColorSensor, config);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -161,20 +167,17 @@ public class IntakePerception {
      * Call this every loop
      */
     public void update() {
-        // Update laser distance sensor (frontBlocked)
-        updateLaserSensor();
+        // Update confirmation sensor (goBILDA distance)
+        updateConfirmationSensor();
 
-        // Update REV 2m sensor with hysteresis (mouthOccupied)
-        updateRevSensor();
+        // Update REV Color V3 proximity sensors (primary detectors)
+        updateProximitySensors();
 
-        // Update color sensors (colorSeesArtifact)
+        // Update color sensors (for color classification)
         updateColorSensors();
 
         // Update debounced hints (edge detection + stable presence)
         updateDebouncedHints();
-        
-        // Update baseline calibration (continuous when confidently empty)
-        updateBaselineCalibration();
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -182,64 +185,55 @@ public class IntakePerception {
     // ═══════════════════════════════════════════════════════════════════════
 
     /**
-     * Update laser distance sensor reading
+     * Update confirmation sensor (goBILDA distance sensor)
      * Converts voltage to distance and checks threshold
      */
-    private void updateLaserSensor() {
-        if (laserSensor == null) {
-            frontBlocked = false;
+    private void updateConfirmationSensor() {
+        if (confirmationSensor == null) {
+            confirmationDetected = false;
             return;
         }
 
         try {
-            double voltage = laserSensor.getVoltage();
+            double voltage = confirmationSensor.getVoltage();
             double distanceMm = (voltage / MAX_LASER_VOLTS) * MAX_LASER_DISTANCE_MM;
             double distanceCm = distanceMm / 10.0;
 
             // Artifact detected when distance < threshold
-            frontBlocked = (distanceCm < LASER_THRESHOLD_CM && distanceCm > 0.5);  // > 0.5 filters noise
+            confirmationDetected = (distanceCm < CONFIRMATION_THRESHOLD_CM && distanceCm > 0.5);  // > 0.5 filters noise
         } catch (Exception e) {
-            frontBlocked = false;  // Sensor error = assume empty
+            confirmationDetected = false;  // Sensor error = assume empty
         }
     }
 
     /**
-     * Update REV 2m distance sensor with hysteresis
-     * Prevents oscillation when artifact is near threshold
-     * 
-     * Hysteresis: 
-     * - Enter occupied when distance < baseline - ENTER_DELTA (artifact gets close)
-     * - Exit occupied when distance > baseline - EXIT_DELTA (artifact moves away)
-     * - ENTER_DELTA > EXIT_DELTA ensures no oscillation in the band
+     * Update REV Color V3 proximity sensors (primary detection method)
+     * Uses the distance interface available on REV Color Sensor V3
+     * Reference: SensorColor.java line 211-212
      */
-    private void updateRevSensor() {
-        if (revSensor == null || !config.getUseRevDistanceSensors()) {
-            mouthOccupied = false;
-            return;
+    private void updateProximitySensors() {
+        // Update primary sensor proximity
+        if (primaryColorSensor instanceof DistanceSensor) {
+            try {
+                double distanceCm = ((DistanceSensor) primaryColorSensor).getDistance(DistanceUnit.CM);
+                primaryProximityDetected = (distanceCm < PROXIMITY_THRESHOLD_CM && distanceCm > 0.1);
+            } catch (Exception e) {
+                primaryProximityDetected = false;
+            }
+        } else {
+            primaryProximityDetected = false;
         }
 
-        try {
-            double distanceCm = revSensor.getDistance(DistanceUnit.CM);
-
-            // Hysteresis thresholds
-            double enterThreshold = revSensorBaseline - REV_HYSTERESIS_ENTER_DELTA;  // e.g., 25 - 7 = 18cm
-            double exitThreshold = revSensorBaseline - REV_HYSTERESIS_EXIT_DELTA;    // e.g., 25 - 3 = 22cm
-
-            if (revSensorHysteresisState) {
-                // Currently occupied - check if artifact left (distance > exitThreshold)
-                if (distanceCm > exitThreshold) {
-                    revSensorHysteresisState = false;
-                }
-            } else {
-                // Currently empty - check if artifact entered (distance < enterThreshold)
-                if (distanceCm < enterThreshold && distanceCm > 0.5) {  // > 0.5 filters invalid readings
-                    revSensorHysteresisState = true;
-                }
+        // Update secondary sensor proximity
+        if (secondaryColorSensor instanceof DistanceSensor) {
+            try {
+                double distanceCm = ((DistanceSensor) secondaryColorSensor).getDistance(DistanceUnit.CM);
+                secondaryProximityDetected = (distanceCm < PROXIMITY_THRESHOLD_CM && distanceCm > 0.1);
+            } catch (Exception e) {
+                secondaryProximityDetected = false;
             }
-
-            mouthOccupied = revSensorHysteresisState;
-        } catch (Exception e) {
-            mouthOccupied = false;  // Sensor error = assume empty
+        } else {
+            secondaryProximityDetected = false;
         }
     }
 
@@ -248,8 +242,8 @@ public class IntakePerception {
      * Uses color classification logic from IndexingConfig
      */
     private void updateColorSensors() {
-        colorSeesArtifact_outward = checkColorSensor(outwardColorSensor);
-        colorSeesArtifact_mouth = checkColorSensor(mouthColorSensor);
+        colorSeesArtifact_primary = checkColorSensor(primaryColorSensor);
+        colorSeesArtifact_secondary = checkColorSensor(secondaryColorSensor);
 
         // Only update best color classification when sampling is enabled (at checkpoints)
         if (samplingEnabled) {
@@ -298,11 +292,11 @@ public class IntakePerception {
         }
         
         // Get readings from both sensors
-        ColorObservation outwardObs = getColorObservation(outwardColorSensor);
-        ColorObservation mouthObs = getColorObservation(mouthColorSensor);
+        ColorObservation primaryObs = getColorObservation(primaryColorSensor);
+        ColorObservation secondaryObs = getColorObservation(secondaryColorSensor);
 
         // Select best observation (highest confidence)
-        ColorObservation bestObs = (outwardObs.confidence > mouthObs.confidence) ? outwardObs : mouthObs;
+        ColorObservation bestObs = (primaryObs.confidence > secondaryObs.confidence) ? primaryObs : secondaryObs;
 
         // Update cached classification
         lastColorClass = bestObs.colorClass;
@@ -373,58 +367,23 @@ public class IntakePerception {
             stablePresence = currentRawHint;
         }
     }
-    
-    /**
-     * Update REV sensor baseline calibration
-     * Only updates when confidently empty and rollers are off
-     */
-    private void updateBaselineCalibration() {
-        if (revSensor == null || !config.getUseRevDistanceSensors()) {
-            return;
-        }
-        
-        long now = System.currentTimeMillis();
-        if ((now - lastBaselineUpdateTime) < BASELINE_UPDATE_INTERVAL_MS) {
-            return;  // Not time to check yet
-        }
-        
-        lastBaselineUpdateTime = now;
-        
-        // Only update baseline when confidently empty
-        // (no artifact hint, and stable for a while)
-        if (!stablePresence && !fastPresence) {
-            try {
-                double currentDistance = revSensor.getDistance(DistanceUnit.CM);
-                
-                // Valid reading in reasonable range
-                if (currentDistance > 10.0 && currentDistance < 100.0) {
-                    emptyReadingCount++;
-                    
-                    if (emptyReadingCount >= EMPTY_READINGS_REQUIRED) {
-                        // Drift baseline slowly toward current reading
-                        // Use exponential moving average with alpha = 0.1
-                        double alpha = 0.1;
-                        revSensorBaseline = alpha * currentDistance + (1 - alpha) * revSensorBaseline;
-                    }
-                } else {
-                    emptyReadingCount = 0;
-                }
-            } catch (Exception e) {
-                emptyReadingCount = 0;
-            }
-        } else {
-            // Artifact present - reset empty counter
-            emptyReadingCount = 0;
-        }
-    }
 
     /**
      * Get raw artifact hint (before debounce)
      * True if any sensor indicates presence OR forced detection is active
+     * 
+     * Detection priority:
+     * 1. Primary/Secondary REV Color V3 proximity (main detectors)
+     * 2. goBILDA confirmation sensor (secondary confirmation)
+     * 3. Color confidence detection
      */
     private boolean getRawArtifactHint() {
-        return forcedDetectionActive || frontBlocked || mouthOccupied || 
-               colorSeesArtifact_outward || colorSeesArtifact_mouth;
+        return forcedDetectionActive || 
+               primaryProximityDetected || 
+               secondaryProximityDetected ||
+               confirmationDetected ||
+               colorSeesArtifact_primary || 
+               colorSeesArtifact_secondary;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -477,46 +436,55 @@ public class IntakePerception {
     }
 
     /**
-     * Check if front is blocked (laser sensor)
+     * Check if confirmation sensor detects artifact (goBILDA distance)
      */
-    public boolean isFrontBlocked() {
-        return frontBlocked;
+    public boolean isConfirmationDetected() {
+        return confirmationDetected;
     }
 
     /**
-     * Check if mouth is occupied (REV sensor with hysteresis)
+     * Check if primary proximity sensor detects artifact (REV Color V3)
      */
-    public boolean isMouthOccupied() {
-        return mouthOccupied;
+    public boolean isPrimaryProximityDetected() {
+        return primaryProximityDetected;
     }
 
     /**
-     * Check if color sensor sees artifact (outward)
+     * Check if secondary proximity sensor detects artifact (REV Color V3)
      */
-    public boolean colorSeesArtifact_Outward() {
-        return colorSeesArtifact_outward;
+    public boolean isSecondaryProximityDetected() {
+        return secondaryProximityDetected;
     }
 
     /**
-     * Check if color sensor sees artifact (mouth)
+     * Check if color sensor sees artifact (primary)
      */
-    public boolean colorSeesArtifact_Mouth() {
-        return colorSeesArtifact_mouth;
+    public boolean colorSeesArtifact_Primary() {
+        return colorSeesArtifact_primary;
+    }
+
+    /**
+     * Check if color sensor sees artifact (secondary)
+     */
+    public boolean colorSeesArtifact_Secondary() {
+        return colorSeesArtifact_secondary;
     }
 
     /**
      * Get presence confidence level
+     * Based on number of sensors detecting artifact
      */
     public PresenceConfidence getPresenceConfidence() {
         int sensorCount = 0;
-        if (frontBlocked) sensorCount++;
-        if (mouthOccupied) sensorCount++;
-        if (colorSeesArtifact_outward) sensorCount++;
-        if (colorSeesArtifact_mouth) sensorCount++;
+        if (confirmationDetected) sensorCount++;
+        if (primaryProximityDetected) sensorCount++;
+        if (secondaryProximityDetected) sensorCount++;
+        if (colorSeesArtifact_primary) sensorCount++;
+        if (colorSeesArtifact_secondary) sensorCount++;
 
         if (sensorCount == 0) return PresenceConfidence.NONE;
         if (sensorCount == 1) return PresenceConfidence.LOW;
-        if (sensorCount == 2) return PresenceConfidence.MEDIUM;
+        if (sensorCount <= 2) return PresenceConfidence.MEDIUM;
         return PresenceConfidence.HIGH;
     }
 
@@ -543,16 +511,16 @@ public class IntakePerception {
     }
     
     /**
-     * Get raw RGB values from outward color sensor (for debugging)
+     * Get raw RGB values from primary color sensor (for debugging)
      * Returns array [red, green, blue] or null if sensor unavailable
      */
-    public double[] getOutwardColorRaw() {
-        if (outwardColorSensor == null) return null;
+    public double[] getPrimaryColorRaw() {
+        if (primaryColorSensor == null) return null;
         try {
             return new double[] {
-                outwardColorSensor.getNormalizedColors().red,
-                outwardColorSensor.getNormalizedColors().green,
-                outwardColorSensor.getNormalizedColors().blue
+                primaryColorSensor.getNormalizedColors().red,
+                primaryColorSensor.getNormalizedColors().green,
+                primaryColorSensor.getNormalizedColors().blue
             };
         } catch (Exception e) {
             return null;
@@ -560,16 +528,16 @@ public class IntakePerception {
     }
 
     /**
-     * Get raw RGB values from mouth color sensor (for debugging)
+     * Get raw RGB values from secondary color sensor (for debugging)
      * Returns array [red, green, blue] or null if sensor unavailable
      */
-    public double[] getMouthColorRaw() {
-        if (mouthColorSensor == null) return null;
+    public double[] getSecondaryColorRaw() {
+        if (secondaryColorSensor == null) return null;
         try {
             return new double[] {
-                mouthColorSensor.getNormalizedColors().red,
-                mouthColorSensor.getNormalizedColors().green,
-                mouthColorSensor.getNormalizedColors().blue
+                secondaryColorSensor.getNormalizedColors().red,
+                secondaryColorSensor.getNormalizedColors().green,
+                secondaryColorSensor.getNormalizedColors().blue
             };
         } catch (Exception e) {
             return null;
@@ -577,15 +545,15 @@ public class IntakePerception {
     }
 
     /**
-     * Get calculated purple and green confidence scores from outward sensor
+     * Get calculated purple and green confidence scores from primary sensor
      * Returns array [purpleScore, greenScore] or null if sensor unavailable
      */
-    public double[] getOutwardColorScores() {
-        if (outwardColorSensor == null) return null;
+    public double[] getPrimaryColorScores() {
+        if (primaryColorSensor == null) return null;
         try {
-            double red = outwardColorSensor.getNormalizedColors().red;
-            double green = outwardColorSensor.getNormalizedColors().green;
-            double blue = outwardColorSensor.getNormalizedColors().blue;
+            double red = primaryColorSensor.getNormalizedColors().red;
+            double green = primaryColorSensor.getNormalizedColors().green;
+            double blue = primaryColorSensor.getNormalizedColors().blue;
             double purpleScore = config.calculateColorConfidence(red, green, blue, "PURPLE");
             double greenScore = config.calculateColorConfidence(red, green, blue, "GREEN");
             return new double[] { purpleScore, greenScore };
@@ -595,15 +563,15 @@ public class IntakePerception {
     }
 
     /**
-     * Get calculated purple and green confidence scores from mouth sensor
+     * Get calculated purple and green confidence scores from secondary sensor
      * Returns array [purpleScore, greenScore] or null if sensor unavailable
      */
-    public double[] getMouthColorScores() {
-        if (mouthColorSensor == null) return null;
+    public double[] getSecondaryColorScores() {
+        if (secondaryColorSensor == null) return null;
         try {
-            double red = mouthColorSensor.getNormalizedColors().red;
-            double green = mouthColorSensor.getNormalizedColors().green;
-            double blue = mouthColorSensor.getNormalizedColors().blue;
+            double red = secondaryColorSensor.getNormalizedColors().red;
+            double green = secondaryColorSensor.getNormalizedColors().green;
+            double blue = secondaryColorSensor.getNormalizedColors().blue;
             double purpleScore = config.calculateColorConfidence(red, green, blue, "PURPLE");
             double greenScore = config.calculateColorConfidence(red, green, blue, "GREEN");
             return new double[] { purpleScore, greenScore };
@@ -611,6 +579,26 @@ public class IntakePerception {
             return null;
         }
     }
+    
+    // Backward compatibility methods for test classes
+    @Deprecated
+    public double[] getOutwardColorScores() { return getPrimaryColorScores(); }
+    @Deprecated
+    public double[] getMouthColorScores() { return getSecondaryColorScores(); }
+    @Deprecated
+    public double[] getOutwardColorRaw() { return getPrimaryColorRaw(); }
+    @Deprecated
+    public double[] getMouthColorRaw() { return getSecondaryColorRaw(); }
+    @Deprecated
+    public boolean isFrontBlocked() { return isConfirmationDetected(); }
+    @Deprecated
+    public boolean isMouthOccupied() { return isPrimaryProximityDetected() || isSecondaryProximityDetected(); }
+    @Deprecated
+    public boolean colorSeesArtifact_Outward() { return colorSeesArtifact_Primary(); }
+    @Deprecated
+    public boolean colorSeesArtifact_Mouth() { return colorSeesArtifact_Secondary(); }
+    @Deprecated
+    public void calibrateRevSensorBaseline() { /* No-op - calibration not needed with new sensors */ }
 
     /**
      * Force detection of an artifact with specified color (for testing/operator override).
@@ -661,12 +649,11 @@ public class IntakePerception {
      * 
      * Resets:
      * - Presence flags (fast, stable)
-     * - Raw sensor hints (frontBlocked, mouthOccupied, color sensors)
+     * - Raw sensor hints (all detection flags)
      * - Debounce timing
      * - Forced detection state
      * 
      * Does NOT reset:
-     * - Calibration data (REV baseline)
      * - Configuration
      */
     public void reset() {
@@ -679,59 +666,18 @@ public class IntakePerception {
         lastRawHintChangeTime = System.currentTimeMillis();
         
         // Clear raw sensor hints
-        frontBlocked = false;
-        mouthOccupied = false;
-        colorSeesArtifact_outward = false;
-        colorSeesArtifact_mouth = false;
-        revSensorHysteresisState = false;
+        confirmationDetected = false;
+        primaryProximityDetected = false;
+        secondaryProximityDetected = false;
+        colorSeesArtifact_primary = false;
+        colorSeesArtifact_secondary = false;
+        hysteresisState = false;
         
         // Clear forced detection
         forcedDetectionActive = false;
         forcedColor = ArtifactIdentity.ColorClass.UNKNOWN;
         
-        // Note: Baseline calibration is preserved
         // Note: samplingEnabled state is preserved (operations control this)
-    }
-
-    // ═══════════════════════════════════════════════════════════════════════
-    // CALIBRATION
-    // ═══════════════════════════════════════════════════════════════════════
-
-    /**
-     * Calibrate REV sensor baseline (call when intake is empty)
-     * Takes average of 10 readings
-     */
-    public void calibrateRevSensorBaseline() {
-        if (revSensor == null || !config.getUseRevDistanceSensors()) {
-            revSensorBaseline = config.getRevSensorBaselineDistance();
-            return;
-        }
-
-        try {
-            double sum = 0;
-            int validReadings = 0;
-
-            for (int i = 0; i < 10; i++) {
-                double reading = revSensor.getDistance(DistanceUnit.CM);
-                if (reading > 0.5 && reading < 100.0) {  // Filter invalid readings
-                    sum += reading;
-                    validReadings++;
-                }
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    break;
-                }
-            }
-
-            if (validReadings > 0) {
-                revSensorBaseline = sum / validReadings;
-            } else {
-                revSensorBaseline = config.getRevSensorBaselineDistance();  // Use default
-            }
-        } catch (Exception e) {
-            revSensorBaseline = config.getRevSensorBaselineDistance();  // Use default on error
-        }
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -744,27 +690,40 @@ public class IntakePerception {
     public String getTelemetrySnapshot() {
         StringBuilder sb = new StringBuilder();
         sb.append(side).append(" Intake:\n");
-        sb.append("  frontBlocked: ").append(frontBlocked);
-        if (laserSensor != null) {
-            double distCm = (laserSensor.getVoltage() / MAX_LASER_VOLTS) * MAX_LASER_DISTANCE_MM / 10.0;
+        
+        // Confirmation sensor (goBILDA distance)
+        sb.append("  confirmationDetected: ").append(confirmationDetected);
+        if (confirmationSensor != null) {
+            double distCm = (confirmationSensor.getVoltage() / MAX_LASER_VOLTS) * MAX_LASER_DISTANCE_MM / 10.0;
             sb.append(" (").append(String.format("%.1f", distCm)).append("cm)");
         }
         sb.append("\n");
         
-        sb.append("  mouthOccupied: ").append(mouthOccupied);
-        if (revSensor != null && config.getUseRevDistanceSensors()) {
+        // Proximity sensors (REV Color V3)
+        sb.append("  primaryProximity: ").append(primaryProximityDetected);
+        if (primaryColorSensor instanceof DistanceSensor) {
             try {
-                double distCm = revSensor.getDistance(DistanceUnit.CM);
-                sb.append(" (").append(String.format("%.1f", distCm)).append("cm, baseline ")
-                  .append(String.format("%.1f", revSensorBaseline)).append("cm)");
+                double distCm = ((DistanceSensor) primaryColorSensor).getDistance(DistanceUnit.CM);
+                sb.append(" (").append(String.format("%.1f", distCm)).append("cm)");
             } catch (Exception e) {
                 sb.append(" (error)");
             }
         }
         sb.append("\n");
         
-        sb.append("  colorSeesArtifact: outward=").append(colorSeesArtifact_outward)
-          .append(", mouth=").append(colorSeesArtifact_mouth).append("\n");
+        sb.append("  secondaryProximity: ").append(secondaryProximityDetected);
+        if (secondaryColorSensor instanceof DistanceSensor) {
+            try {
+                double distCm = ((DistanceSensor) secondaryColorSensor).getDistance(DistanceUnit.CM);
+                sb.append(" (").append(String.format("%.1f", distCm)).append("cm)");
+            } catch (Exception e) {
+                sb.append(" (error)");
+            }
+        }
+        sb.append("\n");
+        
+        sb.append("  colorSeesArtifact: primary=").append(colorSeesArtifact_primary)
+          .append(", secondary=").append(colorSeesArtifact_secondary).append("\n");
         sb.append("  fastPresence: ").append(fastPresence).append(" (30ms debounce)\n");
         sb.append("  stablePresence: ").append(stablePresence).append(" (100ms debounce)\n");
         sb.append("  presenceConfidence: ").append(getPresenceConfidence()).append("\n");
@@ -773,31 +732,31 @@ public class IntakePerception {
           .append(" (conf=").append(String.format("%.2f", lastColorConfidence)).append(")\n");
 
         // Add raw color sensor values
-        double[] outwardRaw = getOutwardColorRaw();
-        if (outwardRaw != null) {
-            sb.append("  outwardColorRaw: R=").append(String.format("%.3f", outwardRaw[0]))
-              .append(", G=").append(String.format("%.3f", outwardRaw[1]))
-              .append(", B=").append(String.format("%.3f", outwardRaw[2])).append("\n");
+        double[] primaryRaw = getPrimaryColorRaw();
+        if (primaryRaw != null) {
+            sb.append("  primaryColorRaw: R=").append(String.format("%.3f", primaryRaw[0]))
+              .append(", G=").append(String.format("%.3f", primaryRaw[1]))
+              .append(", B=").append(String.format("%.3f", primaryRaw[2])).append("\n");
         }
 
-        double[] mouthRaw = getMouthColorRaw();
-        if (mouthRaw != null) {
-            sb.append("  mouthColorRaw: R=").append(String.format("%.3f", mouthRaw[0]))
-              .append(", G=").append(String.format("%.3f", mouthRaw[1]))
-              .append(", B=").append(String.format("%.3f", mouthRaw[2])).append("\n");
+        double[] secondaryRaw = getSecondaryColorRaw();
+        if (secondaryRaw != null) {
+            sb.append("  secondaryColorRaw: R=").append(String.format("%.3f", secondaryRaw[0]))
+              .append(", G=").append(String.format("%.3f", secondaryRaw[1]))
+              .append(", B=").append(String.format("%.3f", secondaryRaw[2])).append("\n");
         }
 
         // Add color scores
-        double[] outwardScores = getOutwardColorScores();
-        if (outwardScores != null) {
-            sb.append("  outwardScores: Purple=").append(String.format("%.2f", outwardScores[0]))
-              .append(", Green=").append(String.format("%.2f", outwardScores[1])).append("\n");
+        double[] primaryScores = getPrimaryColorScores();
+        if (primaryScores != null) {
+            sb.append("  primaryScores: Purple=").append(String.format("%.2f", primaryScores[0]))
+              .append(", Green=").append(String.format("%.2f", primaryScores[1])).append("\n");
         }
 
-        double[] mouthScores = getMouthColorScores();
-        if (mouthScores != null) {
-            sb.append("  mouthScores: Purple=").append(String.format("%.2f", mouthScores[0]))
-              .append(", Green=").append(String.format("%.2f", mouthScores[1]));
+        double[] secondaryScores = getSecondaryColorScores();
+        if (secondaryScores != null) {
+            sb.append("  secondaryScores: Purple=").append(String.format("%.2f", secondaryScores[0]))
+              .append(", Green=").append(String.format("%.2f", secondaryScores[1]));
         }
 
         return sb.toString();
@@ -827,5 +786,219 @@ public class IntakePerception {
         if ("GREEN".equals(colorStr)) return ArtifactIdentity.ColorClass.GREEN;
         if ("PURPLE".equals(colorStr)) return ArtifactIdentity.ColorClass.PURPLE;
         return ArtifactIdentity.ColorClass.UNKNOWN;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // CENTER SLOT PERCEPTION
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * CenterSlotPerception - Sensor fusion for the center slot / uptake area
+     * 
+     * This inner class handles detection for the center storage position using:
+     * - 1× goBILDA distance sensor (confirmation)
+     * - 2× REV Color Sensor V3 (primary detection via color + proximity)
+     * 
+     * Similar to IntakePerception but specifically for the center slot.
+     */
+    public static class CenterSlotPerception {
+        private final AnalogInput centerDistanceSensor;
+        private final NormalizedColorSensor leftColorSensor;
+        private final NormalizedColorSensor rightColorSensor;
+        private final IndexingConfig config;
+
+        // Detection state
+        private boolean centerConfirmation;
+        private boolean leftProximityDetected;
+        private boolean rightProximityDetected;
+        private boolean leftColorDetected;
+        private boolean rightColorDetected;
+
+        // Debounced signals
+        private boolean artifactPresent;
+        private long lastChangeTime;
+
+        // Constants
+        private static final double CENTER_CONFIRMATION_THRESHOLD_CM = 10.0;
+        private static final double CENTER_PROXIMITY_THRESHOLD_CM = 5.0;
+        private static final double MAX_LASER_VOLTS = 3.3;
+        private static final double MAX_LASER_DISTANCE_MM = 1000.0;
+        private static final long CENTER_DEBOUNCE_MS = 50;
+
+        /**
+         * Create center slot perception
+         * @param centerDistanceSensor goBILDA distance sensor
+         * @param leftColorSensor Left REV Color V3 sensor
+         * @param rightColorSensor Right REV Color V3 sensor
+         * @param config IndexingConfig
+         */
+        public CenterSlotPerception(AnalogInput centerDistanceSensor,
+                                   NormalizedColorSensor leftColorSensor,
+                                   NormalizedColorSensor rightColorSensor,
+                                   IndexingConfig config) {
+            this.centerDistanceSensor = centerDistanceSensor;
+            this.leftColorSensor = leftColorSensor;
+            this.rightColorSensor = rightColorSensor;
+            this.config = config;
+            this.centerConfirmation = false;
+            this.leftProximityDetected = false;
+            this.rightProximityDetected = false;
+            this.leftColorDetected = false;
+            this.rightColorDetected = false;
+            this.artifactPresent = false;
+            this.lastChangeTime = System.currentTimeMillis();
+        }
+
+        /**
+         * Update all center slot sensors
+         */
+        public void update() {
+            // Update confirmation sensor (goBILDA distance)
+            updateCenterConfirmation();
+
+            // Update proximity sensors (REV Color V3)
+            updateCenterProximity();
+
+            // Update color detection
+            updateCenterColors();
+
+            // Update debounced artifact presence
+            updateArtifactPresence();
+        }
+
+        private void updateCenterConfirmation() {
+            if (centerDistanceSensor == null) {
+                centerConfirmation = false;
+                return;
+            }
+
+            try {
+                double voltage = centerDistanceSensor.getVoltage();
+                double distanceMm = (voltage / MAX_LASER_VOLTS) * MAX_LASER_DISTANCE_MM;
+                double distanceCm = distanceMm / 10.0;
+                centerConfirmation = (distanceCm < CENTER_CONFIRMATION_THRESHOLD_CM && distanceCm > 0.5);
+            } catch (Exception e) {
+                centerConfirmation = false;
+            }
+        }
+
+        private void updateCenterProximity() {
+            // Left sensor proximity
+            if (leftColorSensor instanceof DistanceSensor) {
+                try {
+                    double distCm = ((DistanceSensor) leftColorSensor).getDistance(DistanceUnit.CM);
+                    leftProximityDetected = (distCm < CENTER_PROXIMITY_THRESHOLD_CM && distCm > 0.1);
+                } catch (Exception e) {
+                    leftProximityDetected = false;
+                }
+            } else {
+                leftProximityDetected = false;
+            }
+
+            // Right sensor proximity
+            if (rightColorSensor instanceof DistanceSensor) {
+                try {
+                    double distCm = ((DistanceSensor) rightColorSensor).getDistance(DistanceUnit.CM);
+                    rightProximityDetected = (distCm < CENTER_PROXIMITY_THRESHOLD_CM && distCm > 0.1);
+                } catch (Exception e) {
+                    rightProximityDetected = false;
+                }
+            } else {
+                rightProximityDetected = false;
+            }
+        }
+
+        private void updateCenterColors() {
+            leftColorDetected = checkColorSensor(leftColorSensor);
+            rightColorDetected = checkColorSensor(rightColorSensor);
+        }
+
+        private boolean checkColorSensor(NormalizedColorSensor sensor) {
+            if (sensor == null) return false;
+            try {
+                double red = sensor.getNormalizedColors().red;
+                double green = sensor.getNormalizedColors().green;
+                double blue = sensor.getNormalizedColors().blue;
+                double maxValue = Math.max(Math.max(red, green), blue);
+                if (maxValue < 0.05) return false;
+                double purpleScore = config.calculateColorConfidence(red, green, blue, "PURPLE");
+                double greenScore = config.calculateColorConfidence(red, green, blue, "GREEN");
+                double maxScore = Math.max(purpleScore, greenScore);
+                return maxScore >= config.getColorConfidenceThreshold();
+            } catch (Exception e) {
+                return false;
+            }
+        }
+
+        private void updateArtifactPresence() {
+            boolean rawPresence = centerConfirmation || leftProximityDetected || 
+                                 rightProximityDetected || leftColorDetected || rightColorDetected;
+            
+            long now = System.currentTimeMillis();
+            if (rawPresence != artifactPresent) {
+                if ((now - lastChangeTime) >= CENTER_DEBOUNCE_MS) {
+                    artifactPresent = rawPresence;
+                    lastChangeTime = now;
+                }
+            } else {
+                lastChangeTime = now;
+            }
+        }
+
+        /**
+         * Check if artifact is present in center slot
+         */
+        public boolean isArtifactPresent() {
+            return artifactPresent;
+        }
+
+        /**
+         * Get confidence level based on sensor agreement
+         */
+        public IntakePerception.PresenceConfidence getConfidence() {
+            int count = 0;
+            if (centerConfirmation) count++;
+            if (leftProximityDetected) count++;
+            if (rightProximityDetected) count++;
+            if (leftColorDetected) count++;
+            if (rightColorDetected) count++;
+
+            if (count == 0) return IntakePerception.PresenceConfidence.NONE;
+            if (count == 1) return IntakePerception.PresenceConfidence.LOW;
+            if (count <= 2) return IntakePerception.PresenceConfidence.MEDIUM;
+            return IntakePerception.PresenceConfidence.HIGH;
+        }
+
+        /**
+         * Get telemetry snapshot
+         */
+        public String getTelemetrySnapshot() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Center Slot:\n");
+            sb.append("  confirmation: ").append(centerConfirmation);
+            if (centerDistanceSensor != null) {
+                double distCm = (centerDistanceSensor.getVoltage() / MAX_LASER_VOLTS) * MAX_LASER_DISTANCE_MM / 10.0;
+                sb.append(" (").append(String.format("%.1f", distCm)).append("cm)");
+            }
+            sb.append("\n");
+            sb.append("  leftProximity: ").append(leftProximityDetected).append("\n");
+            sb.append("  rightProximity: ").append(rightProximityDetected).append("\n");
+            sb.append("  artifactPresent: ").append(artifactPresent).append("\n");
+            sb.append("  confidence: ").append(getConfidence());
+            return sb.toString();
+        }
+
+        /**
+         * Reset center slot perception
+         */
+        public void reset() {
+            centerConfirmation = false;
+            leftProximityDetected = false;
+            rightProximityDetected = false;
+            leftColorDetected = false;
+            rightColorDetected = false;
+            artifactPresent = false;
+            lastChangeTime = System.currentTimeMillis();
+        }
     }
 }

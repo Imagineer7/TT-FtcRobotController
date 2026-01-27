@@ -74,19 +74,20 @@ public class AuroraHardwareConfig {
     public static final String INJECTOR_SERVO_RIGHT = "InjectorSystemRight";
 
     // Artifact Detection Sensors
-    public static final String FRONT_DISTANCE_SENSOR = "LaserSensorFront";
-    public static final String BACK_DISTANCE_SENSOR = "LaserSensorBack";
-
-    // NEW: REV 2m Distance Sensors for enhanced artifact detection
-    public static final String FRONT_LEFT_DISTANCE_SENSOR = "DistSensorLeftFront";
-    public static final String BACK_RIGHT_DISTANCE_SENSOR = "DistSensorRightBack";
-
-    public static final String FRONT_LEFT_COLOR_SENSOR = "ColorSensorLeftFront";
-    public static final String FRONT_RIGHT_COLOR_SENSOR = "ColorSensorRightFront";
-    public static final String BACK_RIGHT_COLOR_SENSOR = "ColorSensorRightBack";
-    public static final String LEFT_RIGHT_COLOR_SENSOR = "ColorSensorLeftBack";
-    public static final String FRONT_CENTER_COLOR_SENSOR = "ColorSensorFront";
-    public static final String BACK_CENTER_COLOR_SENSOR = "ColorSensorBack";
+    // Intake Sensors (goBILDA distance + REV Color V3 sensors)
+    public static final String FRONT_DISTANCE_SENSOR = "LaserSensorFront";  // goBILDA laser (confirmation)
+    public static final String BACK_DISTANCE_SENSOR = "LaserSensorBack";    // goBILDA laser (confirmation)
+    
+    // Intake Color Sensors (REV Color Sensor V3 - primary detection using color + proximity)
+    public static final String FRONT_INTAKE_COLOR_PRIMARY = "ColorSensorLeftFront";    // Primary intake sensor
+    public static final String FRONT_INTAKE_COLOR_SECONDARY = "ColorSensorRightFront";  // Secondary intake sensor
+    public static final String BACK_INTAKE_COLOR_PRIMARY = "ColorSensorRightBack";     // Primary intake sensor
+    public static final String BACK_INTAKE_COLOR_SECONDARY = "ColorSensorLeftBack";    // Secondary intake sensor
+    
+    // Center Slot / Uptake Sensors
+    public static final String CENTER_DISTANCE_SENSOR = "LaserSensorCenter";           // goBILDA laser
+    public static final String CENTER_COLOR_LEFT = "ColorSensorFront";                 // REV Color V3 (left side)
+    public static final String CENTER_COLOR_RIGHT = "ColorSensorBack";                 // REV Color V3 (right side)
 
     // Sensors
     public static final String IMU_SENSOR = "imu";
@@ -148,21 +149,20 @@ public class AuroraHardwareConfig {
 
     // Artifact Detection Sensors
     // goBILDA Laser Distance Sensors (Analog Mode: 0-3.3V = 0-1000mm)
-    private AnalogInput frontDistanceSensor;
-    private AnalogInput backDistanceSensor;
+    private AnalogInput frontDistanceSensor;    // Front intake confirmation sensor
+    private AnalogInput backDistanceSensor;     // Back intake confirmation sensor
+    private AnalogInput centerDistanceSensor;   // Center slot detection sensor
 
-    // NEW: REV 2m Distance Sensors for enhanced artifact detection
-    // These face parallel with intake rollers, read ~25cm unless artifact present
-    private DistanceSensor frontLeftDistanceSensor;
-    private DistanceSensor backRightDistanceSensor;
-
-    // REV Color Sensor V3 (Normalized RGB values 0-1)
-    private NormalizedColorSensor frontLeftColorSensor;   // NOTE: Replaced with distance sensor
-    private NormalizedColorSensor frontRightColorSensor;
-    private NormalizedColorSensor backRightColorSensor;   // NOTE: Replaced with distance sensor
-    private NormalizedColorSensor leftRightColorSensor;
-    private NormalizedColorSensor frontCenterColorSensor;
-    private NormalizedColorSensor backCenterColorSensor;
+    // REV Color Sensor V3 (Normalized RGB values 0-1, with proximity via distance interface)
+    // Intake Color Sensors (primary detection using color + proximity)
+    private NormalizedColorSensor frontIntakeColorPrimary;     // Front intake primary
+    private NormalizedColorSensor frontIntakeColorSecondary;   // Front intake secondary
+    private NormalizedColorSensor backIntakeColorPrimary;      // Back intake primary
+    private NormalizedColorSensor backIntakeColorSecondary;    // Back intake secondary
+    
+    // Center Slot Color Sensors
+    private NormalizedColorSensor centerColorLeft;   // Center slot left
+    private NormalizedColorSensor centerColorRight;  // Center slot right
     
     // Distance sensor calibration constants (for goBILDA laser sensors in analog mode)
     private static final double MAX_VOLTS = 3.3;
@@ -406,107 +406,100 @@ public class AuroraHardwareConfig {
         // SEPARATE from motor/servo initialization so sensor failures don't break everything
         try {
             frontDistanceSensor = hardwareMap.get(AnalogInput.class, FRONT_DISTANCE_SENSOR);
-            telemetry.addLine("  ✅ Front distance sensor");
+            telemetry.addLine("  ✅ Front intake goBILDA distance sensor");
         } catch (Exception e) {
             frontDistanceSensor = null;
-            telemetry.addLine("  ⚠️ Front distance sensor: " + e.getMessage());
+            telemetry.addLine("  ⚠️ Front intake goBILDA distance sensor: " + e.getMessage());
         }
 
         try {
             backDistanceSensor = hardwareMap.get(AnalogInput.class, BACK_DISTANCE_SENSOR);
-            telemetry.addLine("  ✅ Back distance sensor");
+            telemetry.addLine("  ✅ Back intake goBILDA distance sensor");
         } catch (Exception e) {
             backDistanceSensor = null;
-            telemetry.addLine("  ⚠️ Back distance sensor: " + e.getMessage());
-        }
-
-        // Initialize NEW REV 2m Distance Sensors for enhanced artifact detection
-        // These sensors face parallel with intake rollers and provide ~25cm baseline reading
-        try {
-            frontLeftDistanceSensor = hardwareMap.get(DistanceSensor.class, FRONT_LEFT_DISTANCE_SENSOR);
-            telemetry.addLine("  ✅ Front left REV 2m distance sensor");
-        } catch (Exception e) {
-            frontLeftDistanceSensor = null;
-            telemetry.addLine("  ⚠️ Front left REV 2m distance sensor: " + e.getMessage());
+            telemetry.addLine("  ⚠️ Back intake goBILDA distance sensor: " + e.getMessage());
         }
 
         try {
-            backRightDistanceSensor = hardwareMap.get(DistanceSensor.class, BACK_RIGHT_DISTANCE_SENSOR);
-            telemetry.addLine("  ✅ Back right REV 2m distance sensor");
+            centerDistanceSensor = hardwareMap.get(AnalogInput.class, CENTER_DISTANCE_SENSOR);
+            telemetry.addLine("  ✅ Center slot goBILDA distance sensor");
         } catch (Exception e) {
-            backRightDistanceSensor = null;
-            telemetry.addLine("  ⚠️ Back right REV 2m distance sensor: " + e.getMessage());
+            centerDistanceSensor = null;
+            telemetry.addLine("  ⚠️ Center slot goBILDA distance sensor: " + e.getMessage());
         }
 
         // Initialize color sensors (REV Color Sensor V3 - optional, may not all be present)
         // IMPORTANT: Set gain to increase detection range (default is too low)
-        // REV Color Sensor V3 needs gain adjustment to detect colors at useful distances
+        // REV Color Sensor V3 provides both color detection and proximity sensing
         // SEPARATE from motor/servo initialization so sensor failures don't break everything
-        // NOTE: Front Left and Back Right are temporarily replaced with REV 2m distance sensors
+        
+        // Front Intake Color Sensors
         try {
-            frontLeftColorSensor = hardwareMap.get(NormalizedColorSensor.class, FRONT_LEFT_COLOR_SENSOR);
-            if (frontLeftColorSensor != null) {
-                frontLeftColorSensor.setGain(50);  // Increased gain for better detection range
-                telemetry.addLine("  ✅ Front left color sensor (gain=50)");
+            frontIntakeColorPrimary = hardwareMap.get(NormalizedColorSensor.class, FRONT_INTAKE_COLOR_PRIMARY);
+            if (frontIntakeColorPrimary != null) {
+                frontIntakeColorPrimary.setGain(50);  // Increased gain for better detection range
+                telemetry.addLine("  ✅ Front intake color sensor (primary, gain=50)");
             }
         } catch (Exception e) {
-            frontLeftColorSensor = null;
-            telemetry.addLine("  ⚠️ Front left color sensor: " + e.getMessage() + " (temp: REV 2m distance)");
+            frontIntakeColorPrimary = null;
+            telemetry.addLine("  ⚠️ Front intake color sensor (primary): " + e.getMessage());
         }
 
         try {
-            frontRightColorSensor = hardwareMap.get(NormalizedColorSensor.class, FRONT_RIGHT_COLOR_SENSOR);
-            if (frontRightColorSensor != null) {
-                frontRightColorSensor.setGain(50);  // Increased gain for better detection range
-                telemetry.addLine("  ✅ Front right color sensor (gain=50)");
+            frontIntakeColorSecondary = hardwareMap.get(NormalizedColorSensor.class, FRONT_INTAKE_COLOR_SECONDARY);
+            if (frontIntakeColorSecondary != null) {
+                frontIntakeColorSecondary.setGain(50);  // Increased gain for better detection range
+                telemetry.addLine("  ✅ Front intake color sensor (secondary, gain=50)");
             }
         } catch (Exception e) {
-            frontRightColorSensor = null;
-            telemetry.addLine("  ⚠️ Front right color sensor: " + e.getMessage());
+            frontIntakeColorSecondary = null;
+            telemetry.addLine("  ⚠️ Front intake color sensor (secondary): " + e.getMessage());
+        }
+
+        // Back Intake Color Sensors
+        try {
+            backIntakeColorPrimary = hardwareMap.get(NormalizedColorSensor.class, BACK_INTAKE_COLOR_PRIMARY);
+            if (backIntakeColorPrimary != null) {
+                backIntakeColorPrimary.setGain(50);  // Increased gain for better detection range
+                telemetry.addLine("  ✅ Back intake color sensor (primary, gain=50)");
+            }
+        } catch (Exception e) {
+            backIntakeColorPrimary = null;
+            telemetry.addLine("  ⚠️ Back intake color sensor (primary): " + e.getMessage());
         }
 
         try {
-            backRightColorSensor = hardwareMap.get(NormalizedColorSensor.class, BACK_RIGHT_COLOR_SENSOR);
-            if (backRightColorSensor != null) {
-                backRightColorSensor.setGain(50);  // Increased gain for better detection range
-                telemetry.addLine("  ✅ Back right color sensor (gain=50)");
+            backIntakeColorSecondary = hardwareMap.get(NormalizedColorSensor.class, BACK_INTAKE_COLOR_SECONDARY);
+            if (backIntakeColorSecondary != null) {
+                backIntakeColorSecondary.setGain(50);  // Increased gain for better detection range
+                telemetry.addLine("  ✅ Back intake color sensor (secondary, gain=50)");
             }
         } catch (Exception e) {
-            backRightColorSensor = null;
-            telemetry.addLine("  ⚠️ Back right color sensor: " + e.getMessage() + " (temp: REV 2m distance)");
+            backIntakeColorSecondary = null;
+            telemetry.addLine("  ⚠️ Back intake color sensor (secondary): " + e.getMessage());
+        }
+
+        // Center Slot Color Sensors
+        try {
+            centerColorLeft = hardwareMap.get(NormalizedColorSensor.class, CENTER_COLOR_LEFT);
+            if (centerColorLeft != null) {
+                centerColorLeft.setGain(50);  // Increased gain for better detection range
+                telemetry.addLine("  ✅ Center slot color sensor (left, gain=50)");
+            }
+        } catch (Exception e) {
+            centerColorLeft = null;
+            telemetry.addLine("  ⚠️ Center slot color sensor (left): " + e.getMessage());
         }
 
         try {
-            leftRightColorSensor = hardwareMap.get(NormalizedColorSensor.class, LEFT_RIGHT_COLOR_SENSOR);
-            if (leftRightColorSensor != null) {
-                leftRightColorSensor.setGain(50);  // Increased gain for better detection range
-                telemetry.addLine("  ✅ Left back color sensor (gain=50)");
+            centerColorRight = hardwareMap.get(NormalizedColorSensor.class, CENTER_COLOR_RIGHT);
+            if (centerColorRight != null) {
+                centerColorRight.setGain(50);  // Increased gain for better detection range
+                telemetry.addLine("  ✅ Center slot color sensor (right, gain=50)");
             }
         } catch (Exception e) {
-            leftRightColorSensor = null;
-            telemetry.addLine("  ⚠️ Left back color sensor: " + e.getMessage());
-        }
-
-        try {
-            frontCenterColorSensor = hardwareMap.get(NormalizedColorSensor.class, FRONT_CENTER_COLOR_SENSOR);
-            if (frontCenterColorSensor != null) {
-                frontCenterColorSensor.setGain(50);  // Increased gain for better detection range
-                telemetry.addLine("  ✅ Front center color sensor (gain=50)");
-            }
-        } catch (Exception e) {
-            frontCenterColorSensor = null;
-            telemetry.addLine("  ⚠️ Front center color sensor: " + e.getMessage());
-        }
-
-        try {
-            backCenterColorSensor = hardwareMap.get(NormalizedColorSensor.class, BACK_CENTER_COLOR_SENSOR);
-            if (backCenterColorSensor != null) {
-                backCenterColorSensor.setGain(50);  // Increased gain for better detection range
-                telemetry.addLine("  ✅ Back center color sensor (gain=50)");
-            }
-        } catch (Exception e) {
-            backCenterColorSensor = null;
-            telemetry.addLine("  ⚠️ Back center color sensor: " + e.getMessage());
+            centerColorRight = null;
+            telemetry.addLine("  ⚠️ Center slot color sensor (right): " + e.getMessage());
         }
 
         // Mark system as initialized if motors and servos are OK
@@ -619,6 +612,7 @@ public class AuroraHardwareConfig {
     // Artifact Detection Sensors
     public AnalogInput getFrontDistanceSensor() { return frontDistanceSensor; }
     public AnalogInput getBackDistanceSensor() { return backDistanceSensor; }
+    public AnalogInput getCenterDistanceSensor() { return centerDistanceSensor; }
     
     /**
      * Get distance reading from front sensor in millimeters
@@ -642,44 +636,51 @@ public class AuroraHardwareConfig {
         return (volts / MAX_VOLTS) * MAX_DISTANCE_MM;
     }
 
-    // NEW: REV 2m Distance Sensors for enhanced artifact detection
-    public DistanceSensor getFrontLeftDistanceSensor() { return frontLeftDistanceSensor; }
-    public DistanceSensor getBackRightDistanceSensor() { return backRightDistanceSensor; }
-
     /**
-     * Get distance reading from front left REV 2m sensor in centimeters
-     * These sensors face parallel with intake rollers, ~25cm baseline when empty
-     * @return Distance in cm, or -1 if sensor not available
+     * Get distance reading from center slot sensor in millimeters
+     * Converts analog voltage (0-3.3V) to distance (0-1000mm)
+     * @return Distance in mm, or -1 if sensor not available
      */
-    public double getFrontLeftDistanceCM() {
-        if (frontLeftDistanceSensor == null) return -1;
-        try {
-            return frontLeftDistanceSensor.getDistance(DistanceUnit.CM);
-        } catch (Exception e) {
-            return -1;
-        }
+    public double getCenterDistanceMM() {
+        if (centerDistanceSensor == null) return -1;
+        double volts = centerDistanceSensor.getVoltage();
+        return (volts / MAX_VOLTS) * MAX_DISTANCE_MM;
     }
 
-    /**
-     * Get distance reading from back right REV 2m sensor in centimeters
-     * These sensors face parallel with intake rollers, ~25cm baseline when empty
-     * @return Distance in cm, or -1 if sensor not available
-     */
-    public double getBackRightDistanceCM() {
-        if (backRightDistanceSensor == null) return -1;
-        try {
-            return backRightDistanceSensor.getDistance(DistanceUnit.CM);
-        } catch (Exception e) {
-            return -1;
-        }
-    }
-
-    public NormalizedColorSensor getFrontLeftColorSensor() { return frontLeftColorSensor; }
-    public NormalizedColorSensor getFrontRightColorSensor() { return frontRightColorSensor; }
-    public NormalizedColorSensor getBackRightColorSensor() { return backRightColorSensor; }
-    public NormalizedColorSensor getLeftRightColorSensor() { return leftRightColorSensor; }
-    public NormalizedColorSensor getFrontCenterColorSensor() { return frontCenterColorSensor; }
-    public NormalizedColorSensor getBackCenterColorSensor() { return backCenterColorSensor; }
+    // Intake Color Sensors (REV Color Sensor V3 with color + proximity)
+    public NormalizedColorSensor getFrontIntakeColorPrimary() { return frontIntakeColorPrimary; }
+    public NormalizedColorSensor getFrontIntakeColorSecondary() { return frontIntakeColorSecondary; }
+    public NormalizedColorSensor getBackIntakeColorPrimary() { return backIntakeColorPrimary; }
+    public NormalizedColorSensor getBackIntakeColorSecondary() { return backIntakeColorSecondary; }
+    
+    // Center Slot Color Sensors
+    public NormalizedColorSensor getCenterColorLeft() { return centerColorLeft; }
+    public NormalizedColorSensor getCenterColorRight() { return centerColorRight; }
+    
+    // Backward compatibility getters for deprecated IndexingSystemOld.java
+    // These map old names to new sensor positions
+    @Deprecated
+    public NormalizedColorSensor getFrontLeftColorSensor() { return frontIntakeColorPrimary; }
+    @Deprecated
+    public NormalizedColorSensor getFrontRightColorSensor() { return frontIntakeColorSecondary; }
+    @Deprecated
+    public NormalizedColorSensor getBackRightColorSensor() { return backIntakeColorPrimary; }
+    @Deprecated
+    public NormalizedColorSensor getLeftRightColorSensor() { return backIntakeColorSecondary; }
+    @Deprecated
+    public NormalizedColorSensor getFrontCenterColorSensor() { return centerColorLeft; }
+    @Deprecated
+    public NormalizedColorSensor getBackCenterColorSensor() { return centerColorRight; }
+    
+    // Backward compatibility for removed REV distance sensors
+    @Deprecated
+    public DistanceSensor getFrontLeftDistanceSensor() { return null; }  // Removed
+    @Deprecated
+    public DistanceSensor getBackRightDistanceSensor() { return null; }  // Removed
+    @Deprecated
+    public double getFrontLeftDistanceCM() { return -1; }  // Removed
+    @Deprecated
+    public double getBackRightDistanceCM() { return -1; }  // Removed
 
     // Sensors
     public IMU getIMU() { return imu; }
