@@ -1,6 +1,6 @@
 # Copilot Instructions for FTC Robot Controller (DECODE 2025-2026)
 
-**Version:** 11.0 (SDK) / Aurora System v2  
+**Version:** 11.0 (SDK) / Aurora System v3  
 **Competition Season:** DECODE 2025-2026  
 **Last Updated:** January 2025
 
@@ -23,7 +23,7 @@
 
 ## Project Overview
 
-This is an FTC (FIRST Tech Challenge) Robot Controller for the **DECODE (2025-2026)** season, featuring the **Aurora System v2** architecture.
+This is an FTC (FIRST Tech Challenge) Robot Controller for the **DECODE (2025-2026)** season, featuring the **Aurora System v3** architecture.
 
 ### Key Specifications
 - **Platform:** Android (SDK 24+), FTC SDK 11.0
@@ -35,8 +35,8 @@ This is an FTC (FIRST Tech Challenge) Robot Controller for the **DECODE (2025-20
 ### Robot Capabilities
 1. **Mecanum Drive** - Field-centric omnidirectional movement
 2. **Dual Shooter** - Variable RPM flywheel (2000-3400 RPM)
-3. **Indexing System** - Push-based 3-artifact sorting
-4. **Shot Planning** - AI-optimized firing sequences
+3. **Indexing System V3** - Slot-based artifact management with transactional operations
+4. **Shot Planning** - AI-optimized firing sequences with automatic rearrangement
 5. **Vision** - Limelight 3A AprilTag localization
 6. **Odometry** - GoBILDA Pinpoint precise positioning
 
@@ -51,21 +51,21 @@ This is an FTC (FIRST Tech Challenge) Robot Controller for the **DECODE (2025-20
    - Device names MUST match Driver Station config EXACTLY
    - Requires physical robot reconfiguration if changed
 
-2. **`IndexingSystem.java`** (1800+ lines)
-   - Complex 7-state machine
-   - Push-based mechanical constraints
-   - Timing-critical servo operations
-   - Battle-tested over months
+2. **`IndexingSystemV3.java`** (1500+ lines)
+   - Slot-based state management (CENTER, FRONT, BACK)
+   - Transactional operations with atomic commits
+   - Sensor fusion via IntakePerception
+   - Battle-tested operation system
 
-3. **`ShotPlanner.java` + `PlannerExecutor.java`**
+3. **`ShotPlanner.java` + `ShotPlanningCoordinator.java`**
    - Mathematical shot optimization
-   - 7 comprehensive test cases
+   - Automatic rearrangement logic
    - Physical constraints encoded
 
-4. **`FiringSequenceCoordinator.java`**
-   - 7-gate safety system
-   - Manual override detection
-   - Cancellation logic
+4. **`BasicFiringHelper.java` + `BasicIndexingHelper.java`**
+   - Hardware abstraction layer
+   - Timed movement coordination
+   - Keep-alive burst firing
 
 5. **`DecodeHelper.java`**
    - PID-tuned RPM control
@@ -90,32 +90,40 @@ This is an FTC (FIRST Tech Challenge) Robot Controller for the **DECODE (2025-20
 ```
 OpMode Layer (TeleOp/Autonomous)
     ↓
-Subsystem Layer (Shooter, IndexingSystem, Drive, Turret, ShotPlanner)
+Subsystem Layer (Shooter, IndexingSystemV3, Drive, Turret, ShotPlanner)
     ↓
-Hardware Abstraction (AuroraHardwareConfig)
+Hardware Abstraction (BasicIndexingHelper, BasicFiringHelper, AuroraHardwareConfig)
     ↓
 FTC SDK (DcMotor, Servo, Sensors)
 ```
 
 ### Design Principles
 1. **Separation of Concerns** - Self-contained subsystems
-2. **Single Source of Truth** - Centralized hardware config
-3. **State Machines** - Discrete states for complex logic
-4. **Safety First** - Multiple gating rules
-5. **Testable** - Independent component testing
+2. **Single Source of Truth** - SlotLedger for artifact tracking
+3. **Transactional Operations** - Atomic commits on success
+4. **Sensors as Hints** - Perception layer provides confidence levels, not absolute truth
+5. **Safety First** - Watchdog enforcement, manual override detection
+6. **Testable** - Independent component testing
 
 ### Key Decisions
 
-**Push-Based Indexing** (not pull)
-- 1st artifact → center
-- 2nd artifact → pushes 1st to opposite intake (unless manual mode)
-- 3rd artifact → stays in collection intake
-- *Why?* Mechanical simplicity, reliability
+**Slot-Based Indexing** (V3 Architecture)
+- **SlotLedger** - Single source of truth with 3 slots: CENTER, FRONT, BACK
+- **Operations as Transactions** - Collect, Transfer, Swap, Fire, Eject
+- **Sensor Fusion** - IntakePerception provides confidence levels, not binary states
+- **Atomic Commits** - Slot changes only occur on operation success
+- *Why?* Prevents state corruption, enables reliable automation, testable
 
-**Shot Planning Split**
+**Artifact Flow**
+- 1st artifact → transferred to CENTER immediately (ready to fire)
+- 2nd artifact → stays in intake unless shot planner says swap
+- 3rd artifact → stays in intake (system full, max 3 artifacts)
+- *Why?* Optimal shot planning while maintaining system capacity
+
+**Shot Planning Integration**
 - **ShotPlanner** - Pure logic (WHAT to do)
-- **PlannerExecutor** - Physical execution (WHEN/HOW)
-- *Why?* Planning runs every loop, execution respects hardware state
+- **ShotPlanningCoordinator** - Execution coordination (WHEN/HOW)
+- *Why?* Planning runs every loop, coordinator respects hardware state
 
 **Configuration Objects**
 - ShooterConfig, IndexingConfig, GamepadConfig
@@ -235,18 +243,32 @@ String summary = hardware.getInitializationSummary();
 **Subsystems:**
 - `Shooter.java` - Shooter interface
 - `DecodeHelper.java` - RPM control
-- `IndexingSystem.java` - Artifact management
+- `IndexingSystemV3.java` - V3 artifact management (current)
+- `IndexingSystemOld.java` - Legacy system (deprecated)
 - `Turret.java` - Aiming control
 - `IntakeController.java` - Intake motors
 
+**V3 Components (in `/util/aurora/v3`):**
+- `IndexingSystemV3.java` - Main controller
+- `SlotLedger.java` - Slot state management
+- `IntakePerception.java` - Sensor fusion per intake
+- `OperationRunner.java` - Operation lifecycle
+- `CollectOperation.java` - Collection logic
+- `TransferOperation.java` - Transfer logic
+- `SwapOperation.java` - Swap logic
+- `FireOperation.java` - Firing logic
+- `EjectOperation.java` - Ejection logic
+- `PrepositionOperation.java` - Preposition logic
+- `ArtifactIdentity.java` - Artifact data class
+- `ShotPlanningCoordinator.java` - Planning coordinator
+- `KeepAliveWatchdog.java` - Safety watchdog
+
+**Helpers:**
+- `BasicIndexingHelper.java` - Hardware abstraction for indexing
+- `BasicFiringHelper.java` - Hardware abstraction for firing
+
 **Shot Planning:**
 - `ShotPlanner.java` - Optimization logic
-- `PlannerExecutor.java` - Physical execution
-- `ShotPlannerTest.java` - 7 test cases
-
-**Coordination:**
-- `FiringSequenceCoordinator.java` - Safety coordinator
-- `Artifact.java` - Artifact data class
 
 **Drive:**
 - `IntelMechanumDrive.java` - Field-centric drive
@@ -269,45 +291,182 @@ String summary = hardware.getInitializationSummary();
 
 ## Core Systems Reference
 
-### IndexingSystem (1800+ lines)
+### IndexingSystemV3 (1500+ lines)
 
-**States:**
+**System States:**
 ```java
-IDLE, COLLECTING, TRANSFERRING, PUSHING, READY_TO_FIRE, FIRING, ERROR
+IDLE,                  // No artifacts, no operations
+COLLECTING,            // Collecting artifact into intake
+TRANSFERRING,          // Transferring artifact to center
+READY_TO_FIRE,        // Center occupied, shooter ready, prepositioned
+FIRING,                // Firing shot
+REARRANGING,          // Swapping artifacts for optimal order
+EJECTING,             // Clearing artifacts
+ERROR                 // System error state
 ```
 
-**Usage:**
+**Slot Model (SlotLedger):**
 ```java
-IndexingSystem indexing = new IndexingSystem(hardware, config, shooter, telemetry);
-indexing.enable();
+// Three slots: CENTER (ready to fire), FRONT (storage), BACK (storage)
+ledger.getCenter()    // Returns ArtifactIdentity or null
+ledger.getFront()     // Returns ArtifactIdentity or null
+ledger.getBack()      // Returns ArtifactIdentity or null
+ledger.getArtifactCount()  // 0-3
+ledger.isFull()       // True when 3 artifacts
+```
 
-// In loop - CRITICAL
-indexing.update();
+**Basic Usage:**
+```java
+IndexingSystemV3 indexing = new IndexingSystemV3(hardware, config, shooter, telemetry);
+indexing.enable();
+indexing.setMotifPattern("PPG");
+indexing.setHuntEnabled(true);      // Hunt mode ON (auto-collect)
+indexing.setSkipColorDetection(true);  // Fast mode (skip color, ~200ms)
+
+// In loop - CRITICAL: This calls shooter.update() internally!
+indexing.update();  // DO NOT call shooter.update() separately!
 
 // Check state
-if (indexing.getCurrentState() == SystemState.READY_TO_FIRE) { /* ready */ }
-
-// Get info
+SystemState state = indexing.getCurrentState();
 int count = indexing.getArtifactCount();
-boolean hasCenter = indexing.hasArtifactInCenter();
+boolean centerOccupied = indexing.hasArtifactInCenter();
 ```
 
-**Firing Integration:**
+**Operation Requests:**
 ```java
-// Set manual detector (only relevant controls!)
-indexing.setManualInputDetector(() -> 
-    gamepad2.dpad_up || gamepad2.dpad_down  // Uptake only
-);
+// Manual operations
+indexing.requestCollect(SlotLedger.Slot.FRONT);     // Collect from front intake
+indexing.requestTransfer(SlotLedger.Slot.FRONT);    // Transfer FRONT → CENTER
+indexing.requestSwap(SlotLedger.Slot.BACK);         // Swap BACK ↔ CENTER
+indexing.requestFire();                             // Fire single shot
+indexing.requestFire(3200.0);                       // Fire with specific RPM
+indexing.requestEject(EjectOperation.EjectMode.ALL); // Eject all artifacts
 
-FiringSequenceCoordinator firing = new FiringSequenceCoordinator(indexing, shooter);
+// Check if operation running
+boolean busy = indexing.isOperationRunning();  // Checks runner AND hardware
+String opName = indexing.getCurrentOperationName();
+```
+
+**Burst Firing (Keep-Alive Mode):**
+```java
+// Start burst firing - shooter stays spun between shots
+indexing.requestFire(ShooterConfig.RPM_HIGH_BASKET);
+indexing.setFiringButtonHeld(gamepad1.right_trigger > 0.5);  // Track trigger
 
 // In loop
-firing.update();
-
-// Fire
-if (gamepad1.x && firing.canStartFiring()) {
-    firing.startFiring();
+if (indexing.isReadyForNextShot() && !indexing.isOperationRunning()) {
+    indexing.fireNextShot();  // Fire subsequent shots without spinup delay
 }
+
+// Cancel burst
+indexing.cancelBurstFiring();  // Manual override or trigger release
+```
+
+**Hunt Mode (Auto-Collection):**
+```java
+// Hunt mode enables automatic artifact collection
+indexing.setHuntEnabled(true);   // Hunt ON - auto-collect when detected
+indexing.setHuntEnabled(false);  // Hunt OFF - sleep mode (manual only)
+
+// Hunt eligibility rules (per intake):
+// ✅ Hunt mode ON
+// ✅ Slot empty (not storing artifact)
+// ✅ System not full (< 3 artifacts)
+// ✅ No operation running
+
+// When hunt-eligible:
+// - Rollers run at collect power
+// - Transfer servos jiggle (prevent blind spots)
+// - Sensors actively poll
+// - Auto-collect on HIGH confidence detection
+```
+
+**Skip Color Detection (Fast Mode):**
+```java
+// Skip mode trades accuracy for speed
+indexing.setSkipColorDetection(true);   // Fast mode: ~200ms collection
+indexing.setSkipColorDetection(false);  // Full mode: ~1400ms with color
+
+// Skip mode ON:
+// - Artifacts collected as UNKNOWN immediately
+// - No color sampling at checkpoints
+// - Faster collection for time-critical situations
+// - Shot planner treats UNKNOWN as neutral
+
+// Skip mode OFF:
+// - Full color detection with checkpoint sampling
+// - Artifacts classified as PURPLE, GREEN, or UNKNOWN
+// - Jiggling if needed to improve sensor visibility
+// - More reliable shot planning
+```
+
+**Artifact Collection Flow:**
+```java
+// 1ST ARTIFACT: Auto-transfer to CENTER
+// - Collected into intake (FRONT or BACK)
+// - Immediately transferred to CENTER
+// - Ready to fire
+
+// 2ND ARTIFACT: Storage with optional swap
+// - Collected into available intake
+// - Shot planner checks if swap needed for optimal order
+// - If swap beneficial: automatically swaps with CENTER
+// - Otherwise: stays in intake (storage mode)
+
+// 3RD ARTIFACT: Storage only
+// - System full (max capacity reached)
+// - Stays in intake (storage mode)
+// - Rollers run at hold power to retain artifact
+// - No more auto-collection until space available
+```
+
+**Manual Mode & Watchdog:**
+```java
+// Manual mode detection (OpMode responsibility)
+indexing.setManualModeActive(true);   // Disables automation
+indexing.setManualModeActive(false);  // Enables automation
+
+// Watchdog safety (automatic burst cancellation)
+indexing.setWatchdogTriggerState(gamepad1.right_trigger > 0.5);
+// Watchdog monitors:
+// - Trigger release → auto-cancel burst
+// - Manual override → auto-cancel burst
+// - Operation timeout → safety stop
+```
+
+**Telemetry:**
+```java
+// Add telemetry display (paged output)
+indexing.addTelemetry();
+
+// Page 1: Overview (state, slots, operations, shot plan)
+// Page 2: Sensors (perception, confidence, raw sensor data)
+// Page 3: Statistics (counters, watchdog status)
+
+indexing.nextTelemetryPage();  // Cycle between pages
+```
+
+**Perception System (Sensor Fusion):**
+```java
+// IntakePerception provides confidence levels per intake
+// - NONE: No sensors detect artifact
+// - LOW: One sensor detects
+// - MEDIUM: Two sensors detect
+// - HIGH: Three or more sensors detect
+
+// Sensors as hints (not absolute truth):
+// - Laser distance (outward-facing)
+// - REV 2m ToF (mouth-mounted, with hysteresis)
+// - Color sensors x2 (outward + mouth)
+
+// Color checkpoint policy:
+// - Checkpoint 1: Collection confirmation window (after 150ms settle)
+// - Checkpoint 2: Transfer completion (after 200ms settle)
+// - Checkpoint 3: Manual operator override
+
+// Confidence thresholds:
+// - Skip mode ON: MEDIUM confidence required (2+ sensors)
+// - Skip mode OFF: HIGH confidence required (3+ sensors)
 ```
 
 ### Shooter System
@@ -355,18 +514,21 @@ RPM_OBSERVATION = 2000.0    // Close
 // Set pattern
 indexing.setMotifPattern("PPG");
 
-// Auto-runs in indexing.update()
+// Auto-runs in indexing.update() via ShotPlanningCoordinator
 
-// Get plan
-List<Artifact> plan = indexing.getShotPlanner().getShotPlan();
-
-// Check rearrangement
-boolean needsRearrange = planner.isRearrangementNeeded();
+// Check rearrangement status
+// V3 coordinator automatically executes swaps when beneficial
 ```
 
-**Rearrangement Rules:**
-- ✅ 2 artifacts, executor idle, not manual mode, READY_TO_FIRE
-- ❌ 1 artifact (nothing to swap), 3 artifacts (no empty intake), busy, manual mode
+**Rearrangement Rules (V3):**
+- ✅ 2 artifacts total (one in CENTER, one in intake)
+- ✅ Swap improves shot plan score
+- ✅ Not in manual mode
+- ✅ No operation running
+- ❌ 1 artifact (nothing to swap)
+- ❌ 3 artifacts (no benefit to swap when system full)
+- ❌ Manual mode active
+- ❌ Operation busy
 
 ### Drive System
 
@@ -427,7 +589,8 @@ public class MyOpMode extends LinearOpMode {
     
     // 1. Declarations
     private AuroraHardwareConfig hardware;
-    private IndexingSystem indexing;
+    private IndexingSystemV3 indexing;
+    private Shooter shooter;
     
     @Override
     public void runOpMode() {
@@ -435,12 +598,26 @@ public class MyOpMode extends LinearOpMode {
         hardware = new AuroraHardwareConfig(hardwareMap, telemetry);
         hardware.initialize();
         
+        shooter = new Shooter(hardware, shooterConfig, telemetry);
+        indexing = new IndexingSystemV3(hardware, config, shooter, telemetry);
+        
+        indexing.enable();
+        shooter.enable();
+        
         waitForStart();
         
         // 3. Main loop
         while (opModeIsActive()) {
-            indexing.update();  // CRITICAL
-            // ... rest of code
+            // CRITICAL: indexing.update() calls shooter.update() internally
+            // DO NOT call shooter.update() separately!
+            indexing.update();  // This updates shooter internally
+            
+            // Handle gamepad inputs
+            if (gamepad1.a) indexing.requestCollect(SlotLedger.Slot.FRONT);
+            if (gamepad1.x) indexing.requestFire();
+            
+            // Update telemetry
+            indexing.addTelemetry();
             telemetry.update();
         }
     }
@@ -498,20 +675,33 @@ package org.firstinspires.ftc.teamcode.opmodes;
 
 import com.qualcomm.robotcore.eventloop.opmode.*;
 import org.firstinspires.ftc.teamcode.util.aurora.*;
+import org.firstinspires.ftc.teamcode.util.aurora.v3.*;
 
 @TeleOp(name="My OpMode", group="Testing")
 public class MyOpMode extends LinearOpMode {
     private AuroraHardwareConfig hardware;
+    private IndexingSystemV3 indexing;
+    private Shooter shooter;
     
     @Override
     public void runOpMode() {
         hardware = new AuroraHardwareConfig(hardwareMap, telemetry);
         hardware.initialize();
         
+        shooter = new Shooter(hardware, new ShooterConfig(), telemetry);
+        indexing = new IndexingSystemV3(hardware, new IndexingConfig(), shooter, telemetry);
+        
+        indexing.enable();
+        shooter.enable();
+        
         waitForStart();
         
         while (opModeIsActive()) {
-            // Your code
+            // CRITICAL: Don't call shooter.update() - indexing does it internally
+            indexing.update();
+            
+            // Your code here
+            
             telemetry.update();
         }
     }
@@ -568,9 +758,11 @@ telemetry.addData("Ready", shooter.isReadyToFire());
 
 ### Critical Issues
 
-**1. IndexingSystem State Corruption**
-- **Cause:** Not calling `indexingSystem.update()` every loop
+**1. IndexingSystemV3 Update Loop**
+- **Cause:** Not calling `indexing.update()` every loop
 - **Solution:** ALWAYS call in loop, no exceptions
+- **CRITICAL:** `indexing.update()` internally calls `shooter.update()` via `BasicFiringHelper`
+- **DO NOT** call `shooter.update()` separately - this causes duplicate updates and shooter pulsing!
 
 **2. Servo Glitches on Stop**
 - **Cause:** Servos not stopped explicitly
@@ -578,9 +770,8 @@ telemetry.addData("Ready", shooter.isReadyToFire());
 ```java
 @Override
 public void stop() {
-    hardware.getUptakeServoL().setPower(0);
-    hardware.getUptakeServoR().setPower(0);
-    // ... all servos
+    if (indexing != null) indexing.disable();  // Stops all operations
+    // ... other cleanup
     super.stop();
 }
 ```
@@ -610,13 +801,21 @@ if (voltage < 12.0) {
 }
 ```
 
+**6. State Corruption from Manual Override**
+- **Cause:** Calling `setManualModeActive()` inconsistently
+- **Solution:** Always call every loop to track manual input state
+- **Note:** V3 uses OpMode-controlled manual mode detection
+
 ### Key Assumptions
 
 1. **Device names match Driver Station EXACTLY** (case-sensitive)
-2. **Update order:** indexing → shooter → firingCoordinator
-3. **Max 3 artifacts** (system enforces)
+2. **Update order:** `indexing.update()` (which internally calls shooter.update())
+3. **Max 3 artifacts** (enforced by SlotLedger)
 4. **Timing is critical** (don't modify without testing)
 5. **Manual mode overrides automation**
+6. **Operations are transactional** (atomic commits on success)
+7. **Sensors provide hints, not truth** (SlotLedger is source of truth)
+8. **Color sampling only at checkpoints** (collection, transfer, manual override)
 
 ### Gotchas
 
@@ -651,23 +850,38 @@ public void loop() {
 AuroraHardwareConfig hardware = new AuroraHardwareConfig(hardwareMap, telemetry);
 hardware.initializeWithOdometry();
 
-IndexingSystem indexing = new IndexingSystem(hardware, config, shooter, telemetry);
-Shooter shooter = new Shooter(hardware, shooterConfig, telemetry);
-FiringSequenceCoordinator firing = new FiringSequenceCoordinator(indexing, shooter);
+Shooter shooter = new Shooter(hardware, new ShooterConfig(), telemetry);
+IndexingSystemV3 indexing = new IndexingSystemV3(hardware, new IndexingConfig(), shooter, telemetry);
 
 indexing.enable();
 shooter.enable();
+
+// Optional: Configure indexing
+indexing.setMotifPattern("PPG");
+indexing.setHuntEnabled(true);      // Auto-collect
+indexing.setSkipColorDetection(true);  // Fast mode
 ```
 
 ### Essential Loop
 ```java
 while (opModeIsActive()) {
-    indexing.update();   // CRITICAL
-    shooter.update();
-    firing.update();
+    // CRITICAL: indexing.update() calls shooter.update() internally
+    // DO NOT call shooter.update() separately!
+    indexing.update();
     
-    // Your code
+    // Handle gamepad inputs
+    if (gamepad1.a) indexing.requestCollect(SlotLedger.Slot.FRONT);
+    if (gamepad1.x) indexing.requestFire();
     
+    // Manual mode detection
+    boolean manualActive = gamepad2.dpad_up || gamepad2.dpad_down;
+    indexing.setManualModeActive(manualActive);
+    
+    // Watchdog trigger tracking
+    indexing.setWatchdogTriggerState(gamepad1.right_trigger > 0.5);
+    
+    // Add telemetry
+    indexing.addTelemetry();
     telemetry.update();
 }
 ```
@@ -697,25 +911,322 @@ logger.debug("RPM: " + rpm);
 
 ### Critical Rules
 
-1. ✅ ALWAYS call `.update()` every loop
-2. ✅ Check initialization before use
-3. ✅ Test with hardware
-4. ✅ Document changes
-5. ❌ Don't modify core files
-6. ❌ Don't skip timeout protection
-7. ❌ Don't bypass safety checks
-8. ❌ Don't modify timing without testing
+1. ✅ ALWAYS call `indexing.update()` every loop
+2. ✅ NEVER call `shooter.update()` separately (indexing does it internally)
+3. ✅ Check initialization before use
+4. ✅ Test with hardware
+5. ✅ Document changes
+6. ❌ Don't modify core V3 files (IndexingSystemV3, operations, SlotLedger)
+7. ❌ Don't skip timeout protection
+8. ❌ Don't bypass safety checks
+9. ❌ Don't modify timing without testing
+10. ❌ Don't access SlotLedger directly (use IndexingSystemV3 API)
+11. ❌ Don't sample color outside checkpoints
+12. ❌ Don't modify sensor thresholds without calibration
+
+---
+
+## IndexingSystemV3 Deep Dive
+
+### Architecture Principles
+
+**1. Slot-Based State Management**
+- **SlotLedger** is the single source of truth
+- Three slots: CENTER (ready to fire), FRONT (storage), BACK (storage)
+- Each slot contains `ArtifactIdentity` or null
+- State changes ONLY via operation commits (never sensor-driven)
+
+**2. Transactional Operations**
+- Every physical action is an operation with lifecycle: `start() → update() → commit()`
+- Operations start hardware, track completion, commit atomically
+- No partial state changes - either full success or rollback
+- Single operation at a time (OperationRunner enforces)
+
+**3. Sensors as Hints**
+- Sensors provide confidence levels, not absolute truth
+- IntakePerception fuses multiple sensors per intake
+- Presence confidence: NONE, LOW (1 sensor), MEDIUM (2 sensors), HIGH (3+ sensors)
+- SlotLedger state takes precedence over sensor readings
+
+**4. Color Checkpoint Policy**
+- Color sampling ONLY at stable checkpoints:
+  - Checkpoint 1: Collection (after 150ms settle delay)
+  - Checkpoint 2: Transfer (after 200ms settle delay)
+  - Checkpoint 3: Manual operator override
+- No color sampling during motion or between checkpoints
+- Prevents noise from moving artifacts
+
+### Operation Types
+
+**CollectOperation**
+- Preconditions: Target slot empty, system not full
+- Process: Run rollers → detect presence → wait for settle → sample color (if enabled) → commit
+- Commit: Place artifact in target slot with identity
+- Duration: ~200ms (skip mode) or ~1400ms (full color detection)
+
+**TransferOperation**
+- Preconditions: Source slot occupied, center empty (or post-fire)
+- Process: Run transfer servos/injectors → wait for completion → settle
+- Commit: Move artifact from source → center, clear source slot
+- Post-transfer: Perception reset to prevent false re-detection
+
+**SwapOperation**
+- Preconditions: Both slots occupied, 2 artifacts total
+- Process: Simultaneous transfer and accept (push-style mechanics)
+- Commit: Atomically swap artifact identities between slots
+- Use case: Shot planning optimization
+
+**FireOperation**
+- Preconditions: Center occupied, prepositioned, shooter ready
+- Process: Spin up shooter → preposition artifact → feed → fire
+- Commit: Clear center slot, consume artifact from plan
+- Keep-alive mode: Shooter stays spun for subsequent shots
+
+**PrepositionOperation**
+- Preconditions: Center occupied, not already prepositioned
+- Process: Move artifact to firing position via uptake servos
+- Commit: Set preposition flag
+- Required before firing
+
+**EjectOperation**
+- Modes: ALL (all slots), CENTER (center only), SOFTWARE_CLEAR (ledger only)
+- Process: Reverse intakes, run shooter at low RPM (physical eject)
+- Commit: Clear specified slots
+- Emergency operation (no preconditions)
+
+### Hunt Mode Behavior
+
+**When Hunt Mode ON:**
+1. Empty intakes become "hunt-eligible" if system not full
+2. Hunt-eligible intakes:
+   - Run rollers at collect power
+   - Run transfer servos in reverse (jiggling to prevent blind spots)
+   - Poll sensors continuously
+   - Auto-collect when HIGH confidence (or MEDIUM if skip mode)
+3. Auto-collection has 1-second cooldown to prevent repeated triggers
+
+**When Hunt Mode OFF (Sleep):**
+1. Empty intakes stop rollers and servos
+2. Sensors still update but don't trigger collection
+3. Storage intakes (with artifacts) maintain hold power
+4. Manual operations still work (collect, transfer, fire, eject)
+
+**Hunt Eligibility Rules:**
+```java
+boolean isHuntEligible = 
+    huntEnabled &&           // Hunt mode ON
+    slot != CENTER &&        // Only FRONT/BACK
+    !ledger.isOccupied(slot) &&  // Slot empty
+    !ledger.isFull() &&      // System has capacity
+    !runner.isBusy();        // No operation running
+```
+
+### Burst Firing Flow
+
+**Phase 1: Initiation**
+1. Call `requestFire(rpm)` with desired RPM
+2. System enters burst firing mode
+3. Watchdog activated for safety monitoring
+4. FiringHelper spins up shooter (keep-alive enabled)
+
+**Phase 2: First Shot**
+1. Wait for shooter to reach target RPM
+2. Preposition artifact (if needed)
+3. Feed artifact through uptake (300ms)
+4. Shot count increments
+5. Ledger clears CENTER immediately
+
+**Phase 3: Subsequent Shots**
+1. Check `isReadyForNextShot()` - shooter spun, waiting
+2. Check `!isOperationRunning()` - no transfer in progress
+3. Call `fireNextShot()` - immediate fire (no spinup delay)
+4. Transfer next artifact from intake → CENTER (automatic)
+5. Repeat until no more artifacts or trigger released
+
+**Phase 4: Termination**
+1. Watchdog detects trigger release → auto-cancel
+2. Manual override detected → auto-cancel
+3. No more artifacts → end burst
+4. OpMode calls `cancelBurstFiring()` → manual stop
+
+**Safety Features:**
+- Watchdog monitors trigger state
+- Auto-cancel on trigger release
+- Auto-cancel on manual override
+- Max 5 shots per burst (configurable)
+- Deferred transfers prevent conflicts
+
+### Perception System Details
+
+**Sensor Types per Intake:**
+1. **Laser Distance** (Analog): 0-3.3V = 0-1000mm, threshold 10cm
+2. **REV 2m ToF** (Digital): Distance with hysteresis (enter 7cm, exit 3cm below baseline)
+3. **Color Sensor (Outward)**: Next to laser, for settled artifacts
+4. **Color Sensor (Mouth)**: Opposite REV sensor, for entering artifacts
+
+**Signal Fusion:**
+```java
+// Raw signals
+frontBlocked = laserDistance < 10cm
+mouthOccupied = revDistance < (baseline - hysteresis)
+colorSeesArtifact_outward = colorConfidence > threshold
+colorSeesArtifact_mouth = colorConfidence > threshold
+
+// Combined confidence
+sensorCount = frontBlocked + mouthOccupied + colorOutward + colorMouth
+if (sensorCount >= 3) confidence = HIGH
+else if (sensorCount == 2) confidence = MEDIUM
+else if (sensorCount == 1) confidence = LOW
+else confidence = NONE
+
+// Debouncing
+fastPresence = anySignal stable for 30ms    // Edge detection
+stablePresence = anySignal stable for 100ms // Confirmation
+```
+
+**Baseline Calibration:**
+- REV sensor calibrates baseline when intake known empty
+- Updates every 500ms if 5 consecutive empty readings
+- Accounts for environmental changes
+
+### Manual Override System
+
+**OpMode Responsibilities:**
+1. Detect manual input (e.g., gamepad2 controls)
+2. Call `setManualModeActive(true/false)` every loop
+3. Manual mode disables automation but allows operations
+
+**Effects of Manual Mode:**
+- Disables automatic transfers
+- Disables automatic rearrangement
+- Disables shot plan consumption
+- Cancels burst firing if active
+- Manual operations (collect, transfer, fire) still work
+
+**Example:**
+```java
+// In OpMode loop
+boolean manualActive = 
+    gamepad2.dpad_up ||      // Manual uptake
+    gamepad2.dpad_down ||    // Manual outtake
+    gamepad2.left_bumper ||  // Manual transfer
+    gamepad2.right_bumper;   // Manual inject
+
+indexing.setManualModeActive(manualActive);
+```
+
+### Common Usage Patterns
+
+**Basic Collection:**
+```java
+if (gamepad1.a) {
+    indexing.requestCollect(SlotLedger.Slot.FRONT);
+}
+// Auto-transfers to CENTER if 1st artifact
+// Auto-checks swap if 2nd artifact
+// Stays in intake if 3rd artifact
+```
+
+**Manual Transfer:**
+```java
+if (gamepad1.left_bumper && ledger.isFrontOccupied()) {
+    indexing.requestTransfer(SlotLedger.Slot.FRONT);
+}
+```
+
+**Single Shot:**
+```java
+if (gamepad1.x) {
+    indexing.requestFire();  // Fire once, shooter stops after
+}
+```
+
+**Burst Fire:**
+```java
+// Start burst
+if (gamepad1.right_trigger > 0.5 && !burstStarted) {
+    indexing.requestFire(ShooterConfig.RPM_HIGH_BASKET);
+    burstStarted = true;
+}
+
+// Track trigger for watchdog
+indexing.setWatchdogTriggerState(gamepad1.right_trigger > 0.5);
+
+// Fire subsequent shots
+if (burstStarted && indexing.isReadyForNextShot() && !indexing.isOperationRunning()) {
+    indexing.fireNextShot();
+}
+
+// Detect end
+if (gamepad1.right_trigger <= 0.5) {
+    burstStarted = false;  // Watchdog auto-cancels
+}
+```
+
+**Emergency Eject:**
+```java
+if (gamepad1.back) {
+    indexing.requestEject(EjectOperation.EjectMode.ALL);
+}
+```
+
+**Manual Artifact Injection (Testing):**
+```java
+// Add phantom artifact for testing/debugging
+if (gamepad2.dpad_left) {
+    indexing.addManualArtifact(SlotLedger.Slot.FRONT, ColorClass.PURPLE);
+}
+if (gamepad2.dpad_right) {
+    indexing.addManualArtifact(SlotLedger.Slot.BACK, ColorClass.GREEN);
+}
+```
+
+### Migration from V2 to V3
+
+**Key API Changes:**
+```java
+// OLD (v2)
+IndexingSystem indexing = new IndexingSystem(...);
+indexing.setManualInputDetector(() -> gamepad2.dpad_up);
+FiringSequenceCoordinator firing = new FiringSequenceCoordinator(...);
+
+// In loop
+indexing.update();
+shooter.update();
+firing.update();
+
+// NEW (v3)
+IndexingSystemV3 indexing = new IndexingSystemV3(...);
+// No separate firing coordinator
+
+// In loop
+indexing.update();  // Handles shooter internally
+indexing.setManualModeActive(gamepad2.dpad_up);
+indexing.setWatchdogTriggerState(gamepad1.right_trigger > 0.5);
+```
+
+**Conceptual Differences:**
+| Aspect | V2 (Old) | V3 (New) |
+|--------|----------|----------|
+| State model | List + refs | SlotLedger (3 slots) |
+| Sensor role | Primary tracking | Hints only |
+| Operations | State transitions | Explicit operations |
+| Artifacts | Pushed between slots | Transferred atomically |
+| Color | Continuous sampling | Checkpoint-based |
+| Firing | FiringSequenceCoordinator | Integrated into system |
+| Manual mode | Detector lambda | OpMode-controlled flag |
 
 ---
 
 ## Documentation References
 
 ### In-Repository
-- `FIRING_SYSTEM_USAGE.md` - Complete firing guide
-- `SHOT_PLANNER_IMPLEMENTATION.md` - Shot planning details
+- `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/aurora/v3/README.md` - V3 architecture overview
+- `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/aurora/v3/COLOR_CHECKPOINT_POLICY.md` - Color sampling policy
+- `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/aurora/v3/MIGRATION_COMPATIBILITY.md` - V2 → V3 migration guide
+- `FIRING_SYSTEM_USAGE.md` - Complete firing guide (may reference old system)
 - `TeamCode/AURORA_SYSTEM_README.md` - System overview
 - `TeamCode/AURORA_HARDWARE_CONFIG_GUIDE.md` - Hardware setup
-- `TeamCode/INDEXING_SYSTEM_GUIDE.md` - Indexing deep dive
 
 ### External
 - FTC Docs: https://ftc-docs.firstinspires.org/
@@ -744,29 +1255,37 @@ When reviewing/generating code:
 
 ### Red Flags
 - ❌ Hardware access without init check
-- ❌ Missing `.update()` calls
+- ❌ Missing `indexing.update()` calls
+- ❌ Calling `shooter.update()` separately from indexing
 - ❌ Infinite loop without `opModeIsActive()` 
 - ❌ Hardcoded timing values
-- ❌ Direct servo/motor control bypassing systems
+- ❌ Direct servo/motor control bypassing helpers
 - ❌ Modified device names in AuroraHardwareConfig
 - ❌ Removed safety checks
 - ❌ Changed scoring algorithms
+- ❌ Direct SlotLedger modification (bypass operations)
+- ❌ Color sampling outside checkpoints
+- ❌ Manual ledger.set() calls (use operations instead)
 
 ### Success Indicators
 - ✅ Clear initialization
-- ✅ Proper update loop
+- ✅ Proper update loop (indexing.update() only, no separate shooter.update())
 - ✅ Comprehensive telemetry
 - ✅ Error handling with logging
 - ✅ Consistent naming
 - ✅ Comments for non-obvious logic
 - ✅ Uses config objects
 - ✅ Respects subsystem interfaces
+- ✅ Uses operation requests (not direct hardware control)
+- ✅ Manual mode tracking
+- ✅ Watchdog trigger updates
 - ✅ Tested with hardware
 - ✅ Documentation updated
 
 ---
 
-**Remember:** This robot represents months of refinement and testing. Respect the architecture, test thoroughly, and document all changes. When uncertain, ask before modifying core systems.
+**Remember:** This robot represents months of refinement and testing. The V3 indexing system is a complete architectural rewrite with slot-based state management, transactional operations, and sensor fusion. Respect the architecture, test thoroughly, and document all changes. When uncertain, ask before modifying core systems.
 
 **Competition:** DECODE 2025-2026  
+**System Version:** Aurora V3 (IndexingSystemV3)  
 **Last Updated:** January 2025
