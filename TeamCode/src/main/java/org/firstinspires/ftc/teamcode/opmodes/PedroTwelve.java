@@ -1,4 +1,3 @@
-
 package org.firstinspires.ftc.teamcode.opmodes;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -14,6 +13,9 @@ import com.pedropathing.paths.PathChain;
 import com.pedropathing.geometry.Pose;
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.BasicIndexingHelper;
+import org.firstinspires.ftc.teamcode.util.aurora.BasicFiringHelper;
+import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
+import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
 
 @Autonomous(name = "Pedro Pathing Twelve", group = "Autonomous")
 @Configurable // Panels
@@ -27,6 +29,22 @@ public class PedroTwelve extends OpMode {
     // Hardware and helpers
     private AuroraHardwareConfig hardware;
     private BasicIndexingHelper indexingHelper;
+    private Shooter shooter;
+    private BasicFiringHelper firingHelper;
+
+    // Firing state tracking
+    private enum FiringSequenceState {
+        IDLE,
+        FIRING,
+        TRANSFERRING_BACK,
+        FIRING_2,
+        TRANSFERRING_FRONT,
+        FIRING_3,
+        COMPLETE
+    }
+    private FiringSequenceState firingSequenceState = FiringSequenceState.IDLE;
+    private ElapsedTime firingSequenceTimer;
+    private boolean firingSequenceDone = false;
 
     // Collection configuration
     private static final long COLLECTION_DURATION_MS = 3000; // Duration to run collection (2 seconds)
@@ -42,6 +60,14 @@ public class PedroTwelve extends OpMode {
         hardware.initialize();
 
         indexingHelper = new BasicIndexingHelper(hardware, telemetry);
+
+        // Initialize shooter and firing helper
+        shooter = new Shooter(hardware, new ShooterConfig(), telemetry);
+        shooter.enable();
+        firingHelper = new BasicFiringHelper(shooter, indexingHelper, hardware, telemetry);
+        firingHelper.setEnabled(true);
+
+        firingSequenceTimer = new ElapsedTime();
 
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(new Pose(21, 122, Math.toRadians(143)));
@@ -79,6 +105,9 @@ public class PedroTwelve extends OpMode {
 
         // Update indexing helper - handles timed operations
         indexingHelper.update();
+
+        // Update firing systems
+        firingHelper.update();
 
         // Update autonomous state machine
         autonomousPathUpdate();
@@ -266,51 +295,56 @@ public class PedroTwelve extends OpMode {
             case 1:
                 /* This state waits for the robot to finish Path 1 */
                 if (!follower.isBusy()) {
-                    /* ===== EXTENSION POINT: Add Actions Here =====
-                     * Example: Grab sample, score, etc.
-                     * - follower.isBusy(): True if still following path
-                     * - pathTimer.getElapsedTimeSeconds(): Elapsed time since state entered
-                     * - follower.getPose().getX() / getY(): Current robot position
-                     */
-
-                    /* Path 1 Complete - Move to Path 2 */
-                    followPathWithSpeed(paths.Path2, paths.speedPath2);
+                    /* Path 1 Complete - START FIRING SEQUENCE */
+                    follower.breakFollowing(); // Stop following to allow firing
+                    startFiringSequence();
                     setPathState(2);
                 }
                 break;
 
-            // ========== STATE 2: Wait for Path 2 Completion ==========
+            // ========== STATE 2: Handle Firing Sequence After Path 1 ==========
             case 2:
-                /* Waiting for Path 2 to complete */
-                if (!follower.isBusy()) {
-                    /* ===== EXTENSION POINT: Add Actions Here ===== */
+                /* Update firing sequence - handles all firing state transitions */
+                updateFiringSequence();
 
-                    /* Path 2 Complete - Move to Path 9 and START COLLECTING */
-                    followPathWithSpeed(paths.Path9, paths.speedPath9);
-                    startCollecting(); // Start artifact collection during Path 9
+                /* When firing sequence completes, move to next path */
+                if (firingSequenceDone) {
+                    firingSequenceDone = false;
+                    firingSequenceState = FiringSequenceState.IDLE;
+                    /* Firing Complete - Move to Path 2 */
+                    followPathWithSpeed(paths.Path2, paths.speedPath2);
                     setPathState(3);
                 }
                 break;
 
-            // ========== STATE 3: Wait for Path 9 Completion (COLLECTING) ==========
+            // ========== STATE 3: Wait for Path 2 Completion ==========
             case 3:
+                /* Waiting for Path 2 to complete */
+                if (!follower.isBusy()) {
+                    /* Path 2 Complete - Move to Path 9 and START COLLECTING */
+                    followPathWithSpeed(paths.Path9, paths.speedPath9);
+                    startCollecting(); // Start artifact collection during Path 9
+                    setPathState(4);
+                }
+                break;
+
+            // ========== STATE 4: Wait for Path 9 Completion (COLLECTING) ==========
+            case 4:
                 /* Waiting for Path 9 to complete while collecting */
-                // Give follower time to register the path before checking if busy (prevents instant false negative)
+                // Give follower time to register the path before checking if busy
                 if (pathTimer.milliseconds() < 50) {
                     break; // Wait at least 50ms after starting path
                 }
 
                 if (!follower.isBusy()) {
-                    /* ===== EXTENSION POINT: Add Actions Here ===== */
-
                     /* Path 9 Complete - Move to Path 3 (collection continues) */
                     followPathWithSpeed(paths.Path3, paths.speedPath3);
-                    setPathState(4);
+                    setPathState(5);
                 }
                 break;
 
-            // ========== STATE 4: Wait for Path 3 Completion (STILL COLLECTING) ==========
-            case 4:
+            // ========== STATE 5: Wait for Path 3 Completion (STILL COLLECTING) ==========
+            case 5:
                 /* Waiting for Path 3 to complete while still collecting */
                 // Give follower time to register the path before checking if busy
                 if (pathTimer.milliseconds() < 50) {
@@ -318,31 +352,42 @@ public class PedroTwelve extends OpMode {
                 }
 
                 if (!follower.isBusy()) {
-                    /* ===== Collection complete ===== */
+                    /* Collection complete - Path 3 Complete - START FIRING SEQUENCE */
                     stopCollecting(); // Stop collection after Path 3 complete
-                    /* ===== EXTENSION POINT: Add Actions Here ===== */
-
-                    /* Path 3 Complete - Move to Path 4 */
-                    followPathWithSpeed(paths.Path4, paths.speedPath4);
-                    setPathState(5);
-                }
-                break;
-
-            // ========== STATE 5: Wait for Path 4 Completion ==========
-            case 5:
-                /* Waiting for Path 4 to complete */
-                if (!follower.isBusy()) {
-                    /* ===== EXTENSION POINT: Add Actions Here ===== */
-
-                    /* Path 4 Complete - Move to Path 10 and START COLLECTING */
-                    followPathWithSpeed(paths.Path10, paths.speedPath10);
-                    startCollecting(); // Start artifact collection during Path 10
+                    follower.breakFollowing(); // Stop following to allow firing
+                    startFiringSequence();
                     setPathState(6);
                 }
                 break;
 
-            // ========== STATE 6: Wait for Path 10 Completion (COLLECTING) ==========
+            // ========== STATE 6: Handle Firing Sequence After Path 3 ==========
             case 6:
+                /* Update firing sequence - handles all firing state transitions */
+                updateFiringSequence();
+
+                /* When firing sequence completes, move to next path */
+                if (firingSequenceDone) {
+                    firingSequenceDone = false;
+                    firingSequenceState = FiringSequenceState.IDLE;
+                    /* Firing Complete - Move to Path 4 */
+                    followPathWithSpeed(paths.Path4, paths.speedPath4);
+                    setPathState(7);
+                }
+                break;
+
+            // ========== STATE 7: Wait for Path 4 Completion ==========
+            case 7:
+                /* Waiting for Path 4 to complete */
+                if (!follower.isBusy()) {
+                    /* Path 4 Complete - Move to Path 10 and START COLLECTING */
+                    followPathWithSpeed(paths.Path10, paths.speedPath10);
+                    startCollecting(); // Start artifact collection during Path 10
+                    setPathState(8);
+                }
+                break;
+
+            // ========== STATE 8: Wait for Path 10 Completion (COLLECTING) ==========
+            case 8:
                 /* Waiting for Path 10 to complete while collecting */
                 // Give follower time to register the path before checking if busy
                 if (pathTimer.milliseconds() < 50) {
@@ -350,16 +395,14 @@ public class PedroTwelve extends OpMode {
                 }
 
                 if (!follower.isBusy()) {
-                    /* ===== EXTENSION POINT: Add Actions Here ===== */
-
                     /* Path 10 Complete - Move to Path 5 (collection continues) */
                     followPathWithSpeed(paths.Path5, paths.speedPath5);
-                    setPathState(7);
+                    setPathState(9);
                 }
                 break;
 
-            // ========== STATE 7: Wait for Path 5 Completion (STILL COLLECTING) ==========
-            case 7:
+            // ========== STATE 9: Wait for Path 5 Completion (STILL COLLECTING) ==========
+            case 9:
                 /* Waiting for Path 5 to complete while still collecting */
                 // Give follower time to register the path before checking if busy
                 if (pathTimer.milliseconds() < 50) {
@@ -367,31 +410,42 @@ public class PedroTwelve extends OpMode {
                 }
 
                 if (!follower.isBusy()) {
-                    /* ===== Collection complete ===== */
+                    /* Collection complete - Path 5 Complete - START FIRING SEQUENCE */
                     stopCollecting(); // Stop collection after Path 5 complete
-                    /* ===== EXTENSION POINT: Add Actions Here ===== */
-
-                    /* Path 5 Complete - Move to Path 6 */
-                    followPathWithSpeed(paths.Path6, paths.speedPath6);
-                    setPathState(8);
+                    follower.breakFollowing(); // Stop following to allow firing
+                    startFiringSequence();
+                    setPathState(10);
                 }
                 break;
 
-            // ========== STATE 8: Wait for Path 6 Completion ==========
-            case 8:
+            // ========== STATE 10: Handle Firing Sequence After Path 5 ==========
+            case 10:
+                /* Update firing sequence - handles all firing state transitions */
+                updateFiringSequence();
+
+                /* When firing sequence completes, move to next path */
+                if (firingSequenceDone) {
+                    firingSequenceDone = false;
+                    firingSequenceState = FiringSequenceState.IDLE;
+                    /* Firing Complete - Move to Path 6 */
+                    followPathWithSpeed(paths.Path6, paths.speedPath6);
+                    setPathState(11);
+                }
+                break;
+
+            // ========== STATE 11: Wait for Path 6 Completion ==========
+            case 11:
                 /* Waiting for Path 6 to complete */
                 if (!follower.isBusy()) {
-                    /* ===== EXTENSION POINT: Add Actions Here ===== */
-
                     /* Path 6 Complete - Move to Path 11 and START COLLECTING */
                     followPathWithSpeed(paths.Path11, paths.speedPath11);
                     startCollecting(); // Start artifact collection during Path 11
-                    setPathState(9);
+                    setPathState(12);
                 }
                 break;
 
-            // ========== STATE 9: Wait for Path 11 Completion (COLLECTING) ==========
-            case 9:
+            // ========== STATE 12: Wait for Path 11 Completion (COLLECTING) ==========
+            case 12:
                 /* Waiting for Path 11 to complete while collecting */
                 // Give follower time to register the path before checking if busy
                 if (pathTimer.milliseconds() < 50) {
@@ -399,16 +453,14 @@ public class PedroTwelve extends OpMode {
                 }
 
                 if (!follower.isBusy()) {
-                    /* ===== EXTENSION POINT: Add Actions Here ===== */
-
                     /* Path 11 Complete - Move to Path 7 (collection continues) */
                     followPathWithSpeed(paths.Path7, paths.speedPath7);
-                    setPathState(10);
+                    setPathState(13);
                 }
                 break;
 
-            // ========== STATE 10: Wait for Path 7 Completion (STILL COLLECTING) ==========
-            case 10:
+            // ========== STATE 13: Wait for Path 7 Completion (STILL COLLECTING) ==========
+            case 13:
                 /* Waiting for Path 7 to complete while still collecting */
                 // Give follower time to register the path before checking if busy
                 if (pathTimer.milliseconds() < 50) {
@@ -416,23 +468,33 @@ public class PedroTwelve extends OpMode {
                 }
 
                 if (!follower.isBusy()) {
-                    /* ===== Collection complete ===== */
+                    /* Collection complete - Path 7 Complete - START FIRING SEQUENCE */
                     stopCollecting(); // Stop collection after Path 7 complete
-                    /* ===== EXTENSION POINT: Add Actions Here ===== */
-
-                    /* Path 7 Complete - Move to Path 8 */
-                    followPathWithSpeed(paths.Path8, paths.speedPath8);
-                    setPathState(11);
+                    follower.breakFollowing(); // Stop following to allow firing
+                    startFiringSequence();
+                    setPathState(14);
                 }
                 break;
 
-            // ========== STATE 11: Wait for Path 8 Completion (Final Path) ==========
-            case 11:
+            // ========== STATE 14: Handle Firing Sequence After Path 7 ==========
+            case 14:
+                /* Update firing sequence - handles all firing state transitions */
+                updateFiringSequence();
+
+                /* When firing sequence completes, move to final path */
+                if (firingSequenceDone) {
+                    firingSequenceDone = false;
+                    firingSequenceState = FiringSequenceState.IDLE;
+                    /* Firing Complete - Move to Path 8 (final path) */
+                    followPathWithSpeed(paths.Path8, paths.speedPath8);
+                    setPathState(15);
+                }
+                break;
+
+            // ========== STATE 15: Wait for Path 8 Completion (Final Path) ==========
+            case 15:
                 /* Waiting for Path 8 to complete */
                 if (!follower.isBusy()) {
-                    /* ===== EXTENSION POINT: Add Final Actions Here =====
-                     * Example: Park, final scoring, etc.
-                     */
 
                     /* All paths complete - stop the robot */
                     setPathState(-1);
@@ -529,5 +591,132 @@ public class PedroTwelve extends OpMode {
         indexingHelper.setFrontRollerPower(0.5);
         indexingHelper.setBackRollerPower(0.5);
     }
+
+    /**
+     * Start a 3-shot firing sequence with automatic transfers.
+     *
+     * Sequence:
+     * 1. Spin up shooter to high basket RPM
+     * 2. Wait for shooter ready
+     * 3. Fire shot 1 (center artifact)
+     * 4. Transfer back to center (timed)
+     * 5. Fire shot 2
+     * 6. Transfer front to center (timed)
+     * 7. Fire shot 3
+     * 8. Stop shooter
+     */
+    public void startFiringSequence() {
+        firingSequenceState = FiringSequenceState.FIRING;
+        firingSequenceTimer.reset();
+        firingSequenceDone = false;
+
+        // Start shooter spinup to high basket (LONG_RANGE preset = 2800 RPM)
+        boolean started = firingHelper.startFiring(
+                ShooterConfig.ShooterPreset.MID_RANGE.getTargetRPM(), // Mid-range is what we want
+                ShooterConfig.ShooterPreset.MID_RANGE.getName(),
+                true
+        );
+        if (!started) {
+            firingSequenceState = FiringSequenceState.IDLE;
+            firingSequenceDone = true;
+        }
+    }
+
+    /**
+     * Update the firing sequence state machine.
+     *
+     * This coordinates with BasicFiringHelper which manages the shooter spinup and keep-alive mode.
+     * The firingHelper is responsible for:
+     * - Spinning up the shooter
+     * - Maintaining RPM between shots (keep-alive mode)
+     * - Handling the firing operation
+     *
+     * This method coordinates:
+     * - When to fire each shot (let firingHelper know to fire via fireShot())
+     * - Artifact transfers between shots
+     * - Sequence completion
+     */
+    public void updateFiringSequence() {
+        if (firingSequenceState == FiringSequenceState.IDLE) {
+            return; // No firing sequence active
+        }
+
+        switch (firingSequenceState) {
+            case FIRING:
+                // Wait for shooter to spin up and be ready
+                if (firingHelper.isReadyForNextShot()) {
+                    // Shooter ready - fire the first shot
+                    firingHelper.fireShot();
+                    firingSequenceState = FiringSequenceState.TRANSFERRING_BACK;
+                    firingSequenceTimer.reset();
+                }
+                break;
+
+            case TRANSFERRING_BACK:
+                // Wait for uptake to finish feeding (first shot complete)
+                if (!indexingHelper.isUptakeBusy()) {
+                    // Wait a brief moment for uptake to fully clear before starting transfer
+                    if (firingSequenceTimer.milliseconds() > 300) {
+                        // Start transfer from back intake to center
+                        indexingHelper.transferBackIntakeToCenterTimed(2500); // 2.5 seconds
+                        firingSequenceState = FiringSequenceState.FIRING_2;
+                        firingSequenceTimer.reset();
+                    }
+                }
+                break;
+
+            case FIRING_2:
+                // Wait for transfer to complete, then fire next shot
+                if (!indexingHelper.isTransferActive()) {
+                    // Transfer complete - fire second shot
+                    // firingHelper is in READY_TO_FIRE state (keep-alive mode)
+                    firingHelper.fireShot();
+                    firingSequenceState = FiringSequenceState.TRANSFERRING_FRONT;
+                    firingSequenceTimer.reset();
+                }
+                break;
+
+            case TRANSFERRING_FRONT:
+                // Wait for uptake to finish feeding (shot 2 complete)
+                if (!indexingHelper.isUptakeBusy()) {
+                    // Wait a brief moment before starting transfer
+                    if (firingSequenceTimer.milliseconds() > 300) {
+                        // Start transfer from front intake to center
+                        indexingHelper.transferFrontIntakeToCenterTimed(2500); // 2.5 seconds
+                        firingSequenceState = FiringSequenceState.FIRING_3;
+                        firingSequenceTimer.reset();
+                    }
+                }
+                break;
+
+            case FIRING_3:
+                // Wait for transfer to complete, then fire last shot
+                if (!indexingHelper.isTransferActive()) {
+                    // Transfer complete - fire third shot
+                    firingHelper.fireShot();
+                    firingSequenceState = FiringSequenceState.COMPLETE;
+                    firingSequenceTimer.reset();
+                } else if (firingSequenceTimer.milliseconds() > 3000) {
+                    // Timeout on transfer, force completion
+                    firingHelper.fireShot();
+                    firingSequenceState = FiringSequenceState.COMPLETE;
+                    firingSequenceTimer.reset();
+                }
+                break;
+
+            case COMPLETE:
+                // Wait for third shot to complete (uptake feed finished) before stopping shooter
+                if (!firingSequenceDone && !indexingHelper.isUptakeBusy()) {
+                    // All shots fired - stop the shooter
+                    firingHelper.cancelFiring();
+                    firingHelper.stopShooter();
+                    firingSequenceDone = true;
+                }
+                break;
+
+            default:
+                firingSequenceState = FiringSequenceState.IDLE;
+                break;
+        }
+    }
 }
-    
