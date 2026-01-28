@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.AnalogInput;
@@ -38,6 +39,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.Artifact;
  *   [BACK]  - Toggle raw sensor data display
  */
 @TeleOp(name = "🔍 Sensor Test", group = "Testing")
+@Disabled
 public class SensorTest extends LinearOpMode {
 
     // Hardware

@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -55,6 +56,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.Turret;
  * - Servo position (for debugging)
  */
 @TeleOp(name = "🎯 Shooter Test", group = "Testing")
+@Disabled
 public class ShooterTestOpMode extends LinearOpMode {
 
     private DecodeHelper shooter;

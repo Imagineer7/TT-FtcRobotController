@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.util.aurora.AutoGyroTurret;
-import org.firstinspires.ftc.teamcode.util.aurora.Localization;
+import org.firstinspires.ftc.teamcode.util.aurora.localization.Localization;
 
 /**
  * AutoGyroTurretTest - Test OpMode for field-relative turret control

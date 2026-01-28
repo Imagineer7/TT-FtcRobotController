@@ -64,7 +64,7 @@ public class Constants {
      * Run "Localization Test" to verify: Forward = X+, Left = Y+, CCW = heading+
      */
     public static PinpointConstants localizerConstants = new PinpointConstants()
-            .forwardPodY(-6.06)  // Forward pod is 6.06" behind center (verified from Localization.java)
+            .forwardPodY(7.947)  // Forward pod is 6.06" behind center (verified from Localization.java)
             .strafePodX(0.0)     // Strafe pod at center (verified from Localization.java)
             .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("odo")  // EXACT match to AuroraHardwareConfig.ODOMETRY_COMPUTER
