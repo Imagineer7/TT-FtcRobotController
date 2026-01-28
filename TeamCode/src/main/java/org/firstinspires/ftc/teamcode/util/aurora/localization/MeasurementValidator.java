@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.util.aurora.localization;
 
-import org.firstinspires.ftc.teamcode.util.aurora.LimelightVisionHelper;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
 /**

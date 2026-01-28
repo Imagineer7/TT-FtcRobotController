@@ -47,7 +47,7 @@ echo ""
 
 # Check 3: Verify LimelightVisionHelper exists
 echo "Check 3: LimelightVisionHelper.java..."
-FILE="TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/aurora/LimelightVisionHelper.java"
+FILE="TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/aurora/localization/LimelightVisionHelper.java"
 if [ ! -f "$FILE" ]; then
     echo -e "${RED}✗ FAIL${NC}: File not found"
     echo "  Missing: $FILE"
@@ -57,7 +57,7 @@ else
     echo -e "${GREEN}✓ PASS${NC}: File exists"
     
     # Verify package declaration
-    PACKAGE=$(head -1 "$FILE" | grep "package org.firstinspires.ftc.teamcode.util.aurora")
+    PACKAGE=$(head -1 "$FILE" | grep "package org.firstinspires.ftc.teamcode.util.aurora.localization")
     if [ -z "$PACKAGE" ]; then
         echo -e "${RED}✗ FAIL${NC}: Package declaration incorrect"
         ERRORS=$((ERRORS + 1))

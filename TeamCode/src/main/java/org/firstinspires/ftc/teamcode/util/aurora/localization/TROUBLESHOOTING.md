@@ -5,7 +5,7 @@
 If you encounter this error:
 ```
 error: cannot find symbol
-import org.firstinspires.ftc.teamcode.util.aurora.LimelightVisionHelper;
+// LimelightVisionHelper is now in the same package (localization)
 ```
 
 ### Quick Fixes
@@ -30,7 +30,7 @@ In Android Studio:
 #### 4. Verify File Exists
 Check that this file exists in your project:
 ```
-TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/aurora/LimelightVisionHelper.java
+TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/aurora/localization/LimelightVisionHelper.java
 ```
 
 If missing, ensure you've pulled the latest changes from the branch.
@@ -93,7 +93,7 @@ All these files should be present in your project:
 - `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/aurora/localization/PredefinedPoses.java`
 
 **Dependencies (Should Already Exist):**
-- `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/aurora/LimelightVisionHelper.java` ← **This is the missing file**
+- `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/aurora/localization/LimelightVisionHelper.java` ← **This is the missing file**
 - `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/aurora/AuroraHardwareConfig.java`
 - `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/tool/GoBildaPinpointDriver.java`
 
@@ -109,7 +109,7 @@ package org.firstinspires.ftc.teamcode.util.aurora;
 
 And is imported by the localization classes using:
 ```java
-import org.firstinspires.ftc.teamcode.util.aurora.LimelightVisionHelper;
+// LimelightVisionHelper is now in the same package (localization)
 ```
 
 This is the correct import path. The error typically indicates the file is missing from your local workspace.
@@ -118,7 +118,7 @@ This is the correct import path. The error typically indicates the file is missi
 
 Run this to check if the file exists:
 ```bash
-ls -l TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/aurora/LimelightVisionHelper.java
+ls -l TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/aurora/localization/LimelightVisionHelper.java
 ```
 
 If you get "No such file or directory", you need to pull the latest code from the repository.

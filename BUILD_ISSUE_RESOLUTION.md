@@ -129,7 +129,7 @@ All required files are present and tracked:
 
 The correct import statement that appears in 3 files:
 ```java
-import org.firstinspires.ftc.teamcode.util.aurora.LimelightVisionHelper;
+// LimelightVisionHelper is now in the same package (localization)
 ```
 
 **Used in:**
@@ -139,12 +139,12 @@ import org.firstinspires.ftc.teamcode.util.aurora.LimelightVisionHelper;
 
 **File location:**
 ```
-TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/aurora/LimelightVisionHelper.java
+TeamCode/src/main/java/org/firstinspires/ftc/teamcode/util/aurora/localization/LimelightVisionHelper.java
 ```
 
 **Package declaration:**
 ```java
-package org.firstinspires.ftc.teamcode.util.aurora;
+package org.firstinspires.ftc.teamcode.util.aurora.localization;
 ```
 
 ## Verification for PR Reviewers

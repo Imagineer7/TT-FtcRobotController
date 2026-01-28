@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode.util.aurora.localization;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
-import org.firstinspires.ftc.teamcode.util.aurora.LimelightVisionHelper;
 
 /**
  * Extended Kalman Filter (EKF) update/correction step.

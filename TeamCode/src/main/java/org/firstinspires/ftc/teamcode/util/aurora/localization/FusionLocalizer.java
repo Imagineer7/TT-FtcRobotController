@@ -4,7 +4,6 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
-import org.firstinspires.ftc.teamcode.util.aurora.LimelightVisionHelper;
 import org.firstinspires.ftc.teamcode.util.tool.GoBildaPinpointDriver;
 
 /**
