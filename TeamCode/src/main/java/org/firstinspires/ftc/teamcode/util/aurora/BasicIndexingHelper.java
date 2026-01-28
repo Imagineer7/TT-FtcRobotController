@@ -62,6 +62,20 @@ public class BasicIndexingHelper {
 
     // Global timeout (milliseconds)
     private static final long GLOBAL_TIMEOUT = 10000; // 10 seconds
+    
+    // Write-on-change optimization: Track last commanded powers
+    // Only call hardware setPower() when value actually changes
+    private static final double POWER_EPSILON = 0.01; // Minimum change to trigger hardware write
+    private double lastFrontRollerPower = Double.NaN;
+    private double lastBackRollerPower = Double.NaN;
+    private double lastFrontBottomIntakePower = Double.NaN;
+    private double lastBackBottomIntakePower = Double.NaN;
+    private double lastFrontTransferPower = Double.NaN;
+    private double lastBackTransferPower = Double.NaN;
+    private double lastUptakeLPower = Double.NaN;
+    private double lastUptakeRPower = Double.NaN;
+    private double lastInjectorLeftPower = Double.NaN;
+    private double lastInjectorRightPower = Double.NaN;
 
     // ═══════════════════════════════════════════════════════════════════════
     // TIMED MOVEMENT TRACKING
@@ -172,102 +186,141 @@ public class BasicIndexingHelper {
         // Update front roller motor
         if (frontRollerTimedActive) {
             if (currentTime >= frontRollerEndTime) {
-                frontRollerMotor.setPower(0);
+                lastFrontRollerPower = setPowerIfChanged(frontRollerMotor, 0, lastFrontRollerPower);
                 frontRollerTimedActive = false;
             } else {
-                frontRollerMotor.setPower(frontRollerTimedPower);
+                lastFrontRollerPower = setPowerIfChanged(frontRollerMotor, frontRollerTimedPower, lastFrontRollerPower);
             }
         }
 
         // Update back roller motor
         if (backRollerTimedActive) {
             if (currentTime >= backRollerEndTime) {
-                backRollerMotor.setPower(0);
+                lastBackRollerPower = setPowerIfChanged(backRollerMotor, 0, lastBackRollerPower);
                 backRollerTimedActive = false;
             } else {
-                backRollerMotor.setPower(backRollerTimedPower);
+                lastBackRollerPower = setPowerIfChanged(backRollerMotor, backRollerTimedPower, lastBackRollerPower);
             }
         }
 
         // Update front bottom intake servo
         if (frontBottomIntakeTimedActive) {
             if (currentTime >= frontBottomIntakeEndTime) {
-                frontBottomIntakeServo.setPower(0);
+                lastFrontBottomIntakePower = setPowerIfChanged(frontBottomIntakeServo, 0, lastFrontBottomIntakePower);
                 frontBottomIntakeTimedActive = false;
             } else {
-                frontBottomIntakeServo.setPower(frontBottomIntakeTimedPower);
+                lastFrontBottomIntakePower = setPowerIfChanged(frontBottomIntakeServo, frontBottomIntakeTimedPower, lastFrontBottomIntakePower);
             }
         }
 
         // Update back bottom intake servo
         if (backBottomIntakeTimedActive) {
             if (currentTime >= backBottomIntakeEndTime) {
-                backBottomIntakeServo.setPower(0);
+                lastBackBottomIntakePower = setPowerIfChanged(backBottomIntakeServo, 0, lastBackBottomIntakePower);
                 backBottomIntakeTimedActive = false;
             } else {
-                backBottomIntakeServo.setPower(backBottomIntakeTimedPower);
+                lastBackBottomIntakePower = setPowerIfChanged(backBottomIntakeServo, backBottomIntakeTimedPower, lastBackBottomIntakePower);
             }
         }
 
         // Update front transfer servo
         if (frontTransferTimedActive) {
             if (currentTime >= frontTransferEndTime) {
-                frontTransferServo.setPower(0);
+                lastFrontTransferPower = setPowerIfChanged(frontTransferServo, 0, lastFrontTransferPower);
                 frontTransferTimedActive = false;
             } else {
-                frontTransferServo.setPower(frontTransferTimedPower);
+                lastFrontTransferPower = setPowerIfChanged(frontTransferServo, frontTransferTimedPower, lastFrontTransferPower);
             }
         }
 
         // Update back transfer servo
         if (backTransferTimedActive) {
             if (currentTime >= backTransferEndTime) {
-                backTransferServo.setPower(0);
+                lastBackTransferPower = setPowerIfChanged(backTransferServo, 0, lastBackTransferPower);
                 backTransferTimedActive = false;
             } else {
-                backTransferServo.setPower(backTransferTimedPower);
+                lastBackTransferPower = setPowerIfChanged(backTransferServo, backTransferTimedPower, lastBackTransferPower);
             }
         }
 
         // Update uptake left servo
         if (uptakeLTimedActive) {
             if (currentTime >= uptakeLEndTime) {
-                uptakeServoL.setPower(0);
+                lastUptakeLPower = setPowerIfChanged(uptakeServoL, 0, lastUptakeLPower);
                 uptakeLTimedActive = false;
             } else {
-                uptakeServoL.setPower(uptakeLTimedPower);
+                lastUptakeLPower = setPowerIfChanged(uptakeServoL, uptakeLTimedPower, lastUptakeLPower);
             }
         }
 
         // Update uptake right servo
         if (uptakeRTimedActive) {
             if (currentTime >= uptakeREndTime) {
-                uptakeServoR.setPower(0);
+                lastUptakeRPower = setPowerIfChanged(uptakeServoR, 0, lastUptakeRPower);
                 uptakeRTimedActive = false;
             } else {
-                uptakeServoR.setPower(uptakeRTimedPower);
+                lastUptakeRPower = setPowerIfChanged(uptakeServoR, uptakeRTimedPower, lastUptakeRPower);
             }
         }
 
         // Update injector left servo
         if (injectorLeftTimedActive) {
             if (currentTime >= injectorLeftEndTime) {
-                injectorServoLeft.setPower(0);
+                lastInjectorLeftPower = setPowerIfChanged(injectorServoLeft, 0, lastInjectorLeftPower);
                 injectorLeftTimedActive = false;
             } else {
-                injectorServoLeft.setPower(injectorLeftTimedPower);
+                lastInjectorLeftPower = setPowerIfChanged(injectorServoLeft, injectorLeftTimedPower, lastInjectorLeftPower);
             }
         }
 
         // Update injector right servo
         if (injectorRightTimedActive) {
             if (currentTime >= injectorRightEndTime) {
-                injectorServoRight.setPower(0);
+                lastInjectorRightPower = setPowerIfChanged(injectorServoRight, 0, lastInjectorRightPower);
                 injectorRightTimedActive = false;
             } else {
-                injectorServoRight.setPower(injectorRightTimedPower);
+                lastInjectorRightPower = setPowerIfChanged(injectorServoRight, injectorRightTimedPower, lastInjectorRightPower);
             }
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // WRITE-ON-CHANGE HELPER METHODS (PERFORMANCE OPTIMIZATION)
+    // ═══════════════════════════════════════════════════════════════════════
+    
+    /**
+     * Set motor power only if value has changed significantly.
+     * PERFORMANCE: Avoids redundant hardware writes (expensive I2C/USB calls).
+     * 
+     * @param motor The motor to command
+     * @param desiredPower Desired power (-1.0 to 1.0)
+     * @param lastPowerRef Current cached power value (will be updated)
+     * @return Updated cached power value
+     */
+    private double setPowerIfChanged(DcMotor motor, double desiredPower, double lastPowerRef) {
+        // NaN means never set - always write first time
+        if (Double.isNaN(lastPowerRef) || Math.abs(desiredPower - lastPowerRef) > POWER_EPSILON) {
+            motor.setPower(desiredPower);
+            return desiredPower;  // Update cache
+        }
+        return lastPowerRef;  // No change needed
+    }
+    
+    /**
+     * Set servo power only if value has changed significantly.
+     * PERFORMANCE: Avoids redundant hardware writes.
+     * 
+     * @param servo The servo to command
+     * @param desiredPower Desired power (-1.0 to 1.0)
+     * @param lastPowerRef Current cached power value (will be updated)
+     * @return Updated cached power value
+     */
+    private double setPowerIfChanged(CRServo servo, double desiredPower, double lastPowerRef) {
+        if (Double.isNaN(lastPowerRef) || Math.abs(desiredPower - lastPowerRef) > POWER_EPSILON) {
+            servo.setPower(desiredPower);
+            return desiredPower;
+        }
+        return lastPowerRef;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -281,7 +334,7 @@ public class BasicIndexingHelper {
     public void setFrontRollerPower(double power) {
         if (!enabled) return;
         frontRollerTimedActive = false; // Cancel timed movement
-        frontRollerMotor.setPower(power);
+        lastFrontRollerPower = setPowerIfChanged(frontRollerMotor, power, lastFrontRollerPower);
     }
 
     /**
@@ -317,7 +370,7 @@ public class BasicIndexingHelper {
      */
     public void stopFrontRoller() {
         frontRollerTimedActive = false;
-        frontRollerMotor.setPower(0);
+        lastFrontRollerPower = setPowerIfChanged(frontRollerMotor, 0, lastFrontRollerPower);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -331,7 +384,7 @@ public class BasicIndexingHelper {
     public void setBackRollerPower(double power) {
         if (!enabled) return;
         backRollerTimedActive = false; // Cancel timed movement
-        backRollerMotor.setPower(power);
+        lastBackRollerPower = setPowerIfChanged(backRollerMotor, power, lastBackRollerPower);
     }
 
     /**
@@ -365,7 +418,7 @@ public class BasicIndexingHelper {
      */
     public void stopBackRoller() {
         backRollerTimedActive = false;
-        backRollerMotor.setPower(0);
+        lastBackRollerPower = setPowerIfChanged(backRollerMotor, 0, lastBackRollerPower);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -379,7 +432,7 @@ public class BasicIndexingHelper {
     public void setFrontBottomIntakePower(double power) {
         if (!enabled) return;
         frontBottomIntakeTimedActive = false;
-        frontBottomIntakeServo.setPower(power);
+        lastFrontBottomIntakePower = setPowerIfChanged(frontBottomIntakeServo, power, lastFrontBottomIntakePower);
     }
 
     /**
@@ -413,7 +466,7 @@ public class BasicIndexingHelper {
      */
     public void stopFrontBottomIntake() {
         frontBottomIntakeTimedActive = false;
-        frontBottomIntakeServo.setPower(0);
+        lastFrontBottomIntakePower = setPowerIfChanged(frontBottomIntakeServo, 0, lastFrontBottomIntakePower);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -427,7 +480,7 @@ public class BasicIndexingHelper {
     public void setBackBottomIntakePower(double power) {
         if (!enabled) return;
         backBottomIntakeTimedActive = false;
-        backBottomIntakeServo.setPower(power);
+        lastBackBottomIntakePower = setPowerIfChanged(backBottomIntakeServo, power, lastBackBottomIntakePower);
     }
 
     /**
@@ -461,7 +514,7 @@ public class BasicIndexingHelper {
      */
     public void stopBackBottomIntake() {
         backBottomIntakeTimedActive = false;
-        backBottomIntakeServo.setPower(0);
+        lastBackBottomIntakePower = setPowerIfChanged(backBottomIntakeServo, 0, lastBackBottomIntakePower);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -475,7 +528,7 @@ public class BasicIndexingHelper {
     public void setFrontTransferPower(double power) {
         if (!enabled) return;
         frontTransferTimedActive = false;
-        frontTransferServo.setPower(power);
+        lastFrontTransferPower = setPowerIfChanged(frontTransferServo, power, lastFrontTransferPower);
     }
 
     /**
@@ -509,7 +562,7 @@ public class BasicIndexingHelper {
      */
     public void stopFrontTransfer() {
         frontTransferTimedActive = false;
-        frontTransferServo.setPower(0);
+        lastFrontTransferPower = setPowerIfChanged(frontTransferServo, 0, lastFrontTransferPower);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -523,7 +576,7 @@ public class BasicIndexingHelper {
     public void setBackTransferPower(double power) {
         if (!enabled) return;
         backTransferTimedActive = false;
-        backTransferServo.setPower(power);
+        lastBackTransferPower = setPowerIfChanged(backTransferServo, power, lastBackTransferPower);
     }
 
     /**
@@ -557,7 +610,7 @@ public class BasicIndexingHelper {
      */
     public void stopBackTransfer() {
         backTransferTimedActive = false;
-        backTransferServo.setPower(0);
+        lastBackTransferPower = setPowerIfChanged(backTransferServo, 0, lastBackTransferPower);
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -571,7 +624,7 @@ public class BasicIndexingHelper {
     public void setUptakeLPower(double power) {
         if (!enabled) return;
         uptakeLTimedActive = false;
-        uptakeServoL.setPower(power);
+        lastUptakeLPower = setPowerIfChanged(uptakeServoL, power, lastUptakeLPower);
     }
 
     /**
@@ -605,7 +658,7 @@ public class BasicIndexingHelper {
      */
     public void stopUptakeL() {
         uptakeLTimedActive = false;
-        uptakeServoL.setPower(0);
+        lastUptakeLPower = setPowerIfChanged(uptakeServoL, 0, lastUptakeLPower);
     }
 
     /**
@@ -615,7 +668,7 @@ public class BasicIndexingHelper {
     public void setUptakeRPower(double power) {
         if (!enabled) return;
         uptakeRTimedActive = false;
-        uptakeServoR.setPower(power);
+        lastUptakeRPower = setPowerIfChanged(uptakeServoR, power, lastUptakeRPower);
     }
 
     /**
@@ -649,7 +702,7 @@ public class BasicIndexingHelper {
      */
     public void stopUptakeR() {
         uptakeRTimedActive = false;
-        uptakeServoR.setPower(0);
+        lastUptakeRPower = setPowerIfChanged(uptakeServoR, 0, lastUptakeRPower);
     }
 
     /**
@@ -698,7 +751,7 @@ public class BasicIndexingHelper {
     public void setInjectorLeftPower(double power) {
         if (!enabled) return;
         injectorLeftTimedActive = false;
-        injectorServoLeft.setPower(power);
+        lastInjectorLeftPower = setPowerIfChanged(injectorServoLeft, power, lastInjectorLeftPower);
     }
 
     /**
@@ -732,7 +785,7 @@ public class BasicIndexingHelper {
      */
     public void stopInjectorLeft() {
         injectorLeftTimedActive = false;
-        injectorServoLeft.setPower(0);
+        lastInjectorLeftPower = setPowerIfChanged(injectorServoLeft, 0, lastInjectorLeftPower);
     }
 
     /**
@@ -742,7 +795,7 @@ public class BasicIndexingHelper {
     public void setInjectorRightPower(double power) {
         if (!enabled) return;
         injectorRightTimedActive = false;
-        injectorServoRight.setPower(power);
+        lastInjectorRightPower = setPowerIfChanged(injectorServoRight, power, lastInjectorRightPower);
     }
 
     /**
@@ -776,7 +829,7 @@ public class BasicIndexingHelper {
      */
     public void stopInjectorRight() {
         injectorRightTimedActive = false;
-        injectorServoRight.setPower(0);
+        lastInjectorRightPower = setPowerIfChanged(injectorServoRight, 0, lastInjectorRightPower);
     }
 
     /**

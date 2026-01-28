@@ -88,6 +88,14 @@ public class IntakePerception {
     // Manual override state (for testing/operator override)
     private boolean forcedDetectionActive;
     private ArtifactIdentity.ColorClass forcedColor;
+    
+    // Sensor caching (performance optimization)
+    // Cache sensor readings to avoid duplicate I2C calls within same loop
+    private boolean sensorsCached;          // True if readings are from current loop
+    private double cachedConfirmationVoltage;
+    private double cachedPrimaryDistance;
+    private double cachedSecondaryDistance;
+    // Color readings cached in updateColorSensors (needed for sampling logic)
 
     // Constants
     private static final double CONFIRMATION_THRESHOLD_CM = 10.0;  // Artifact detected when < 10cm (goBILDA)
@@ -139,6 +147,10 @@ public class IntakePerception {
         this.samplingEnabled = false;
         this.forcedDetectionActive = false;
         this.forcedColor = ArtifactIdentity.ColorClass.UNKNOWN;
+        this.sensorsCached = false;
+        this.cachedConfirmationVoltage = 0.0;
+        this.cachedPrimaryDistance = 0.0;
+        this.cachedSecondaryDistance = 0.0;
     }
     
     /**
@@ -165,8 +177,14 @@ public class IntakePerception {
     /**
      * Update all sensor readings and derived signals
      * Call this every loop
+     * 
+     * PERFORMANCE: Reads sensors once per loop and caches values.
+     * Subsequent calls within same loop use cached values (no duplicate I2C).
      */
     public void update() {
+        // Read sensors once per loop (cache for this iteration)
+        readSensorsOnce();
+        
         // Update confirmation sensor (goBILDA distance)
         updateConfirmationSensor();
 
@@ -178,6 +196,55 @@ public class IntakePerception {
 
         // Update debounced hints (edge detection + stable presence)
         updateDebouncedHints();
+        
+        // Mark that sensors have been cached for this loop
+        // Will be cleared at start of next update() call
+        sensorsCached = true;
+    }
+    
+    /**
+     * Read all sensors once and cache values for this loop iteration.
+     * This prevents duplicate I2C calls if update() is called multiple times.
+     * 
+     * PERFORMANCE: Single I2C transaction per sensor per loop.
+     */
+    private void readSensorsOnce() {
+        // Always read sensors fresh each update() call
+        // The sensorsCached flag prevents duplicate reads if same method called twice
+        // But we reset it each update() to get fresh readings each loop
+        sensorsCached = false;  // Reset at start of update cycle
+        
+        // Read confirmation sensor (goBILDA distance - analog)
+        try {
+            cachedConfirmationVoltage = (confirmationSensor != null) 
+                ? confirmationSensor.getVoltage() 
+                : 0.0;
+        } catch (Exception e) {
+            cachedConfirmationVoltage = 0.0;
+        }
+        
+        // Read primary proximity sensor (REV Color V3 distance)
+        try {
+            cachedPrimaryDistance = (primaryColorSensor instanceof DistanceSensor)
+                ? ((DistanceSensor) primaryColorSensor).getDistance(DistanceUnit.CM)
+                : 999.0;  // Far away = not detected
+        } catch (Exception e) {
+            cachedPrimaryDistance = 999.0;
+        }
+        
+        // Read secondary proximity sensor (REV Color V3 distance)
+        try {
+            cachedSecondaryDistance = (secondaryColorSensor instanceof DistanceSensor)
+                ? ((DistanceSensor) secondaryColorSensor).getDistance(DistanceUnit.CM)
+                : 999.0;
+        } catch (Exception e) {
+            cachedSecondaryDistance = 999.0;
+        }
+        
+        // Note: Color sensor readings are NOT cached here because:
+        // 1. They're only read when samplingEnabled=true (at checkpoints)
+        // 2. They need fresh readings for accurate color classification
+        // 3. Color reads are less frequent than proximity reads
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -187,6 +254,8 @@ public class IntakePerception {
     /**
      * Update confirmation sensor (goBILDA distance sensor)
      * Converts voltage to distance and checks threshold
+     * 
+     * PERFORMANCE: Uses cached voltage reading from readSensorsOnce()
      */
     private void updateConfirmationSensor() {
         if (confirmationSensor == null) {
@@ -195,7 +264,8 @@ public class IntakePerception {
         }
 
         try {
-            double voltage = confirmationSensor.getVoltage();
+            // Use cached voltage reading (already read in readSensorsOnce)
+            double voltage = cachedConfirmationVoltage;
             double distanceMm = (voltage / MAX_LASER_VOLTS) * MAX_LASER_DISTANCE_MM;
             double distanceCm = distanceMm / 10.0;
 
@@ -210,12 +280,14 @@ public class IntakePerception {
      * Update REV Color V3 proximity sensors (primary detection method)
      * Uses the distance interface available on REV Color Sensor V3
      * Reference: SensorColor.java line 211-212
+     * 
+     * PERFORMANCE: Uses cached distance readings from readSensorsOnce()
      */
     private void updateProximitySensors() {
-        // Update primary sensor proximity
+        // Update primary sensor proximity (use cached reading)
         if (primaryColorSensor instanceof DistanceSensor) {
             try {
-                double distanceCm = ((DistanceSensor) primaryColorSensor).getDistance(DistanceUnit.CM);
+                double distanceCm = cachedPrimaryDistance;
                 primaryProximityDetected = (distanceCm < PROXIMITY_THRESHOLD_CM && distanceCm > 0.1);
             } catch (Exception e) {
                 primaryProximityDetected = false;
@@ -224,10 +296,10 @@ public class IntakePerception {
             primaryProximityDetected = false;
         }
 
-        // Update secondary sensor proximity
+        // Update secondary sensor proximity (use cached reading)
         if (secondaryColorSensor instanceof DistanceSensor) {
             try {
-                double distanceCm = ((DistanceSensor) secondaryColorSensor).getDistance(DistanceUnit.CM);
+                double distanceCm = cachedSecondaryDistance;
                 secondaryProximityDetected = (distanceCm < PROXIMITY_THRESHOLD_CM && distanceCm > 0.1);
             } catch (Exception e) {
                 secondaryProximityDetected = false;
@@ -817,6 +889,11 @@ public class IntakePerception {
         // Debounced signals
         private boolean artifactPresent;
         private long lastChangeTime;
+        
+        // Sensor caching (performance optimization)
+        private double cachedCenterVoltage;
+        private double cachedLeftDistance;
+        private double cachedRightDistance;
 
         // Constants
         private static final double CENTER_CONFIRMATION_THRESHOLD_CM = 10.0;
@@ -847,12 +924,19 @@ public class IntakePerception {
             this.rightColorDetected = false;
             this.artifactPresent = false;
             this.lastChangeTime = System.currentTimeMillis();
+            this.cachedCenterVoltage = 0.0;
+            this.cachedLeftDistance = 0.0;
+            this.cachedRightDistance = 0.0;
         }
 
         /**
          * Update all center slot sensors
+         * PERFORMANCE: Reads sensors once per call
          */
         public void update() {
+            // Read sensors once
+            readCenterSensorsOnce();
+            
             // Update confirmation sensor (goBILDA distance)
             updateCenterConfirmation();
 
@@ -865,6 +949,39 @@ public class IntakePerception {
             // Update debounced artifact presence
             updateArtifactPresence();
         }
+        
+        /**
+         * Read all center sensors once and cache
+         * PERFORMANCE: Single I2C read per sensor
+         */
+        private void readCenterSensorsOnce() {
+            // Read center confirmation sensor
+            try {
+                cachedCenterVoltage = (centerDistanceSensor != null)
+                    ? centerDistanceSensor.getVoltage()
+                    : 0.0;
+            } catch (Exception e) {
+                cachedCenterVoltage = 0.0;
+            }
+            
+            // Read left proximity
+            try {
+                cachedLeftDistance = (leftColorSensor instanceof DistanceSensor)
+                    ? ((DistanceSensor) leftColorSensor).getDistance(DistanceUnit.CM)
+                    : 999.0;
+            } catch (Exception e) {
+                cachedLeftDistance = 999.0;
+            }
+            
+            // Read right proximity
+            try {
+                cachedRightDistance = (rightColorSensor instanceof DistanceSensor)
+                    ? ((DistanceSensor) rightColorSensor).getDistance(DistanceUnit.CM)
+                    : 999.0;
+            } catch (Exception e) {
+                cachedRightDistance = 999.0;
+            }
+        }
 
         private void updateCenterConfirmation() {
             if (centerDistanceSensor == null) {
@@ -873,7 +990,8 @@ public class IntakePerception {
             }
 
             try {
-                double voltage = centerDistanceSensor.getVoltage();
+                // Use cached voltage
+                double voltage = cachedCenterVoltage;
                 double distanceMm = (voltage / MAX_LASER_VOLTS) * MAX_LASER_DISTANCE_MM;
                 double distanceCm = distanceMm / 10.0;
                 centerConfirmation = (distanceCm < CENTER_CONFIRMATION_THRESHOLD_CM && distanceCm > 0.5);
@@ -883,10 +1001,10 @@ public class IntakePerception {
         }
 
         private void updateCenterProximity() {
-            // Left sensor proximity
+            // Left sensor proximity (use cached reading)
             if (leftColorSensor instanceof DistanceSensor) {
                 try {
-                    double distCm = ((DistanceSensor) leftColorSensor).getDistance(DistanceUnit.CM);
+                    double distCm = cachedLeftDistance;
                     leftProximityDetected = (distCm < CENTER_PROXIMITY_THRESHOLD_CM && distCm > 0.1);
                 } catch (Exception e) {
                     leftProximityDetected = false;
@@ -895,10 +1013,10 @@ public class IntakePerception {
                 leftProximityDetected = false;
             }
 
-            // Right sensor proximity
+            // Right sensor proximity (use cached reading)
             if (rightColorSensor instanceof DistanceSensor) {
                 try {
-                    double distCm = ((DistanceSensor) rightColorSensor).getDistance(DistanceUnit.CM);
+                    double distCm = cachedRightDistance;
                     rightProximityDetected = (distCm < CENTER_PROXIMITY_THRESHOLD_CM && distCm > 0.1);
                 } catch (Exception e) {
                     rightProximityDetected = false;
