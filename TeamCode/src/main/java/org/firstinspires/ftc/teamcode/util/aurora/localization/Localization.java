@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.util.aurora;
+package org.firstinspires.ftc.teamcode.util.aurora.localization;
 
 import com.qualcomm.robotcore.hardware.HardwareMap;
 

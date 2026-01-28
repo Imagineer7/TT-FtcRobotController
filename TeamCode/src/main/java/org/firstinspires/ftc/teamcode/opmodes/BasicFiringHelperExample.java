@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.util.aurora.*;
@@ -20,6 +21,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.*;
  * - Gamepad1 Right Bumper: Stop ejection
  */
 @TeleOp(name="Basic Firing Helper Example", group="Testing")
+@Disabled
 public class BasicFiringHelperExample extends LinearOpMode {
 
     // Hardware and subsystems

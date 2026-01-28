@@ -9,12 +9,23 @@ import org.firstinspires.ftc.teamcode.util.aurora.AutoGyroTurret;
 import org.firstinspires.ftc.teamcode.util.aurora.BasicIndexingHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.BasicFiringHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.IntelMechanumDrive;
-import org.firstinspires.ftc.teamcode.util.aurora.LimelightVisionHelper;
-import org.firstinspires.ftc.teamcode.util.aurora.Localization;
+import org.firstinspires.ftc.teamcode.util.aurora.localization.LimelightVisionHelper;
+import org.firstinspires.ftc.teamcode.util.aurora.localization.Localization;
+import org.firstinspires.ftc.teamcode.util.aurora.PerformanceMonitor;
 import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.v3.IntakePerception;
+
+// Pedro Pathing imports for field drawing
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.Pose;
+import com.bylazar.field.FieldManager;
+import com.bylazar.field.PanelsField;
+import com.bylazar.field.Style;
+import com.bylazar.telemetry.PanelsTelemetry;
+import com.bylazar.telemetry.TelemetryManager;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 /**
  * ManualIntakeAndShootingOpMode - Full manual control for intake and shooting
@@ -90,10 +101,18 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
     private IntelMechanumDrive drive;
     private AutoGyroTurret autoGyroTurret;
     private Localization localization;
+    private PerformanceMonitor performanceMonitor;
 
     // Intake perception for artifact detection
     private IntakePerception frontIntakePerception;
     private IntakePerception backIntakePerception;
+
+    // Pedro Pathing follower for field drawing
+    private Follower follower;
+    private FieldManager panelsField;
+    private TelemetryManager telemetryM;
+    private static final double ROBOT_RADIUS = 9.0; // inches
+    private static final Style robotLook = new Style("", "#3F51B5", 0.75);
 
     // AprilTag target toggle state
     private boolean targetingBlueTag = true;  // Start with Blue tag 20
@@ -115,6 +134,12 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
     private boolean lastBButton = false;
     private boolean lastXButton = false;
     private boolean lastYButton = false;
+
+    // Telemetry optimization
+    private static final boolean ENABLE_DEBUG_TELEMETRY = false;  // Set to false for competition
+    private static final int TELEMETRY_UPDATE_INTERVAL_MS = 100;  // Update telemetry every 100ms (10Hz)
+    private long lastTelemetryUpdateTime = 0;
+    private int loopsSinceLastTelemetry = 0;
 
     @Override
     public void runOpMode() {
@@ -220,6 +245,27 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             indexingConfig
         );
 
+        // Initialize Performance Monitor
+        performanceMonitor = new PerformanceMonitor(telemetry);
+        performanceMonitor.setEnabled(true);
+
+        // Initialize Pedro Pathing follower for field drawing
+        telemetry.addLine("Initializing field drawing...");
+        telemetry.update();
+
+        try {
+            follower = Constants.createFollower(hardwareMap);
+            follower.setStartingPose(new Pose(72, 72)); // Default starting position
+            panelsField = PanelsField.INSTANCE.getField();
+            panelsField.setOffsets(PanelsField.INSTANCE.getPresets().getPEDRO_PATHING());
+            telemetryM = PanelsTelemetry.INSTANCE.getTelemetry();
+            telemetry.addLine("✅ Field drawing initialized");
+        } catch (Exception e) {
+            telemetry.addLine("⚠️ Field drawing initialization failed: " + e.getMessage());
+            follower = null; // Set to null so we can check later
+        }
+        telemetry.update();
+
         telemetry.addLine("✅ Initialization complete!");
         telemetry.addData("Turret", "Auto-gyro ENABLED by default");
         telemetry.addLine();
@@ -268,6 +314,9 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
         // ═══════════════════════════════════════════════════════════════════════
 
         while (opModeIsActive()) {
+            // Start performance monitoring for this loop
+            performanceMonitor.startLoop();
+
             // CRITICAL: Update all helpers every loop
             // NOTE: shooter.update() is called inside firingHelper.update() - don't call twice!
             indexingHelper.update();
@@ -280,6 +329,14 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             // Update localization for robot heading (MANUAL mode - Limelight only on X button)
             if (localization != null) {
                 localization.update();  // Updates odometry, Limelight only when manually triggered
+            }
+
+            // Update follower pose with localization data for field drawing
+            if (follower != null && localization != null && localization.isOdometryInitialized()) {
+                double x = localization.getX(DistanceUnit.INCH);
+                double y = localization.getY(DistanceUnit.INCH);
+                double heading = localization.getHeading(AngleUnit.RADIANS);
+                follower.setPose(new Pose(x, y, heading));
             }
 
             // Get current robot heading for turret control
@@ -673,188 +730,52 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             }
 
             // ═══════════════════════════════════════════════════════════════
-            // TELEMETRY - STATUS DISPLAY
+            // TELEMETRY - OPTIMIZED FOR PERFORMANCE
             // ═══════════════════════════════════════════════════════════
+            // Only update telemetry every 100ms (10Hz) to avoid lag
 
-            telemetry.addData("═══ DRIVE ═══", "");
-            telemetry.addData("Forward", String.format("%.2f", forward));
-            telemetry.addData("Strafe", String.format("%.2f", strafe));
-            telemetry.addData("Rotate", String.format("%.2f", rotate));
-            telemetry.addData("GP1 Idle", gamepad1Idle ? "YES" : "NO");
-            telemetry.addData("Driver 2 Enabled", driverTwoEnabled ? "YES ✅" : "NO");
-            if (driverTwoEnabled && gamepad1Idle) {
-                telemetry.addData("Active Driver", "DRIVER 2 (GP2)");
-            } else {
-                telemetry.addData("Active Driver", "DRIVER 1 (GP1)");
-            }
-            telemetry.addData("", "");
+            loopsSinceLastTelemetry++;
+            long currentTime = System.currentTimeMillis();
+            boolean shouldUpdateTelemetry = (currentTime - lastTelemetryUpdateTime) >= TELEMETRY_UPDATE_INTERVAL_MS;
 
-            telemetry.addData("═══ FIRING STATUS ═══", "");
-            telemetry.addData("Active", firingHelper.isFiring() ? "YES ✅" : "NO");
-            if (firingHelper.isFiring()) {
-                telemetry.addData("State", firingHelper.getFiringState());
-                telemetry.addData("Preset", firingHelper.getPresetName());
-                telemetry.addData("Target RPM", String.format("%.0f", firingHelper.getTargetRPM()));
-                telemetry.addData("Current RPM", String.format("%.0f", shooter.getCurrentRPM()));
-                telemetry.addData("Ready for Next", firingHelper.isReadyForNextShot() ? "YES ✅" : "NO");
-            }
-            telemetry.addData("", "");
+            if (shouldUpdateTelemetry) {
+                lastTelemetryUpdateTime = currentTime;
 
-            telemetry.addData("═══ SHOOTER ═══", "");
-            telemetry.addData("Current RPM", String.format("%.0f", shooter.getCurrentRPM()));
-            telemetry.addData("Target RPM", String.format("%.0f", shooter.getTargetRPM()));
-            telemetry.addData("Ready", shooter.isReadyToFire() ? "YES ✅" : "NO");
-            telemetry.addData("State", shooter.getState());
-            telemetry.addData("", "");
+                // CRITICAL INFO ONLY - Keep it minimal for performance
+                telemetry.addData("Driver", driverTwoEnabled && gamepad1Idle ? "GP2" : "GP1");
+                telemetry.addData("Shooter", String.format("%.0f RPM", shooter.getCurrentRPM()));
 
-            telemetry.addData("═══ TURRET (AUTO-GYRO) ═══", "");
-            telemetry.addData("Mode", autoGyroTurret.isEnabled() ? "ENABLED ✅" : "DISABLED (Servo @ 0°)");
-            telemetry.addData("Busy", autoGyroTurret.isBusy() ? "YES ⏳" : "NO");
-            if (autoGyroTurret.isEnabled()) {
-                telemetry.addData("Field Target", String.format("%.1f°", autoGyroTurret.getFieldRelativeHeading()));
-                telemetry.addData("Field Current", String.format("%.1f°", autoGyroTurret.getCurrentFieldHeading(robotHeading)));
-                telemetry.addData("At Target", autoGyroTurret.isAtTarget(robotHeading) ? "YES ✅" : "NO");
-            }
-            telemetry.addData("Robot Heading", String.format("%.1f°", robotHeading));
-            telemetry.addData("", "");
-
-            telemetry.addData("═══ INDEXING ═══", "");
-            telemetry.addData("Transfer Active", indexingHelper.isTransferActive() ? "YES" : "NO");
-            if (indexingHelper.isTransferActive()) {
-                telemetry.addData("Transfer State", indexingHelper.getTransferState());
-                telemetry.addData("Transfer Type", indexingHelper.getTransferType());
-            }
-            telemetry.addData("Any Busy", indexingHelper.isAnyBusy() ? "YES" : "NO");
-            telemetry.addData("Ejection", firingHelper.isEjecting() ? "ACTIVE ⚠️" : "IDLE");
-            telemetry.addData("", "");
-
-            telemetry.addData("═══ PERCEPTION ═══", "");
-            // Front intake perception
-            IntakePerception.PresenceConfidence frontConf = frontIntakePerception.getPresenceConfidence();
-            String frontStatus = getConfidenceIcon(frontConf) + " " + frontConf.toString();
-            telemetry.addData("Front Intake", frontStatus);
-
-            // Back intake perception
-            IntakePerception.PresenceConfidence backConf = backIntakePerception.getPresenceConfidence();
-            String backStatus = getConfidenceIcon(backConf) + " " + backConf.toString();
-            telemetry.addData("Back Intake", backStatus);
-            telemetry.addData("", "");
-
-            telemetry.addData("═══ LIMELIGHT DEBUG ═══", "");
-            if (localization != null && localization.isLimelightInitialized()) {
-                LimelightVisionHelper limelight = localization.getLimelight();
-                boolean hasTarget = limelight.hasTarget();
-
-                telemetry.addData("Status", "✅ ONLINE");
-                telemetry.addData("Has Target", hasTarget ? "✅ YES" : "❌ NO");
-
-                if (hasTarget) {
-                    // AprilTag detection info
-                    telemetry.addData("Target X", String.format("%.2f°", limelight.getTargetX()));
-                    telemetry.addData("Target Y", String.format("%.2f°", limelight.getTargetY()));
-                    telemetry.addData("Target Area", String.format("%.2f%%", limelight.getTargetArea()));
-
-                    // Data quality indicators
-                    boolean dataFresh = localization.isVisionDataFresh();
-                    boolean dataQualityGood = localization.isVisionDataQualityGood();
-                    long dataAge = localization.getVisionDataAge();
-
-                    telemetry.addData("Data Fresh", dataFresh ? "✅ YES" : "⚠️ STALE");
-                    telemetry.addData("Data Quality", dataQualityGood ? "✅ GOOD" : "⚠️ POOR");
-                    telemetry.addData("Data Age", String.format("%d ms", dataAge));
-
-                    // Heading stability tracking
-                    boolean headingStable = localization.isLimelightHeadingStable();
-                    int stableCount = localization.getStableHeadingCount();
-                    boolean odometryUpdated = localization.wasOdometryUpdatedByLimelight();
-
-                    // Velocity check for accurate updates
-                    double velocityMM = localization.getVelocityMagnitude(DistanceUnit.MM);
-                    boolean velocityLow = localization.isVelocityLowForUpdate();
-
-                    telemetry.addData("Heading Stable", headingStable ? "✅ YES" : "❌ NO");
-                    telemetry.addData("Stable Count", stableCount + "/10");
-
-                    // Velocity status
-                    telemetry.addData("Robot Velocity", String.format("%.1f mm/s", velocityMM));
-                    telemetry.addData("Velocity OK", velocityLow ? "✅ YES (< 100mm/s)" : "⚠️ TOO FAST");
-
-                    if (headingStable) {
-                        double stableHeading = localization.getStableLimelightHeading(AngleUnit.DEGREES);
-                        telemetry.addData("Stable Heading", String.format("%.1f°", stableHeading));
-
-                        if (velocityLow) {
-                            telemetry.addData("Using LL Heading", "✅ YES (stable + slow)");
-                            telemetry.addData("Odometry Updated", odometryUpdated ? "✅ YES (synced)" : "⚠️ Jump too large");
-                        } else {
-                            telemetry.addData("Using LL Heading", "⚠️ SKIPPED (moving too fast)");
-                            telemetry.addData("Odometry Updated", "❌ NO (velocity too high)");
-                        }
-                    } else {
-                        telemetry.addData("Using LL Heading", "❌ NO (not stable)");
-                        telemetry.addData("Odometry Updated", "❌ NO");
-                    }
-
-                    // Robot pose from Limelight
-                    org.firstinspires.ftc.robotcore.external.navigation.Pose3D visionPose = limelight.getRobotPose();
-                    if (visionPose != null) {
-                        telemetry.addData("Vision X", String.format("%.1f mm", visionPose.getPosition().x));
-                        telemetry.addData("Vision Y", String.format("%.1f mm", visionPose.getPosition().y));
-                        telemetry.addData("Vision Yaw", String.format("%.1f°", visionPose.getOrientation().getYaw()));
-
-                        // Distance to target (approximate using Z)
-                        double distMM = Math.abs(visionPose.getPosition().z);
-                        double distFeet = distMM / 304.8;
-                        telemetry.addData("Target Dist", String.format("%.1f ft (%.0f mm)", distFeet, distMM));
-                    } else {
-                        telemetry.addData("Vision Pose", "❌ NULL");
-                    }
-                } else {
-                    telemetry.addData("Info", "No AprilTags visible");
+                if (firingHelper.isFiring()) {
+                    telemetry.addData("Firing", firingHelper.getPresetName());
                 }
-            } else if (localization != null) {
-                telemetry.addData("Status", "❌ NOT INITIALIZED");
-                String error = localization.getLimelightInitializationError();
-                if (error != null) {
-                    telemetry.addData("Error", error);
+
+                if (autoGyroTurret.isEnabled()) {
+                    telemetry.addData("Turret", String.format("%.0f°", autoGyroTurret.getFieldRelativeHeading()));
                 }
-                telemetry.addData("Expected", "Device 'limelight' (Limelight3A)");
-                telemetry.addData("Fix", "Configure in Driver Station");
-            } else {
-                telemetry.addData("Status", "❌ LOCALIZATION NULL");
+
+                // End performance monitoring and check for warnings
+                double voltage = hardware.getVoltageSensor() != null ?
+                    hardware.getVoltageSensor().getVoltage() : 12.5;
+                performanceMonitor.endLoop(voltage, gamepad1, gamepad2);
+
+                // Show performance metrics
+                performanceMonitor.displayTelemetry(false);  // false = compact mode
+
+                telemetry.addData("Loop Hz", String.format("%.1f", loopsSinceLastTelemetry * 10.0));
+                loopsSinceLastTelemetry = 0;
+
+                // OPTIONAL: Full debug telemetry (only if enabled)
+                if (ENABLE_DEBUG_TELEMETRY) {
+                    addDebugTelemetry(robotHeading);
+                }
+
+                telemetry.update();
             }
-            telemetry.addData("", "");
 
-            telemetry.addData("═══ ACTIVE CONTROLS ═══", "");
-            // Gamepad 1 - Turret
-            if (gamepad1.a) telemetry.addLine("🎯 GP1 A - Set Robot Heading");
-            if (gamepad1.b) telemetry.addLine("🔄 GP1 B - Toggle Auto-Gyro");
-            if (gamepad1.x) telemetry.addLine("📡 GP1 X - Manual Limelight Update");
-            if (gamepad1.y) telemetry.addLine("🧭 GP1 Y - Toggle AprilTag Target");
-            // Gamepad 1 - Drive
-            if (gamepad1.guide) telemetry.addLine("🔘 GP1 Guide - Toggle Ejection");
-            if (gamepad1.dpad_up) telemetry.addLine("⬆️ GP1 DPad Up - Fine Fwd");
-            if (gamepad1.dpad_down) telemetry.addLine("⬇️ GP1 DPad Down - Fine Back");
-            if (gamepad1.dpad_left) telemetry.addLine("⬅️ GP1 DPad Left - Reset Turret");
-            if (gamepad1.dpad_right) telemetry.addLine("➡️ GP1 DPad Right - Fine Strafe R");
-            if (gamepad1.right_bumper) telemetry.addLine("🔼 GP1 RB - Front Intake");
-            if (gamepad1.left_bumper) telemetry.addLine("🔽 GP1 LB - Back Intake");
-            // Gamepad 2
-            if (gamepad2.back) telemetry.addLine("🔄 GP2 Back - Toggle Driver 2");
-            if (gamepad2.a) telemetry.addLine("🔴 A - Short Range");
-            if (gamepad2.b) telemetry.addLine("🔵 B - Mid Range");
-            if (gamepad2.y) telemetry.addLine("🟡 Y - Long Range");
-            if (gamepad2.x) telemetry.addLine("⏹️ X - Stop");
-            if (gamepad2.dpad_up) telemetry.addLine("⬆️ Front → Center");
-            if (gamepad2.dpad_down) telemetry.addLine("⬇️ Back → Center");
-            if (gamepad2.dpad_left) telemetry.addLine("⬅️ Uptake Forward");
-            if (gamepad2.dpad_right) telemetry.addLine("➡️ Uptake Reverse");
-            if (gamepad2.right_bumper) telemetry.addLine("🔼 Front Intake Forward");
-            if (gamepad2.left_bumper) telemetry.addLine("🔽 Back Intake Forward");
-            if (gamepad2.right_trigger > 0.1) telemetry.addLine("🔽 Front Intake Reverse");
-            if (gamepad2.left_trigger > 0.1) telemetry.addLine("🔽 Back Intake Reverse");
-
-            telemetry.update();
+            // Draw robot position on field (if follower initialized) - but only every other telemetry update
+            if (shouldUpdateTelemetry && follower != null && (currentTime % 200) < 100) {
+                drawRobotOnField(follower.getPose());
+            }
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -885,6 +806,79 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
                 return "🟢";  // Green - high confidence
             default:
                 return "❓";  // Unknown
+        }
+    }
+
+    /**
+     * Add detailed debug telemetry (only when ENABLE_DEBUG_TELEMETRY = true)
+     * This method is EXPENSIVE and should only be used for debugging, not competition
+     */
+    private void addDebugTelemetry(double robotHeading) {
+        telemetry.addLine("═══ DEBUG MODE ═══");
+
+        // Shooter details
+        telemetry.addData("Shooter State", shooter.getState());
+        telemetry.addData("Shooter Ready", shooter.isReadyToFire() ? "YES" : "NO");
+
+        // Turret details
+        if (autoGyroTurret.isEnabled()) {
+            telemetry.addData("Turret Current", String.format("%.1f°", autoGyroTurret.getCurrentFieldHeading(robotHeading)));
+            telemetry.addData("Turret At Target", autoGyroTurret.isAtTarget(robotHeading) ? "YES" : "NO");
+        }
+
+        // Indexing details
+        if (indexingHelper.isTransferActive()) {
+            telemetry.addData("Transfer", indexingHelper.getTransferType() + " - " + indexingHelper.getTransferState());
+        }
+
+        // Perception
+        telemetry.addData("Front Intake", getConfidenceIcon(frontIntakePerception.getPresenceConfidence()));
+        telemetry.addData("Back Intake", getConfidenceIcon(backIntakePerception.getPresenceConfidence()));
+
+        // Limelight summary (compact)
+        if (localization != null && localization.isLimelightInitialized()) {
+            LimelightVisionHelper limelight = localization.getLimelight();
+            if (limelight.hasTarget()) {
+                telemetry.addData("Limelight", String.format("Target @ %.1f°", limelight.getTargetX()));
+            }
+        }
+    }
+
+    /**
+     * Draw the robot on the FTC Control Panels field display
+     * @param pose Current robot pose (x, y, heading)
+     */
+    private void drawRobotOnField(Pose pose) {
+        if (panelsField == null || pose == null) return;
+
+        try {
+            // Check for NaN values
+            if (Double.isNaN(pose.getX()) || Double.isNaN(pose.getY()) || Double.isNaN(pose.getHeading())) {
+                return;
+            }
+
+            // Set drawing style
+            panelsField.setStyle(robotLook);
+
+            // Draw robot body as circle
+            panelsField.moveCursor(pose.getX(), pose.getY());
+            panelsField.circle(ROBOT_RADIUS);
+
+            // Draw heading indicator as a line using trigonometry
+            double heading = pose.getHeading();
+            double x1 = pose.getX() + Math.cos(heading) * ROBOT_RADIUS / 2;
+            double y1 = pose.getY() + Math.sin(heading) * ROBOT_RADIUS / 2;
+            double x2 = pose.getX() + Math.cos(heading) * ROBOT_RADIUS;
+            double y2 = pose.getY() + Math.sin(heading) * ROBOT_RADIUS;
+
+            panelsField.setStyle(robotLook);
+            panelsField.moveCursor(x1, y1);
+            panelsField.line(x2, y2);
+
+            // Send packet to FTC Control Panels
+            panelsField.update();
+        } catch (Exception e) {
+            // Silently fail to avoid disrupting telemetry
         }
     }
 }
