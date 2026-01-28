@@ -12,6 +12,8 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.geometry.Pose;
+import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
+import org.firstinspires.ftc.teamcode.util.aurora.BasicIndexingHelper;
 
 @Autonomous(name = "Pedro Pathing Twelve", group = "Autonomous")
 @Configurable // Panels
@@ -22,11 +24,24 @@ public class PedroTwelve extends OpMode {
     private Paths paths; // Paths defined in the Paths class
     private ElapsedTime pathTimer; // Timer for time-based actions within states
 
+    // Hardware and helpers
+    private AuroraHardwareConfig hardware;
+    private BasicIndexingHelper indexingHelper;
+
+    // Collection configuration
+    private static final long COLLECTION_DURATION_MS = 3000; // Duration to run collection (2 seconds)
+
     @Override
     public void init() {
         pathTimer = new ElapsedTime();
 
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
+
+        // Initialize hardware and indexing helper
+        hardware = new AuroraHardwareConfig(hardwareMap, telemetry);
+        hardware.initialize();
+
+        indexingHelper = new BasicIndexingHelper(hardware, telemetry);
 
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(new Pose(21, 122, Math.toRadians(143)));
@@ -51,6 +66,10 @@ public class PedroTwelve extends OpMode {
     public void start() {
         // Called once when play is pressed
         setPathState(0);
+
+        // Start both rollers at half speed for entire autonomous
+        indexingHelper.setFrontRollerPower(0.7);
+        indexingHelper.setBackRollerPower(0.6);
     }
 
     @Override
@@ -58,14 +77,20 @@ public class PedroTwelve extends OpMode {
         // Update Pedro Pathing - must be called every loop
         follower.update();
 
+        // Update indexing helper - handles timed operations
+        indexingHelper.update();
+
         // Update autonomous state machine
         autonomousPathUpdate();
 
         // Log values to Driver Station for debugging
         panelsTelemetry.debug("Path State", pathState);
+        panelsTelemetry.debug("Follower Busy", follower.isBusy());
         panelsTelemetry.debug("X", follower.getPose().getX());
         panelsTelemetry.debug("Y", follower.getPose().getY());
-        panelsTelemetry.debug("Heading", follower.getPose().getHeading());
+        panelsTelemetry.debug("Heading", Math.toDegrees(follower.getPose().getHeading()));
+        panelsTelemetry.debug("Timer", String.format("%.1f", pathTimer.seconds()));
+        panelsTelemetry.debug("Transfer Active", indexingHelper.isTransferActive());
         panelsTelemetry.update(telemetry);
     }
 
@@ -83,15 +108,16 @@ public class PedroTwelve extends OpMode {
         public PathChain Path8;
 
         // Speed multipliers for each path (1.0 = normal speed, 0.5 = half speed, etc.)
+        // Minimum speed is 0.3 otherwise the robot won't move.
         public double speedPath1 = 1.0;
         public double speedPath2 = 1.0;
-        public double speedPath9 = 0.4;
+        public double speedPath9 = 0.3;
         public double speedPath3 = 1.0;
         public double speedPath4 = 1.0;
-        public double speedPath10 = 0.4;
+        public double speedPath10 = 0.3;
         public double speedPath5 = 1.0;
         public double speedPath6 = 1.0;
-        public double speedPath11 = 0.4;
+        public double speedPath11 = 0.3;
         public double speedPath7 = 1.0;
         public double speedPath8 = 1.0;
 
@@ -259,28 +285,41 @@ public class PedroTwelve extends OpMode {
                 if (!follower.isBusy()) {
                     /* ===== EXTENSION POINT: Add Actions Here ===== */
 
-                    /* Path 2 Complete - Move to Path 9 */
+                    /* Path 2 Complete - Move to Path 9 and START COLLECTING */
                     followPathWithSpeed(paths.Path9, paths.speedPath9);
+                    startCollecting(); // Start artifact collection during Path 9
                     setPathState(3);
                 }
                 break;
 
-            // ========== STATE 3: Wait for Path 9 Completion ==========
+            // ========== STATE 3: Wait for Path 9 Completion (COLLECTING) ==========
             case 3:
-                /* Waiting for Path 9 to complete */
+                /* Waiting for Path 9 to complete while collecting */
+                // Give follower time to register the path before checking if busy (prevents instant false negative)
+                if (pathTimer.milliseconds() < 50) {
+                    break; // Wait at least 50ms after starting path
+                }
+
                 if (!follower.isBusy()) {
                     /* ===== EXTENSION POINT: Add Actions Here ===== */
 
-                    /* Path 9 Complete - Move to Path 3 */
+                    /* Path 9 Complete - Move to Path 3 (collection continues) */
                     followPathWithSpeed(paths.Path3, paths.speedPath3);
                     setPathState(4);
                 }
                 break;
 
-            // ========== STATE 4: Wait for Path 3 Completion ==========
+            // ========== STATE 4: Wait for Path 3 Completion (STILL COLLECTING) ==========
             case 4:
-                /* Waiting for Path 3 to complete */
+                /* Waiting for Path 3 to complete while still collecting */
+                // Give follower time to register the path before checking if busy
+                if (pathTimer.milliseconds() < 50) {
+                    break; // Wait at least 50ms after starting path
+                }
+
                 if (!follower.isBusy()) {
+                    /* ===== Collection complete ===== */
+                    stopCollecting(); // Stop collection after Path 3 complete
                     /* ===== EXTENSION POINT: Add Actions Here ===== */
 
                     /* Path 3 Complete - Move to Path 4 */
@@ -295,28 +334,41 @@ public class PedroTwelve extends OpMode {
                 if (!follower.isBusy()) {
                     /* ===== EXTENSION POINT: Add Actions Here ===== */
 
-                    /* Path 4 Complete - Move to Path 10 */
+                    /* Path 4 Complete - Move to Path 10 and START COLLECTING */
                     followPathWithSpeed(paths.Path10, paths.speedPath10);
+                    startCollecting(); // Start artifact collection during Path 10
                     setPathState(6);
                 }
                 break;
 
-            // ========== STATE 6: Wait for Path 10 Completion ==========
+            // ========== STATE 6: Wait for Path 10 Completion (COLLECTING) ==========
             case 6:
-                /* Waiting for Path 10 to complete */
+                /* Waiting for Path 10 to complete while collecting */
+                // Give follower time to register the path before checking if busy
+                if (pathTimer.milliseconds() < 50) {
+                    break; // Wait at least 50ms after starting path
+                }
+
                 if (!follower.isBusy()) {
                     /* ===== EXTENSION POINT: Add Actions Here ===== */
 
-                    /* Path 10 Complete - Move to Path 5 */
+                    /* Path 10 Complete - Move to Path 5 (collection continues) */
                     followPathWithSpeed(paths.Path5, paths.speedPath5);
                     setPathState(7);
                 }
                 break;
 
-            // ========== STATE 7: Wait for Path 5 Completion ==========
+            // ========== STATE 7: Wait for Path 5 Completion (STILL COLLECTING) ==========
             case 7:
-                /* Waiting for Path 5 to complete */
+                /* Waiting for Path 5 to complete while still collecting */
+                // Give follower time to register the path before checking if busy
+                if (pathTimer.milliseconds() < 50) {
+                    break; // Wait at least 50ms after starting path
+                }
+
                 if (!follower.isBusy()) {
+                    /* ===== Collection complete ===== */
+                    stopCollecting(); // Stop collection after Path 5 complete
                     /* ===== EXTENSION POINT: Add Actions Here ===== */
 
                     /* Path 5 Complete - Move to Path 6 */
@@ -331,28 +383,41 @@ public class PedroTwelve extends OpMode {
                 if (!follower.isBusy()) {
                     /* ===== EXTENSION POINT: Add Actions Here ===== */
 
-                    /* Path 6 Complete - Move to Path 11 */
+                    /* Path 6 Complete - Move to Path 11 and START COLLECTING */
                     followPathWithSpeed(paths.Path11, paths.speedPath11);
+                    startCollecting(); // Start artifact collection during Path 11
                     setPathState(9);
                 }
                 break;
 
-            // ========== STATE 9: Wait for Path 11 Completion ==========
+            // ========== STATE 9: Wait for Path 11 Completion (COLLECTING) ==========
             case 9:
-                /* Waiting for Path 11 to complete */
+                /* Waiting for Path 11 to complete while collecting */
+                // Give follower time to register the path before checking if busy
+                if (pathTimer.milliseconds() < 50) {
+                    break; // Wait at least 50ms after starting path
+                }
+
                 if (!follower.isBusy()) {
                     /* ===== EXTENSION POINT: Add Actions Here ===== */
 
-                    /* Path 11 Complete - Move to Path 7 */
+                    /* Path 11 Complete - Move to Path 7 (collection continues) */
                     followPathWithSpeed(paths.Path7, paths.speedPath7);
                     setPathState(10);
                 }
                 break;
 
-            // ========== STATE 10: Wait for Path 7 Completion ==========
+            // ========== STATE 10: Wait for Path 7 Completion (STILL COLLECTING) ==========
             case 10:
-                /* Waiting for Path 7 to complete */
+                /* Waiting for Path 7 to complete while still collecting */
+                // Give follower time to register the path before checking if busy
+                if (pathTimer.milliseconds() < 50) {
+                    break; // Wait at least 50ms after starting path
+                }
+
                 if (!follower.isBusy()) {
+                    /* ===== Collection complete ===== */
+                    stopCollecting(); // Stop collection after Path 7 complete
                     /* ===== EXTENSION POINT: Add Actions Here ===== */
 
                     /* Path 7 Complete - Move to Path 8 */
@@ -408,6 +473,61 @@ public class PedroTwelve extends OpMode {
     public void followPathWithSpeed(PathChain path, double speedMultiplier) {
         follower.setMaxPower(speedMultiplier);
         follower.followPath(path);
+    }
+
+    /**
+     * Start collecting artifacts using the front intake.
+     * This is a reusable method that can be called from any state to begin collection.
+     *
+     * Collection sequence:
+     * - Front transfer servo moves artifact to center (1.0 power for specified duration)
+     * - Back transfer servo runs in reverse to assist (-1.0 power for specified duration)
+     *
+     * Note: Both rollers are already running at 0.5 power throughout autonomous.
+     *
+     * This method is non-blocking - it starts timed operations that run in the background.
+     * The indexingHelper.update() call in loop() handles the timing automatically.
+     *
+     * @param durationMs Duration to run the collection sequence (milliseconds)
+     */
+    public void startCollecting(long durationMs) {
+        // Transfer front intake to center (timed operation)
+        indexingHelper.transferFrontIntakeToCenterTimed(durationMs);
+
+        // Run back transfer servo in reverse to assist
+        indexingHelper.setBackTransferTimed(1.0, durationMs);
+
+        // Note: Rollers are already running at 0.5 power (set in start() method)
+    }
+
+    /**
+     * Start collecting artifacts with the default duration.
+     * Uses COLLECTION_DURATION_MS (2000ms by default).
+     */
+    public void startCollecting() {
+        startCollecting(COLLECTION_DURATION_MS);
+    }
+
+    /**
+     * Stop collection servos (transfer and injector servos).
+     * Note: Rollers continue running at 0.5 power throughout autonomous.
+     */
+    public void stopCollecting() {
+        // Stop transfer servos
+        indexingHelper.stopFrontTransfer();
+        indexingHelper.stopBackTransfer();
+
+        // Stop injector and uptake servos
+        indexingHelper.stopInjector();
+        indexingHelper.stopUptake();
+
+        // Stop bottom intake servos
+        indexingHelper.stopFrontBottomIntake();
+        indexingHelper.stopBackBottomIntake();
+
+        // Restart rollers at 0.5 power (defensive - in case they were stopped)
+        indexingHelper.setFrontRollerPower(0.5);
+        indexingHelper.setBackRollerPower(0.5);
     }
 }
     
