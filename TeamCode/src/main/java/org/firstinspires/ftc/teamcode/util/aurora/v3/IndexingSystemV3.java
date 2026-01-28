@@ -11,6 +11,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShotPlanner;
 import org.firstinspires.ftc.teamcode.util.debug.Dbg;
 import org.firstinspires.ftc.teamcode.util.debug.LogGroup;
+import org.firstinspires.ftc.teamcode.util.debug.PerformanceMonitor;
 
 /**
  * IndexingSystemV3 - Main controller for the v3 indexing system.
@@ -69,6 +70,9 @@ public class IndexingSystemV3 {
     private final IntakePerception frontPerception;
     private final IntakePerception backPerception;
     private final IntakePerception.CenterSlotPerception centerPerception;
+    
+    // Performance monitoring
+    private final PerformanceMonitor performanceMonitor;
     
     // ========== State ==========
     private SystemState currentState;
@@ -151,6 +155,9 @@ public class IndexingSystemV3 {
         
         // Initialize watchdog
         this.watchdog = new KeepAliveWatchdog(firingHelper, telemetry);
+        
+        // Initialize performance monitoring (disabled by default)
+        this.performanceMonitor = new PerformanceMonitor(telemetry);
         
         // Initialize perception for intakes (IntakeSide enum, sensors, config)
         // New sensor layout:
@@ -249,22 +256,33 @@ public class IndexingSystemV3 {
     public void update() {
         if (!enabled) return;
         
+        // Start loop timing
+        performanceMonitor.startLoop();
+        
         // Update perception (sensor fusion) - only for hunt-eligible intakes
+        performanceMonitor.startSection("perception");
         updatePerception();
+        performanceMonitor.endSection("perception");
         
         // CRITICAL: Update indexing helper to process timed movements
         // This clears the busy flags when timed movements complete
+        performanceMonitor.startSection("indexingHelper");
         indexingHelper.update();
+        performanceMonitor.endSection("indexingHelper");
         
         // CRITICAL: Update firing helper to process firing sequences
         // This internally calls shooter.update() - DO NOT call shooter.update() separately!
+        performanceMonitor.startSection("firingHelper");
         firingHelper.update();
+        performanceMonitor.endSection("firingHelper");
         
         // Update watchdog (automatic safety enforcement)
         // Note: OpMode must call setFiringButtonHeld() to update trigger state
         // CRITICAL: Pass isOperationRunning() which includes physical hardware state,
         // not just runner.isBusy() which only checks the operation state machine
+        performanceMonitor.startSection("watchdog");
         watchdog.update(firingButtonHeld, isOperationRunning(), manualModeActive);
+        performanceMonitor.endSection("watchdog");
         
         // Capture current operation before update (for completion handling)
         boolean isBusyNow = runner.isBusy();
@@ -273,7 +291,9 @@ public class IndexingSystemV3 {
         }
         
         // Update operation runner (automatic lifecycle management)
+        performanceMonitor.startSection("operations");
         runner.update();
+        performanceMonitor.endSection("operations");
         
         // Handle operation completion (detect transition from busy to idle)
         if (wasRunnerBusyLastUpdate && !runner.isBusy()) {
@@ -287,15 +307,22 @@ public class IndexingSystemV3 {
         checkForSubsequentShotFired();
         
         // Update shot planner
+        performanceMonitor.startSection("shotPlanner");
         shotPlanner.update(ledger, manualModeActive);
+        performanceMonitor.endSection("shotPlanner");
         
         // Update system state
         updateSystemState();
         
         // Automatic operations (if not in manual mode)
         if (!manualModeActive && !runner.isBusy()) {
+            performanceMonitor.startSection("autoOperations");
             performAutomaticOperations();
+            performanceMonitor.endSection("autoOperations");
         }
+        
+        // End loop timing
+        performanceMonitor.endLoop();
     }
     
     // Manual override detection removed - OpModes handle gamepad inputs directly
@@ -1261,6 +1288,15 @@ public class IndexingSystemV3 {
         telemetryPage = (telemetryPage + 1) % 3;  // Cycle 0->1->2->0
     }
     
+    // Performance monitoring control
+    public PerformanceMonitor getPerformanceMonitor() { return performanceMonitor; }
+    public void setPerformanceMonitoringEnabled(boolean enabled) { 
+        performanceMonitor.enable(enabled); 
+    }
+    public boolean isPerformanceMonitoringEnabled() { 
+        return performanceMonitor.isEnabled(); 
+    }
+    
     // ========== Public API - State Setters (OpMode-Controlled) ==========
     
     /**
@@ -1540,6 +1576,12 @@ public class IndexingSystemV3 {
         telemetry.addData("Shots Fired", totalShots);
         telemetry.addData("Ejections", totalEjections);
         telemetry.addLine();
+        
+        // Performance monitoring (if enabled)
+        if (performanceMonitor.isEnabled()) {
+            performanceMonitor.addTelemetry();
+            telemetry.addLine();
+        }
         
         // Watchdog status
         telemetry.addLine("--- KeepAlive Watchdog ---");
