@@ -17,7 +17,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.BasicFiringHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
 
-@Autonomous(name = "Pedro Five BLUE", group = "Autonomous")
+@Autonomous(name = "Pedro Five BLUE", group = "Autonomous", preselectTeleOp = "Manual Intake & Shooting")
 @Configurable // Panels
 public class PedroFiveBlue extends OpMode {
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance

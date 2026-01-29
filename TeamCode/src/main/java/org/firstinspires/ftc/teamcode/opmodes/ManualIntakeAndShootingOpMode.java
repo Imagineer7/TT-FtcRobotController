@@ -116,6 +116,9 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
     private boolean lastXButton = false;
     private boolean lastYButton = false;
 
+    // Flag to prevent continuous turret update from overriding manual A button setting
+    private boolean turretInManualHeadingMode = false;
+
     @Override
     public void runOpMode() {
         // ═══════════════════════════════════════════════════════════════════════
@@ -298,6 +301,7 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
                 // This makes the field-relative target = current robot heading
                 autoGyroTurret.setFieldRelativeHeading(robotHeading+180, robotHeading+180);
                 autoGyroTurret.enable();
+                turretInManualHeadingMode = true;  // Prevent continuous AprilTag update from overriding
                 poseUpdatedWithLimelight = false;
                 telemetry.addLine(String.format("🎯 Turret: Set to robot heading (%.1f°)", robotHeading));
             }
@@ -330,9 +334,9 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             if (gamepad1.y && !lastYButton) {
                 // Toggle target
                 targetingBlueTag = !targetingBlueTag;
-
-                double targetHeading;
+                turretInManualHeadingMode = false;  // Re-enable continuous AprilTag update
                 String tagName = targetingBlueTag ? "Blue Tag 20" : "Red Tag 24";
+                double targetHeading;
 
                 // If pose has been updated with Limelight at least once, calculate angle from robot to tag
                 if (poseUpdatedWithLimelight && localization.isOdometryInitialized()) {
@@ -385,7 +389,8 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
 
             // Continuous turret angle update: Recalculate angle to target as robot moves
             // Only when pose has been updated and turret is enabled
-            if (poseUpdatedWithLimelight && autoGyroTurret.isEnabled() && localization.isOdometryInitialized()) {
+            // Skip if in manual heading mode (A button was pressed)
+            if (!turretInManualHeadingMode && poseUpdatedWithLimelight && autoGyroTurret.isEnabled() && localization.isOdometryInitialized()) {
                 // Get current robot position (in rotated Limelight coordinate system)
                 double robotXRotated = localization.getX(DistanceUnit.INCH);
                 double robotYRotated = localization.getY(DistanceUnit.INCH);
