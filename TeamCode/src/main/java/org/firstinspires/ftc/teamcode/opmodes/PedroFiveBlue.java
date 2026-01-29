@@ -17,9 +17,9 @@ import org.firstinspires.ftc.teamcode.util.aurora.BasicFiringHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
 
-@Autonomous(name = "Pedro Pathing Twelve", group = "Autonomous")
+@Autonomous(name = "Pedro Five BLUE", group = "Autonomous")
 @Configurable // Panels
-public class PedroTwelve extends OpMode {
+public class PedroFiveBlue extends OpMode {
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
     public Follower follower; // Pedro Pathing follower instance
     private int pathState; // Current autonomous path state (state machine)
@@ -101,7 +101,7 @@ public class PedroTwelve extends OpMode {
         autonomousTimer.reset(); // Start timing the autonomous period
         setPathState(0);
 
-        // Start both rollers at half speed for entire autonomous
+        // Start both rollers at 0.9 power for entire autonomous
         indexingHelper.setFrontRollerPower(0.9);
         indexingHelper.setBackRollerPower(0.9);
     }
