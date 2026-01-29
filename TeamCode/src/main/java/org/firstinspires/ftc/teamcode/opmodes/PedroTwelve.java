@@ -102,8 +102,8 @@ public class PedroTwelve extends OpMode {
         setPathState(0);
 
         // Start both rollers at half speed for entire autonomous
-        indexingHelper.setFrontRollerPower(0.6);
-        indexingHelper.setBackRollerPower(0.6);
+        indexingHelper.setFrontRollerPower(0.9);
+        indexingHelper.setBackRollerPower(0.9);
     }
 
     @Override
@@ -784,7 +784,7 @@ public class PedroTwelve extends OpMode {
      * This defensively re-applies power if helpers stop them during actions.
      */
     private void maintainRollerPower() {
-        indexingHelper.setFrontRollerPower(0.6);
-        indexingHelper.setBackRollerPower(0.6);
+        indexingHelper.setFrontRollerPower(0.9);
+        indexingHelper.setBackRollerPower(0.9);
     }
 }
