@@ -25,6 +25,7 @@ public class PedroTwelve extends OpMode {
     private int pathState; // Current autonomous path state (state machine)
     private Paths paths; // Paths defined in the Paths class
     private ElapsedTime pathTimer; // Timer for time-based actions within states
+    private ElapsedTime autonomousTimer; // Timer for entire autonomous period
 
     // Hardware and helpers
     private AuroraHardwareConfig hardware;
@@ -36,22 +37,28 @@ public class PedroTwelve extends OpMode {
     private enum FiringSequenceState {
         IDLE,
         FIRING,
-        TRANSFERRING_BACK,
-        FIRING_2,
         TRANSFERRING_FRONT,
+        FIRING_2,
+        TRANSFERRING_BACK,
         FIRING_3,
         COMPLETE
     }
     private FiringSequenceState firingSequenceState = FiringSequenceState.IDLE;
     private ElapsedTime firingSequenceTimer;
     private boolean firingSequenceDone = false;
+    private int shotsFired = 0; // Track shots fired in current sequence
 
     // Collection configuration
     private static final long COLLECTION_DURATION_MS = 3000; // Duration to run collection (2 seconds)
 
+    // Timing configuration
+    private static final double AUTONOMOUS_TIME_LIMIT = 28.0; // seconds (leave 2s buffer)
+    private static final double TIME_FOR_FINAL_PATH = 2.5; // seconds needed for final path
+
     @Override
     public void init() {
         pathTimer = new ElapsedTime();
+        autonomousTimer = new ElapsedTime();
 
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
@@ -91,10 +98,11 @@ public class PedroTwelve extends OpMode {
     @Override
     public void start() {
         // Called once when play is pressed
+        autonomousTimer.reset(); // Start timing the autonomous period
         setPathState(0);
 
         // Start both rollers at half speed for entire autonomous
-        indexingHelper.setFrontRollerPower(0.7);
+        indexingHelper.setFrontRollerPower(0.6);
         indexingHelper.setBackRollerPower(0.6);
     }
 
@@ -109,6 +117,9 @@ public class PedroTwelve extends OpMode {
         // Update firing systems
         firingHelper.update();
 
+        // Keep rollers running at constant power, even if helpers stop them
+        maintainRollerPower();
+
         // Update autonomous state machine
         autonomousPathUpdate();
 
@@ -119,7 +130,11 @@ public class PedroTwelve extends OpMode {
         panelsTelemetry.debug("Y", follower.getPose().getY());
         panelsTelemetry.debug("Heading", Math.toDegrees(follower.getPose().getHeading()));
         panelsTelemetry.debug("Timer", String.format("%.1f", pathTimer.seconds()));
+        panelsTelemetry.debug("Auto Time", String.format("%.1f / %.1f", autonomousTimer.seconds(), AUTONOMOUS_TIME_LIMIT));
+        panelsTelemetry.debug("Time Remaining", String.format("%.1f", AUTONOMOUS_TIME_LIMIT - autonomousTimer.seconds()));
         panelsTelemetry.debug("Transfer Active", indexingHelper.isTransferActive());
+        panelsTelemetry.debug("Shots Fired", shotsFired);
+        panelsTelemetry.debug("Firing State", firingSequenceState.toString());
         panelsTelemetry.update(telemetry);
     }
 
@@ -164,8 +179,8 @@ public class PedroTwelve extends OpMode {
             Path2 = follower.pathBuilder().addPath(
                             new BezierCurve(
                                     new Pose(59.041, 84.217),
-                                    new Pose(60.145, 77.957),
-                                    new Pose(42.824, 84.249)
+                                    new Pose(69.719, 70.726),
+                                    new Pose(40.434, 80.557)
                             )
                     ).setLinearHeadingInterpolation(Math.toRadians(134), Math.toRadians(180))
 
@@ -173,9 +188,9 @@ public class PedroTwelve extends OpMode {
 
             Path9 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(42.824, 84.249),
+                                    new Pose(40.434, 80.557),
 
-                                    new Pose(23.624, 84.131)
+                                    new Pose(26.339, 80.548)
                             )
                     ).setTangentHeadingInterpolation()
 
@@ -183,7 +198,7 @@ public class PedroTwelve extends OpMode {
 
             Path3 = follower.pathBuilder().addPath(
                             new BezierLine(
-                                    new Pose(23.624, 84.131),
+                                    new Pose(26.339, 80.548),
 
                                     new Pose(58.724, 84.231)
                             )
@@ -365,13 +380,22 @@ public class PedroTwelve extends OpMode {
                 /* Update firing sequence - handles all firing state transitions */
                 updateFiringSequence();
 
-                /* When firing sequence completes, move to next path */
+                /* When firing sequence completes, check if we have time for more or should skip to end */
                 if (firingSequenceDone) {
                     firingSequenceDone = false;
                     firingSequenceState = FiringSequenceState.IDLE;
-                    /* Firing Complete - Move to Path 4 */
-                    followPathWithSpeed(paths.Path4, paths.speedPath4);
-                    setPathState(7);
+
+                    /* Check if we're running out of time */
+                    if (isRunningOutOfTime()) {
+                        /* Not enough time for more collection/firing - skip to final path */
+                        stopCollecting(); // Ensure collection is stopped
+                        followPathWithSpeed(paths.Path8, paths.speedPath8);
+                        setPathState(15);
+                    } else {
+                        /* Still have time - Move to Path 4 */
+                        followPathWithSpeed(paths.Path4, paths.speedPath4);
+                        setPathState(7);
+                    }
                 }
                 break;
 
@@ -538,6 +562,17 @@ public class PedroTwelve extends OpMode {
     }
 
     /**
+     * Check if we're running out of time and need to skip to final path.
+     * Leaves buffer time to complete the final path (Path 8).
+     *
+     * @return true if we need to abort and go to final path
+     */
+    public boolean isRunningOutOfTime() {
+        double timeRemaining = AUTONOMOUS_TIME_LIMIT - autonomousTimer.seconds();
+        return timeRemaining < TIME_FOR_FINAL_PATH;
+    }
+
+    /**
      * Start collecting artifacts using the front intake.
      * This is a reusable method that can be called from any state to begin collection.
      *
@@ -587,9 +622,8 @@ public class PedroTwelve extends OpMode {
         indexingHelper.stopFrontBottomIntake();
         indexingHelper.stopBackBottomIntake();
 
-        // Restart rollers at 0.5 power (defensive - in case they were stopped)
-        indexingHelper.setFrontRollerPower(0.5);
-        indexingHelper.setBackRollerPower(0.5);
+        // Keep rollers running at 0.5 power
+        maintainRollerPower();
     }
 
     /**
@@ -599,9 +633,9 @@ public class PedroTwelve extends OpMode {
      * 1. Spin up shooter to high basket RPM
      * 2. Wait for shooter ready
      * 3. Fire shot 1 (center artifact)
-     * 4. Transfer back to center (timed)
+     * 4. Transfer front to center (timed)
      * 5. Fire shot 2
-     * 6. Transfer front to center (timed)
+     * 6. Transfer back to center (timed)
      * 7. Fire shot 3
      * 8. Stop shooter
      */
@@ -609,6 +643,7 @@ public class PedroTwelve extends OpMode {
         firingSequenceState = FiringSequenceState.FIRING;
         firingSequenceTimer.reset();
         firingSequenceDone = false;
+        shotsFired = 0; // Reset shot counter
 
         // Start shooter spinup to high basket (LONG_RANGE preset = 2800 RPM)
         boolean started = firingHelper.startFiring(
@@ -647,20 +682,28 @@ public class PedroTwelve extends OpMode {
                 if (firingHelper.isReadyForNextShot()) {
                     // Shooter ready - fire the first shot
                     firingHelper.fireShot();
-                    firingSequenceState = FiringSequenceState.TRANSFERRING_BACK;
+                    shotsFired++;
+                    firingSequenceState = FiringSequenceState.TRANSFERRING_FRONT;
                     firingSequenceTimer.reset();
                 }
                 break;
 
-            case TRANSFERRING_BACK:
+            case TRANSFERRING_FRONT:
                 // Wait for uptake to finish feeding (first shot complete)
                 if (!indexingHelper.isUptakeBusy()) {
                     // Wait a brief moment for uptake to fully clear before starting transfer
                     if (firingSequenceTimer.milliseconds() > 300) {
-                        // Start transfer from back intake to center
-                        indexingHelper.transferBackIntakeToCenterTimed(2500); // 2.5 seconds
-                        firingSequenceState = FiringSequenceState.FIRING_2;
-                        firingSequenceTimer.reset();
+                        // Check if running out of time before starting next shot
+                        if (isRunningOutOfTime()) {
+                            // Abort sequence - go straight to completion
+                            firingSequenceState = FiringSequenceState.COMPLETE;
+                            firingSequenceTimer.reset();
+                        } else {
+                            // Start transfer from front intake to center
+                            indexingHelper.transferFrontIntakeToCenterTimed(2500); // 2.5 seconds
+                            firingSequenceState = FiringSequenceState.FIRING_2;
+                            firingSequenceTimer.reset();
+                        }
                     }
                 }
                 break;
@@ -671,20 +714,28 @@ public class PedroTwelve extends OpMode {
                     // Transfer complete - fire second shot
                     // firingHelper is in READY_TO_FIRE state (keep-alive mode)
                     firingHelper.fireShot();
-                    firingSequenceState = FiringSequenceState.TRANSFERRING_FRONT;
+                    shotsFired++;
+                    firingSequenceState = FiringSequenceState.TRANSFERRING_BACK;
                     firingSequenceTimer.reset();
                 }
                 break;
 
-            case TRANSFERRING_FRONT:
+            case TRANSFERRING_BACK:
                 // Wait for uptake to finish feeding (shot 2 complete)
                 if (!indexingHelper.isUptakeBusy()) {
                     // Wait a brief moment before starting transfer
                     if (firingSequenceTimer.milliseconds() > 300) {
-                        // Start transfer from front intake to center
-                        indexingHelper.transferFrontIntakeToCenterTimed(2500); // 2.5 seconds
-                        firingSequenceState = FiringSequenceState.FIRING_3;
-                        firingSequenceTimer.reset();
+                        // Check if running out of time before starting last shot
+                        if (isRunningOutOfTime()) {
+                            // Abort sequence - go straight to completion
+                            firingSequenceState = FiringSequenceState.COMPLETE;
+                            firingSequenceTimer.reset();
+                        } else {
+                            // Start transfer from back intake to center
+                            indexingHelper.transferBackIntakeToCenterTimed(2500); // 2.5 seconds
+                            firingSequenceState = FiringSequenceState.FIRING_3;
+                            firingSequenceTimer.reset();
+                        }
                     }
                 }
                 break;
@@ -694,23 +745,31 @@ public class PedroTwelve extends OpMode {
                 if (!indexingHelper.isTransferActive()) {
                     // Transfer complete - fire third shot
                     firingHelper.fireShot();
+                    shotsFired++;
                     firingSequenceState = FiringSequenceState.COMPLETE;
                     firingSequenceTimer.reset();
                 } else if (firingSequenceTimer.milliseconds() > 3000) {
                     // Timeout on transfer, force completion
                     firingHelper.fireShot();
+                    shotsFired++;
                     firingSequenceState = FiringSequenceState.COMPLETE;
                     firingSequenceTimer.reset();
                 }
                 break;
 
             case COMPLETE:
-                // Wait for third shot to complete (uptake feed finished) before stopping shooter
-                if (!firingSequenceDone && !indexingHelper.isUptakeBusy()) {
-                    // All shots fired - stop the shooter
-                    firingHelper.cancelFiring();
-                    firingHelper.stopShooter();
-                    firingSequenceDone = true;
+                // Wait for last shot to complete (uptake feed finished) before stopping shooter
+                if (!indexingHelper.isUptakeBusy()) {
+                    // Uptake is done feeding - wait additional time to ensure shot fully completes
+                    if (firingSequenceTimer.milliseconds() > 600) {
+                        // 600ms safety buffer to ensure shot is fully fired
+                        firingHelper.cancelFiring();
+                        firingHelper.stopShooter();
+                        firingSequenceDone = true;
+                    }
+                } else {
+                    // Uptake still busy - reset timer
+                    firingSequenceTimer.reset();
                 }
                 break;
 
@@ -718,5 +777,14 @@ public class PedroTwelve extends OpMode {
                 firingSequenceState = FiringSequenceState.IDLE;
                 break;
         }
+    }
+
+    /**
+     * Keep both rollers running at the requested power.
+     * This defensively re-applies power if helpers stop them during actions.
+     */
+    private void maintainRollerPower() {
+        indexingHelper.setFrontRollerPower(0.6);
+        indexingHelper.setBackRollerPower(0.6);
     }
 }
