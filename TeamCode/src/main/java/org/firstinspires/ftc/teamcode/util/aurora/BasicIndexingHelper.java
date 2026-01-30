@@ -1209,6 +1209,13 @@ public class BasicIndexingHelper {
         if (!enabled) return;
 
         if (buttonPressed) {
+            // Reset transfer if it completed - allows continuous button holds to trigger multiple transfers
+            if (transferSequenceActive && transferSequenceState == TransferSequenceState.COMPLETE) {
+                transferSequenceActive = false;
+                transferSequenceState = TransferSequenceState.IDLE;
+                currentTransferType = "NONE";
+            }
+
             if (!transferSequenceActive) {
                 // Starting new manual transfer
                 transferSequenceActive = true;
@@ -1222,16 +1229,19 @@ public class BasicIndexingHelper {
             } else if (currentTransferType.equals("FRONT_MANUAL")) {
                 // Only proceed if this is OUR transfer
                 if (transferSequenceState == TransferSequenceState.UN_PREPOSITIONING) {
-                    // Check if un-pre-positioning is done
-                    if (!isUptakeBusy()) {
-                        transferSequenceState = TransferSequenceState.TRANSFERRING;
-                        telemetry.addData("Transfer", "Front manual - Transferring");
-                        Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.TRANSFERRING");
-                    }
+                    // Skip un-pre-positioning (it's disabled) and go directly to transferring
+                    // This allows transfers to work even while uptake servos are running during firing
+                    transferSequenceState = TransferSequenceState.TRANSFERRING;
+                    telemetry.addData("Transfer", "Front manual - Transferring");
+                    Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.TRANSFERRING");
                 } else if (transferSequenceState == TransferSequenceState.TRANSFERRING) {
                     // Run intake and injectors while button is held
                     runFrontIntake(true, 1.0);
                     setInjectorPower(1.0);
+                } else if (transferSequenceState == TransferSequenceState.PREPOSITIONING) {
+                    // Pre-positioning continuing while button still held - allow new transfer to start on next press
+                    // This enables rapid multi-artifact transfers
+                    // Do nothing - uptake servo timer will complete in background
                 }
             }
             // If another transfer is active, do nothing
@@ -1249,18 +1259,12 @@ public class BasicIndexingHelper {
                     telemetry.addData("Transfer", "Front manual - Pre-positioning");
                     Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.PREPOSITIONING");
                 } else if (transferSequenceState == TransferSequenceState.PREPOSITIONING) {
-                    // Wait for pre-positioning to complete (uptake timed movement)
-                    // The uptake servos are running for PREPOSITION_DURATION_MS (400ms)
-                    // We wait for them to finish, then transfer is complete
-                    if (!isUptakeBusy()) {
-                        // Prepositioning complete - artifact is positioned and ready to fire
-                        transferSequenceState = TransferSequenceState.COMPLETE;
-                        transferSequenceActive = false;
-                        currentTransferType = "NONE";
-                        Dbg.d(LogGroup.TRANSFER, "PREPOSITIONING complete - transfer finished");
-                    } else {
-                        Dbg.d(LogGroup.TRANSFER, "PREPOSITIONING (waiting for uptake timer)");
-                    }
+                    // Transfer complete once button is released, even if pre-positioning is still running
+                    // Allow new transfer to start immediately without waiting for uptake servos
+                    transferSequenceState = TransferSequenceState.COMPLETE;
+                    transferSequenceActive = false;
+                    currentTransferType = "NONE";
+                    Dbg.d(LogGroup.TRANSFER, "Button released - transfer marked complete (pre-positioning continues in background)");
                 } else if (transferSequenceState == TransferSequenceState.UN_PREPOSITIONING) {
                     // Button released before transfer started - abort
                     transferSequenceActive = false;
@@ -1283,6 +1287,13 @@ public class BasicIndexingHelper {
         if (!enabled) return;
 
         if (buttonPressed) {
+            // Reset transfer if it completed - allows continuous button holds to trigger multiple transfers
+            if (transferSequenceActive && transferSequenceState == TransferSequenceState.COMPLETE) {
+                transferSequenceActive = false;
+                transferSequenceState = TransferSequenceState.IDLE;
+                currentTransferType = "NONE";
+            }
+
             if (!transferSequenceActive) {
                 // Starting new manual transfer
                 transferSequenceActive = true;
@@ -1297,16 +1308,19 @@ public class BasicIndexingHelper {
             } else if (currentTransferType.equals("BACK_MANUAL")) {
                 // Only proceed if this is OUR transfer
                 if (transferSequenceState == TransferSequenceState.UN_PREPOSITIONING) {
-                    // Check if un-pre-positioning is done
-                    if (!isUptakeBusy()) {
-                        transferSequenceState = TransferSequenceState.TRANSFERRING;
-                        telemetry.addData("Transfer", "Back manual - Transferring");
-                        Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.TRANSFERRING");
-                    }
+                    // Skip un-pre-positioning (it's disabled) and go directly to transferring
+                    // This allows transfers to work even while uptake servos are running during firing
+                    transferSequenceState = TransferSequenceState.TRANSFERRING;
+                    telemetry.addData("Transfer", "Back manual - Transferring");
+                    Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.TRANSFERRING");
                 } else if (transferSequenceState == TransferSequenceState.TRANSFERRING) {
                     // Run intake and injectors while button is held
                     runBackIntake(true, 1.0);
                     setInjectorPower(-1.0);
+                } else if (transferSequenceState == TransferSequenceState.PREPOSITIONING) {
+                    // Pre-positioning continuing while button still held - allow new transfer to start on next press
+                    // This enables rapid multi-artifact transfers
+                    // Do nothing - uptake servo timer will complete in background
                 }
             }
             // If another transfer is active, do nothing
@@ -1324,12 +1338,12 @@ public class BasicIndexingHelper {
                     telemetry.addData("Transfer", "Back manual - Pre-positioning");
                     Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.PREPOSITIONING");
                 } else if (transferSequenceState == TransferSequenceState.PREPOSITIONING) {
-                    // Check if pre-positioning is done
-                    if (!isUptakeBusy()) {
-                        transferSequenceState = TransferSequenceState.COMPLETE;
-                        transferSequenceActive = false;
-                        currentTransferType = "NONE";
-                    }
+                    // Transfer complete once button is released, even if pre-positioning is still running
+                    // Allow new transfer to start immediately without waiting for uptake servos
+                    transferSequenceState = TransferSequenceState.COMPLETE;
+                    transferSequenceActive = false;
+                    currentTransferType = "NONE";
+                    Dbg.d(LogGroup.TRANSFER, "Button released - transfer marked complete (pre-positioning continues in background)");
                 } else if (transferSequenceState == TransferSequenceState.UN_PREPOSITIONING) {
                     // Button released before transfer started - abort
                     transferSequenceActive = false;

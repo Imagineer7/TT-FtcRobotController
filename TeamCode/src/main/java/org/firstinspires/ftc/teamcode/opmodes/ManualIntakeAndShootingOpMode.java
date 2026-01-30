@@ -634,9 +634,9 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
                 }
             }
 
-            // Uptake manual controls - only when not busy with timed movements or firing
-            if (!indexingHelper.isUptakeBusy() && !indexingHelper.isTransferActive() &&
-                !firingHelper.isFiring() && !firingHelper.isEjecting()) {
+            // Uptake manual controls - allow manual control even during transfer pre-positioning
+            // Only block during active firing or ejection
+            if (!firingHelper.isFiring() && !firingHelper.isEjecting()) {
 
                 if (gamepad2.dpad_left) {
                     // DPad Left - Uptake forward (feed to shooter)
