@@ -1275,6 +1275,160 @@ public class IndexingSystemV3 {
     public boolean hasArtifactInCenter() { return ledger.isCenterOccupied(); }
     public boolean isReadyToFire() { return currentState == SystemState.READY_TO_FIRE; }
     
+    // Multiple artifact detection (per intake)
+    /**
+     * Check if FRONT intake has multiple artifacts of different colors.
+     * This is a RELIABLE detection based on opposite color sensor readings.
+     *
+     * @return true if front intake has two artifacts of different colors
+     */
+    public boolean frontIntakeHasMultipleDifferentColors() {
+        return frontPerception.hasMultipleDifferentColors();
+    }
+
+    /**
+     * Check if BACK intake has multiple artifacts of different colors.
+     * This is a RELIABLE detection based on opposite color sensor readings.
+     *
+     * @return true if back intake has two artifacts of different colors
+     */
+    public boolean backIntakeHasMultipleDifferentColors() {
+        return backPerception.hasMultipleDifferentColors();
+    }
+
+    /**
+     * Check if FRONT intake has multiple artifacts of same color.
+     * This is LESS RELIABLE and should be used with caution.
+     *
+     * @return true if front intake likely has two artifacts of same color
+     */
+    public boolean frontIntakeHasMultipleSameColor() {
+        return frontPerception.hasMultipleSameColor();
+    }
+
+    /**
+     * Check if BACK intake has multiple artifacts of same color.
+     * This is LESS RELIABLE and should be used with caution.
+     *
+     * @return true if back intake likely has two artifacts of same color
+     */
+    public boolean backIntakeHasMultipleSameColor() {
+        return backPerception.hasMultipleSameColor();
+    }
+
+    /**
+     * Check if FRONT intake has any multiple artifacts (different OR same color).
+     *
+     * @return true if front intake has multiple artifacts detected
+     */
+    public boolean frontIntakeHasMultipleArtifacts() {
+        return frontPerception.hasMultipleArtifacts();
+    }
+
+    /**
+     * Check if BACK intake has any multiple artifacts (different OR same color).
+     *
+     * @return true if back intake has multiple artifacts detected
+     */
+    public boolean backIntakeHasMultipleArtifacts() {
+        return backPerception.hasMultipleArtifacts();
+    }
+
+    /**
+     * Check if ANY intake has multiple artifacts.
+     * Useful for general alerting or intake jam detection.
+     *
+     * @return true if either front or back intake has multiple artifacts
+     */
+    public boolean anyIntakeHasMultipleArtifacts() {
+        return frontPerception.hasMultipleArtifacts() || backPerception.hasMultipleArtifacts();
+    }
+
+    /**
+     * Get which intake(s) have multiple artifacts.
+     *
+     * @return String description of which intakes have multiple artifacts, or "NONE"
+     */
+    public String getMultipleArtifactStatus() {
+        boolean frontMultiple = frontPerception.hasMultipleArtifacts();
+        boolean backMultiple = backPerception.hasMultipleArtifacts();
+
+        if (!frontMultiple && !backMultiple) {
+            return "NONE";
+        } else if (frontMultiple && backMultiple) {
+            return "BOTH";
+        } else if (frontMultiple) {
+            return "FRONT";
+        } else {
+            return "BACK";
+        }
+    }
+
+    // Presence Confidence Scoring
+    /**
+     * Get FRONT intake presence confidence score (0.0-1.0).
+     * Numerical representation of presence confidence (more granular than enum).
+     *
+     * Score Weighting:
+     * - Confirmation sensor: 0.15
+     * - Left proximity: 0.25
+     * - Right proximity: 0.25
+     * - Left color: 0.10
+     * - Right color: 0.10
+     *
+     * @return Front intake confidence score 0.0-1.0
+     */
+    public double getFrontIntakeConfidenceScore() {
+        return frontPerception.getConfidenceScore();
+    }
+
+    /**
+     * Get BACK intake presence confidence score (0.0-1.0).
+     * Numerical representation of presence confidence (more granular than enum).
+     *
+     * @return Back intake confidence score 0.0-1.0
+     */
+    public double getBackIntakeConfidenceScore() {
+        return backPerception.getConfidenceScore();
+    }
+
+    /**
+     * Get confidence score for specified intake.
+     *
+     * @param slot FRONT or BACK (CENTER not supported)
+     * @return Confidence score 0.0-1.0, or 0.0 if slot is CENTER
+     */
+    public double getIntakeConfidenceScore(SlotLedger.Slot slot) {
+        switch (slot) {
+            case FRONT:
+                return frontPerception.getConfidenceScore();
+            case BACK:
+                return backPerception.getConfidenceScore();
+            default:
+                return 0.0;  // CENTER or invalid
+        }
+    }
+
+    /**
+     * Get highest confidence score across both intakes.
+     * Useful for determining system-wide artifact presence strength.
+     *
+     * @return Maximum confidence score from either intake (0.0-1.0)
+     */
+    public double getMaxIntakeConfidenceScore() {
+        return Math.max(frontPerception.getConfidenceScore(), backPerception.getConfidenceScore());
+    }
+
+    /**
+     * Get average confidence score across both intakes.
+     * Useful for overall system assessment.
+     *
+     * @return Average confidence score (0.0-1.0)
+     */
+    public double getAverageIntakeConfidenceScore() {
+        return (frontPerception.getConfidenceScore() + backPerception.getConfidenceScore()) / 2.0;
+    }
+
     // Statistics
     public int getTotalCollections() { return totalCollections; }
     public int getTotalTransfers() { return totalTransfers; }

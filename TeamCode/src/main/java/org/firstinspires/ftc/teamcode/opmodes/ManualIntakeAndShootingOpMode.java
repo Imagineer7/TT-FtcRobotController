@@ -26,7 +26,7 @@ import com.bylazar.field.Style;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-
+//NOT LEGACY OPMODE
 /**
  * ManualIntakeAndShootingOpMode - Full manual control for intake and shooting
  *
@@ -226,24 +226,26 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
         IndexingConfig indexingConfig = new IndexingConfig();
 
         // Front intake perception
-        frontIntakePerception = new IntakePerception(
+        @SuppressWarnings("deprecation")
+        IntakePerception tempFront = new IntakePerception(
             IntakePerception.IntakeSide.FRONT,
-            hardware.getFrontDistanceSensor(),        // Laser sensor
-            hardware.getFrontLeftDistanceSensor(),    // REV 2m ToF sensor
-            hardware.getFrontRightColorSensor(),      // Outward color sensor
-            hardware.getFrontLeftColorSensor(),       // Mouth color sensor
+            hardware.getFrontDistanceSensor(),        // goBILDA laser sensor (confirmation)
+            hardware.getFrontIntakeColorLeft(),       // Left color sensor
+            hardware.getFrontIntakeColorRight(),      // Right color sensor
             indexingConfig
         );
+        frontIntakePerception = tempFront;
 
         // Back intake perception
-        backIntakePerception = new IntakePerception(
+        @SuppressWarnings("deprecation")
+        IntakePerception tempBack = new IntakePerception(
             IntakePerception.IntakeSide.BACK,
-            hardware.getBackDistanceSensor(),         // Laser sensor
-            hardware.getBackRightDistanceSensor(),    // REV 2m ToF sensor
-            hardware.getBackRightColorSensor(),       // Outward color sensor (note: reused)
-            hardware.getLeftRightColorSensor(),       // Mouth color sensor
+            hardware.getBackDistanceSensor(),         // goBILDA laser sensor (confirmation)
+            hardware.getBackIntakeColorLeft(),        // Left color sensor
+            hardware.getBackIntakeColorRight(),       // Right color sensor
             indexingConfig
         );
+        backIntakePerception = tempBack;
 
         // Initialize Performance Monitor
         performanceMonitor = new PerformanceMonitor(telemetry);

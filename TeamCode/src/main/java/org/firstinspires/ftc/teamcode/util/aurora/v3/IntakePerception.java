@@ -10,8 +10,8 @@ import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
  * IntakePerception - Sensor fusion for a single intake (front or back)
  *
  * This class fuses multiple sensors per intake to produce derived signals:
- * - primaryProximity (REV Color V3 proximity detection - primary)
- * - secondaryProximity (REV Color V3 proximity detection - secondary)
+ * - leftProximity (REV Color V3 proximity detection - left sensor)
+ * - rightProximity (REV Color V3 proximity detection - right sensor)
  * - confirmationDistance (goBILDA distance sensor - confirmation)
  * - colorSeesArtifact (color sensor confidence)
  * - artifactHint (combined presence signal)
@@ -25,7 +25,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
  * - Color classification only at stable checkpoints
  *
  * Hardware Layout:
- * - 2× REV Color Sensor V3 (primary detection via color + proximity)
+ * - 2× REV Color Sensor V3 (left and right, each with color + proximity)
  * - 1× goBILDA distance sensor (confirmation)
  */
 public class IntakePerception {
@@ -61,15 +61,15 @@ public class IntakePerception {
 
     // Hardware sensors
     private final AnalogInput confirmationSensor;           // goBILDA distance (confirmation)
-    private final NormalizedColorSensor primaryColorSensor;    // Primary REV Color V3 (color + proximity)
-    private final NormalizedColorSensor secondaryColorSensor;  // Secondary REV Color V3 (color + proximity)
+    private final NormalizedColorSensor leftColorSensor;    // Left REV Color V3 (color + proximity)
+    private final NormalizedColorSensor rightColorSensor;   // Right REV Color V3 (color + proximity)
 
     // Derived signal state
     private boolean confirmationDetected;        // goBILDA distance sensor
-    private boolean primaryProximityDetected;    // REV Color V3 proximity (primary)
-    private boolean secondaryProximityDetected;  // REV Color V3 proximity (secondary)
-    private boolean colorSeesArtifact_primary;   // Primary color confidence
-    private boolean colorSeesArtifact_secondary; // Secondary color confidence
+    private boolean leftProximityDetected;       // REV Color V3 proximity (left)
+    private boolean rightProximityDetected;      // REV Color V3 proximity (right)
+    private boolean colorSeesArtifact_left;      // Left color confidence
+    private boolean colorSeesArtifact_right;     // Right color confidence
 
     // Hysteresis state (not needed anymore but kept for compatibility)
     private boolean hysteresisState;  // General hysteresis state
@@ -85,6 +85,10 @@ public class IntakePerception {
     private double lastColorConfidence;
     private boolean samplingEnabled;        // Gates color re-sampling to checkpoints
     
+    // Multiple artifact detection
+    private boolean multipleDifferentColorsDetected;  // Two artifacts of different colors
+    private boolean multipleSameColorDetected;        // Two artifacts of same color (less reliable)
+
     // Manual override state (for testing/operator override)
     private boolean forcedDetectionActive;
     private ArtifactIdentity.ColorClass forcedColor;
@@ -93,16 +97,20 @@ public class IntakePerception {
     // Cache sensor readings to avoid duplicate I2C calls within same loop
     private boolean sensorsCached;          // True if readings are from current loop
     private double cachedConfirmationVoltage;
-    private double cachedPrimaryDistance;
-    private double cachedSecondaryDistance;
+    private double cachedLeftDistance;
+    private double cachedRightDistance;
     // Color readings cached in updateColorSensors (needed for sampling logic)
 
     // Constants
     private static final double CONFIRMATION_THRESHOLD_CM = 10.0;  // Artifact detected when < 10cm (goBILDA)
-    private static final double PROXIMITY_THRESHOLD_CM = 5.0;       // REV Color V3 proximity threshold
+    private static final double PROXIMITY_THRESHOLD_CM = 7.0;       // REV Color V3 proximity threshold (7cm or less = artifact detected)
     private static final double MAX_LASER_VOLTS = 3.3;
     private static final double MAX_LASER_DISTANCE_MM = 1000.0;
     
+    // Multiple artifact detection constants
+    private static final double MULTIPLE_SAME_COLOR_PROXIMITY_THRESHOLD = 5.0;  // Both sensors < 5cm = likely two artifacts of same color
+    private static final double COLOR_SCORE_OPPOSITE_THRESHOLD = 0.3;  // Score difference threshold to detect opposite colors
+
     // Debounce timing
     private static final long EDGE_DETECTION_DEBOUNCE_MS = 30;    // Fast response for entry/exit
     private static final long STABLE_PRESENCE_DEBOUNCE_MS = 100;  // Confirm still present
@@ -116,27 +124,27 @@ public class IntakePerception {
      *
      * @param side Which intake (FRONT or BACK)
      * @param confirmationSensor goBILDA distance sensor (confirmation)
-     * @param primaryColorSensor Primary REV Color V3 sensor (color + proximity)
-     * @param secondaryColorSensor Secondary REV Color V3 sensor (color + proximity)
+     * @param leftColorSensor Left REV Color V3 sensor (color + proximity)
+     * @param rightColorSensor Right REV Color V3 sensor (color + proximity)
      * @param config IndexingConfig for thresholds
      */
     public IntakePerception(IntakeSide side,
                            AnalogInput confirmationSensor,
-                           NormalizedColorSensor primaryColorSensor,
-                           NormalizedColorSensor secondaryColorSensor,
+                           NormalizedColorSensor leftColorSensor,
+                           NormalizedColorSensor rightColorSensor,
                            IndexingConfig config) {
         this.side = side;
         this.confirmationSensor = confirmationSensor;
-        this.primaryColorSensor = primaryColorSensor;
-        this.secondaryColorSensor = secondaryColorSensor;
+        this.leftColorSensor = leftColorSensor;
+        this.rightColorSensor = rightColorSensor;
         this.config = config;
 
         // Initialize state
         this.confirmationDetected = false;
-        this.primaryProximityDetected = false;
-        this.secondaryProximityDetected = false;
-        this.colorSeesArtifact_primary = false;
-        this.colorSeesArtifact_secondary = false;
+        this.leftProximityDetected = false;
+        this.rightProximityDetected = false;
+        this.colorSeesArtifact_left = false;
+        this.colorSeesArtifact_right = false;
         this.hysteresisState = false;
         this.fastPresence = false;
         this.stablePresence = false;
@@ -149,25 +157,10 @@ public class IntakePerception {
         this.forcedColor = ArtifactIdentity.ColorClass.UNKNOWN;
         this.sensorsCached = false;
         this.cachedConfirmationVoltage = 0.0;
-        this.cachedPrimaryDistance = 0.0;
-        this.cachedSecondaryDistance = 0.0;
-    }
-    
-    /**
-     * DEPRECATED: Old constructor for backward compatibility
-     * Maps old sensor parameters to new layout
-     * 
-     * @deprecated Use new constructor with updated sensor layout
-     */
-    @Deprecated
-    public IntakePerception(IntakeSide side,
-                           AnalogInput laserSensor,
-                           DistanceSensor revSensor,  // REMOVED - ignored
-                           NormalizedColorSensor outwardColorSensor,
-                           NormalizedColorSensor mouthColorSensor,
-                           IndexingConfig config) {
-        // Call new constructor, mapping old sensors to new ones
-        this(side, laserSensor, outwardColorSensor, mouthColorSensor, config);
+        this.cachedLeftDistance = 0.0;
+        this.cachedRightDistance = 0.0;
+        this.multipleDifferentColorsDetected = false;
+        this.multipleSameColorDetected = false;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -225,20 +218,20 @@ public class IntakePerception {
         
         // Read primary proximity sensor (REV Color V3 distance)
         try {
-            cachedPrimaryDistance = (primaryColorSensor instanceof DistanceSensor)
-                ? ((DistanceSensor) primaryColorSensor).getDistance(DistanceUnit.CM)
+            cachedLeftDistance = (leftColorSensor instanceof DistanceSensor)
+                ? ((DistanceSensor) leftColorSensor).getDistance(DistanceUnit.CM)
                 : 999.0;  // Far away = not detected
         } catch (Exception e) {
-            cachedPrimaryDistance = 999.0;
+            cachedLeftDistance = 999.0;
         }
         
         // Read secondary proximity sensor (REV Color V3 distance)
         try {
-            cachedSecondaryDistance = (secondaryColorSensor instanceof DistanceSensor)
-                ? ((DistanceSensor) secondaryColorSensor).getDistance(DistanceUnit.CM)
+            cachedRightDistance = (rightColorSensor instanceof DistanceSensor)
+                ? ((DistanceSensor) rightColorSensor).getDistance(DistanceUnit.CM)
                 : 999.0;
         } catch (Exception e) {
-            cachedSecondaryDistance = 999.0;
+            cachedRightDistance = 999.0;
         }
         
         // Note: Color sensor readings are NOT cached here because:
@@ -284,28 +277,28 @@ public class IntakePerception {
      * PERFORMANCE: Uses cached distance readings from readSensorsOnce()
      */
     private void updateProximitySensors() {
-        // Update primary sensor proximity (use cached reading)
-        if (primaryColorSensor instanceof DistanceSensor) {
+        // Update left sensor proximity (use cached reading)
+        if (leftColorSensor instanceof DistanceSensor) {
             try {
-                double distanceCm = cachedPrimaryDistance;
-                primaryProximityDetected = (distanceCm < PROXIMITY_THRESHOLD_CM && distanceCm > 0.1);
+                double distanceCm = cachedLeftDistance;
+                leftProximityDetected = (distanceCm < PROXIMITY_THRESHOLD_CM && distanceCm > 0.1);
             } catch (Exception e) {
-                primaryProximityDetected = false;
+                leftProximityDetected = false;
             }
         } else {
-            primaryProximityDetected = false;
+            leftProximityDetected = false;
         }
 
-        // Update secondary sensor proximity (use cached reading)
-        if (secondaryColorSensor instanceof DistanceSensor) {
+        // Update right sensor proximity (use cached reading)
+        if (rightColorSensor instanceof DistanceSensor) {
             try {
-                double distanceCm = cachedSecondaryDistance;
-                secondaryProximityDetected = (distanceCm < PROXIMITY_THRESHOLD_CM && distanceCm > 0.1);
+                double distanceCm = cachedRightDistance;
+                rightProximityDetected = (distanceCm < PROXIMITY_THRESHOLD_CM && distanceCm > 0.1);
             } catch (Exception e) {
-                secondaryProximityDetected = false;
+                rightProximityDetected = false;
             }
         } else {
-            secondaryProximityDetected = false;
+            rightProximityDetected = false;
         }
     }
 
@@ -314,14 +307,76 @@ public class IntakePerception {
      * Uses color classification logic from IndexingConfig
      */
     private void updateColorSensors() {
-        colorSeesArtifact_primary = checkColorSensor(primaryColorSensor);
-        colorSeesArtifact_secondary = checkColorSensor(secondaryColorSensor);
+        colorSeesArtifact_left = checkColorSensor(leftColorSensor);
+        colorSeesArtifact_right = checkColorSensor(rightColorSensor);
 
         // Only update best color classification when sampling is enabled (at checkpoints)
         if (samplingEnabled) {
             updateBestColorClassification();
         }
         // Otherwise keep last sampled color (don't resample while moving)
+
+        // Update multiple artifact detection
+        updateMultipleArtifactDetection();
+    }
+
+    /**
+     * Detect if there are multiple artifacts in the intake.
+     *
+     * Two Different Colors:
+     * - Pattern: Left and right sensors show OPPOSITE color scores
+     * - Left sensor high purple + Right sensor high green (or vice versa)
+     * - Difference in purple/green scores between sensors > threshold
+     *
+     * Two Same Color (less reliable):
+     * - Pattern: Both proximity sensors < 5cm
+     * - Both left and right proximity readings are very close
+     * - Color scores are similar (both detect same color)
+     */
+    private void updateMultipleArtifactDetection() {
+        // Reset flags
+        multipleDifferentColorsDetected = false;
+        multipleSameColorDetected = false;
+
+        // Get color scores from both sensors
+        double[] leftScores = getLeftColorScores();
+        double[] rightScores = getRightColorScores();
+
+        if (leftScores == null || rightScores == null) {
+            return;  // Can't detect without color scores
+        }
+
+        double leftPurple = leftScores[0];
+        double leftGreen = leftScores[1];
+        double rightPurple = rightScores[0];
+        double rightGreen = rightScores[1];
+
+        // Check for DIFFERENT colors (reliable detection)
+        // Pattern 1: Left sees purple, Right sees green
+        boolean leftPurpleRightGreen = (leftPurple > leftGreen + COLOR_SCORE_OPPOSITE_THRESHOLD) &&
+                                        (rightGreen > rightPurple + COLOR_SCORE_OPPOSITE_THRESHOLD);
+
+        // Pattern 2: Left sees green, Right sees purple
+        boolean leftGreenRightPurple = (leftGreen > leftPurple + COLOR_SCORE_OPPOSITE_THRESHOLD) &&
+                                        (rightPurple > rightGreen + COLOR_SCORE_OPPOSITE_THRESHOLD);
+
+        multipleDifferentColorsDetected = leftPurpleRightGreen || leftGreenRightPurple;
+
+        // Check for SAME color (less reliable, proximity-based)
+        // Both proximity sensors must detect something close
+        if (leftProximityDetected && rightProximityDetected) {
+            // Use cached distance readings
+            boolean bothVeryClose = (cachedLeftDistance < MULTIPLE_SAME_COLOR_PROXIMITY_THRESHOLD &&
+                                     cachedLeftDistance > 0.1) &&
+                                    (cachedRightDistance < MULTIPLE_SAME_COLOR_PROXIMITY_THRESHOLD &&
+                                     cachedRightDistance > 0.1);
+
+            // Check that color scores agree (both see same color)
+            boolean colorScoresAgree = Math.abs(leftPurple - rightPurple) < 0.2 &&
+                                       Math.abs(leftGreen - rightGreen) < 0.2;
+
+            multipleSameColorDetected = bothVeryClose && colorScoresAgree;
+        }
     }
 
     /**
@@ -364,11 +419,11 @@ public class IntakePerception {
         }
         
         // Get readings from both sensors
-        ColorObservation primaryObs = getColorObservation(primaryColorSensor);
-        ColorObservation secondaryObs = getColorObservation(secondaryColorSensor);
+        ColorObservation leftObs = getColorObservation(leftColorSensor);
+        ColorObservation rightObs = getColorObservation(rightColorSensor);
 
         // Select best observation (highest confidence)
-        ColorObservation bestObs = (primaryObs.confidence > secondaryObs.confidence) ? primaryObs : secondaryObs;
+        ColorObservation bestObs = (leftObs.confidence > rightObs.confidence) ? leftObs : rightObs;
 
         // Update cached classification
         lastColorClass = bestObs.colorClass;
@@ -445,17 +500,17 @@ public class IntakePerception {
      * True if any sensor indicates presence OR forced detection is active
      * 
      * Detection priority:
-     * 1. Primary/Secondary REV Color V3 proximity (main detectors)
+     * 1. Left/Right REV Color V3 proximity (main detectors)
      * 2. goBILDA confirmation sensor (secondary confirmation)
      * 3. Color confidence detection
      */
     private boolean getRawArtifactHint() {
         return forcedDetectionActive || 
-               primaryProximityDetected || 
-               secondaryProximityDetected ||
+               leftProximityDetected ||
+               rightProximityDetected ||
                confirmationDetected ||
-               colorSeesArtifact_primary || 
-               colorSeesArtifact_secondary;
+               colorSeesArtifact_left ||
+               colorSeesArtifact_right;
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -517,29 +572,35 @@ public class IntakePerception {
     /**
      * Check if primary proximity sensor detects artifact (REV Color V3)
      */
-    public boolean isPrimaryProximityDetected() {
-        return primaryProximityDetected;
+    public boolean isLeftProximityDetected() {
+        return leftProximityDetected;
     }
 
     /**
      * Check if secondary proximity sensor detects artifact (REV Color V3)
      */
-    public boolean isSecondaryProximityDetected() {
-        return secondaryProximityDetected;
+    public boolean isRightProximityDetected() {
+        return rightProximityDetected;
+    }
+
+    // Backward compatibility
+    @Deprecated
+    public boolean isPrimaryProximityDetected() { return isLeftProximityDetected(); }
+    @Deprecated
+    public boolean isSecondaryProximityDetected() { return isRightProximityDetected(); }
+
+    /**
+     * Check if color sensor sees artifact (left)
+     */
+    public boolean colorSeesArtifact_Left() {
+        return colorSeesArtifact_left;
     }
 
     /**
-     * Check if color sensor sees artifact (primary)
+     * Check if color sensor sees artifact (right)
      */
-    public boolean colorSeesArtifact_Primary() {
-        return colorSeesArtifact_primary;
-    }
-
-    /**
-     * Check if color sensor sees artifact (secondary)
-     */
-    public boolean colorSeesArtifact_Secondary() {
-        return colorSeesArtifact_secondary;
+    public boolean colorSeesArtifact_Right() {
+        return colorSeesArtifact_right;
     }
 
     /**
@@ -549,15 +610,51 @@ public class IntakePerception {
     public PresenceConfidence getPresenceConfidence() {
         int sensorCount = 0;
         if (confirmationDetected) sensorCount++;
-        if (primaryProximityDetected) sensorCount++;
-        if (secondaryProximityDetected) sensorCount++;
-        if (colorSeesArtifact_primary) sensorCount++;
-        if (colorSeesArtifact_secondary) sensorCount++;
+        if (leftProximityDetected) sensorCount++;
+        if (rightProximityDetected) sensorCount++;
+        if (colorSeesArtifact_left) sensorCount++;
+        if (colorSeesArtifact_right) sensorCount++;
 
         if (sensorCount == 0) return PresenceConfidence.NONE;
         if (sensorCount == 1) return PresenceConfidence.LOW;
         if (sensorCount <= 2) return PresenceConfidence.MEDIUM;
         return PresenceConfidence.HIGH;
+    }
+
+    /**
+     * Get presence confidence as a numerical score (0.0-1.0)
+     * More granular than the enum-based getPresenceConfidence()
+     *
+     * Scoring calculation:
+     * - Base: 0% for no sensors
+     * - Each sensor adds weight (confirmation=0.15, proximities=0.25 each, colors=0.10 each)
+     * - Max total: 1.0 (all 5 sensors detecting)
+     * - Provides smooth confidence scaling
+     *
+     * Score Ranges:
+     * - 0.0: No sensors
+     * - 0.15-0.25: Low confidence (1 sensor)
+     * - 0.40-0.60: Medium confidence (2 sensors)
+     * - 0.65-1.00: High confidence (3+ sensors)
+     *
+     * @return Presence confidence score 0.0-1.0
+     */
+    public double getPresenceConfidenceScore() {
+        double score = 0.0;
+
+        // Confirmation sensor (goBILDA laser) - reliable
+        if (confirmationDetected) score += 0.15;
+
+        // Proximity sensors (REV Color V3) - most reliable for presence
+        if (leftProximityDetected) score += 0.25;
+        if (rightProximityDetected) score += 0.25;
+
+        // Color detection signals (less reliable, but confirms presence)
+        if (colorSeesArtifact_left) score += 0.10;
+        if (colorSeesArtifact_right) score += 0.10;
+
+        // Clamp to 0.0-1.0 range
+        return Math.min(score, 1.0);
     }
 
     /**
@@ -576,6 +673,70 @@ public class IntakePerception {
     }
 
     /**
+     * Check if multiple artifacts of DIFFERENT colors are detected in this intake.
+     *
+     * Detection Pattern:
+     * - Left sensor shows high score for one color (purple or green)
+     * - Right sensor shows high score for opposite color
+     * - Score difference between sensors exceeds threshold
+     *
+     * This is a RELIABLE detection method because the color pattern is distinct.
+     *
+     * @return true if two artifacts of different colors are likely present
+     */
+    public boolean hasMultipleDifferentColors() {
+        return multipleDifferentColorsDetected;
+    }
+
+    /**
+     * Check if multiple artifacts of SAME color are detected in this intake.
+     *
+     * Detection Pattern:
+     * - Both proximity sensors read < 5cm
+     * - Color scores from both sensors are similar (agree on same color)
+     *
+     * This is LESS RELIABLE because:
+     * - Single artifact entering can also trigger both proximity sensors
+     * - Proximity readings may vary slightly (one 5cm, one 6cm)
+     * - Use with caution and additional confirmation
+     *
+     * @return true if two artifacts of same color are likely present (less reliable)
+     */
+    public boolean hasMultipleSameColor() {
+        return multipleSameColorDetected;
+    }
+
+    /**
+     * Check if ANY multiple artifacts are detected (different OR same color).
+     *
+     * @return true if either multiple different colors OR multiple same color detected
+     */
+    public boolean hasMultipleArtifacts() {
+        return multipleDifferentColorsDetected || multipleSameColorDetected;
+    }
+
+    /**
+     * Get presence confidence score (for external access).
+     *
+     * Public wrapper for getPresenceConfidenceScore() to allow other classes to retrieve
+     * the numerical confidence score without having direct access to IntakePerception.
+     *
+     * Score Range: 0.0 (no sensors) to 1.0 (all sensors detecting)
+     *
+     * Weighting:
+     * - Confirmation sensor (goBILDA): 0.15
+     * - Left proximity (REV Color V3): 0.25
+     * - Right proximity (REV Color V3): 0.25
+     * - Left color detection: 0.10
+     * - Right color detection: 0.10
+     *
+     * @return Presence confidence score 0.0-1.0
+     */
+    public double getConfidenceScore() {
+        return getPresenceConfidenceScore();
+    }
+
+    /**
      * Get intake side
      */
     public IntakeSide getSide() {
@@ -583,16 +744,16 @@ public class IntakePerception {
     }
     
     /**
-     * Get raw RGB values from primary color sensor (for debugging)
+     * Get raw RGB values from left color sensor (for debugging)
      * Returns array [red, green, blue] or null if sensor unavailable
      */
-    public double[] getPrimaryColorRaw() {
-        if (primaryColorSensor == null) return null;
+    public double[] getLeftColorRaw() {
+        if (leftColorSensor == null) return null;
         try {
             return new double[] {
-                primaryColorSensor.getNormalizedColors().red,
-                primaryColorSensor.getNormalizedColors().green,
-                primaryColorSensor.getNormalizedColors().blue
+                leftColorSensor.getNormalizedColors().red,
+                leftColorSensor.getNormalizedColors().green,
+                leftColorSensor.getNormalizedColors().blue
             };
         } catch (Exception e) {
             return null;
@@ -600,16 +761,16 @@ public class IntakePerception {
     }
 
     /**
-     * Get raw RGB values from secondary color sensor (for debugging)
+     * Get raw RGB values from right color sensor (for debugging)
      * Returns array [red, green, blue] or null if sensor unavailable
      */
-    public double[] getSecondaryColorRaw() {
-        if (secondaryColorSensor == null) return null;
+    public double[] getRightColorRaw() {
+        if (rightColorSensor == null) return null;
         try {
             return new double[] {
-                secondaryColorSensor.getNormalizedColors().red,
-                secondaryColorSensor.getNormalizedColors().green,
-                secondaryColorSensor.getNormalizedColors().blue
+                rightColorSensor.getNormalizedColors().red,
+                rightColorSensor.getNormalizedColors().green,
+                rightColorSensor.getNormalizedColors().blue
             };
         } catch (Exception e) {
             return null;
@@ -617,15 +778,15 @@ public class IntakePerception {
     }
 
     /**
-     * Get calculated purple and green confidence scores from primary sensor
+     * Get calculated purple and green confidence scores from left sensor
      * Returns array [purpleScore, greenScore] or null if sensor unavailable
      */
-    public double[] getPrimaryColorScores() {
-        if (primaryColorSensor == null) return null;
+    public double[] getLeftColorScores() {
+        if (leftColorSensor == null) return null;
         try {
-            double red = primaryColorSensor.getNormalizedColors().red;
-            double green = primaryColorSensor.getNormalizedColors().green;
-            double blue = primaryColorSensor.getNormalizedColors().blue;
+            double red = leftColorSensor.getNormalizedColors().red;
+            double green = leftColorSensor.getNormalizedColors().green;
+            double blue = leftColorSensor.getNormalizedColors().blue;
             double purpleScore = config.calculateColorConfidence(red, green, blue, "PURPLE");
             double greenScore = config.calculateColorConfidence(red, green, blue, "GREEN");
             return new double[] { purpleScore, greenScore };
@@ -635,15 +796,15 @@ public class IntakePerception {
     }
 
     /**
-     * Get calculated purple and green confidence scores from secondary sensor
+     * Get calculated purple and green confidence scores from right sensor
      * Returns array [purpleScore, greenScore] or null if sensor unavailable
      */
-    public double[] getSecondaryColorScores() {
-        if (secondaryColorSensor == null) return null;
+    public double[] getRightColorScores() {
+        if (rightColorSensor == null) return null;
         try {
-            double red = secondaryColorSensor.getNormalizedColors().red;
-            double green = secondaryColorSensor.getNormalizedColors().green;
-            double blue = secondaryColorSensor.getNormalizedColors().blue;
+            double red = rightColorSensor.getNormalizedColors().red;
+            double green = rightColorSensor.getNormalizedColors().green;
+            double blue = rightColorSensor.getNormalizedColors().blue;
             double purpleScore = config.calculateColorConfidence(red, green, blue, "PURPLE");
             double greenScore = config.calculateColorConfidence(red, green, blue, "GREEN");
             return new double[] { purpleScore, greenScore };
@@ -652,23 +813,35 @@ public class IntakePerception {
         }
     }
     
-    // Backward compatibility methods for test classes
+    // Backward compatibility methods for deprecated test classes
     @Deprecated
-    public double[] getOutwardColorScores() { return getPrimaryColorScores(); }
+    public double[] getPrimaryColorRaw() { return getLeftColorRaw(); }
     @Deprecated
-    public double[] getMouthColorScores() { return getSecondaryColorScores(); }
+    public double[] getSecondaryColorRaw() { return getRightColorRaw(); }
     @Deprecated
-    public double[] getOutwardColorRaw() { return getPrimaryColorRaw(); }
+    public double[] getPrimaryColorScores() { return getLeftColorScores(); }
     @Deprecated
-    public double[] getMouthColorRaw() { return getSecondaryColorRaw(); }
+    public double[] getSecondaryColorScores() { return getRightColorScores(); }
+    @Deprecated
+    public double[] getOutwardColorScores() { return getLeftColorScores(); }
+    @Deprecated
+    public double[] getMouthColorScores() { return getRightColorScores(); }
+    @Deprecated
+    public double[] getOutwardColorRaw() { return getLeftColorRaw(); }
+    @Deprecated
+    public double[] getMouthColorRaw() { return getRightColorRaw(); }
     @Deprecated
     public boolean isFrontBlocked() { return isConfirmationDetected(); }
     @Deprecated
-    public boolean isMouthOccupied() { return isPrimaryProximityDetected() || isSecondaryProximityDetected(); }
+    public boolean isMouthOccupied() { return isLeftProximityDetected() || isRightProximityDetected(); }
     @Deprecated
-    public boolean colorSeesArtifact_Outward() { return colorSeesArtifact_Primary(); }
+    public boolean colorSeesArtifact_Outward() { return colorSeesArtifact_Left(); }
     @Deprecated
-    public boolean colorSeesArtifact_Mouth() { return colorSeesArtifact_Secondary(); }
+    public boolean colorSeesArtifact_Mouth() { return colorSeesArtifact_Right(); }
+    @Deprecated
+    public boolean colorSeesArtifact_Primary() { return colorSeesArtifact_Left(); }
+    @Deprecated
+    public boolean colorSeesArtifact_Secondary() { return colorSeesArtifact_Right(); }
     @Deprecated
     public void calibrateRevSensorBaseline() { /* No-op - calibration not needed with new sensors */ }
 
@@ -739,16 +912,20 @@ public class IntakePerception {
         
         // Clear raw sensor hints
         confirmationDetected = false;
-        primaryProximityDetected = false;
-        secondaryProximityDetected = false;
-        colorSeesArtifact_primary = false;
-        colorSeesArtifact_secondary = false;
+        leftProximityDetected = false;
+        rightProximityDetected = false;
+        colorSeesArtifact_left = false;
+        colorSeesArtifact_right = false;
         hysteresisState = false;
         
         // Clear forced detection
         forcedDetectionActive = false;
         forcedColor = ArtifactIdentity.ColorClass.UNKNOWN;
         
+        // Clear multiple artifact detection
+        multipleDifferentColorsDetected = false;
+        multipleSameColorDetected = false;
+
         // Note: samplingEnabled state is preserved (operations control this)
     }
 
@@ -772,10 +949,10 @@ public class IntakePerception {
         sb.append("\n");
         
         // Proximity sensors (REV Color V3)
-        sb.append("  primaryProximity: ").append(primaryProximityDetected);
-        if (primaryColorSensor instanceof DistanceSensor) {
+        sb.append("  leftProximity: ").append(leftProximityDetected);
+        if (leftColorSensor instanceof DistanceSensor) {
             try {
-                double distCm = ((DistanceSensor) primaryColorSensor).getDistance(DistanceUnit.CM);
+                double distCm = ((DistanceSensor) leftColorSensor).getDistance(DistanceUnit.CM);
                 sb.append(" (").append(String.format("%.1f", distCm)).append("cm)");
             } catch (Exception e) {
                 sb.append(" (error)");
@@ -783,10 +960,10 @@ public class IntakePerception {
         }
         sb.append("\n");
         
-        sb.append("  secondaryProximity: ").append(secondaryProximityDetected);
-        if (secondaryColorSensor instanceof DistanceSensor) {
+        sb.append("  rightProximity: ").append(rightProximityDetected);
+        if (rightColorSensor instanceof DistanceSensor) {
             try {
-                double distCm = ((DistanceSensor) secondaryColorSensor).getDistance(DistanceUnit.CM);
+                double distCm = ((DistanceSensor) rightColorSensor).getDistance(DistanceUnit.CM);
                 sb.append(" (").append(String.format("%.1f", distCm)).append("cm)");
             } catch (Exception e) {
                 sb.append(" (error)");
@@ -794,8 +971,8 @@ public class IntakePerception {
         }
         sb.append("\n");
         
-        sb.append("  colorSeesArtifact: primary=").append(colorSeesArtifact_primary)
-          .append(", secondary=").append(colorSeesArtifact_secondary).append("\n");
+        sb.append("  colorSeesArtifact: left=").append(colorSeesArtifact_left)
+          .append(", right=").append(colorSeesArtifact_right).append("\n");
         sb.append("  fastPresence: ").append(fastPresence).append(" (30ms debounce)\n");
         sb.append("  stablePresence: ").append(stablePresence).append(" (100ms debounce)\n");
         sb.append("  presenceConfidence: ").append(getPresenceConfidence()).append("\n");
@@ -804,31 +981,41 @@ public class IntakePerception {
           .append(" (conf=").append(String.format("%.2f", lastColorConfidence)).append(")\n");
 
         // Add raw color sensor values
-        double[] primaryRaw = getPrimaryColorRaw();
-        if (primaryRaw != null) {
-            sb.append("  primaryColorRaw: R=").append(String.format("%.3f", primaryRaw[0]))
-              .append(", G=").append(String.format("%.3f", primaryRaw[1]))
-              .append(", B=").append(String.format("%.3f", primaryRaw[2])).append("\n");
+        double[] leftRaw = getLeftColorRaw();
+        if (leftRaw != null) {
+            sb.append("  leftColorRaw: R=").append(String.format("%.3f", leftRaw[0]))
+              .append(", G=").append(String.format("%.3f", leftRaw[1]))
+              .append(", B=").append(String.format("%.3f", leftRaw[2])).append("\n");
         }
 
-        double[] secondaryRaw = getSecondaryColorRaw();
-        if (secondaryRaw != null) {
-            sb.append("  secondaryColorRaw: R=").append(String.format("%.3f", secondaryRaw[0]))
-              .append(", G=").append(String.format("%.3f", secondaryRaw[1]))
-              .append(", B=").append(String.format("%.3f", secondaryRaw[2])).append("\n");
+        double[] rightRaw = getRightColorRaw();
+        if (rightRaw != null) {
+            sb.append("  rightColorRaw: R=").append(String.format("%.3f", rightRaw[0]))
+              .append(", G=").append(String.format("%.3f", rightRaw[1]))
+              .append(", B=").append(String.format("%.3f", rightRaw[2])).append("\n");
         }
 
         // Add color scores
-        double[] primaryScores = getPrimaryColorScores();
-        if (primaryScores != null) {
-            sb.append("  primaryScores: Purple=").append(String.format("%.2f", primaryScores[0]))
-              .append(", Green=").append(String.format("%.2f", primaryScores[1])).append("\n");
+        double[] leftScores = getLeftColorScores();
+        if (leftScores != null) {
+            sb.append("  leftScores: Purple=").append(String.format("%.2f", leftScores[0]))
+              .append(", Green=").append(String.format("%.2f", leftScores[1])).append("\n");
         }
 
-        double[] secondaryScores = getSecondaryColorScores();
-        if (secondaryScores != null) {
-            sb.append("  secondaryScores: Purple=").append(String.format("%.2f", secondaryScores[0]))
-              .append(", Green=").append(String.format("%.2f", secondaryScores[1]));
+        double[] rightScores = getRightColorScores();
+        if (rightScores != null) {
+            sb.append("  rightScores: Purple=").append(String.format("%.2f", rightScores[0]))
+              .append(", Green=").append(String.format("%.2f", rightScores[1])).append("\n");
+        }
+
+        // Add multiple artifact detection
+        sb.append("  multipleArtifacts: ");
+        if (multipleDifferentColorsDetected) {
+            sb.append("✓ DIFFERENT COLORS (reliable)");
+        } else if (multipleSameColorDetected) {
+            sb.append("⚠ SAME COLOR (less reliable)");
+        } else {
+            sb.append("✗ SINGLE OR NONE");
         }
 
         return sb.toString();
