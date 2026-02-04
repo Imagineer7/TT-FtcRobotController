@@ -1096,6 +1096,24 @@ public class BasicIndexingHelper {
     }
 
     /**
+     * Get front roller motor encoder position
+     * @return Current encoder position in ticks
+     */
+    public int getFrontRollerPosition() {
+        if (frontRollerMotor == null) return 0;
+        return frontRollerMotor.getCurrentPosition();
+    }
+
+    /**
+     * Get back roller motor encoder position
+     * @return Current encoder position in ticks
+     */
+    public int getBackRollerPosition() {
+        if (backRollerMotor == null) return 0;
+        return backRollerMotor.getCurrentPosition();
+    }
+
+    /**
      * Get comprehensive status telemetry
      */
     public void addTelemetry() {
@@ -1133,17 +1151,17 @@ public class BasicIndexingHelper {
     private String currentTransferType = "NONE";
 
     // Pre-positioning constants
-    private static final long PREPOSITION_DURATION_MS = 600;
-    private static final long UN_PREPOSITION_DURATION_MS = 800;
+    private static final long PREPOSITION_DURATION_MS = 100;  // 100ms for pre-positioning
+    private static final long UN_PREPOSITION_DURATION_MS = 150;  // 150ms for un-pre-positioning
     private static final double PREPOSITION_POWER = 1.0;
     private static final double UN_PREPOSITION_POWER = -1.0;
 
     // Transfer constants
-    private static final long DEFAULT_TRANSFER_DURATION_MS = 2500;  // 2.5 seconds
+    private static final long DEFAULT_TRANSFER_DURATION_MS = 2000;  // 2.0 seconds
 
     /**
      * Pre-position artifacts in uptake servos
-     * Runs uptake servos forward for 400ms to position artifacts for shooting
+     * Runs uptake servos forward for 100ms to position artifacts for shooting
      */
     public void prePositionArtifacts() {
         if (!enabled) return;
@@ -1153,7 +1171,7 @@ public class BasicIndexingHelper {
 
     /**
      * Un-pre-position artifacts in uptake servos
-     * Runs uptake servos in reverse for 500ms to clear the uptake area
+     * Runs uptake servos in reverse for 150ms to clear the uptake area
      */
     public void unPrePositionArtifacts() {
         if (!enabled) return;
@@ -1174,9 +1192,9 @@ public class BasicIndexingHelper {
      * Automatically handles un-pre-positioning before and pre-positioning after
      *
      * Sequence:
-     * 1. Un-pre-position uptake (500ms)
+     * 1. Un-pre-position uptake (150ms)
      * 2. Run front intake + injectors (durationMs)
-     * 3. Pre-position uptake (400ms)
+     * 3. Pre-position uptake (100ms)
      *
      * @param durationMs Duration to run intake and injectors (default: 2500ms)
      */
@@ -1215,9 +1233,9 @@ public class BasicIndexingHelper {
      * Automatically handles un-pre-positioning before and pre-positioning after
      *
      * Sequence:
-     * 1. Un-pre-position uptake (500ms)
+     * 1. Un-pre-position uptake (150ms)
      * 2. Run back intake + injectors (durationMs)
-     * 3. Pre-position uptake (400ms)
+     * 3. Pre-position uptake (100ms)
      *
      * @param durationMs Duration to run intake and injectors (default: 2500ms)
      */
@@ -1252,6 +1270,66 @@ public class BasicIndexingHelper {
     }
 
     /**
+     * Simple transfer from front intake to center WITHOUT positioning
+     * Use this for regular transfers (not firing).
+     * Runs rollers, transfer servos, and injectors at full power.
+     *
+     * @param durationMs Duration to run hardware
+     */
+    public void transferFrontIntakeToCenterSimple(long durationMs) {
+        if (!enabled) return;
+
+        // Run front intake roller at full power
+        setFrontRollerTimed(1.0, durationMs);
+
+        // Run front transfer servo at full power (forward to push to center)
+        setFrontTransferTimed(-1.0, durationMs);
+
+        // Run injectors at full power
+        setInjectorLeftTimed(1.0, durationMs);
+        setInjectorRightTimed(-1.0, durationMs);
+
+        Dbg.d(LogGroup.TRANSFER, "Simple transfer FRONT → CENTER (%dms, full power: roller+transfer+injectors)", durationMs);
+    }
+
+    /**
+     * Simple transfer from front intake to center WITHOUT positioning (default duration)
+     */
+    public void transferFrontIntakeToCenterSimple() {
+        transferFrontIntakeToCenterSimple(DEFAULT_TRANSFER_DURATION_MS);
+    }
+
+    /**
+     * Simple transfer from back intake to center WITHOUT positioning
+     * Use this for regular transfers (not firing).
+     * Runs rollers, transfer servos, and injectors at full power.
+     *
+     * @param durationMs Duration to run hardware
+     */
+    public void transferBackIntakeToCenterSimple(long durationMs) {
+        if (!enabled) return;
+
+        // Run back intake roller at full power
+        setBackRollerTimed(1.0, durationMs);
+
+        // Run back transfer servo at full power (forward to push to center)
+        setBackTransferTimed(-1.0, durationMs);
+
+        // Run injectors at full power
+        setInjectorLeftTimed(-1.0, durationMs);
+        setInjectorRightTimed(1.0, durationMs);
+
+        Dbg.d(LogGroup.TRANSFER, "Simple transfer BACK → CENTER (%dms, full power: roller+transfer+injectors)", durationMs);
+    }
+
+    /**
+     * Simple transfer from back intake to center WITHOUT positioning (default duration)
+     */
+    public void transferBackIntakeToCenterSimple() {
+        transferBackIntakeToCenterSimple(DEFAULT_TRANSFER_DURATION_MS);
+    }
+
+    /**
      * Start manual transfer from front intake to center
      * Automatically un-pre-positions before starting
      * Call with button state every loop
@@ -1277,16 +1355,17 @@ public class BasicIndexingHelper {
                 currentTransferType = "FRONT_MANUAL";
 
                 // Un-pre-position first
-                //unPrePositionArtifacts(); //disabled for now. same for other manual transfer
+                unPrePositionArtifacts();
                 telemetry.addData("Transfer", "Front manual - Un-prepositioning");
             } else if (currentTransferType.equals("FRONT_MANUAL")) {
                 // Only proceed if this is OUR transfer
                 if (transferSequenceState == TransferSequenceState.UN_PREPOSITIONING) {
-                    // Skip un-pre-positioning (it's disabled) and go directly to transferring
-                    // This allows transfers to work even while uptake servos are running during firing
-                    transferSequenceState = TransferSequenceState.TRANSFERRING;
-                    telemetry.addData("Transfer", "Front manual - Transferring");
-                    Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.TRANSFERRING");
+                    // Wait for un-pre-positioning to complete
+                    if (!isUptakeBusy()) {
+                        transferSequenceState = TransferSequenceState.TRANSFERRING;
+                        telemetry.addData("Transfer", "Front manual - Transferring");
+                        Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.TRANSFERRING");
+                    }
                 } else if (transferSequenceState == TransferSequenceState.TRANSFERRING) {
                     // Run intake and injectors while button is held
                     runFrontIntake(true, 1.0);
@@ -1308,7 +1387,7 @@ public class BasicIndexingHelper {
 
                     // Start pre-positioning
                     transferSequenceState = TransferSequenceState.PREPOSITIONING;
-                    //prePositionArtifacts();
+                    prePositionArtifacts();
                     telemetry.addData("Transfer", "Front manual - Pre-positioning");
                     Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.PREPOSITIONING");
                 } else if (transferSequenceState == TransferSequenceState.PREPOSITIONING) {
@@ -1355,17 +1434,18 @@ public class BasicIndexingHelper {
                 currentTransferType = "BACK_MANUAL";
 
                 // Un-pre-position first
-                //unPrePositionArtifacts();
+                unPrePositionArtifacts();
                 telemetry.addData("Transfer", "Back manual - Un-prepositioning");
                 Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.UN_PREPOSITIONING");
             } else if (currentTransferType.equals("BACK_MANUAL")) {
                 // Only proceed if this is OUR transfer
                 if (transferSequenceState == TransferSequenceState.UN_PREPOSITIONING) {
-                    // Skip un-pre-positioning (it's disabled) and go directly to transferring
-                    // This allows transfers to work even while uptake servos are running during firing
-                    transferSequenceState = TransferSequenceState.TRANSFERRING;
-                    telemetry.addData("Transfer", "Back manual - Transferring");
-                    Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.TRANSFERRING");
+                    // Wait for un-pre-positioning to complete
+                    if (!isUptakeBusy()) {
+                        transferSequenceState = TransferSequenceState.TRANSFERRING;
+                        telemetry.addData("Transfer", "Back manual - Transferring");
+                        Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.TRANSFERRING");
+                    }
                 } else if (transferSequenceState == TransferSequenceState.TRANSFERRING) {
                     // Run intake and injectors while button is held
                     runBackIntake(true, 1.0);
@@ -1387,7 +1467,7 @@ public class BasicIndexingHelper {
 
                     // Start pre-positioning
                     transferSequenceState = TransferSequenceState.PREPOSITIONING;
-                    //prePositionArtifacts();
+                    prePositionArtifacts();
                     telemetry.addData("Transfer", "Back manual - Pre-positioning");
                     Dbg.d(LogGroup.TRANSFER, "TransferSequenceState.PREPOSITIONING");
                 } else if (transferSequenceState == TransferSequenceState.PREPOSITIONING) {

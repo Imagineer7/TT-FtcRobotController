@@ -75,16 +75,30 @@ public class VisionCorrector {
         }
         
         // Convert to 2D measurement
-        // Apply 180-degree rotation to correct field orientation
-        double rawX = visionPose3D.getPosition().x;
-        double rawY = visionPose3D.getPosition().y;
-        double rotatedX = -rawX;  // Flip X
-        double rotatedY = -rawY;  // Flip Y
-        
+        // CRITICAL: Limelight returns position in METERS, convert to MILLIMETERS
+        double rawX = visionPose3D.getPosition().x * 1000.0;  // meters to mm
+        double rawY = visionPose3D.getPosition().y * 1000.0;  // meters to mm
+        double rawYaw = visionPose3D.getOrientation().getYaw(AngleUnit.RADIANS);
+
+        // COORDINATE SYSTEM ISSUE:
+        // MegaTag2 uses robot's IMU heading to determine pose. If the IMU coordinate system
+        // doesn't match Limelight's AprilTag field coordinate system, MegaTag2 will compute
+        // the wrong position (rotated ~90° from actual).
+        //
+        // The fix is NOT to rotate the output, but to ensure:
+        // 1. IMU is configured with correct orientation (Logo/USB facing directions)
+        // 2. Limelight's AprilTag field layout matches FTC coordinate system
+        // 3. Both systems agree on what heading=0° means
+        //
+        // For now, using raw values to diagnose the actual transformation needed
+        double transformedX = rawX;  // No transformation yet
+        double transformedY = rawY;
+        double transformedYaw = rawYaw;
+
         RobotPose2D measurement = new RobotPose2D(
-            rotatedX,
-            rotatedY,
-            visionPose3D.getOrientation().getYaw(AngleUnit.RADIANS)
+            transformedX,
+            transformedY,
+            transformedYaw
         );
         measurement.timestamp = System.currentTimeMillis();  // Vision is "now"
         

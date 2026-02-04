@@ -172,6 +172,25 @@ public class ShotPlanningCoordinator {
     }
 
     /**
+     * Get desired color for center slot based on shot plan.
+     * Returns the color that would maximize shot plan score if in center.
+     *
+     * @return Desired center color, or null if no plan active
+     */
+    public ArtifactIdentity.ColorClass getDesiredCenterColor() {
+        if (!planActive) return null;
+
+        List<ArtifactIdentity> plan = planner.getShotPlan();
+        if (plan.isEmpty() || shotsFired >= plan.size()) {
+            return null;  // No more shots in plan
+        }
+
+        // Next artifact to fire should be in center
+        ArtifactIdentity nextArtifact = plan.get(shotsFired);
+        return nextArtifact.getColorClass();
+    }
+
+    /**
      * Get current shot plan as string for telemetry
      */
     public String getShotPlanString() {

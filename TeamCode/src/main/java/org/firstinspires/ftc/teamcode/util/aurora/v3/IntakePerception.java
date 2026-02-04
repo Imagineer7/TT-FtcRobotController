@@ -5,6 +5,8 @@ import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
+import org.firstinspires.ftc.teamcode.util.debug.Dbg;
+import org.firstinspires.ftc.teamcode.util.debug.LogGroup;
 
 /**
  * IntakePerception - Sensor fusion for a single intake (front or back)
@@ -305,10 +307,12 @@ public class IntakePerception {
     /**
      * Update color sensors and check for high-confidence artifact detection
      * Uses color classification logic from IndexingConfig
+     * Color detection is now GATED by proximity - prevents false positives from high-gain sensors
      */
     private void updateColorSensors() {
-        colorSeesArtifact_left = checkColorSensor(leftColorSensor);
-        colorSeesArtifact_right = checkColorSensor(rightColorSensor);
+        // Color sensors only contribute when proximity confirms physical presence
+        colorSeesArtifact_left = checkColorSensorWithProximity(leftColorSensor, leftProximityDetected);
+        colorSeesArtifact_right = checkColorSensorWithProximity(rightColorSensor, rightProximityDetected);
 
         // Only update best color classification when sampling is enabled (at checkpoints)
         if (samplingEnabled) {
@@ -380,9 +384,18 @@ public class IntakePerception {
     }
 
     /**
-     * Check if a color sensor detects an artifact with high confidence
+     * Check if a color sensor detects an artifact with high confidence.
+     * Color detection is GATED by proximity - must have physical presence first.
+     * This prevents false positives from high-gain color sensors detecting ambient light/reflections.
+     *
+     * @param sensor Color sensor to check
+     * @param proximityDetected Whether corresponding proximity sensor detects artifact
+     * @return true if both proximity AND color confidence are high
      */
-    private boolean checkColorSensor(NormalizedColorSensor sensor) {
+    private boolean checkColorSensorWithProximity(NormalizedColorSensor sensor, boolean proximityDetected) {
+        // GATE: Color detection requires proximity confirmation
+        // Without proximity, high-gain sensors can trigger false positives from ambient conditions
+        if (!proximityDetected) return false;
         if (sensor == null) return false;
 
         try {
@@ -502,7 +515,11 @@ public class IntakePerception {
      * Detection priority:
      * 1. Left/Right REV Color V3 proximity (main detectors)
      * 2. goBILDA confirmation sensor (secondary confirmation)
-     * 3. Color confidence detection
+     * 3. Color confidence detection (GATED by proximity - prevents false positives)
+     *
+     * Note: Color detection is now gated by proximity, so colorSeesArtifact_left/right
+     * will only be true if proximity sensors also confirm physical presence.
+     * This prevents high-gain color sensors from triggering on ambient light.
      */
     private boolean getRawArtifactHint() {
         return forcedDetectionActive || 
@@ -538,6 +555,18 @@ public class IntakePerception {
         return samplingEnabled;
     }
     
+    /**
+     * Reset presence detection state.
+     * Call this after transfers/swaps to clear sensor state and prevent ghost detection.
+     * Resets debounced presence flags and timestamps to force fresh detection.
+     */
+    public void resetPresenceDetection() {
+        fastPresence = false;
+        stablePresence = false;
+        lastRawHint = false;
+        lastRawHintChangeTime = System.currentTimeMillis();
+    }
+
     /**
      * Get fast presence (30ms debounce)
      * Use this for responsive detection (e.g., triggering collection start)
@@ -628,6 +657,7 @@ public class IntakePerception {
      * Scoring calculation:
      * - Base: 0% for no sensors
      * - Each sensor adds weight (confirmation=0.15, proximities=0.25 each, colors=0.10 each)
+     * - Color detection is GATED by proximity (requires physical presence confirmation)
      * - Max total: 1.0 (all 5 sensors detecting)
      * - Provides smooth confidence scaling
      *
@@ -636,6 +666,11 @@ public class IntakePerception {
      * - 0.15-0.25: Low confidence (1 sensor)
      * - 0.40-0.60: Medium confidence (2 sensors)
      * - 0.65-1.00: High confidence (3+ sensors)
+     *
+     * Proximity Gating:
+     * - Color sensors only contribute when proximity confirms physical presence
+     * - Prevents false positives from high-gain sensors detecting ambient light
+     * - Maintains high gain for accurate color detection while ensuring reliability
      *
      * @return Presence confidence score 0.0-1.0
      */
@@ -649,7 +684,8 @@ public class IntakePerception {
         if (leftProximityDetected) score += 0.25;
         if (rightProximityDetected) score += 0.25;
 
-        // Color detection signals (less reliable, but confirms presence)
+        // Color detection signals - GATED by proximity (already enforced in checkColorSensorWithProximity)
+        // Color only adds weight when proximity confirms physical presence
         if (colorSeesArtifact_left) score += 0.10;
         if (colorSeesArtifact_right) score += 0.10;
 
@@ -1084,7 +1120,8 @@ public class IntakePerception {
 
         // Constants
         private static final double CENTER_CONFIRMATION_THRESHOLD_CM = 10.0;
-        private static final double CENTER_PROXIMITY_THRESHOLD_CM = 5.0;
+        private static final double CENTER_LEFT_PROXIMITY_THRESHOLD_CM = 6.0;   // Left sensor threshold (increased from 5.1 to account for actual positioning)
+        private static final double CENTER_RIGHT_PROXIMITY_THRESHOLD_CM = 3.5;  // Right sensor threshold
         private static final double MAX_LASER_VOLTS = 3.3;
         private static final double MAX_LASER_DISTANCE_MM = 1000.0;
         private static final long CENTER_DEBOUNCE_MS = 50;
@@ -1128,13 +1165,32 @@ public class IntakePerception {
             updateCenterConfirmation();
 
             // Update proximity sensors (REV Color V3)
+            boolean wasLeftDetecting = leftProximityDetected;
+            boolean wasRightDetecting = rightProximityDetected;
             updateCenterProximity();
+
+            // Log sensor state changes
+            if (leftProximityDetected != wasLeftDetecting) {
+                Dbg.d(LogGroup.SENSORS, "Center LEFT proximity changed: %s → %s (dist=%.2fcm)",
+                      wasLeftDetecting, leftProximityDetected, cachedLeftDistance);
+            }
+            if (rightProximityDetected != wasRightDetecting) {
+                Dbg.d(LogGroup.SENSORS, "Center RIGHT proximity changed: %s → %s (dist=%.2fcm)",
+                      wasRightDetecting, rightProximityDetected, cachedRightDistance);
+            }
 
             // Update color detection
             updateCenterColors();
 
             // Update debounced artifact presence
+            boolean wasPresent = artifactPresent;
             updateArtifactPresence();
+
+            // Log presence state changes
+            if (artifactPresent != wasPresent) {
+                Dbg.i(LogGroup.SENSORS, "Center artifact presence changed: %s → %s",
+                      wasPresent, artifactPresent);
+            }
         }
         
         /**
@@ -1149,6 +1205,7 @@ public class IntakePerception {
                     : 0.0;
             } catch (Exception e) {
                 cachedCenterVoltage = 0.0;
+                Dbg.w(LogGroup.SENSORS, "Center distance sensor read error: %s", e.getMessage());
             }
             
             // Read left proximity
@@ -1158,6 +1215,7 @@ public class IntakePerception {
                     : 999.0;
             } catch (Exception e) {
                 cachedLeftDistance = 999.0;
+                Dbg.w(LogGroup.SENSORS, "Center LEFT proximity read error: %s", e.getMessage());
             }
             
             // Read right proximity
@@ -1167,6 +1225,14 @@ public class IntakePerception {
                     : 999.0;
             } catch (Exception e) {
                 cachedRightDistance = 999.0;
+                Dbg.w(LogGroup.SENSORS, "Center RIGHT proximity read error: %s", e.getMessage());
+            }
+
+            // Log raw readings periodically (every ~500ms) for debugging
+            long now = System.currentTimeMillis();
+            if (now % 500 < 20) {
+                Dbg.d(LogGroup.SENSORS, "Center raw readings: LEFT=%.2fcm, RIGHT=%.2fcm, confirm=%.2fV",
+                      cachedLeftDistance, cachedRightDistance, cachedCenterVoltage);
             }
         }
 
@@ -1188,11 +1254,11 @@ public class IntakePerception {
         }
 
         private void updateCenterProximity() {
-            // Left sensor proximity (use cached reading)
+            // Left sensor proximity (use cached reading) - 6.0cm threshold
             if (leftColorSensor instanceof DistanceSensor) {
                 try {
                     double distCm = cachedLeftDistance;
-                    leftProximityDetected = (distCm < CENTER_PROXIMITY_THRESHOLD_CM && distCm > 0.1);
+                    leftProximityDetected = (distCm < CENTER_LEFT_PROXIMITY_THRESHOLD_CM && distCm > 0.1);
                 } catch (Exception e) {
                     leftProximityDetected = false;
                 }
@@ -1200,11 +1266,11 @@ public class IntakePerception {
                 leftProximityDetected = false;
             }
 
-            // Right sensor proximity (use cached reading)
+            // Right sensor proximity (use cached reading) - 3.5cm threshold
             if (rightColorSensor instanceof DistanceSensor) {
                 try {
                     double distCm = cachedRightDistance;
-                    rightProximityDetected = (distCm < CENTER_PROXIMITY_THRESHOLD_CM && distCm > 0.1);
+                    rightProximityDetected = (distCm < CENTER_RIGHT_PROXIMITY_THRESHOLD_CM && distCm > 0.1);
                 } catch (Exception e) {
                     rightProximityDetected = false;
                 }
@@ -1255,6 +1321,30 @@ public class IntakePerception {
          */
         public boolean isArtifactPresent() {
             return artifactPresent;
+        }
+
+        /**
+         * Check if BOTH proximity sensors detect artifact
+         * This is a stricter check for transfer completion
+         * @return true only if both left AND right proximity sensors detect
+         */
+        public boolean isBothProximitySensorsDetecting() {
+            boolean both = leftProximityDetected && rightProximityDetected;
+
+            // Log detailed state periodically (every ~200ms)
+            long now = System.currentTimeMillis();
+            if (now % 200 < 20) {  // Approximately every 200ms
+                Dbg.d(LogGroup.SENSORS, "Center sensor check: LEFT=%s (%.2fcm<%s?), RIGHT=%s (%.2fcm<%s?), BOTH=%s",
+                      leftProximityDetected ? "✓" : "✗",
+                      cachedLeftDistance,
+                      CENTER_LEFT_PROXIMITY_THRESHOLD_CM,
+                      rightProximityDetected ? "✓" : "✗",
+                      cachedRightDistance,
+                      CENTER_RIGHT_PROXIMITY_THRESHOLD_CM,
+                      both ? "✓✓ YES" : "✗ NO");
+            }
+
+            return both;
         }
 
         /**

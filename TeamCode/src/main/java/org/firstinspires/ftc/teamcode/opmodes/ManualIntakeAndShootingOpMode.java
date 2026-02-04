@@ -117,6 +117,9 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
     // AprilTag target toggle state
     private boolean targetingBlueTag = true;  // Start with Blue tag 20
 
+    // Turret mode tracking
+    private boolean turretInManualHeadingMode = false;
+
     // Button state tracking for edge detection
     private boolean lastButtonA = false;
     private boolean lastButtonB = false;

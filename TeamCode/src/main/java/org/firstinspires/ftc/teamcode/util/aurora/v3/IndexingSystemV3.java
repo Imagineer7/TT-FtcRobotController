@@ -112,6 +112,35 @@ public class IndexingSystemV3 {
     private long lastFrontAutoCollectTime = 0;
     private long lastBackAutoCollectTime = 0;
     
+    // Detection state tracking (prevents duplicate detection)
+    private static final long DETECTION_CONFIRMATION_DELAY_MS = 200;  // Wait 200ms to confirm artifact
+    private boolean frontArtifactDetected = false;
+    private boolean backArtifactDetected = false;
+    private long frontDetectionStartTime = 0;
+    private long backDetectionStartTime = 0;
+
+    // Auto-swap feature (for skip mode)
+    private boolean autoSwapEnabled = true;  // Default ON - auto-swap 2nd artifact in skip mode
+    private boolean wasAutoSwapEnabledLastCheck = true;  // Track state to prevent retroactive swaps
+
+    // Transfer cooldown (prevents ghost artifact detection after transfer)
+    private static final long TRANSFER_COOLDOWN_MS = 500;  // 500ms cooldown after transfer
+    private long lastFrontTransferTime = 0;
+    private long lastBackTransferTime = 0;
+
+    // Roller stall detection (storage mode only)
+    private static final int STALL_CHECK_COUNT = 3;  // Check 3 times before giving up
+    private static final int STALL_MOVEMENT_THRESHOLD = 10;  // Encoder ticks (very small movement = stalled)
+    private static final long STALL_CHECK_INTERVAL_MS = 100;  // Check every 100ms
+    private boolean frontRollerStalled = false;
+    private boolean backRollerStalled = false;
+    private int frontStallCheckCount = 0;
+    private int backStallCheckCount = 0;
+    private long lastFrontStallCheckTime = 0;
+    private long lastBackStallCheckTime = 0;
+    private int lastFrontRollerPosition = 0;
+    private int lastBackRollerPosition = 0;
+
     /**
      * System states for high-level coordination.
      */
@@ -311,6 +340,10 @@ public class IndexingSystemV3 {
         shotPlanner.update(ledger, manualModeActive);
         performanceMonitor.endSection("shotPlanner");
         
+        // Track auto-swap state to prevent retroactive swaps when button is released
+        // Only update tracking when button state changes to prevent swaps on already-collected artifacts
+        wasAutoSwapEnabledLastCheck = autoSwapEnabled;
+
         // Update system state
         updateSystemState();
         
@@ -358,6 +391,9 @@ public class IndexingSystemV3 {
         // This allows artifacts to be pulled in during hunt mode
         updateHuntingRollers();
         
+        // Check for roller stalls in storage mode (non-blocking)
+        checkRollerStalls(System.currentTimeMillis());
+
         // Hunt mode: Run transfer servos in reverse for hunt-eligible intakes
         // This creates a "jiggling" effect that rotates artifacts slightly
         // Helps prevent sensor blind spots from holes in artifacts
@@ -424,8 +460,9 @@ public class IndexingSystemV3 {
     
     /**
      * Control intake rollers during hunt mode.
-     * Hunt-eligible intakes run rollers at collect power.
-     * Non-hunt-eligible intakes stop rollers (unless holding artifact).
+     * Hunt-eligible intakes run rollers at 0.6 power.
+     * Non-hunt-eligible intakes stop rollers (unless holding artifact at 0.3 power).
+     * Storage mode includes stall detection - if rollers don't move, stop trying.
      */
     private void updateHuntingRollers() {
         // Issue 2 Fix: Don't control hardware if operation is running
@@ -433,28 +470,53 @@ public class IndexingSystemV3 {
             return;  // Operations have exclusive control
         }
         
+        final double HUNT_ROLLER_POWER = 0.6;     // Hunt mode roller power
+        final double STORAGE_ROLLER_POWER = 0.3;  // Storage mode hold power
+
         // Front intake roller control
         if (isIntakeHuntEligible(SlotLedger.Slot.FRONT)) {
-            // Hunt-eligible: run roller at collect power
-            indexingHelper.setFrontRollerPower(config.getIntakeRollerPower());
+            // Hunt-eligible: run roller at hunt power (0.6)
+            indexingHelper.setFrontRollerPower(HUNT_ROLLER_POWER);
         } else if (ledger.isOccupied(SlotLedger.Slot.FRONT)) {
-            // Storage intake: run at hold power to retain artifact
-            indexingHelper.setFrontRollerPower(config.getIntakeStoragePower());
+            // Storage intake: run at hold power UNLESS stalled
+            if (!frontRollerStalled) {
+                indexingHelper.setFrontRollerPower(STORAGE_ROLLER_POWER);
+            } else {
+                // Stalled - stop trying
+                indexingHelper.setFrontRollerPower(0);
+                Dbg.d(LogGroup.INTAKE, "FRONT roller stalled in storage mode, stopped");
+            }
         } else {
-            // Not hunt-eligible and empty: stop roller
+            // Not hunt-eligible and empty: stop roller and reset stall flag
             indexingHelper.setFrontRollerPower(0);
+            if (frontRollerStalled) {
+                frontRollerStalled = false;
+                frontStallCheckCount = 0;
+                Dbg.d(LogGroup.INTAKE, "FRONT intake empty, stall flag reset");
+            }
         }
         
         // Back intake roller control
         if (isIntakeHuntEligible(SlotLedger.Slot.BACK)) {
-            // Hunt-eligible: run roller at collect power
-            indexingHelper.setBackRollerPower(config.getIntakeRollerPower());
+            // Hunt-eligible: run roller at hunt power (0.6)
+            indexingHelper.setBackRollerPower(HUNT_ROLLER_POWER);
         } else if (ledger.isOccupied(SlotLedger.Slot.BACK)) {
-            // Storage intake: run at hold power to retain artifact
-            indexingHelper.setBackRollerPower(config.getIntakeStoragePower());
+            // Storage intake: run at hold power UNLESS stalled
+            if (!backRollerStalled) {
+                indexingHelper.setBackRollerPower(STORAGE_ROLLER_POWER);
+            } else {
+                // Stalled - stop trying
+                indexingHelper.setBackRollerPower(0);
+                Dbg.d(LogGroup.INTAKE, "BACK roller stalled in storage mode, stopped");
+            }
         } else {
-            // Not hunt-eligible and empty: stop roller
+            // Not hunt-eligible and empty: stop roller and reset stall flag
             indexingHelper.setBackRollerPower(0);
+            if (backRollerStalled) {
+                backRollerStalled = false;
+                backStallCheckCount = 0;
+                Dbg.d(LogGroup.INTAKE, "BACK intake empty, stall flag reset");
+            }
         }
     }
     
@@ -462,26 +524,36 @@ public class IndexingSystemV3 {
      * Stop hunt-mode rollers.
      * Called when operations take control.
      */
+    /**
+     * Stop hunt-mode rollers.
+     * Called when operations take control.
+     *
+     * CRITICAL: When operations are running, DO NOT touch the rollers!
+     * Operations have exclusive control and set roller powers directly every loop.
+     * If we set them to 0 here, we'll fight with the operation and cause intermittent behavior.
+     *
+     * This method is now a NO-OP - operations control hardware, we don't interfere.
+     */
     private void stopHuntingRollers() {
-        // Only stop if not busy with timed movements
-        if (!indexingHelper.isFrontRollerBusy()) {
-            indexingHelper.setFrontRollerPower(0);
-        }
-        if (!indexingHelper.isBackRollerBusy()) {
-            indexingHelper.setBackRollerPower(0);
-        }
+        // DO NOTHING - let operations have exclusive control
+        // Previously, this was setting rollers to 0, which fought with operation control
     }
     
     /**
      * Control transfer servos for hunt mode.
      * 
-     * When hunt-eligible (waiting to collect), run transfer servos in reverse.
-     * This creates a back-and-forth motion with the roller that rotates the artifact slightly,
-     * helping prevent holes in the artifact from lining up with sensors (blind spots).
-     * 
-     * Reverse power means the servo pushes artifact away from center (eject direction).
-     * Combined with forward roller motion, this creates a "jiggling" effect.
-     * 
+     * When hunt-eligible (waiting to collect), run transfer servos FORWARD at moderate speed.
+     * This helps guide artifacts toward center and keeps them from sitting in the intake.
+     * The forward motion (toward center) combined with roller motion helps position
+     * artifacts for better sensor detection.
+     *
+     * Forward power means the servo gently pushes artifact toward center.
+     * Combined with roller motion, this helps maintain artifact position.
+     *
+     * Power is adjusted based on system state:
+     * - No artifacts (0/3): Full power (-0.35) for aggressive collection
+     * - Has artifacts (1-2/3): Reduced power (-0.2) for gentler handling
+     *
      * IMPORTANT: Only applies hunt-mode power when no timed movement is active.
      * Operations use timed movements for transfers, and we must not interfere.
      */
@@ -491,24 +563,29 @@ public class IndexingSystemV3 {
             return;  // Operations have exclusive control
         }
         
-        // Power for reverse motion (negative = eject direction)
-        // Lower value (-0.3 to -0.4) creates gentle jiggling without ejecting artifact
-        final double HUNT_TRANSFER_REVERSE_POWER = 0.35;
-        
-        // Front intake: run transfer servo in reverse if hunt-eligible
+        // Power for forward motion (negative = forward toward center)
+        // Adjust power based on whether system already has artifacts
+        final double HUNT_TRANSFER_FULL_POWER = -0.35;    // When system empty (0 artifacts)
+        final double HUNT_TRANSFER_REDUCED_POWER = -0.2;  // When system has artifacts (1-2 artifacts)
+
+        // Select power based on current artifact count
+        boolean hasArtifacts = ledger.getArtifactCount() > 0;
+        double huntTransferPower = hasArtifacts ? HUNT_TRANSFER_REDUCED_POWER : HUNT_TRANSFER_FULL_POWER;
+
+        // Front intake: run transfer servo forward if hunt-eligible
         // BUT: Don't interfere if operation has active timed movement
         if (isIntakeHuntEligible(SlotLedger.Slot.FRONT) && !indexingHelper.isFrontTransferBusy()) {
-            indexingHelper.setFrontTransferPower(HUNT_TRANSFER_REVERSE_POWER);
+            indexingHelper.setFrontTransferPower(huntTransferPower);
         } else if (!indexingHelper.isFrontTransferBusy()) {
             // Not hunt-eligible and no operation: stop transfer servo
             // (If operation is busy, let it control the servo)
             indexingHelper.setFrontTransferPower(0);
         }
         
-        // Back intake: run transfer servo in reverse if hunt-eligible
+        // Back intake: run transfer servo forward if hunt-eligible
         // BUT: Don't interfere if operation has active timed movement
         if (isIntakeHuntEligible(SlotLedger.Slot.BACK) && !indexingHelper.isBackTransferBusy()) {
-            indexingHelper.setBackTransferPower(HUNT_TRANSFER_REVERSE_POWER);
+            indexingHelper.setBackTransferPower(huntTransferPower);
         } else if (!indexingHelper.isBackTransferBusy()) {
             // Not hunt-eligible and no operation: stop transfer servo
             // (If operation is busy, let it control the servo)
@@ -520,17 +597,16 @@ public class IndexingSystemV3 {
      * Stop hunt-mode transfer servos.
      * Called when operations take control of servos.
      * 
-     * Only stops servos if they don't have active timed movements.
-     * Operations use timed movements, so we respect those.
+     * CRITICAL: When operations are running, DO NOT touch the servos at all!
+     * Operations have exclusive control and set servo powers directly every loop.
+     * If we set them to 0 here, we'll fight with the operation and cause intermittent behavior.
+     *
+     * This method is now a NO-OP - operations control servos, we don't interfere.
      */
     private void stopHuntingTransferServos() {
-        // Only stop if no timed movement is active
-        if (!indexingHelper.isFrontTransferBusy()) {
-            indexingHelper.setFrontTransferPower(0);
-        }
-        if (!indexingHelper.isBackTransferBusy()) {
-            indexingHelper.setBackTransferPower(0);
-        }
+        // DO NOTHING - let operations have exclusive control
+        // Previously, this was setting servos to 0, which fought with operation control
+        // and caused intermittent servo behavior (run, stop, run, stop pattern)
     }
     
     /**
@@ -573,6 +649,73 @@ public class IndexingSystemV3 {
         return true;  // Eligible to hunt!
     }
     
+    /**
+     * Check for roller stalls in storage mode.
+     * If rollers don't move when power is applied, mark as stalled after 3 checks.
+     * Only monitors intakes in storage mode (occupied but not hunt-eligible).
+     * Non-blocking check every 100ms.
+     */
+    private void checkRollerStalls(long currentTime) {
+        // Only check in storage mode (not during operations)
+        if (runner.isBusy()) return;
+
+        // Check FRONT roller if in storage mode
+        if (ledger.isOccupied(SlotLedger.Slot.FRONT) && !isIntakeHuntEligible(SlotLedger.Slot.FRONT) && !frontRollerStalled) {
+            if ((currentTime - lastFrontStallCheckTime) >= STALL_CHECK_INTERVAL_MS) {
+                // Time to check
+                int currentPosition = indexingHelper.getFrontRollerPosition();
+                int movement = Math.abs(currentPosition - lastFrontRollerPosition);
+
+                if (movement < STALL_MOVEMENT_THRESHOLD) {
+                    // Not moving enough - increment stall count
+                    frontStallCheckCount++;
+                    Dbg.d(LogGroup.INTAKE, "FRONT roller stall check %d/%d (movement=%d ticks)",
+                          frontStallCheckCount, STALL_CHECK_COUNT, movement);
+
+                    if (frontStallCheckCount >= STALL_CHECK_COUNT) {
+                        // Stalled after multiple checks
+                        frontRollerStalled = true;
+                        Dbg.w(LogGroup.INTAKE, "FRONT roller STALLED in storage mode (no movement detected)");
+                    }
+                } else {
+                    // Moving - reset stall count
+                    frontStallCheckCount = 0;
+                }
+
+                lastFrontRollerPosition = currentPosition;
+                lastFrontStallCheckTime = currentTime;
+            }
+        }
+
+        // Check BACK roller if in storage mode
+        if (ledger.isOccupied(SlotLedger.Slot.BACK) && !isIntakeHuntEligible(SlotLedger.Slot.BACK) && !backRollerStalled) {
+            if ((currentTime - lastBackStallCheckTime) >= STALL_CHECK_INTERVAL_MS) {
+                // Time to check
+                int currentPosition = indexingHelper.getBackRollerPosition();
+                int movement = Math.abs(currentPosition - lastBackRollerPosition);
+
+                if (movement < STALL_MOVEMENT_THRESHOLD) {
+                    // Not moving enough - increment stall count
+                    backStallCheckCount++;
+                    Dbg.d(LogGroup.INTAKE, "BACK roller stall check %d/%d (movement=%d ticks)",
+                          backStallCheckCount, STALL_CHECK_COUNT, movement);
+
+                    if (backStallCheckCount >= STALL_CHECK_COUNT) {
+                        // Stalled after multiple checks
+                        backRollerStalled = true;
+                        Dbg.w(LogGroup.INTAKE, "BACK roller STALLED in storage mode (no movement detected)");
+                    }
+                } else {
+                    // Moving - reset stall count
+                    backStallCheckCount = 0;
+                }
+
+                lastBackRollerPosition = currentPosition;
+                lastBackStallCheckTime = currentTime;
+            }
+        }
+    }
+
     /**
      * Handle operation completion.
      */
@@ -792,49 +935,11 @@ public class IndexingSystemV3 {
             }
         }
         
-        // Auto-collect ONLY if hunt mode enabled, intake eligible, AND presence confidence is sufficient
-        // CRITICAL: Require HIGH confidence normally to prevent false positives (hands, etc.)
-        // However, when skip mode is ON, color sensors aren't updated, so accept MEDIUM confidence
-        // HIGH = 3+ sensors agree, MEDIUM = 2 sensors agree
-        if (huntEnabled && isIntakeHuntEligible(SlotLedger.Slot.FRONT) && 
-            frontPerception.getFastPresence() &&
-            (currentTime - lastFrontAutoCollectTime) >= AUTO_COLLECT_COOLDOWN_MS) {
-            
-            // Check presence confidence
-            IntakePerception.PresenceConfidence confidence = frontPerception.getPresenceConfidence();
-            IntakePerception.PresenceConfidence requiredConfidence = skipColorDetection ? 
-                IntakePerception.PresenceConfidence.MEDIUM : IntakePerception.PresenceConfidence.HIGH;
-            
-            if (confidence.ordinal() >= requiredConfidence.ordinal()) {
-                if (requestCollect(SlotLedger.Slot.FRONT)) {
-                    lastFrontAutoCollectTime = currentTime;
-                    Dbg.d(LogGroup.INTAKE, "Auto-collect FRONT (confidence=%s, required=%s)", confidence, requiredConfidence);
-                }
-            } else {
-                // Not sufficient confidence - skip
-                Dbg.d(LogGroup.INTAKE, "Skipping FRONT auto-collect (confidence=%s, required=%s)", confidence, requiredConfidence);
-            }
-        }
-        if (huntEnabled && isIntakeHuntEligible(SlotLedger.Slot.BACK) && 
-            backPerception.getFastPresence() &&
-            (currentTime - lastBackAutoCollectTime) >= AUTO_COLLECT_COOLDOWN_MS) {
-            
-            // Check presence confidence
-            IntakePerception.PresenceConfidence confidence = backPerception.getPresenceConfidence();
-            IntakePerception.PresenceConfidence requiredConfidence = skipColorDetection ? 
-                IntakePerception.PresenceConfidence.MEDIUM : IntakePerception.PresenceConfidence.HIGH;
-            
-            if (confidence.ordinal() >= requiredConfidence.ordinal()) {
-                if (requestCollect(SlotLedger.Slot.BACK)) {
-                    lastBackAutoCollectTime = currentTime;
-                    Dbg.d(LogGroup.INTAKE, "Auto-collect BACK (confidence=%s, required=%s)", confidence, requiredConfidence);
-                }
-            } else {
-                // Not sufficient confidence - skip
-                Dbg.d(LogGroup.INTAKE, "Skipping BACK auto-collect (confidence=%s, required=%s)", confidence, requiredConfidence);
-            }
-        }
-        
+        // Auto-detect and handle artifacts in intakes
+        // Detection is separate from collection to prevent duplicates
+        handleIntakeDetection(SlotLedger.Slot.FRONT, frontPerception, currentTime);
+        handleIntakeDetection(SlotLedger.Slot.BACK, backPerception, currentTime);
+
         // Auto-rearrange if shot planner detects benefit
         if (shotPlanner.isRearrangementNeeded() && ledger.getArtifactCount() == 2) {
             SlotLedger.Slot swapSlot = shotPlanner.getRearrangementSlot();
@@ -844,6 +949,245 @@ public class IndexingSystemV3 {
         }
     }
     
+    // ========== Detection and Collection Logic ==========
+
+    /**
+     * Handle artifact detection in an intake.
+     * Prevents duplicate detection by tracking detection state per intake.
+     *
+     * Detection Flow:
+     * 1. Artifact detected → Start confirmation timer (200ms)
+     * 2. After confirmation delay → Add to ledger and decide next action
+     * 3. If first artifact → Transfer to center immediately
+     * 4. If second artifact → Check shot plan, swap if beneficial, else store
+     * 5. If third artifact → Store in intake (storage mode)
+     *
+     * @param slot FRONT or BACK intake
+     * @param perception IntakePerception for this intake
+     * @param currentTime Current time in milliseconds
+     */
+    private void handleIntakeDetection(SlotLedger.Slot slot, IntakePerception perception, long currentTime) {
+        if (!huntEnabled) return;  // Hunt mode OFF
+        if (!isIntakeHuntEligible(slot)) return;  // Not eligible for detection
+        if (runner.isBusy()) return;  // Operation already running
+
+        boolean isFront = (slot == SlotLedger.Slot.FRONT);
+
+        // Check if intake hardware is busy (transfer in progress)
+        if (isFront && indexingHelper.isFrontTransferBusy()) return;
+        if (!isFront && indexingHelper.isBackTransferBusy()) return;
+
+        // Check transfer cooldown (prevents ghost detection after transfer)
+        long lastTransferTime = isFront ? lastFrontTransferTime : lastBackTransferTime;
+        if ((currentTime - lastTransferTime) < TRANSFER_COOLDOWN_MS) {
+            return;  // Still in cooldown period
+        }
+
+        boolean detected = isFront ? frontArtifactDetected : backArtifactDetected;
+        long detectionStartTime = isFront ? frontDetectionStartTime : backDetectionStartTime;
+
+        // Check if artifact detected by perception
+        boolean artifactPresent = perception.getFastPresence();
+        IntakePerception.PresenceConfidence confidence = perception.getPresenceConfidence();
+        IntakePerception.PresenceConfidence requiredConfidence = skipColorDetection ?
+            IntakePerception.PresenceConfidence.MEDIUM : IntakePerception.PresenceConfidence.HIGH;
+
+        // State machine: Artifact detection → Confirmation → Collection → Transfer/Storage
+        if (!detected && artifactPresent && confidence.ordinal() >= requiredConfidence.ordinal()) {
+            // NEW DETECTION: Start confirmation timer
+            if (isFront) {
+                frontArtifactDetected = true;
+                frontDetectionStartTime = currentTime;
+            } else {
+                backArtifactDetected = true;
+                backDetectionStartTime = currentTime;
+            }
+            Dbg.d(LogGroup.INTAKE, "%s: Artifact detected, starting confirmation (conf=%s)", slot, confidence);
+        } else if (detected) {
+            // DETECTION IN PROGRESS: Check confirmation timer
+            long elapsedSinceDetection = currentTime - detectionStartTime;
+
+            if (!artifactPresent || confidence.ordinal() < requiredConfidence.ordinal()) {
+                // Lost detection - reset
+                if (isFront) {
+                    frontArtifactDetected = false;
+                } else {
+                    backArtifactDetected = false;
+                }
+                Dbg.d(LogGroup.INTAKE, "%s: Lost detection, resetting", slot);
+            } else if (elapsedSinceDetection >= DETECTION_CONFIRMATION_DELAY_MS || skipColorDetection) {
+                // CONFIRMED: Handle collection
+                if (skipColorDetection) {
+                    // Skip mode: collect immediately without color detection
+                    handleArtifactCollection(slot, ArtifactIdentity.ColorClass.UNKNOWN, currentTime);
+                } else {
+                    // Normal mode: sample color first
+                    // CRITICAL: Enable color sampling before reading!
+                    perception.enableColorSampling();
+                    perception.update();  // Update to get fresh sensor readings
+
+                    ArtifactIdentity.ColorClass color = perception.getBestColorClass();
+                    double colorConfidence = perception.getBestColorConfidence();
+
+                    // Disable color sampling after reading
+                    perception.disableColorSampling();
+
+                    Dbg.d(LogGroup.INTAKE, "%s: Color sampled: %s (conf=%.2f)", slot, color, colorConfidence);
+                    handleArtifactCollection(slot, color, currentTime);
+                }
+
+                // Reset detection state (prevents duplicate detection)
+                if (isFront) {
+                    frontArtifactDetected = false;
+                } else {
+                    backArtifactDetected = false;
+                }
+            }
+            // else: still waiting for confirmation delay
+        }
+    }
+
+    /**
+     * Handle confirmed artifact collection.
+     * Determines what to do with the artifact based on current robot state.
+     *
+     * Logic:
+     * - If 3 artifacts → Ignore (system full)
+     * - If 0 artifacts → Add to ledger, transfer to center immediately
+     * - If 1 artifact (in center) → Add to ledger, check shot plan:
+     *   - If center needs swapping → Swap
+     *   - Else → Store in intake
+     * - If 2 artifacts → Add to ledger, store in intake (storage mode)
+     *
+     * @param slot FRONT or BACK intake
+     * @param color Detected color (or UNKNOWN if skip mode)
+     * @param currentTime Current time in milliseconds
+     */
+    private void handleArtifactCollection(SlotLedger.Slot slot, ArtifactIdentity.ColorClass color, long currentTime) {
+        int currentCount = ledger.getArtifactCount();
+
+        // Check if system full
+        if (currentCount >= 3) {
+            Dbg.d(LogGroup.INTAKE, "%s: System full (3 artifacts), ignoring detection", slot);
+            return;
+        }
+
+        // Add artifact to ledger immediately
+        ArtifactIdentity artifact = ArtifactIdentity.createFromSensor(color, 1.0, nextSequenceId++);
+        ledger.set(slot, artifact);
+        totalCollections++;
+        Dbg.i(LogGroup.INTAKE, "%s: Artifact added to ledger (%s, id=%d)", slot, color, artifact.getSequenceId());
+
+        // Decide next action based on current state
+        if (currentCount == 0) {
+            // FIRST ARTIFACT: Transfer to center immediately
+            Dbg.i(LogGroup.INTAKE, "%s: First artifact, transferring to center", slot);
+
+            // Start transfer cooldown to prevent ghost detection
+            if (slot == SlotLedger.Slot.FRONT) {
+                lastFrontTransferTime = currentTime;
+            } else {
+                lastBackTransferTime = currentTime;
+            }
+
+            // Reset perception to clear sensor state before transfer
+            IntakePerception perception = (slot == SlotLedger.Slot.FRONT) ? frontPerception : backPerception;
+            perception.resetPresenceDetection();
+
+            requestTransfer(slot);
+        } else if (currentCount == 1) {
+            // SECOND ARTIFACT: Decide behavior based on skip mode and auto-swap setting
+
+            // Auto-swap feature for skip mode: When enabled, 2nd artifact pushes 1st to opposite intake
+            if (skipColorDetection && autoSwapEnabled && wasAutoSwapEnabledLastCheck && ledger.isCenterOccupied()) {
+                // AUTO-SWAP MODE: Push 1st artifact (in CENTER) to opposite intake from 2nd artifact
+                // This allows rapid collection: 1st → CENTER, 2nd collected → swap → 2nd in CENTER, 1st in opposite
+                Dbg.i(LogGroup.INTAKE, "%s: Auto-swap enabled (skip mode), swapping 2nd artifact to center", slot);
+
+                // Start transfer cooldown for swap operation
+                if (slot == SlotLedger.Slot.FRONT) {
+                    lastFrontTransferTime = currentTime;
+                } else {
+                    lastBackTransferTime = currentTime;
+                }
+
+                // Reset perception before swap
+                IntakePerception perception = (slot == SlotLedger.Slot.FRONT) ? frontPerception : backPerception;
+                perception.resetPresenceDetection();
+
+                // Request swap: 2nd artifact (in slot) ↔ 1st artifact (in CENTER)
+                // Result: 2nd → CENTER, 1st → opposite intake (automatic by SwapOperation)
+                requestSwap(slot);
+
+            } else if (ledger.isCenterOccupied() && !skipColorDetection) {
+                // NORMAL MODE: Check shot plan to see if we want a different color in center
+                ArtifactIdentity centerArtifact = ledger.getCenter();
+                ArtifactIdentity.ColorClass desiredCenterColor = shotPlanner.getDesiredCenterColor();
+
+                if (desiredCenterColor != null &&
+                    centerArtifact.getColorClass() != desiredCenterColor &&
+                    artifact.getColorClass() == desiredCenterColor) {
+                    // Beneficial swap: new artifact is what we want in center
+                    Dbg.i(LogGroup.INTAKE, "%s: Beneficial swap detected (want %s, have %s), swapping",
+                          slot, desiredCenterColor, centerArtifact.getColorClass());
+
+                    // Start transfer cooldown for swap operation
+                    if (slot == SlotLedger.Slot.FRONT) {
+                        lastFrontTransferTime = currentTime;
+                    } else {
+                        lastBackTransferTime = currentTime;
+                    }
+
+                    // Reset perception before swap
+                    IntakePerception perception = (slot == SlotLedger.Slot.FRONT) ? frontPerception : backPerception;
+                    perception.resetPresenceDetection();
+
+                    requestSwap(slot);
+                } else {
+                    // No swap needed: store in intake
+                    Dbg.i(LogGroup.INTAKE, "%s: Second artifact, storing in intake (no beneficial swap)", slot);
+                    setIntakeStorageMode(slot, true);
+                }
+            } else {
+                // Skip mode with auto-swap OFF, or center not occupied: just store
+                String reason = !autoSwapEnabled ? "auto-swap disabled" :
+                               !skipColorDetection ? "not skip mode" : "center empty";
+                Dbg.i(LogGroup.INTAKE, "%s: Second artifact, storing in intake (%s)", slot, reason);
+                setIntakeStorageMode(slot, true);
+            }
+        } else {
+            // THIRD ARTIFACT: Store in intake (storage mode)
+            Dbg.i(LogGroup.INTAKE, "%s: Third artifact, storing in intake (storage mode)", slot);
+            setIntakeStorageMode(slot, true);
+        }
+    }
+
+    /**
+     * Set intake storage mode (run rollers at hold power to retain artifact).
+     *
+     * @param slot FRONT or BACK intake
+     * @param storageMode true to enable storage mode, false to disable
+     */
+    private void setIntakeStorageMode(SlotLedger.Slot slot, boolean storageMode) {
+        if (storageMode) {
+            double storagePower = 0.3;  // Hold power for storage (reduced from 0.4)
+            if (slot == SlotLedger.Slot.FRONT) {
+                indexingHelper.setFrontRollerPower(storagePower);
+            } else {
+                indexingHelper.setBackRollerPower(storagePower);
+            }
+            Dbg.d(LogGroup.INTAKE, "%s: Storage mode enabled (power=%.1f)", slot, storagePower);
+        } else {
+            // Stop rollers
+            if (slot == SlotLedger.Slot.FRONT) {
+                indexingHelper.setFrontRollerPower(0.0);
+            } else {
+                indexingHelper.setBackRollerPower(0.0);
+            }
+            Dbg.d(LogGroup.INTAKE, "%s: Storage mode disabled", slot);
+        }
+    }
+
     // ========== Public API - Operation Requests ==========
     
     /**
@@ -875,13 +1219,29 @@ public class IndexingSystemV3 {
         if (!enabled) return false;
         if (slot == SlotLedger.Slot.CENTER) return false;  // Invalid slot
         
-        IntakePerception perception = (slot == SlotLedger.Slot.FRONT) ? frontPerception : backPerception;
-        
         TransferOperation op = new TransferOperation(
-            ledger, perception, indexingHelper, config, slot, telemetry
+            ledger, centerPerception, indexingHelper, slot, telemetry
         );
         
-        return runner.start(op);
+        boolean started = runner.start(op);
+
+        // If transfer started, set cooldown timestamp and reset perception
+        if (started) {
+            long currentTime = System.currentTimeMillis();
+            if (slot == SlotLedger.Slot.FRONT) {
+                lastFrontTransferTime = currentTime;
+                // Reset perception to prevent ghost detection
+                frontPerception.resetPresenceDetection();
+            } else {
+                lastBackTransferTime = currentTime;
+                // Reset perception to prevent ghost detection
+                backPerception.resetPresenceDetection();
+            }
+
+            Dbg.d(LogGroup.INTAKE, "%s: Transfer started, cooldown active for %dms", slot, TRANSFER_COOLDOWN_MS);
+        }
+
+        return started;
     }
     
     /**
@@ -898,7 +1258,27 @@ public class IndexingSystemV3 {
             ledger, indexingHelper, config, intakeSlot, telemetry
         );
         
-        return runner.start(op);
+        boolean started = runner.start(op);
+
+        // If swap started, set cooldown timestamp and reset perception on BOTH intakes
+        // During swap: artifact from intakeSlot goes to center, artifact from center goes to opposite
+        // Both intakes need cooldown to prevent ghost detection
+        if (started) {
+            long currentTime = System.currentTimeMillis();
+
+            // Set cooldown on BOTH intakes
+            lastFrontTransferTime = currentTime;
+            lastBackTransferTime = currentTime;
+
+            // Reset perception on BOTH intakes to prevent ghost detection
+            frontPerception.resetPresenceDetection();
+            backPerception.resetPresenceDetection();
+
+            Dbg.d(LogGroup.INTAKE, "Swap started: %s ↔ CENTER, cooldown active on BOTH intakes for %dms",
+                  intakeSlot, TRANSFER_COOLDOWN_MS);
+        }
+
+        return started;
     }
     
     /**
@@ -1170,6 +1550,41 @@ public class IndexingSystemV3 {
         return skipColorDetection;
     }
     
+    /**
+     * Set auto-swap mode (for skip mode).
+     *
+     * When enabled + skip mode ON: 2nd artifact collection automatically swaps with 1st artifact.
+     *   - 1st artifact → CENTER
+     *   - 2nd artifact collected → automatic swap → 2nd in CENTER, 1st in opposite intake
+     *   - 3rd artifact → stays in intake (storage mode)
+     *
+     * When disabled: 2nd artifact stays in its intake (normal V3 behavior).
+     *   - 1st artifact → CENTER
+     *   - 2nd artifact collected → stays in intake
+     *   - 3rd artifact → stays in intake (storage mode)
+     *
+     * NOTE: Auto-swap only works in skip mode (skipColorDetection = true).
+     *       In normal mode, shot planner controls swaps based on motif patterns.
+     *
+     * Default: ON (enabled) for rapid collection workflow.
+     *
+     * @param enabled true to enable auto-swap, false to disable
+     */
+    public void setAutoSwapEnabled(boolean enabled) {
+        this.autoSwapEnabled = enabled;
+        Dbg.i(LogGroup.INTAKE, "Auto-swap: %s", enabled ? "ON (auto-swap 2nd artifact)" : "OFF (store 2nd)");
+        telemetry.addData("Auto-Swap", enabled ? "✓ ON" : "✗ OFF");
+    }
+
+    /**
+     * Check if auto-swap mode is enabled.
+     *
+     * @return true if auto-swap ON, false if OFF
+     */
+    public boolean isAutoSwapEnabled() {
+        return autoSwapEnabled;
+    }
+
     /**
      * Enable color sampling at current checkpoint.
      * Used by operations to control when color is read.
@@ -1639,9 +2054,28 @@ public class IndexingSystemV3 {
         telemetry.addData("State", currentState);
         telemetry.addData("Enabled", enabled ? "✓" : "✗");
         telemetry.addData("Hunt Mode", huntEnabled ? "🔍 ON" : "💤 OFF");
+
+        // Show hunt mode transfer servo power (adaptive based on artifact count)
+        if (huntEnabled) {
+            int artifactCount = ledger.getArtifactCount();
+            String transferPowerInfo;
+            if (artifactCount == 0) {
+                transferPowerInfo = "Full (-0.35)";
+            } else {
+                transferPowerInfo = "Reduced (-0.2) [" + artifactCount + " artifact" + (artifactCount > 1 ? "s" : "") + "]";
+            }
+            telemetry.addData("Hunt Power", transferPowerInfo);
+        }
+
         telemetry.addData("Manual Mode", manualModeActive ? "⚠️ YES" : "No");
         telemetry.addData("Burst Firing", burstFiringActive ? "🔥 YES (" + consecutiveShotsFired + ")" : "No");
-        telemetry.addData("Last Fired", lastFiredArtifact != null ? 
+
+        // Show auto-swap status (only relevant in skip mode)
+        if (skipColorDetection) {
+            telemetry.addData("Auto-Swap", autoSwapEnabled ? "✓ ON" : "✗ OFF");
+        }
+
+        telemetry.addData("Last Fired", lastFiredArtifact != null ?
             lastFiredArtifact.getColorClass() + " " + String.format("%.0f%%", lastFiredArtifact.getColorConfidence() * 100) : "None");
         telemetry.addLine();
         

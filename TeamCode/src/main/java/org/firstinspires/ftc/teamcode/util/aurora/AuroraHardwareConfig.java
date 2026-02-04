@@ -102,14 +102,17 @@ public class AuroraHardwareConfig {
         RevHubOrientationOnRobot.UsbFacingDirection.UP;
 
     // Odometry Pod Offsets (in inches from robot center)
-    private static final double ODOMETRY_X_OFFSET = 4.71;   // Right from center
-    private static final double ODOMETRY_Y_OFFSET = -6.62;  // Forward from center
+    // CRITICAL: These MUST match Localization.java values (201.857mm = 7.947", 0mm = 0.0")
+    // X offset = sideways offset of forward-measuring pod (left is positive)
+    // Y offset = forward offset of strafe-measuring pod (forward is positive)
+    private static final double ODOMETRY_X_OFFSET = 7.947;  // Left from center (was 4.71 - WRONG!)
+    private static final double ODOMETRY_Y_OFFSET = 0.0;    // Centered forward/back (was -6.62 - WRONG!)
 
     // Odometry Pod Directions
     private static final GoBildaPinpointDriver.EncoderDirection FORWARD_POD_DIRECTION =
         GoBildaPinpointDriver.EncoderDirection.FORWARD;
     private static final GoBildaPinpointDriver.EncoderDirection STRAFE_POD_DIRECTION =
-        GoBildaPinpointDriver.EncoderDirection.REVERSED;
+        GoBildaPinpointDriver.EncoderDirection.FORWARD;
 
     // ═══════════════════════════════════════════════════════════════════════
     // HARDWARE DEVICE INSTANCES

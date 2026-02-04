@@ -47,7 +47,8 @@ import org.firstinspires.ftc.teamcode.util.debug.LogLevel;
  *   
  *   RIGHT BUMPER - Toggle hunt mode
  *   LEFT BUMPER  - Toggle fast collect mode (skip color detection)
- *   
+ *   LEFT TRIGGER - Hold to disable auto-swap (skip mode only)
+ *
  *   BACK - Eject FRONT
  *   START - Eject BACK
  * 
@@ -207,8 +208,9 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             boolean manualActive = gamepad2.dpad_left || gamepad2.dpad_right || gamepad2.dpad_up || gamepad2.dpad_down;
             indexing.setManualModeActive(manualActive);
 
-            // Update watchdog trigger state with correct fire button (left bumper)
-            indexing.setWatchdogTriggerState(gamepad1.left_bumper);
+            // Update watchdog trigger state with fire buttons (gamepad2 A, B, or Y)
+            boolean fireButtonHeld = gamepad2.a || gamepad2.b || gamepad2.y;
+            indexing.setWatchdogTriggerState(fireButtonHeld);
 
             // Update system
             // ⚠️ CRITICAL: indexing.update() calls firingHelper.update() internally,
@@ -248,9 +250,18 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             // Handle fast collect mode toggle
             handleFastCollectMode();
             
+            // Handle auto-swap control (skip mode only)
+            handleAutoSwap();
+
             // Handle telemetry page navigation
             handleTelemetryNavigation();
             
+            // Add prominent mode status at top
+            telemetry.addLine("═══════════════════════════════");
+            telemetry.addData("🔍 HUNT MODE", indexing.isHuntEnabled() ? "✅ ON" : "❌ OFF");
+            telemetry.addData("⚡ SKIP COLOR", indexing.isSkipColorDetection() ? "✅ ON (Fast)" : "❌ OFF (Full)");
+            telemetry.addLine("═══════════════════════════════");
+
             // Display telemetry (from IndexingSystemV3)
             indexing.addTelemetry();
             
@@ -345,9 +356,8 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             fireButtonHeld = true;
         }
 
-        // Update button state for FiringHelper to track
-        indexing.setFiringButtonHeld(fireButtonHeld);
-        
+        // Note: Watchdog trigger state is set at top of loop with all fire buttons
+
         if (fireButtonHeld) {
             // Button is being held
             if (!isFiring) {
@@ -498,6 +508,24 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
         }
     }
     
+    private void handleAutoSwap() {
+        // Left trigger controls auto-swap: Hold to DISABLE auto-swap, release to ENABLE
+        // This prevents unwanted swaps when collecting in skip mode
+        boolean triggerHeld = gamepad1.left_trigger > 0.5;
+
+        // Auto-swap is ENABLED when trigger NOT held (default behavior)
+        // Auto-swap is DISABLED when trigger IS held
+        boolean shouldEnableAutoSwap = !triggerHeld;
+
+        // Update auto-swap state
+        indexing.setAutoSwapEnabled(shouldEnableAutoSwap);
+
+        // Visual feedback when changing state
+        if (triggerHeld && indexing.isSkipColorDetection()) {
+            telemetry.addData("🔒 Auto-Swap", "DISABLED (trigger held)");
+        }
+    }
+
     private void handleTelemetryNavigation() {
         // Use Guide button (Xbox logo / PS button) to cycle telemetry pages
         if (gamepad1.guide && !lastGuide) {
