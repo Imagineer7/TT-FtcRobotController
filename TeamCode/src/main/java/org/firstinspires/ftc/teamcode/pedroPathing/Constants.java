@@ -18,8 +18,8 @@ public class Constants {
      * Aurora Lightning robot mass: ~25 lbs = 11.34 kg
      */
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .forwardZeroPowerAcceleration(-35.66)
-            .lateralZeroPowerAcceleration(-55.63)
+            .forwardZeroPowerAcceleration(-35.0719)
+            .lateralZeroPowerAcceleration(-83.6295)
             .mass(11.34); // 25 lbs robot mass
 
     /**
@@ -47,8 +47,8 @@ public class Constants {
             .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
             .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
             .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
-            .xVelocity(60.92)
-            .yVelocity(50.99);
+            .xVelocity(53.5116)
+            .yVelocity(33.7778);
 
     /**
      * Pinpoint Odometry Computer Configuration
@@ -69,7 +69,7 @@ public class Constants {
             .distanceUnit(DistanceUnit.INCH)
             .hardwareMapName("odo")  // EXACT match to AuroraHardwareConfig.ODOMETRY_COMPUTER
             .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
-            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.REVERSED);
+            .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
     /**
      * Creates a Follower instance with the configured constants

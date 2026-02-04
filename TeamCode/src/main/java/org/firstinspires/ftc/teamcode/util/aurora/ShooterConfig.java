@@ -34,7 +34,7 @@ public class ShooterConfig {
      */
     public enum ShooterPreset {
         LONG_RANGE("Long Range", 0.85, 2800, 1.0, 1.2),
-        MID_RANGE("Mid Range", 0.75, 2200, 0.6, 0.8),
+        MID_RANGE("Mid Range", 0.85, 2080, 0.6, 0.8),
         SHORT_RANGE("Short Range", 1.0, 1900, 0.25, 0.8);
 
         private final String name;

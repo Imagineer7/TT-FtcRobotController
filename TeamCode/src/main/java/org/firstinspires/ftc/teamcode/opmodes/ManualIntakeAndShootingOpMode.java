@@ -357,6 +357,7 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
                 // This makes the field-relative target = current robot heading
                 autoGyroTurret.setFieldRelativeHeading(robotHeading+180, robotHeading+180);
                 autoGyroTurret.enable();
+                turretInManualHeadingMode = true;  // Prevent continuous AprilTag update from overriding
                 poseUpdatedWithLimelight = false;
                 telemetry.addLine(String.format("🎯 Turret: Set to robot heading (%.1f°)", robotHeading));
             }
@@ -389,9 +390,9 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             if (gamepad1.y && !lastYButton) {
                 // Toggle target
                 targetingBlueTag = !targetingBlueTag;
-
-                double targetHeading;
+                turretInManualHeadingMode = false;  // Re-enable continuous AprilTag update
                 String tagName = targetingBlueTag ? "Blue Tag 20" : "Red Tag 24";
+                double targetHeading;
 
                 // If pose has been updated with Limelight at least once, calculate angle from robot to tag
                 if (poseUpdatedWithLimelight && localization.isOdometryInitialized()) {
@@ -444,7 +445,8 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
 
             // Continuous turret angle update: Recalculate angle to target as robot moves
             // Only when pose has been updated and turret is enabled
-            if (poseUpdatedWithLimelight && autoGyroTurret.isEnabled() && localization.isOdometryInitialized()) {
+            // Skip if in manual heading mode (A button was pressed)
+            if (!turretInManualHeadingMode && poseUpdatedWithLimelight && autoGyroTurret.isEnabled() && localization.isOdometryInitialized()) {
                 // Get current robot position (in rotated Limelight coordinate system)
                 double robotXRotated = localization.getX(DistanceUnit.INCH);
                 double robotYRotated = localization.getY(DistanceUnit.INCH);
@@ -688,9 +690,9 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
                 }
             }
 
-            // Uptake manual controls - only when not busy with timed movements or firing
-            if (!indexingHelper.isUptakeBusy() && !indexingHelper.isTransferActive() &&
-                !firingHelper.isFiring() && !firingHelper.isEjecting()) {
+            // Uptake manual controls - allow manual control even during transfer pre-positioning
+            // Only block during active firing or ejection
+            if (!firingHelper.isFiring() && !firingHelper.isEjecting()) {
 
                 if (gamepad2.dpad_left) {
                     // DPad Left - Uptake forward (feed to shooter)
