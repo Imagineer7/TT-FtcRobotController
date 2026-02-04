@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
@@ -31,6 +32,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.DecodeHelper;
  *   - Right Trigger: Manual shooter power (if needed)
  */
 @TeleOp(name = "GamepadConfig Example", group = "Examples")
+@Disabled
 public class GamepadConfigExample extends LinearOpMode {
 
     private AuroraHardwareConfig hardware;

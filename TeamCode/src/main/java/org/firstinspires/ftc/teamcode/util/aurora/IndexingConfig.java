@@ -424,79 +424,81 @@ public class IndexingConfig {
     }
 
     /**
-     * Calculate purple detection score based on characteristic pattern:
-     * - Red ≈ Green (similar values)
-     * - Blue > Red and Blue > Green
-     * - Values in range: R:0.1-0.15, G:0.1-0.15, B:0.15-0.3
+     * Calculate purple detection score based on ACTUAL observations:
+     * Pattern: Red is LOWEST, Green is higher, Blue is HIGHEST (R < G ≤ B)
+     * Real samples:
+     *   - R:0.34, G:0.42, B:0.60
+     *   - R:0.13, G:0.21, B:0.22
+     * Note: Green may sometimes equal Blue when purple is in intake/center
      */
     private double calculatePurpleScore(double red, double green, double blue) {
         double score = 0.0;
 
-        // Check if red ≈ green (should be similar for purple)
-        double rgDiff = Math.abs(red - green);
-        double rgSimilarity = Math.max(0.0, 1.0 - (rgDiff / 0.1)); // Penalize if difference > 0.1
-        score += rgSimilarity * 0.4; // 40% weight
-
-        // Check if blue > red and blue > green (blue should be highest)
-        if (blue > red && blue > green) {
-            double blueAdvantage = Math.min(blue - Math.max(red, green), 0.2) / 0.2; // Normalize advantage
-            score += blueAdvantage * 0.3; // 30% weight
+        // CRITICAL: Blue must be highest or tied with green
+        // Red must be lowest
+        if (blue >= green && green > red) {
+            // Check ordering: R < G ≤ B
+            score += 0.5; // 50% weight for correct ordering
+        } else if (blue >= green && blue > red && Math.abs(green - red) < 0.05) {
+            // Allow case where green ≈ red but blue is still highest
+            score += 0.3;
+        } else {
+            // Wrong ordering, not purple
+            return 0.0;
         }
 
-        // Check if values are in expected ranges
-        double redMatch = 0.0, greenMatch = 0.0, blueMatch = 0.0;
+        // Check blue dominance (blue should be noticeably higher than red)
+        double blueDominance = blue - red;
+        if (blueDominance >= 0.15) {
+            score += 0.3; // Strong blue dominance
+        } else if (blueDominance >= 0.08) {
+            score += 0.15; // Moderate blue dominance
+        }
 
-        if (red >= 0.08 && red <= 0.18) redMatch = 1.0;   // Expanded range around 0.1-0.15
-        else redMatch = Math.max(0.0, 1.0 - Math.abs(red - 0.125) / 0.125);
-
-        if (green >= 0.08 && green <= 0.18) greenMatch = 1.0; // Expanded range around 0.1-0.15
-        else greenMatch = Math.max(0.0, 1.0 - Math.abs(green - 0.125) / 0.125);
-
-        if (blue >= 0.12 && blue <= 0.35) blueMatch = 1.0;   // Expanded range around 0.15-0.3
-        else blueMatch = Math.max(0.0, 1.0 - Math.abs(blue - 0.225) / 0.225);
-
-        score += (redMatch + greenMatch + blueMatch) / 3.0 * 0.3; // 30% weight for range matching
+        // Check green is between red and blue (or close to blue)
+        if (green >= red && green <= blue + 0.05) {
+            score += 0.2;
+        }
 
         return Math.min(score, 1.0);
     }
 
     /**
-     * Calculate green detection score based on NEW measured pattern:
-     * - Green > Red and Green > Blue (but not dramatically)
-     * - Values: R:0.05-0.1, G:0.2-0.35, B:0.1-0.2
-     * - Green is dominant but values are much lower than expected
+     * Calculate green detection score based on ACTUAL observations:
+     * Pattern: Red is LOWEST, Green is HIGHEST, Blue is between (R < B < G)
+     * Real samples:
+     *   - R:0.10, G:0.28, B:0.22
+     *   - R:0.26, G:0.54, B:0.44
      */
     private double calculateGreenScore(double red, double green, double blue) {
         double score = 0.0;
 
-        // Green should be dominant (higher than red and blue)
-        if (green > red && green > blue) {
-            // Green dominance is less dramatic than before
-            double greenDominance = Math.min(green - Math.max(red, blue), 0.2) / 0.2;
-            score += greenDominance * 0.4; // 40% weight for green dominance
+        // CRITICAL: Green must be highest
+        // Red must be lowest
+        // Blue must be between red and green
+        if (green > blue && blue > red) {
+            // Perfect ordering: R < B < G
+            score += 0.6; // 60% weight for correct ordering
+        } else if (green > red && green > blue) {
+            // Green is highest but blue ordering may vary
+            score += 0.4;
+        } else {
+            // Wrong ordering, not green
+            return 0.0;
         }
 
-        // Check if green is at least 2x red (characteristic of green artifacts)
-        if (green >= red * 1.5 && green >= blue * 1.2) {
-            score += 0.3; // 30% bonus for proper ratios
+        // Check green dominance (green should be significantly higher than red)
+        double greenDominance = green - red;
+        if (greenDominance >= 0.2) {
+            score += 0.3; // Strong green dominance
+        } else if (greenDominance >= 0.1) {
+            score += 0.15; // Moderate green dominance
         }
 
-        // Range matching based on NEW measurements: R:0.05-0.1, G:0.2-0.35, B:0.1-0.2
-        double redMatch = 0.0, greenMatch = 0.0, blueMatch = 0.0;
-
-        // Red should be low (0.05-0.1)
-        if (red >= 0.03 && red <= 0.12) redMatch = 1.0;
-        else redMatch = Math.max(0.0, 1.0 - Math.abs(red - 0.075) / 0.075);
-
-        // Green should be in middle range (0.2-0.35)
-        if (green >= 0.15 && green <= 0.4) greenMatch = 1.0;
-        else greenMatch = Math.max(0.0, 1.0 - Math.abs(green - 0.275) / 0.275);
-
-        // Blue should be low-medium (0.1-0.2)
-        if (blue >= 0.08 && blue <= 0.25) blueMatch = 1.0;
-        else blueMatch = Math.max(0.0, 1.0 - Math.abs(blue - 0.15) / 0.15);
-
-        score += (redMatch + greenMatch + blueMatch) / 3.0 * 0.3; // 30% weight for range matching
+        // Check that blue is between red and green
+        if (blue > red && blue < green) {
+            score += 0.1;
+        }
 
         return Math.min(score, 1.0);
     }

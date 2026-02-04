@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes.test;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.util.debug.Dbg;
@@ -24,6 +25,7 @@ import org.firstinspires.ftc.teamcode.util.debug.LogLevel;
  * @author FTC Team 26581 Tundra Tech
  */
 @TeleOp(name="Dbg Logging Demo", group="Test")
+@Disabled
 public class DbgLoggingExample extends LinearOpMode {
 
     // Edge detection for buttons

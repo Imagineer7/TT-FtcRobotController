@@ -11,6 +11,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShotPlanner;
 import org.firstinspires.ftc.teamcode.util.debug.Dbg;
 import org.firstinspires.ftc.teamcode.util.debug.LogGroup;
+import org.firstinspires.ftc.teamcode.util.debug.PerformanceMonitor;
 
 /**
  * IndexingSystemV3 - Main controller for the v3 indexing system.
@@ -65,9 +66,13 @@ public class IndexingSystemV3 {
     private final BasicIndexingHelper indexingHelper;
     private final BasicFiringHelper firingHelper;
     
-    // Perception (one per intake)
+    // Perception (one per intake + center slot)
     private final IntakePerception frontPerception;
     private final IntakePerception backPerception;
+    private final IntakePerception.CenterSlotPerception centerPerception;
+    
+    // Performance monitoring
+    private final PerformanceMonitor performanceMonitor;
     
     // ========== State ==========
     private SystemState currentState;
@@ -151,23 +156,34 @@ public class IndexingSystemV3 {
         // Initialize watchdog
         this.watchdog = new KeepAliveWatchdog(firingHelper, telemetry);
         
-        // Initialize perception (IntakeSide enum, sensors, config)
-        // CRITICAL: Must match sensor wiring - CENTER sensors are outward-facing, RIGHT sensors are at mouth
+        // Initialize performance monitoring (disabled by default)
+        this.performanceMonitor = new PerformanceMonitor(telemetry);
+        
+        // Initialize perception for intakes (IntakeSide enum, sensors, config)
+        // New sensor layout:
+        // - goBILDA distance sensor (confirmation)
+        // - REV Color V3 sensors (primary detection via color + proximity)
         this.frontPerception = new IntakePerception(
             IntakePerception.IntakeSide.FRONT,
-            hardware.getFrontDistanceSensor(),
-            hardware.getFrontLeftDistanceSensor(),
-            hardware.getFrontCenterColorSensor(),  // Outward-facing color sensor
-            hardware.getFrontRightColorSensor(),   // Mouth-mounted color sensor
+            hardware.getFrontDistanceSensor(),          // goBILDA confirmation
+            hardware.getFrontIntakeColorPrimary(),      // Primary REV Color V3
+            hardware.getFrontIntakeColorSecondary(),    // Secondary REV Color V3
             config
         );
         
         this.backPerception = new IntakePerception(
             IntakePerception.IntakeSide.BACK,
-            hardware.getBackDistanceSensor(),
-            hardware.getBackRightDistanceSensor(),
-            hardware.getBackCenterColorSensor(),   // Outward-facing color sensor
-            hardware.getBackRightColorSensor(),    // Mouth-mounted color sensor (note: same as distance sensor)
+            hardware.getBackDistanceSensor(),           // goBILDA confirmation
+            hardware.getBackIntakeColorPrimary(),       // Primary REV Color V3
+            hardware.getBackIntakeColorSecondary(),     // Secondary REV Color V3
+            config
+        );
+        
+        // Initialize center slot perception
+        this.centerPerception = new IntakePerception.CenterSlotPerception(
+            hardware.getCenterDistanceSensor(),         // goBILDA center distance
+            hardware.getCenterColorLeft(),              // Left REV Color V3
+            hardware.getCenterColorRight(),             // Right REV Color V3
             config
         );
         
@@ -240,22 +256,33 @@ public class IndexingSystemV3 {
     public void update() {
         if (!enabled) return;
         
+        // Start loop timing
+        performanceMonitor.startLoop();
+        
         // Update perception (sensor fusion) - only for hunt-eligible intakes
+        performanceMonitor.startSection("perception");
         updatePerception();
+        performanceMonitor.endSection("perception");
         
         // CRITICAL: Update indexing helper to process timed movements
         // This clears the busy flags when timed movements complete
+        performanceMonitor.startSection("indexingHelper");
         indexingHelper.update();
+        performanceMonitor.endSection("indexingHelper");
         
         // CRITICAL: Update firing helper to process firing sequences
         // This internally calls shooter.update() - DO NOT call shooter.update() separately!
+        performanceMonitor.startSection("firingHelper");
         firingHelper.update();
+        performanceMonitor.endSection("firingHelper");
         
         // Update watchdog (automatic safety enforcement)
         // Note: OpMode must call setFiringButtonHeld() to update trigger state
         // CRITICAL: Pass isOperationRunning() which includes physical hardware state,
         // not just runner.isBusy() which only checks the operation state machine
+        performanceMonitor.startSection("watchdog");
         watchdog.update(firingButtonHeld, isOperationRunning(), manualModeActive);
+        performanceMonitor.endSection("watchdog");
         
         // Capture current operation before update (for completion handling)
         boolean isBusyNow = runner.isBusy();
@@ -264,7 +291,9 @@ public class IndexingSystemV3 {
         }
         
         // Update operation runner (automatic lifecycle management)
+        performanceMonitor.startSection("operations");
         runner.update();
+        performanceMonitor.endSection("operations");
         
         // Handle operation completion (detect transition from busy to idle)
         if (wasRunnerBusyLastUpdate && !runner.isBusy()) {
@@ -278,15 +307,22 @@ public class IndexingSystemV3 {
         checkForSubsequentShotFired();
         
         // Update shot planner
+        performanceMonitor.startSection("shotPlanner");
         shotPlanner.update(ledger, manualModeActive);
+        performanceMonitor.endSection("shotPlanner");
         
         // Update system state
         updateSystemState();
         
         // Automatic operations (if not in manual mode)
         if (!manualModeActive && !runner.isBusy()) {
+            performanceMonitor.startSection("autoOperations");
             performAutomaticOperations();
+            performanceMonitor.endSection("autoOperations");
         }
+        
+        // End loop timing
+        performanceMonitor.endLoop();
     }
     
     // Manual override detection removed - OpModes handle gamepad inputs directly
@@ -308,6 +344,7 @@ public class IndexingSystemV3 {
         // Always update perception - needed for color sampling during operations
         frontPerception.update();
         backPerception.update();
+        centerPerception.update();  // Update center slot perception
         
         // During operations: skip hunt-mode hardware control (operation has control)
         if (runner.isBusy()) {
@@ -1238,6 +1275,160 @@ public class IndexingSystemV3 {
     public boolean hasArtifactInCenter() { return ledger.isCenterOccupied(); }
     public boolean isReadyToFire() { return currentState == SystemState.READY_TO_FIRE; }
     
+    // Multiple artifact detection (per intake)
+    /**
+     * Check if FRONT intake has multiple artifacts of different colors.
+     * This is a RELIABLE detection based on opposite color sensor readings.
+     *
+     * @return true if front intake has two artifacts of different colors
+     */
+    public boolean frontIntakeHasMultipleDifferentColors() {
+        return frontPerception.hasMultipleDifferentColors();
+    }
+
+    /**
+     * Check if BACK intake has multiple artifacts of different colors.
+     * This is a RELIABLE detection based on opposite color sensor readings.
+     *
+     * @return true if back intake has two artifacts of different colors
+     */
+    public boolean backIntakeHasMultipleDifferentColors() {
+        return backPerception.hasMultipleDifferentColors();
+    }
+
+    /**
+     * Check if FRONT intake has multiple artifacts of same color.
+     * This is LESS RELIABLE and should be used with caution.
+     *
+     * @return true if front intake likely has two artifacts of same color
+     */
+    public boolean frontIntakeHasMultipleSameColor() {
+        return frontPerception.hasMultipleSameColor();
+    }
+
+    /**
+     * Check if BACK intake has multiple artifacts of same color.
+     * This is LESS RELIABLE and should be used with caution.
+     *
+     * @return true if back intake likely has two artifacts of same color
+     */
+    public boolean backIntakeHasMultipleSameColor() {
+        return backPerception.hasMultipleSameColor();
+    }
+
+    /**
+     * Check if FRONT intake has any multiple artifacts (different OR same color).
+     *
+     * @return true if front intake has multiple artifacts detected
+     */
+    public boolean frontIntakeHasMultipleArtifacts() {
+        return frontPerception.hasMultipleArtifacts();
+    }
+
+    /**
+     * Check if BACK intake has any multiple artifacts (different OR same color).
+     *
+     * @return true if back intake has multiple artifacts detected
+     */
+    public boolean backIntakeHasMultipleArtifacts() {
+        return backPerception.hasMultipleArtifacts();
+    }
+
+    /**
+     * Check if ANY intake has multiple artifacts.
+     * Useful for general alerting or intake jam detection.
+     *
+     * @return true if either front or back intake has multiple artifacts
+     */
+    public boolean anyIntakeHasMultipleArtifacts() {
+        return frontPerception.hasMultipleArtifacts() || backPerception.hasMultipleArtifacts();
+    }
+
+    /**
+     * Get which intake(s) have multiple artifacts.
+     *
+     * @return String description of which intakes have multiple artifacts, or "NONE"
+     */
+    public String getMultipleArtifactStatus() {
+        boolean frontMultiple = frontPerception.hasMultipleArtifacts();
+        boolean backMultiple = backPerception.hasMultipleArtifacts();
+
+        if (!frontMultiple && !backMultiple) {
+            return "NONE";
+        } else if (frontMultiple && backMultiple) {
+            return "BOTH";
+        } else if (frontMultiple) {
+            return "FRONT";
+        } else {
+            return "BACK";
+        }
+    }
+
+    // Presence Confidence Scoring
+    /**
+     * Get FRONT intake presence confidence score (0.0-1.0).
+     * Numerical representation of presence confidence (more granular than enum).
+     *
+     * Score Weighting:
+     * - Confirmation sensor: 0.15
+     * - Left proximity: 0.25
+     * - Right proximity: 0.25
+     * - Left color: 0.10
+     * - Right color: 0.10
+     *
+     * @return Front intake confidence score 0.0-1.0
+     */
+    public double getFrontIntakeConfidenceScore() {
+        return frontPerception.getConfidenceScore();
+    }
+
+    /**
+     * Get BACK intake presence confidence score (0.0-1.0).
+     * Numerical representation of presence confidence (more granular than enum).
+     *
+     * @return Back intake confidence score 0.0-1.0
+     */
+    public double getBackIntakeConfidenceScore() {
+        return backPerception.getConfidenceScore();
+    }
+
+    /**
+     * Get confidence score for specified intake.
+     *
+     * @param slot FRONT or BACK (CENTER not supported)
+     * @return Confidence score 0.0-1.0, or 0.0 if slot is CENTER
+     */
+    public double getIntakeConfidenceScore(SlotLedger.Slot slot) {
+        switch (slot) {
+            case FRONT:
+                return frontPerception.getConfidenceScore();
+            case BACK:
+                return backPerception.getConfidenceScore();
+            default:
+                return 0.0;  // CENTER or invalid
+        }
+    }
+
+    /**
+     * Get highest confidence score across both intakes.
+     * Useful for determining system-wide artifact presence strength.
+     *
+     * @return Maximum confidence score from either intake (0.0-1.0)
+     */
+    public double getMaxIntakeConfidenceScore() {
+        return Math.max(frontPerception.getConfidenceScore(), backPerception.getConfidenceScore());
+    }
+
+    /**
+     * Get average confidence score across both intakes.
+     * Useful for overall system assessment.
+     *
+     * @return Average confidence score (0.0-1.0)
+     */
+    public double getAverageIntakeConfidenceScore() {
+        return (frontPerception.getConfidenceScore() + backPerception.getConfidenceScore()) / 2.0;
+    }
+
     // Statistics
     public int getTotalCollections() { return totalCollections; }
     public int getTotalTransfers() { return totalTransfers; }
@@ -1249,6 +1440,15 @@ public class IndexingSystemV3 {
     public int getTelemetryPage() { return telemetryPage; }
     public void nextTelemetryPage() { 
         telemetryPage = (telemetryPage + 1) % 3;  // Cycle 0->1->2->0
+    }
+    
+    // Performance monitoring control
+    public PerformanceMonitor getPerformanceMonitor() { return performanceMonitor; }
+    public void setPerformanceMonitoringEnabled(boolean enabled) { 
+        performanceMonitor.enable(enabled); 
+    }
+    public boolean isPerformanceMonitoringEnabled() { 
+        return performanceMonitor.isEnabled(); 
     }
     
     // ========== Public API - State Setters (OpMode-Controlled) ==========
@@ -1491,11 +1691,12 @@ public class IndexingSystemV3 {
         telemetry.addData("Roller Busy", indexingHelper.isFrontRollerBusy() ? "✓ YES" : "No");
         telemetry.addData("Transfer Busy", indexingHelper.isFrontTransferBusy() ? "✓ YES" : "No");
         
-        // Raw sensor hints
-        telemetry.addData("Raw: FrontBlocked", frontPerception.isFrontBlocked() ? "✓" : "✗");
-        telemetry.addData("Raw: MouthOccupied", frontPerception.isMouthOccupied() ? "✓" : "✗");
-        telemetry.addData("Raw: ColorOutward", frontPerception.colorSeesArtifact_Outward() ? "✓" : "✗");
-        telemetry.addData("Raw: ColorMouth", frontPerception.colorSeesArtifact_Mouth() ? "✓" : "✗");
+        // Raw sensor hints (updated for new sensor layout)
+        telemetry.addData("Raw: Confirmation", frontPerception.isConfirmationDetected() ? "✓" : "✗");
+        telemetry.addData("Raw: PrimaryProx", frontPerception.isPrimaryProximityDetected() ? "✓" : "✗");
+        telemetry.addData("Raw: SecondaryProx", frontPerception.isSecondaryProximityDetected() ? "✓" : "✗");
+        telemetry.addData("Raw: PrimaryColor", frontPerception.colorSeesArtifact_Primary() ? "✓" : "✗");
+        telemetry.addData("Raw: SecondaryColor", frontPerception.colorSeesArtifact_Secondary() ? "✓" : "✗");
         telemetry.addLine();
         
         // Back intake perception
@@ -1509,11 +1710,12 @@ public class IndexingSystemV3 {
         telemetry.addData("Roller Busy", indexingHelper.isBackRollerBusy() ? "✓ YES" : "No");
         telemetry.addData("Transfer Busy", indexingHelper.isBackTransferBusy() ? "✓ YES" : "No");
         
-        // Raw sensor hints
-        telemetry.addData("Raw: FrontBlocked", backPerception.isFrontBlocked() ? "✓" : "✗");
-        telemetry.addData("Raw: MouthOccupied", backPerception.isMouthOccupied() ? "✓" : "✗");
-        telemetry.addData("Raw: ColorOutward", backPerception.colorSeesArtifact_Outward() ? "✓" : "✗");
-        telemetry.addData("Raw: ColorMouth", backPerception.colorSeesArtifact_Mouth() ? "✓" : "✗");
+        // Raw sensor hints (updated for new sensor layout)
+        telemetry.addData("Raw: Confirmation", backPerception.isConfirmationDetected() ? "✓" : "✗");
+        telemetry.addData("Raw: PrimaryProx", backPerception.isPrimaryProximityDetected() ? "✓" : "✗");
+        telemetry.addData("Raw: SecondaryProx", backPerception.isSecondaryProximityDetected() ? "✓" : "✗");
+        telemetry.addData("Raw: PrimaryColor", backPerception.colorSeesArtifact_Primary() ? "✓" : "✗");
+        telemetry.addData("Raw: SecondaryColor", backPerception.colorSeesArtifact_Secondary() ? "✓" : "✗");
         telemetry.addLine();
     }
     
@@ -1528,6 +1730,12 @@ public class IndexingSystemV3 {
         telemetry.addData("Shots Fired", totalShots);
         telemetry.addData("Ejections", totalEjections);
         telemetry.addLine();
+        
+        // Performance monitoring (if enabled)
+        if (performanceMonitor.isEnabled()) {
+            performanceMonitor.addTelemetry();
+            telemetry.addLine();
+        }
         
         // Watchdog status
         telemetry.addLine("--- KeepAlive Watchdog ---");
