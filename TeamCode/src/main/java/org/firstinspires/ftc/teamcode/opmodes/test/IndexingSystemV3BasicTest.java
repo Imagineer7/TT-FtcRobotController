@@ -318,7 +318,7 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             // Right Bumper - Set turret to robot heading (point forward)
             // NO EDGE DETECTION - runs continuously when held
             if (gamepad1.right_bumper) {
-                double targetHeading = robotHeading + 180;
+                double targetHeading = robotHeading;  // Point forward (offset handled internally)
                 autoGyroTurret.setFieldRelativeHeading(targetHeading, robotHeading);
                 autoGyroTurret.enable();
 
@@ -349,9 +349,19 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
                 }
             }
 
+            // Update button state IMMEDIATELY after checking (fixes edge detection timing)
+            lastB = gamepad1.b;
+
             // Update turret to maintain field-relative heading (if enabled)
+            // OR maintain robot-relative forward when disabled
             if (autoGyroTurret != null) {
-                autoGyroTurret.update(robotHeading);
+                if (autoGyroTurret.isEnabled()) {
+                    // Auto-gyro enabled - maintain field-relative heading
+                    autoGyroTurret.update(robotHeading);
+                } else {
+                    // Auto-gyro disabled - maintain robot-relative forward
+                    autoGyroTurret.maintainRobotRelativeForward(robotHeading);
+                }
             }
 
             // ═══════════════════════════════════════════════════════════════
@@ -728,7 +738,7 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
         lastDpadLeft = gamepad1.dpad_left;
         lastDpadRight = gamepad1.dpad_right;
         lastA = gamepad1.a;
-        lastB = gamepad1.b;
+        // lastB is updated immediately after checking in turret control section
         lastX = gamepad1.x;
         lastY = gamepad1.y;
         lastLeftBumper = gamepad1.left_bumper;
