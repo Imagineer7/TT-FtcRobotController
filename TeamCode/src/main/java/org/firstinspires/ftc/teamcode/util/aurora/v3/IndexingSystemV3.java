@@ -1817,6 +1817,95 @@ public class IndexingSystemV3 {
         return success;
     }
     
+    /**
+     * Manually add an UNKNOWN artifact to CENTER slot.
+     *
+     * Use case: Operator override when sensors don't detect an artifact that is
+     * physically present in the center position (e.g., sensor malfunction,
+     * unusual artifact placement).
+     *
+     * Unlike addManualArtifact(), this directly places an artifact in CENTER
+     * without going through collection/transfer flow, since there's no intake
+     * perception for center slot.
+     *
+     * Safety checks:
+     * - CENTER slot must be empty
+     * - No operation must be running
+     *
+     * @return true if artifact was added, false if rejected
+     */
+    public boolean addManualArtifactToCenter() {
+        // Check if center already occupied
+        if (ledger.isCenterOccupied()) {
+            telemetry.addData("❌ Manual Add", "CENTER already occupied");
+            Dbg.w(LogGroup.INDEXING, "addManualArtifactToCenter rejected: CENTER occupied");
+            return false;
+        }
+
+        // Check if operation is running
+        if (runner.isBusy()) {
+            telemetry.addData("❌ Manual Add", "Operation in progress");
+            Dbg.w(LogGroup.INDEXING, "addManualArtifactToCenter rejected: operation busy");
+            return false;
+        }
+
+        // Create a manual artifact with UNKNOWN color (since we can't detect it)
+        ArtifactIdentity manualArtifact = new ArtifactIdentity(
+            ArtifactIdentity.ColorClass.UNKNOWN,
+            1.0,  // Full confidence - operator explicitly said it's there
+            ArtifactIdentity.ClassificationSource.OPERATOR,
+            nextSequenceId++
+        );
+
+        // Directly set the center slot
+        ledger.setCenter(manualArtifact);
+
+        telemetry.addData("✅ Manual Add", "UNKNOWN → CENTER");
+        Dbg.i(LogGroup.INDEXING, "Manual artifact added to CENTER: %s", manualArtifact);
+
+        return true;
+    }
+
+    /**
+     * Manually remove artifact from CENTER slot.
+     *
+     * Use case: Operator override when an artifact was fired/ejected but
+     * sensors still think there's an artifact in center (e.g., sensor
+     * malfunction, partial eject, stuck artifact that was manually removed).
+     *
+     * Safety checks:
+     * - CENTER slot must be occupied
+     * - No operation must be running (especially firing!)
+     *
+     * @return true if artifact was removed, false if rejected
+     */
+    public boolean removeManualArtifactFromCenter() {
+        // Check if center is empty
+        if (!ledger.isCenterOccupied()) {
+            telemetry.addData("❌ Manual Remove", "CENTER already empty");
+            Dbg.w(LogGroup.INDEXING, "removeManualArtifactFromCenter rejected: CENTER empty");
+            return false;
+        }
+
+        // Check if operation is running
+        if (runner.isBusy()) {
+            telemetry.addData("❌ Manual Remove", "Operation in progress");
+            Dbg.w(LogGroup.INDEXING, "removeManualArtifactFromCenter rejected: operation busy");
+            return false;
+        }
+
+        // Log what we're removing for debugging
+        ArtifactIdentity removed = ledger.getCenter();
+        Dbg.i(LogGroup.INDEXING, "Manual artifact removal from CENTER: %s", removed);
+
+        // Clear the center slot
+        ledger.clear(SlotLedger.Slot.CENTER);
+
+        telemetry.addData("✅ Manual Remove", "CENTER cleared");
+
+        return true;
+    }
+
     // ========== Public API - State Queries ==========
     
     public boolean isEnabled() { return enabled; }

@@ -59,7 +59,8 @@ import org.firstinspires.ftc.teamcode.util.debug.LogLevel;
  * GAMEPAD 2:
  *   DPAD UP   - Hold to eject FRONT intake (runs backward, clears ledger)
  *   DPAD DOWN - Hold to eject BACK intake (runs backward, clears ledger)
- *   DPAD LEFT/RIGHT - Manual mode (disables automation while held)
+ *   DPAD LEFT - Manually add UNKNOWN artifact to CENTER (if empty)
+ *   DPAD RIGHT - Manually remove artifact from CENTER (if occupied)
  *
  *   A - Hold to fire SHORT range (2000 RPM)
  *   B - Hold to fire MID range (2300 RPM)
@@ -112,13 +113,16 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     private Localization localization;
     // Note: Shooter is managed internally by IndexingSystemV3 - OpModes should NOT access it directly
     
-    // Button state tracking
+    // Button state tracking (gamepad1)
     private boolean lastDpadUp, lastDpadDown, lastDpadLeft, lastDpadRight;
     private boolean lastA, lastB, lastX, lastY;
     private boolean lastLeftBumper, lastRightBumper;
     private boolean lastBack, lastStart;
     private boolean lastGuide;  // For telemetry page navigation
     
+    // Button state tracking (gamepad2) - for edge detection
+    private boolean lastGP2DpadLeft, lastGP2DpadRight;
+
     // Firing state tracking
     private boolean isFiring = false;  // True when firing sequence active
     private boolean lastReadyToFire = false;  // Track when ready-to-fire state changes (edge detection)
@@ -285,6 +289,10 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
         lastStart = false;
         lastGuide = false;
 
+        // Gamepad 2 button states (for center artifact management)
+        lastGP2DpadLeft = false;
+        lastGP2DpadRight = false;
+
         Dbg.setContext("V3BasicTest", "RUN");
         Dbg.i(LogGroup.TEST, "OpMode started - entering main loop");
         Dbg.i(LogGroup.TEST, "Button states initialized to false for edge detection");
@@ -353,8 +361,10 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
 
             // Update subsystems
             // Update manual mode based on gamepad2 inputs
-            // Note: dpad_up and dpad_down are now used for intake ejection, not manual mode
-            boolean manualActive = gamepad2.dpad_left || gamepad2.dpad_right;
+            // Note: dpad_up and dpad_down are used for intake ejection
+            // Note: dpad_left and dpad_right are used for center artifact management
+            // Manual mode is no longer tied to dpad - disabled by default
+            boolean manualActive = false;
             indexing.setManualModeActive(manualActive);
 
             // Update watchdog trigger state with fire buttons (gamepad2 A, B, or Y)
@@ -403,6 +413,9 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             // Handle ejection
             handleEjection();
             
+            // Handle manual center artifact management
+            handleCenterArtifactManagement();
+
             // Handle hunt mode toggle
             handleHuntMode();
             
@@ -685,6 +698,36 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
         }
     }
     
+    private void handleCenterArtifactManagement() {
+        // GAMEPAD2 DPAD LEFT - Manually add UNKNOWN artifact to CENTER (if empty)
+        // Uses edge detection to prevent repeated additions while held
+        if (gamepad2.dpad_left && !lastGP2DpadLeft) {
+            Dbg.i(LogGroup.TEST, "Manual add artifact to CENTER requested");
+            boolean success = indexing.addManualArtifactToCenter();
+            if (success) {
+                Dbg.i(LogGroup.TEST, "Manual artifact added to CENTER successfully");
+                telemetry.addLine("✅ Manual: Added UNKNOWN artifact to CENTER");
+            } else {
+                Dbg.w(LogGroup.TEST, "Manual add to CENTER rejected (occupied or busy)");
+                telemetry.addLine("❌ Manual: Cannot add to CENTER (occupied or busy)");
+            }
+        }
+
+        // GAMEPAD2 DPAD RIGHT - Manually remove artifact from CENTER (if occupied)
+        // Uses edge detection to prevent repeated removals while held
+        if (gamepad2.dpad_right && !lastGP2DpadRight) {
+            Dbg.i(LogGroup.TEST, "Manual remove artifact from CENTER requested");
+            boolean success = indexing.removeManualArtifactFromCenter();
+            if (success) {
+                Dbg.i(LogGroup.TEST, "Manual artifact removed from CENTER successfully");
+                telemetry.addLine("✅ Manual: Removed artifact from CENTER");
+            } else {
+                Dbg.w(LogGroup.TEST, "Manual remove from CENTER rejected (empty or busy)");
+                telemetry.addLine("❌ Manual: Cannot remove from CENTER (empty or busy)");
+            }
+        }
+    }
+
     private void handleHuntMode() {
         if (gamepad1.right_bumper && !lastRightBumper) {
             boolean newState = indexing.toggleHuntEnabled();
@@ -721,6 +764,7 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     }
     
     private void updateButtonStates() {
+        // Gamepad 1 button states
         lastGuide = gamepad2.guide;
         lastDpadUp = gamepad1.dpad_up;
         lastDpadDown = gamepad1.dpad_down;
@@ -734,5 +778,9 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
         lastRightBumper = gamepad1.right_bumper;
         lastBack = gamepad1.back;
         lastStart = gamepad1.start;
+
+        // Gamepad 2 button states (for center artifact management)
+        lastGP2DpadLeft = gamepad2.dpad_left;
+        lastGP2DpadRight = gamepad2.dpad_right;
     }
 }

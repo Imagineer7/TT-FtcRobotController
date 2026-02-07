@@ -13,8 +13,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  *
  * Direct Servo Position Mapping (FTC Legal - No Servo Tuner):
  * Based on measured calibration points:
- * - Servo position 0.05 = 0° turret
- * - Servo position 0.37 = 180° turret (FORWARD-FACING)
+ * - Servo position 0.05 = 0° turret (FORWARD-FACING)
+ * - Servo position 0.37 = 180° turret (backward)
  * - Servo position 0.71 = 360° turret (full rotation)
  *
  * Linear Mapping Formula:
@@ -81,10 +81,11 @@ public class AutoGyroTurret {
 
     /**
      * Forward offset in turret degrees
-     * Forward-facing is at 180° turret (servo position 0.37)
+     * Forward-facing is at 0° turret (servo position 0.05)
+     * Physical turret 180° (servo 0.37) points BACKWARD
      * Adjust this if your turret's forward position is different
      */
-    private static final double FORWARD_OFFSET_TURRET_DEGREES = 180.0;
+    private static final double FORWARD_OFFSET_TURRET_DEGREES = 0.0;
 
     /**
      * Logical turret rotation range (we still work in 0-360° logical space)
@@ -205,7 +206,7 @@ public class AutoGyroTurret {
             currentTurretAngle = servoPositionToLogicalAngle(servoPosition);
 
             initialized = true;
-            log(String.format("AutoGyroTurret initialized - Direct mapping: servo 0.05-0.71 = turret 0-360°, forward at 0.37 (180°)"));
+            log(String.format("AutoGyroTurret initialized - Direct mapping: servo 0.05-0.71 = turret 0-360°, forward at 0.05 (0°)"));
         } catch (Exception e) {
             logWarning("Failed to initialize turret servo: " + e.getMessage());
             initialized = false;
@@ -273,20 +274,28 @@ public class AutoGyroTurret {
     /**
      * Convert logical turret angle (0-360°) to servo position (0.0-1.0)
      *
-     * Direct linear mapping from calibration:
-     * - 0° turret = 0.05 servo position
-     * - 360° turret = 0.71 servo position
-     * - Formula: servoPos = (turretAngle / 360°) × 0.66 + 0.05
+     * Logical angle mapping (with forward offset = 0°):
+     * - Logical 0° = Forward-facing = 0° physical turret = 0.05 servo
+     * - Logical 90° = Right = 90° physical turret = 0.215 servo
+     * - Logical 180° = Backward = 180° physical turret = 0.37 servo
+     * - Logical 270° = Left = 270° physical turret = 0.545 servo
      *
-     * @param logicalAngle Logical turret angle in degrees (0-360°)
+     * Formula:
+     * 1. Add forward offset: physicalTurret = (logical + 0°) mod 360°
+     * 2. Convert to servo: servoPos = (physicalTurret / 360°) × 0.66 + 0.05
+     *
+     * @param logicalAngle Logical turret angle in degrees (0-360°, where 0° = forward)
      * @return Servo position (0.0-1.0)
      */
     private double logicalAngleToServoPosition(double logicalAngle) {
         // Normalize to 0-360° range
         logicalAngle = normalizeAngle360(logicalAngle);
 
-        // Direct linear mapping: turret angle → servo position
-        double servoPosition = (logicalAngle / MAX_TURRET_ROTATION) * SERVO_POSITION_RANGE + SERVO_POS_ZERO_DEGREES;
+        // Apply forward offset: logical 0° = forward = 180° physical turret
+        double physicalTurretAngle = normalizeAngle360(logicalAngle + FORWARD_OFFSET_TURRET_DEGREES);
+
+        // Direct linear mapping: physical turret angle → servo position
+        double servoPosition = (physicalTurretAngle / MAX_TURRET_ROTATION) * SERVO_POSITION_RANGE + SERVO_POS_ZERO_DEGREES;
 
         // Clamp to valid servo range
         return Math.max(0.0, Math.min(1.0, servoPosition));
@@ -296,19 +305,21 @@ public class AutoGyroTurret {
      * Convert servo position (0.0-1.0) to logical turret angle (0-360°)
      *
      * Reverse mapping:
-     * - 0.05 servo = 0° turret
-     * - 0.71 servo = 360° turret
-     * - Formula: turretAngle = (servoPos - 0.05) / 0.66 × 360°
+     * 1. Servo to physical turret: physicalTurret = (servoPos - 0.05) / 0.66 × 360°
+     * 2. Remove forward offset: logical = (physicalTurret - 0°) mod 360°
      *
      * @param servoPosition Servo position (0.0-1.0)
-     * @return Logical turret angle in degrees (0-360°)
+     * @return Logical turret angle in degrees (0-360°, where 0° = forward)
      */
     private double servoPositionToLogicalAngle(double servoPosition) {
-        // Direct linear mapping: servo position → turret angle
-        double turretAngle = (servoPosition - SERVO_POS_ZERO_DEGREES) / SERVO_POSITION_RANGE * MAX_TURRET_ROTATION;
+        // Direct linear mapping: servo position → physical turret angle
+        double physicalTurretAngle = (servoPosition - SERVO_POS_ZERO_DEGREES) / SERVO_POSITION_RANGE * MAX_TURRET_ROTATION;
+
+        // Remove forward offset: physical 180° = logical 0° (forward)
+        double logicalAngle = normalizeAngle360(physicalTurretAngle - FORWARD_OFFSET_TURRET_DEGREES);
 
         // Normalize to 0-360° range
-        return normalizeAngle360(turretAngle);
+        return normalizeAngle360(logicalAngle);
     }
 
     /**
@@ -733,16 +744,18 @@ public class AutoGyroTurret {
 
     /**
      * Reset to center position pointing forward
-     * With the new mapping, logical 0° = forward (servo position 0.5)
+     * Logical 0° = forward-facing (0° physical turret = 0.05 servo position)
      * @param currentRobotHeading Current robot heading
      */
     public void resetToForward(double currentRobotHeading) {
         // Normalize robot heading to 0-360 range
         currentRobotHeading = normalizeAngle360(currentRobotHeading);
 
-        // Set field heading to match robot heading (logical 0° turret = forward)
+        // Set field heading to match robot heading
+        // This makes turret robot-relative angle = 0° (logical)
+        // Which maps to 0° physical turret (forward-facing)
         setFieldRelativeHeading(currentRobotHeading, currentRobotHeading);
-        log("Reset to forward (logical 0° = servo 0.5)");
+        log("Reset to forward (logical 0° = 0° physical turret = servo 0.05)");
     }
 
     // ═══════════════════════════════════════════════════════════════════════
