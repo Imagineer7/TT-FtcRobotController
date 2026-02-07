@@ -179,6 +179,25 @@ public class DebugLogger {
         log(LogLevel.ERROR, category, message, details, true);
     }
     
+    // Logcat output configuration
+    private boolean logcatEnabled = true;  // Enable logcat output by default
+    private static final String LOGCAT_TAG = "AURORA_DBG";
+
+    /**
+     * Enable or disable Android logcat output
+     * @param enabled true to output logs to logcat
+     */
+    public void setLogcatEnabled(boolean enabled) {
+        this.logcatEnabled = enabled;
+    }
+
+    /**
+     * Check if logcat output is enabled
+     */
+    public boolean isLogcatEnabled() {
+        return logcatEnabled;
+    }
+
     private void log(LogLevel level, String category, String message, String details, boolean priority) {
         // Rate limiting: check if this message was recently logged
         // Priority messages bypass rate limiting
@@ -202,16 +221,28 @@ public class DebugLogger {
             logs.subList(0, logs.size() - maxTotalLogs).clear();
         }
         
-        // Console output disabled - use Dbg.dumpConfig() or telemetry instead
-        // This prevents recursive logging and console pollution
-        // String priorityFlag = priority ? "🔥 " : "";
-        // Dbg.d(LogGroup.DBG, "[%s] %s%s [%s] %s%s",
-        //     entry.getFormattedTime(startTime),
-        //     priorityFlag,
-        //     level.getIcon(),
-        //     category,
-        //     message,
-        //     details != null ? " | " + details : "");
+        // Output to Android logcat if enabled
+        if (logcatEnabled) {
+            String logMessage = String.format("[%s] %s%s",
+                category,
+                message,
+                details != null ? " | " + details : "");
+
+            switch (level) {
+                case DEBUG:
+                    android.util.Log.d(LOGCAT_TAG, logMessage);
+                    break;
+                case INFO:
+                    android.util.Log.i(LOGCAT_TAG, logMessage);
+                    break;
+                case WARNING:
+                    android.util.Log.w(LOGCAT_TAG, logMessage);
+                    break;
+                case ERROR:
+                    android.util.Log.e(LOGCAT_TAG, logMessage);
+                    break;
+            }
+        }
     }
     
     // === Boolean Condition Tracking ===

@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.AnalogInput;
@@ -35,6 +36,7 @@ import java.util.Locale;
  * Page 4: Color Sensor Summary
  */
 @TeleOp(name="Diagnostic: Sensor Mapping", group="Testing")
+@Disabled
 public class SensorMappingDiagnostic extends LinearOpMode {
 
     private AuroraHardwareConfig hardware;

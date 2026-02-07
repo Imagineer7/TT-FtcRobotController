@@ -79,24 +79,17 @@ public class StateEstimator {
         Pose2D currentOdometryPose = odometry.getPosition();
         
         // Compute delta from last update
-        double dx_odo = currentOdometryPose.getX(DistanceUnit.MM) - 
+        // NOTE: GoBilda Pinpoint already outputs positions in its field frame (transformed by heading)
+        // We do NOT need to transform again - just use the deltas directly
+        double dx_field = currentOdometryPose.getX(DistanceUnit.MM) -
                         lastOdometryPose.getX(DistanceUnit.MM);
-        double dy_odo = currentOdometryPose.getY(DistanceUnit.MM) - 
+        double dy_field = currentOdometryPose.getY(DistanceUnit.MM) -
                         lastOdometryPose.getY(DistanceUnit.MM);
         
         // Get current heading from IMU (via odometry computer)
         double currentHeading = currentOdometryPose.getHeading(AngleUnit.RADIANS);
         
-        // Apply motion model
-        // Transform odometry delta to field frame using current heading
-        // Note: This is a simplification; full EKF would use midpoint integration
-        double cos_h = Math.cos(currentPose.heading);
-        double sin_h = Math.sin(currentPose.heading);
-        
-        double dx_field = cos_h * dx_odo - sin_h * dy_odo;
-        double dy_field = sin_h * dx_odo + cos_h * dy_odo;
-        
-        // Predict new state
+        // Predict new state - directly use the field-frame deltas from Pinpoint
         RobotPose2D predicted = new RobotPose2D();
         predicted.x = currentPose.x + dx_field;
         predicted.y = currentPose.y + dy_field;

@@ -48,6 +48,26 @@ public class LimelightVisionHelper {
     private double cameraHeightMM = 200.0; // height of camera above ground
     private double cameraMountAngleDeg = 0.0; // angle of camera mount
     
+    // MegaTag2 support
+    private boolean useMegaTag2 = true;  // Default to MegaTag2 for better stability
+    private double lastRobotHeadingDeg = 0.0;
+
+    /**
+     * Heading offset for MegaTag2 (in degrees).
+     * This compensates for the difference between odometry's relative heading (starts at 0)
+     * and the absolute field heading that MegaTag2 needs.
+     *
+     * This can be:
+     * - Set manually via setHeadingOffset()
+     * - Auto-calibrated from MT1's first valid reading via calibrateHeadingFromMT1()
+     *
+     * The offset is added to odometry heading before sending to MegaTag2:
+     * absoluteHeading = odometryHeading + headingOffset
+     */
+    private double headingOffsetDeg = 0.0;  // Will be calibrated from MT1
+    private boolean headingCalibrated = false;
+    private double lastMT1HeadingDeg = 0.0;  // Track MT1 heading for calibration
+
     /**
      * Create a new LimelightVisionHelper
      * @param hardwareMap The OpMode's hardwareMap
@@ -67,6 +87,158 @@ public class LimelightVisionHelper {
         }
     }
     
+    /**
+     * Set whether to use MegaTag2 (multi-tag, more stable) or MegaTag1 (single-tag)
+     * MegaTag2 is more stable but requires updateRobotOrientation to be called with correct heading
+     * @param useMT2 true for MegaTag2, false for MegaTag1
+     */
+    public void setUseMegaTag2(boolean useMT2) {
+        this.useMegaTag2 = useMT2;
+    }
+
+    /**
+     * Check if using MegaTag2
+     */
+    public boolean isUsingMegaTag2() {
+        return useMegaTag2;
+    }
+
+    /**
+     * CRITICAL FOR MEGATAG2: Update the robot orientation for MegaTag2 calculations.
+     * MegaTag2 uses this orientation as a reference for determining robot position.
+     *
+     * IMPORTANT: The heading MUST be in DEGREES, not radians!
+     *
+     * If auto-calibration is enabled and not yet calibrated, this will attempt to
+     * calibrate the heading offset from MT1's reading.
+     *
+     * Call this every loop BEFORE getting the robot pose if using MegaTag2.
+     *
+     * @param odometryHeadingDegrees Robot heading from odometry in DEGREES (relative, starts at 0)
+     */
+    public void updateRobotOrientation(double odometryHeadingDegrees) {
+        if (limelight == null) return;
+
+        // Try to auto-calibrate from MT1 if not yet calibrated
+        if (!headingCalibrated) {
+            calibrateHeadingFromMT1(odometryHeadingDegrees);
+        }
+
+        // Apply heading offset to convert from relative odometry to absolute field heading
+        double absoluteHeading = odometryHeadingDegrees + headingOffsetDeg;
+
+        // Normalize to -180 to 180
+        while (absoluteHeading > 180) absoluteHeading -= 360;
+        while (absoluteHeading < -180) absoluteHeading += 360;
+
+        this.lastRobotHeadingDeg = absoluteHeading;
+
+        // Use the Limelight's updateRobotOrientation method
+        // This sets the robot's orientation for MegaTag2 calculations
+        // Yaw, Pitch, Roll all in DEGREES
+        limelight.updateRobotOrientation(absoluteHeading);
+    }
+
+    /**
+     * Auto-calibrate heading offset from MT1.
+     * MT1 gives us the correct absolute heading from AprilTags.
+     * We can use this to calculate the offset needed for MegaTag2.
+     *
+     * offset = MT1_heading - odometry_heading
+     *
+     * @param currentOdometryHeadingDeg Current odometry heading in degrees
+     */
+    public void calibrateHeadingFromMT1(double currentOdometryHeadingDeg) {
+        if (limelight == null || headingCalibrated) return;
+
+        try {
+            LLResult result = limelight.getLatestResult();
+            if (result == null || !result.isValid()) return;
+
+            // Get MT1 pose (single-tag, gives correct absolute heading)
+            Pose3D mt1Pose = result.getBotpose();
+            if (mt1Pose == null) return;
+
+            // Check if MT1 has valid data
+            if (Math.abs(mt1Pose.getPosition().x) < 0.001 &&
+                Math.abs(mt1Pose.getPosition().y) < 0.001) {
+                return; // No valid MT1 data yet
+            }
+
+            // Get MT1's absolute heading
+            double mt1HeadingDeg = mt1Pose.getOrientation().getYaw(
+                org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.DEGREES);
+
+            // Calculate the offset needed
+            // We want: absoluteHeading = odometryHeading + offset
+            // So: offset = mt1Heading - odometryHeading
+            headingOffsetDeg = mt1HeadingDeg - currentOdometryHeadingDeg;
+
+            // Normalize to -180 to 180
+            while (headingOffsetDeg > 180) headingOffsetDeg -= 360;
+            while (headingOffsetDeg < -180) headingOffsetDeg += 360;
+
+            lastMT1HeadingDeg = mt1HeadingDeg;
+            headingCalibrated = true;
+
+            android.util.Log.i("LimelightVision", String.format(
+                "AUTO-CALIBRATED heading offset: %.1f° (MT1=%.1f°, Odo=%.1f°)",
+                headingOffsetDeg, mt1HeadingDeg, currentOdometryHeadingDeg));
+
+        } catch (Exception e) {
+            // Silently fail - will try again next loop
+        }
+    }
+
+    /**
+     * Check if heading has been calibrated from MT1
+     */
+    public boolean isHeadingCalibrated() {
+        return headingCalibrated;
+    }
+
+    /**
+     * Reset heading calibration (will re-calibrate on next update)
+     */
+    public void resetHeadingCalibration() {
+        headingCalibrated = false;
+        headingOffsetDeg = 0.0;
+    }
+
+    /**
+     * Get the last MT1 heading used for calibration
+     */
+    public double getLastMT1HeadingDeg() {
+        return lastMT1HeadingDeg;
+    }
+
+    /**
+     * Set heading offset for MegaTag2 manually (in degrees).
+     * This overrides any auto-calibration.
+     *
+     * @param offsetDegrees Offset in degrees to add to odometry heading
+     */
+    public void setHeadingOffset(double offsetDegrees) {
+        this.headingOffsetDeg = offsetDegrees;
+        this.headingCalibrated = true;  // Mark as calibrated so auto-cal doesn't override
+    }
+
+    /**
+     * Get the current heading offset
+     * @return offset in degrees
+     */
+    public double getHeadingOffset() {
+        return headingOffsetDeg;
+    }
+
+    /**
+     * Get the last robot heading that was sent to the Limelight
+     * @return heading in degrees (after offset applied)
+     */
+    public double getLastRobotHeadingDeg() {
+        return lastRobotHeadingDeg;
+    }
+
     /**
      * Check if Limelight is initialized and operational
      */
@@ -258,13 +430,64 @@ public class LimelightVisionHelper {
     
     /**
      * Get robot pose from a single reading (no filtering)
-     * Use getFilteredRobotPose() for more reliable results
-     * 
+     * Uses MegaTag2 if enabled (more stable), otherwise MegaTag1.
+     *
+     * IMPORTANT: If using MegaTag2, call updateRobotOrientation() first with the robot's
+     * current heading in DEGREES.
+     *
      * @return robot pose, or null if no valid pose
      */
     public Pose3D getRobotPose() {
         if (!hasTarget()) return null;
-        return limelight.getLatestResult().getBotpose();
+
+        LLResult result = limelight.getLatestResult();
+        if (result == null || !result.isValid()) return null;
+
+        if (useMegaTag2) {
+            // MegaTag2 - more stable, uses multiple tags when available
+            // Requires updateRobotOrientation to be called with correct heading
+            try {
+                Pose3D mt2Pose = result.getBotpose_MT2();
+                if (mt2Pose != null &&
+                    (Math.abs(mt2Pose.getPosition().x) > 0.001 ||
+                     Math.abs(mt2Pose.getPosition().y) > 0.001)) {
+                    return mt2Pose;
+                }
+            } catch (Exception e) {
+                // Fall through to MegaTag1
+            }
+        }
+
+        // MegaTag1 fallback (or if MT2 disabled/failed)
+        return result.getBotpose();
+    }
+
+    /**
+     * Get MegaTag1 robot pose (single-tag, less stable but doesn't need orientation input)
+     * @return MegaTag1 robot pose, or null if no valid pose
+     */
+    public Pose3D getRobotPoseMT1() {
+        if (!hasTarget()) return null;
+        LLResult result = limelight.getLatestResult();
+        if (result == null || !result.isValid()) return null;
+        return result.getBotpose();
+    }
+
+    /**
+     * Get MegaTag2 robot pose (multi-tag, more stable, requires orientation input)
+     * IMPORTANT: Call updateRobotOrientation() first with heading in DEGREES!
+     * @return MegaTag2 robot pose, or null if no valid pose
+     */
+    public Pose3D getRobotPoseMT2() {
+        if (!hasTarget()) return null;
+        LLResult result = limelight.getLatestResult();
+        if (result == null || !result.isValid()) return null;
+
+        try {
+            return result.getBotpose_MT2();
+        } catch (Exception e) {
+            return null;
+        }
     }
     
     /**

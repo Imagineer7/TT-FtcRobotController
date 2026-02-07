@@ -156,8 +156,9 @@ public class VisionCorrector {
         double[] correction = K.multiply(innovationX, innovationY, innovationHeading);
         
         // Get alpha factor (gradual correction)
-        double alpha = firstCorrection ? 
-            config.correctionAlphaInitial : 
+        // For first correction, use 1.0 to fully "teleport" to vision position
+        double alpha = firstCorrection ?
+            1.0 :  // Full correction for first measurement
             config.correctionAlpha;
         
         // Apply alpha blending to correction

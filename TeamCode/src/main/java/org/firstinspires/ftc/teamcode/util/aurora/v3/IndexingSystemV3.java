@@ -133,6 +133,12 @@ public class IndexingSystemV3 {
     private static final int STALL_MOVEMENT_THRESHOLD = 10;  // Encoder ticks (very small movement = stalled)
     private static final long STALL_CHECK_INTERVAL_MS = 100;  // Check every 100ms
     private boolean frontRollerStalled = false;
+
+    // Intake ejection state - run intake backwards while button held
+    // When ejecting: run rollers backward, block detection, clear ledger, block transfers TO this intake
+    private boolean frontIntakeEjecting = false;
+    private boolean backIntakeEjecting = false;
+    private static final double EJECT_ROLLER_POWER = -0.8;  // Negative = backward/eject
     private boolean backRollerStalled = false;
     private int frontStallCheckCount = 0;
     private int backStallCheckCount = 0;
@@ -463,6 +469,9 @@ public class IndexingSystemV3 {
      * Hunt-eligible intakes run rollers at 0.6 power.
      * Non-hunt-eligible intakes stop rollers (unless holding artifact at 0.3 power).
      * Storage mode includes stall detection - if rollers don't move, stop trying.
+     *
+     * Ejection state takes priority: When an intake is ejecting, it runs backward
+     * regardless of hunt/storage state.
      */
     private void updateHuntingRollers() {
         // Issue 2 Fix: Don't control hardware if operation is running
@@ -474,7 +483,14 @@ public class IndexingSystemV3 {
         final double STORAGE_ROLLER_POWER = 0.3;  // Storage mode hold power
 
         // Front intake roller control
-        if (isIntakeHuntEligible(SlotLedger.Slot.FRONT)) {
+        // EJECTION PRIORITY: If ejecting, run backward and skip normal logic
+        if (frontIntakeEjecting) {
+            indexingHelper.setFrontRollerPower(EJECT_ROLLER_POWER);
+            // Also run transfer servo backward to help eject
+            if (!indexingHelper.isFrontTransferBusy()) {
+                indexingHelper.setFrontTransferPower(0.5);  // Positive = away from center (eject)
+            }
+        } else if (isIntakeHuntEligible(SlotLedger.Slot.FRONT)) {
             // Hunt-eligible: run roller at hunt power (0.6)
             indexingHelper.setFrontRollerPower(HUNT_ROLLER_POWER);
         } else if (ledger.isOccupied(SlotLedger.Slot.FRONT)) {
@@ -497,7 +513,14 @@ public class IndexingSystemV3 {
         }
         
         // Back intake roller control
-        if (isIntakeHuntEligible(SlotLedger.Slot.BACK)) {
+        // EJECTION PRIORITY: If ejecting, run backward and skip normal logic
+        if (backIntakeEjecting) {
+            indexingHelper.setBackRollerPower(EJECT_ROLLER_POWER);
+            // Also run transfer servo backward to help eject
+            if (!indexingHelper.isBackTransferBusy()) {
+                indexingHelper.setBackTransferPower(0.5);  // Positive = away from center (eject)
+            }
+        } else if (isIntakeHuntEligible(SlotLedger.Slot.BACK)) {
             // Hunt-eligible: run roller at hunt power (0.6)
             indexingHelper.setBackRollerPower(HUNT_ROLLER_POWER);
         } else if (ledger.isOccupied(SlotLedger.Slot.BACK)) {
@@ -574,7 +597,10 @@ public class IndexingSystemV3 {
 
         // Front intake: run transfer servo forward if hunt-eligible
         // BUT: Don't interfere if operation has active timed movement
-        if (isIntakeHuntEligible(SlotLedger.Slot.FRONT) && !indexingHelper.isFrontTransferBusy()) {
+        // AND: Don't interfere if ejecting (ejection controls transfer servo in updateHuntingRollers)
+        if (frontIntakeEjecting) {
+            // Ejecting - transfer servo is controlled by updateHuntingRollers, skip
+        } else if (isIntakeHuntEligible(SlotLedger.Slot.FRONT) && !indexingHelper.isFrontTransferBusy()) {
             indexingHelper.setFrontTransferPower(huntTransferPower);
         } else if (!indexingHelper.isFrontTransferBusy()) {
             // Not hunt-eligible and no operation: stop transfer servo
@@ -584,7 +610,10 @@ public class IndexingSystemV3 {
         
         // Back intake: run transfer servo forward if hunt-eligible
         // BUT: Don't interfere if operation has active timed movement
-        if (isIntakeHuntEligible(SlotLedger.Slot.BACK) && !indexingHelper.isBackTransferBusy()) {
+        // AND: Don't interfere if ejecting (ejection controls transfer servo in updateHuntingRollers)
+        if (backIntakeEjecting) {
+            // Ejecting - transfer servo is controlled by updateHuntingRollers, skip
+        } else if (isIntakeHuntEligible(SlotLedger.Slot.BACK) && !indexingHelper.isBackTransferBusy()) {
             indexingHelper.setBackTransferPower(huntTransferPower);
         } else if (!indexingHelper.isBackTransferBusy()) {
             // Not hunt-eligible and no operation: stop transfer servo
@@ -617,7 +646,8 @@ public class IndexingSystemV3 {
      * - Slot is empty (not storing an artifact)
      * - System not full (has capacity)
      * - No operation running (not busy)
-     * 
+     * - Not ejecting (intake running backward)
+     *
      * @param slot FRONT or BACK intake
      * @return true if intake should hunt (run rollers, poll sensors)
      */
@@ -630,6 +660,12 @@ public class IndexingSystemV3 {
             return false;  // Center slot never hunts
         }
         
+        // Check if intake is ejecting
+        boolean isEjecting = (slot == SlotLedger.Slot.FRONT) ? frontIntakeEjecting : backIntakeEjecting;
+        if (isEjecting) {
+            return false;  // Can't hunt while ejecting
+        }
+
         // Check if slot is occupied
         boolean slotOccupied = (slot == SlotLedger.Slot.FRONT) ? 
                               ledger.isFrontOccupied() : ledger.isBackOccupied();
@@ -973,6 +1009,10 @@ public class IndexingSystemV3 {
 
         boolean isFront = (slot == SlotLedger.Slot.FRONT);
 
+        // Block detection while intake is ejecting
+        boolean isEjecting = isFront ? frontIntakeEjecting : backIntakeEjecting;
+        if (isEjecting) return;  // Can't detect while ejecting
+
         // Check if intake hardware is busy (transfer in progress)
         if (isFront && indexingHelper.isFrontTransferBusy()) return;
         if (!isFront && indexingHelper.isBackTransferBusy()) return;
@@ -1253,7 +1293,13 @@ public class IndexingSystemV3 {
     public boolean requestSwap(SlotLedger.Slot intakeSlot) {
         if (!enabled) return false;
         if (intakeSlot == SlotLedger.Slot.CENTER) return false;  // Invalid slot
-        
+
+        // Block swap if EITHER intake is ejecting (swap sends artifact to opposite intake)
+        if (frontIntakeEjecting || backIntakeEjecting) {
+            Dbg.d(LogGroup.INTAKE, "Swap rejected: intake is ejecting");
+            return false;
+        }
+
         SwapOperation op = new SwapOperation(
             ledger, indexingHelper, config, intakeSlot, telemetry
         );
@@ -1583,6 +1629,101 @@ public class IndexingSystemV3 {
      */
     public boolean isAutoSwapEnabled() {
         return autoSwapEnabled;
+    }
+
+    // ========== Intake Ejection API ==========
+
+    /**
+     * Set intake ejection state.
+     *
+     * When ejecting:
+     * - Runs the intake rollers backward (negative power) to push artifact out
+     * - Runs transfer servo backward to help eject
+     * - Blocks detection (won't detect new artifacts in that intake)
+     * - Clears the ledger slot immediately (artifact is being ejected)
+     * - Blocks transfers TO that intake (can't swap/transfer to an ejecting intake)
+     *
+     * This is designed for "hold to eject" behavior:
+     * - Call setIntakeEjecting(slot, true) while button is held
+     * - Call setIntakeEjecting(slot, false) when button is released
+     *
+     * @param slot Which intake to eject (FRONT or BACK only, CENTER is ignored)
+     * @param ejecting true to start ejecting, false to stop
+     */
+    public void setIntakeEjecting(SlotLedger.Slot slot, boolean ejecting) {
+        if (slot == SlotLedger.Slot.CENTER) {
+            return;  // Can't eject CENTER with this method (use requestEject for CENTER)
+        }
+
+        boolean wasEjecting;
+        if (slot == SlotLedger.Slot.FRONT) {
+            wasEjecting = frontIntakeEjecting;
+            frontIntakeEjecting = ejecting;
+
+            if (ejecting && !wasEjecting) {
+                // Just started ejecting - clear ledger and reset stall flags
+                ledger.set(SlotLedger.Slot.FRONT, null);
+                frontRollerStalled = false;
+                frontStallCheckCount = 0;
+                frontArtifactDetected = false;  // Clear any pending detection
+                Dbg.i(LogGroup.INTAKE, "FRONT intake ejection started - ledger cleared");
+            } else if (!ejecting && wasEjecting) {
+                // Just stopped ejecting - reset perception to prevent ghost detection
+                frontPerception.resetPresenceDetection();
+                lastFrontTransferTime = System.currentTimeMillis();  // Set transfer cooldown
+                Dbg.i(LogGroup.INTAKE, "FRONT intake ejection stopped - perception reset");
+            }
+        } else {
+            wasEjecting = backIntakeEjecting;
+            backIntakeEjecting = ejecting;
+
+            if (ejecting && !wasEjecting) {
+                // Just started ejecting - clear ledger and reset stall flags
+                ledger.set(SlotLedger.Slot.BACK, null);
+                backRollerStalled = false;
+                backStallCheckCount = 0;
+                backArtifactDetected = false;  // Clear any pending detection
+                Dbg.i(LogGroup.INTAKE, "BACK intake ejection started - ledger cleared");
+            } else if (!ejecting && wasEjecting) {
+                // Just stopped ejecting - reset perception to prevent ghost detection
+                backPerception.resetPresenceDetection();
+                lastBackTransferTime = System.currentTimeMillis();  // Set transfer cooldown
+                Dbg.i(LogGroup.INTAKE, "BACK intake ejection stopped - perception reset");
+            }
+        }
+    }
+
+    /**
+     * Check if FRONT intake is currently ejecting.
+     *
+     * @return true if front intake is ejecting
+     */
+    public boolean isFrontIntakeEjecting() {
+        return frontIntakeEjecting;
+    }
+
+    /**
+     * Check if BACK intake is currently ejecting.
+     *
+     * @return true if back intake is ejecting
+     */
+    public boolean isBackIntakeEjecting() {
+        return backIntakeEjecting;
+    }
+
+    /**
+     * Check if specified intake is currently ejecting.
+     *
+     * @param slot Which intake to check (FRONT or BACK)
+     * @return true if that intake is ejecting
+     */
+    public boolean isIntakeEjecting(SlotLedger.Slot slot) {
+        if (slot == SlotLedger.Slot.FRONT) {
+            return frontIntakeEjecting;
+        } else if (slot == SlotLedger.Slot.BACK) {
+            return backIntakeEjecting;
+        }
+        return false;  // CENTER never ejects
     }
 
     /**

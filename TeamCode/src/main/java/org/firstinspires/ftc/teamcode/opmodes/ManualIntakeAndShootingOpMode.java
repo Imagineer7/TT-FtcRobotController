@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -42,11 +43,9 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
  *   - Left Bumper:   Run back intake forward
  *   - Guide Button:  Toggle ejection on/off
  *
- *   TURRET CONTROLS (Auto-Gyro):
+ *   TURRET CONTROLS (Manual Auto-Gyro Only):
  *   - A Button:      Set turret target to current robot heading (point forward)
  *   - B Button:      Enable/disable auto-gyro mode (toggle)
- *   - X Button:      Manual Limelight update (sync pose when near AprilTag)
- *   - Y Button:      Toggle between AprilTag targets (Blue tag 20 @ 54° / Red tag 24 @ -54°)
  *   - D-Pad Left:    Reset turret to forward (0° robot-relative)
  *
  * GAMEPAD 2 - FIRING AND INDEXING:
@@ -75,23 +74,8 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
  *   - Right Stick X: Rotate (only if gamepad1 sticks idle)
  */
 @TeleOp(name="Manual Intake & Shooting", group="Competition")
+@Disabled
 public class ManualIntakeAndShootingOpMode extends LinearOpMode {
-
-    // AprilTag target headings (field-relative - used as fallback when no pose update)
-    private static final double BLUE_TAG_20_HEADING = 54.0;   // Blue alliance tag
-    private static final double RED_TAG_24_HEADING = -54.0;   // Red alliance tag
-
-    // AprilTag field coordinates (from official field specs)
-    // Tag 20 (Blue): -1.482m, -1.413m, 0.749m, Yaw 54°
-    // Tag 24 (Red): -1.482m, 1.413m, 0.749m, Yaw -54°
-    // Converted to inches (1m = 39.3701 inches)
-    private static final double BLUE_TAG_X = -1.482 * 39.3701;  // -58.35 inches
-    private static final double BLUE_TAG_Y = -1.413 * 39.3701;  // -55.62 inches
-    private static final double RED_TAG_X = -1.482 * 39.3701;   // -58.35 inches
-    private static final double RED_TAG_Y = 1.413 * 39.3701;    // 55.62 inches (ORIGINAL VALUE RESTORED)
-
-    // Pose update tracking
-    private boolean poseUpdatedWithLimelight = false;  // Track if pose has been updated via Limelight
 
     // Hardware and helpers
     private AuroraHardwareConfig hardware;
@@ -114,12 +98,6 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
     private static final double ROBOT_RADIUS = 9.0; // inches
     private static final Style robotLook = new Style("", "#3F51B5", 0.75);
 
-    // AprilTag target toggle state
-    private boolean targetingBlueTag = true;  // Start with Blue tag 20
-
-    // Turret mode tracking
-    private boolean turretInManualHeadingMode = false;
-
     // Button state tracking for edge detection
     private boolean lastButtonA = false;
     private boolean lastButtonB = false;
@@ -135,8 +113,6 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
     // Turret button edge detection (gamepad1)
     private boolean lastAButton = false;
     private boolean lastBButton = false;
-    private boolean lastXButton = false;
-    private boolean lastYButton = false;
 
     // Telemetry optimization
     private static final boolean ENABLE_DEBUG_TELEMETRY = false;  // Set to false for competition
@@ -282,11 +258,9 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
         telemetry.addLine("  Right/Left Bumper: Intakes");
         telemetry.addLine("  Guide Button: Toggle Ejection");
         telemetry.addLine();
-        telemetry.addLine("  TURRET (Auto-Gyro):");
+        telemetry.addLine("  TURRET (Auto-Gyro - Manual Only):");
         telemetry.addLine("  A: Set to robot heading");
         telemetry.addLine("  B: Enable/Disable auto-gyro");
-        telemetry.addLine("  X: Manual Limelight update");
-        telemetry.addLine("  Y: Toggle AprilTag target");
         telemetry.addLine("  D-Pad Left: Reset turret forward");
         telemetry.addLine();
         telemetry.addLine("GAMEPAD 2 - FIRING & INDEXING");
@@ -360,8 +334,6 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
                 // This makes the field-relative target = current robot heading
                 autoGyroTurret.setFieldRelativeHeading(robotHeading+180, robotHeading+180);
                 autoGyroTurret.enable();
-                turretInManualHeadingMode = true;  // Prevent continuous AprilTag update from overriding
-                poseUpdatedWithLimelight = false;
                 telemetry.addLine(String.format("🎯 Turret: Set to robot heading (%.1f°)", robotHeading));
             }
             lastAButton = gamepad1.a;
@@ -377,104 +349,10 @@ public class ManualIntakeAndShootingOpMode extends LinearOpMode {
             }
             lastBButton = gamepad1.b;
 
-            // X Button - Manual Limelight update (sync pose when near AprilTag)
-            if (gamepad1.x && !lastXButton) {
-                boolean success = localization.updateWithLimelight();
-                if (success) {
-                    poseUpdatedWithLimelight = true;  // Enable calculated turret angles
-                    telemetry.addLine("✅ Limelight: Pose updated successfully");
-                } else {
-                    telemetry.addLine("⚠️ Limelight: Update failed (check conditions)");
-                }
-            }
-            lastXButton = gamepad1.x;
-
-            // Y Button - Toggle between AprilTag targets (Blue tag 20 @ 54° and Red tag 24 @ -54°)
-            if (gamepad1.y && !lastYButton) {
-                // Toggle target
-                targetingBlueTag = !targetingBlueTag;
-                turretInManualHeadingMode = false;  // Re-enable continuous AprilTag update
-                String tagName = targetingBlueTag ? "Blue Tag 20" : "Red Tag 24";
-                double targetHeading;
-
-                // If pose has been updated with Limelight at least once, calculate angle from robot to tag
-                if (poseUpdatedWithLimelight && localization.isOdometryInitialized()) {
-                    // Get current robot position (in rotated Limelight coordinate system)
-                    double robotXRotated = localization.getX(DistanceUnit.INCH);
-                    double robotYRotated = localization.getY(DistanceUnit.INCH);
-
-                    // Apply inverse 180° rotation to convert robot position back to field coordinate system
-                    // Since Limelight data was rotated 180°, we need to rotate it back to match AprilTag coords
-                    // Inverse of 180° rotation is another 180° rotation: x' = -x, y' = -y
-                    double robotX = -robotXRotated;
-                    double robotY = -robotYRotated;
-
-                    // Get target tag coordinates (in original field coordinate system)
-                    double tagX = targetingBlueTag ? BLUE_TAG_X : RED_TAG_X;
-                    double tagY = targetingBlueTag ? BLUE_TAG_Y : RED_TAG_Y;
-
-                    // Calculate angle from robot to target tag
-                    double deltaX = tagX - robotX;
-                    double deltaY = tagY - robotY;
-
-                    // Calculate angle in degrees (atan2 returns radians)
-                    // atan2(y, x) gives angle from positive X-axis
-                    targetHeading = Math.toDegrees(Math.atan2(deltaY, deltaX));
-
-                    // Add 180° to flip turret around (front of turret instead of back)
-                    targetHeading += 180.0;
-
-                    // Calculate distance for telemetry
-                    double distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-                    telemetry.addLine(String.format("🎯 Turret: Target %s (calculated)", tagName));
-                    telemetry.addLine(String.format("   Angle: %.1f° | Distance: %.1f in", targetHeading, distance));
-                    telemetry.addLine(String.format("   Robot: (%.1f, %.1f) → Tag: (%.1f, %.1f)",
-                                                    robotX, robotY, tagX, tagY));
-                } else {
-                    // Fallback to fixed heading if pose hasn't been updated yet
-                    targetHeading = targetingBlueTag ? BLUE_TAG_20_HEADING : RED_TAG_24_HEADING;
-                    telemetry.addLine(String.format("🎯 Turret: Target %s (%.0f° fixed)", tagName, targetHeading));
-                    if (!poseUpdatedWithLimelight) {
-                        telemetry.addLine("   ⚠️ Using fixed angle - press X near tag to enable calculated angles");
-                    }
-                }
-
-                // Set turret to calculated or fixed target heading
-                autoGyroTurret.setFieldRelativeHeading(targetHeading, robotHeading);
-                autoGyroTurret.enable();
-            }
-            lastYButton = gamepad1.y;
-
-            // Continuous turret angle update: Recalculate angle to target as robot moves
-            // Only when pose has been updated and turret is enabled
-            // Skip if in manual heading mode (A button was pressed)
-            if (!turretInManualHeadingMode && poseUpdatedWithLimelight && autoGyroTurret.isEnabled() && localization.isOdometryInitialized()) {
-                // Get current robot position (in rotated Limelight coordinate system)
-                double robotXRotated = localization.getX(DistanceUnit.INCH);
-                double robotYRotated = localization.getY(DistanceUnit.INCH);
-
-                // Apply inverse 180° rotation to convert back to field coordinate system
-                double robotX = -robotXRotated;
-                double robotY = -robotYRotated;
-
-                // Get target tag coordinates
-                double tagX = targetingBlueTag ? BLUE_TAG_X : RED_TAG_X;
-                double tagY = targetingBlueTag ? BLUE_TAG_Y : RED_TAG_Y;
-
-                // Calculate angle from robot to target tag
-                double deltaX = tagX - robotX;
-                double deltaY = tagY - robotY;
-
-                // Calculate field-relative angle
-                double targetHeading = Math.toDegrees(Math.atan2(deltaY, deltaX));
-
-                // Add 180° to flip turret around (front instead of back)
-                targetHeading += 180.0;
-
-                // Update turret to point at target
-                autoGyroTurret.setFieldRelativeHeading(targetHeading, robotHeading);
-            }
+            // X Button - DISABLED (was Manual Limelight update)
+            // Y Button - DISABLED (was Toggle AprilTag targets)
+            // NOTE: AprilTag auto-targeting has been disabled for manual control only
+            // Turret now only maintains the heading set by A button or manual controls
 
             // Update turret to maintain field-relative heading (if enabled)
             // If disabled, this will set servo to position 0 (0° / forward)

@@ -192,6 +192,13 @@ public class MeasurementValidator {
      * Level 5: Statistical validation (Mahalanobis distance gating)
      */
     private boolean validateStatistics(RobotPose2D predicted, RobotPose2D measurement) {
+        // BYPASS for first measurement - allow initial position correction from vision
+        // This is needed because the robot may start at an unknown position
+        // and the first vision reading should "teleport" it to the correct location
+        if (firstMeasurement) {
+            return true;  // Accept first measurement unconditionally
+        }
+
         // Compute innovation
         double dx = measurement.x - predicted.x;
         double dy = measurement.y - predicted.y;
@@ -217,14 +224,10 @@ public class MeasurementValidator {
             return false;
         }
         
-        // Check against threshold
-        double threshold = firstMeasurement ? 
-            config.mahalanobisThresholdInitial : 
-            config.mahalanobisThreshold;
-        
-        if (mahalanobis > threshold) {
-            reject(String.format("Mahalanobis distance too large: %.2f > %.2f", 
-                mahalanobis, threshold));
+        // Use normal threshold (firstMeasurement already handled above)
+        if (mahalanobis > config.mahalanobisThreshold) {
+            reject(String.format("Mahalanobis distance too large: %.2f > %.2f",
+                mahalanobis, config.mahalanobisThreshold));
             return false;
         }
         
@@ -235,6 +238,11 @@ public class MeasurementValidator {
      * Level 6: Safety validation
      */
     private boolean validateSafety(RobotPose2D predicted, RobotPose2D measurement) {
+        // BYPASS for first measurement - allow initial position correction
+        if (firstMeasurement) {
+            return true;
+        }
+
         // Check innovation magnitude (Euclidean distance)
         double dx = measurement.x - predicted.x;
         double dy = measurement.y - predicted.y;

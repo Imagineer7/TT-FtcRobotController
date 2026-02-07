@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
@@ -37,6 +38,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
  *   - START: Cancel any active transfer sequence
  */
 @TeleOp(name="Basic Indexing & Firing Test", group="Testing")
+@Disabled
 public class BasicIndexingHelperTest extends LinearOpMode {
 
     // Hardware and helpers

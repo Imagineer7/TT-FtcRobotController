@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -28,6 +29,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.localization.RobotPose2D;
  * the fusion behavior and vision correction application.
  */
 @TeleOp(name = "Test: Fusion Localization", group = "Test")
+@Disabled
 public class FusionLocalizationTestOpMode extends LinearOpMode {
     
     private AuroraHardwareConfig hardware;

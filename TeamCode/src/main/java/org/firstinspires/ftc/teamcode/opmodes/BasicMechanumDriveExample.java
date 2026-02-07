@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
@@ -20,7 +21,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.IntelMechanumDrive;
  * - Y Button: Reset IMU heading (for field-centric)
  */
 @TeleOp(name = "Basic Mecanum Drive Example", group = "Examples")
-
+@Disabled
 public class BasicMechanumDriveExample extends LinearOpMode {
 
     private AuroraHardwareConfig hardware;

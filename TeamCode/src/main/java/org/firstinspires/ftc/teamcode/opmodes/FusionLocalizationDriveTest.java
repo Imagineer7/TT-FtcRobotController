@@ -15,6 +15,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.localization.FusionLocalizer;
 import org.firstinspires.ftc.teamcode.util.aurora.localization.LocalizationConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.localization.PredefinedPoses;
 import org.firstinspires.ftc.teamcode.util.aurora.localization.RobotPose2D;
+import org.firstinspires.ftc.teamcode.util.debug.DebugLogger;
 
 /**
  * Comprehensive Drive Test for Fusion Localization System
@@ -138,6 +139,7 @@ public class FusionLocalizationDriveTest extends LinearOpMode {
     private boolean lastDpadUp = false;
     private boolean lastDpadDown = false;
     private boolean lastDpadLeft = false;
+    private boolean lastDpadRight = false;
     private boolean lastA = false;
     private boolean lastB = false;
     private boolean lastX = false;
@@ -152,10 +154,17 @@ public class FusionLocalizationDriveTest extends LinearOpMode {
     private boolean forceNextVisionUpdate = false;
     private long lastManualUpdateTime = 0;
 
+    // MegaTag2 heading offset (adjustable during runtime)
+    private double headingOffsetDeg = 0.0;
+
     // Performance tracking
     private ElapsedTime loopTimer = new ElapsedTime();
     private double maxLoopTime = 0;
     private int loopCount = 0;
+
+    // Debug logger for comprehensive logging
+    private DebugLogger debugLogger;
+    private static final String LOG_TAG = "FusionDriveTest";
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -168,9 +177,14 @@ public class FusionLocalizationDriveTest extends LinearOpMode {
         telemetry.addLine("Initializing hardware...");
         telemetry.update();
 
+        // Initialize debug logger
+        debugLogger = new DebugLogger();
+        debugLogger.info(LOG_TAG, "Starting Fusion Localization Drive Test");
+
         // Initialize hardware
         hardware = new AuroraHardwareConfig(hardwareMap, telemetry);
         hardware.initializeWithOdometry();
+        debugLogger.info(LOG_TAG, "Hardware initialized with odometry");
 
         // Get drive motors
         leftFront = hardware.getFrontLeftMotor();
@@ -298,7 +312,9 @@ public class FusionLocalizationDriveTest extends LinearOpMode {
         telemetry.update();
         sleep(1000);
 
-        localizer = new FusionLocalizer(hardware, startPose, config);
+        localizer = new FusionLocalizer(hardware, startPose, config, debugLogger);
+        debugLogger.info(LOG_TAG, "Localizer created",
+            String.format("startPose=(%.1f, %.1f)mm @ %.1f°", startPose.x, startPose.y, Math.toDegrees(startPose.heading)));
 
         // Verify initialization
         if (!localizer.isInitialized()) {
@@ -336,6 +352,7 @@ public class FusionLocalizationDriveTest extends LinearOpMode {
 
             // Manual vision update: Force accept next Limelight reading
             if (forceNextVisionUpdate) {
+                debugLogger.infoPriority(LOG_TAG, "Manual vision update requested");
                 performManualVisionUpdate();
                 forceNextVisionUpdate = false;
             }
@@ -346,6 +363,22 @@ public class FusionLocalizationDriveTest extends LinearOpMode {
             // Get current poses
             RobotPose2D relativePose = localizer.getRelativePose();
             RobotPose2D absolutePose = localizer.getAbsolutePose();
+
+            // Log pose data periodically (every 10 loops to avoid spam)
+            if (loopCount % 10 == 0) {
+                // Log odometry pose
+                debugLogger.debug(LOG_TAG, "ODOM_POSE",
+                    String.format("(%.1f, %.1f)mm @ %.1f°",
+                        relativePose.x, relativePose.y, Math.toDegrees(relativePose.heading)));
+
+                // Log absolute pose
+                debugLogger.debug(LOG_TAG, "ABS_POSE",
+                    String.format("(%.1f, %.1f)mm @ %.1f°",
+                        absolutePose.x, absolutePose.y, Math.toDegrees(absolutePose.heading)));
+
+                // Log raw Limelight data for comparison
+                logRawLimelightData();
+            }
 
             // Record trace if enabled
             if (recordTrace) {
@@ -440,6 +473,29 @@ public class FusionLocalizationDriveTest extends LinearOpMode {
             lastManualUpdateTime = System.currentTimeMillis();
         }
 
+        // D-Pad Right: Force recalibrate heading from MT1
+        if (gamepad1.dpad_right && !lastDpadRight) {
+            localizer.resetHeadingCalibration();
+            debugLogger.infoPriority(LOG_TAG, "Heading calibration reset - will recalibrate from MT1");
+        }
+
+        // Gamepad2 D-Pad: Manual heading offset adjustment
+        // D-Pad Up: +15°, D-Pad Down: -15°
+        if (gamepad2.dpad_up && !lastDpadUp) {
+            headingOffsetDeg = localizer.getHeadingOffset() + 15;
+            if (headingOffsetDeg >= 360) headingOffsetDeg -= 360;
+            localizer.setHeadingOffset(headingOffsetDeg);
+            debugLogger.info(LOG_TAG, "Heading offset +15°",
+                String.format("Now: %.0f°", headingOffsetDeg));
+        }
+        if (gamepad2.dpad_down && !lastDpadDown) {
+            headingOffsetDeg = localizer.getHeadingOffset() - 15;
+            if (headingOffsetDeg < -180) headingOffsetDeg += 360;
+            localizer.setHeadingOffset(headingOffsetDeg);
+            debugLogger.info(LOG_TAG, "Heading offset -15°",
+                String.format("Now: %.0f°", headingOffsetDeg));
+        }
+
         // Left Bumper: Toggle precision mode
         if (gamepad1.left_bumper && !lastLeftBumper) {
             precisionMode = !precisionMode;
@@ -460,7 +516,10 @@ public class FusionLocalizationDriveTest extends LinearOpMode {
         lastB = gamepad1.b;
         lastX = gamepad1.x;
         lastY = gamepad1.y;
+        lastDpadUp = gamepad2.dpad_up;
+        lastDpadDown = gamepad2.dpad_down;
         lastDpadLeft = gamepad1.dpad_left;
+        lastDpadRight = gamepad1.dpad_right;
         lastLeftBumper = gamepad1.left_bumper;
         lastRightBumper = gamepad1.right_bumper;
     }
@@ -569,11 +628,22 @@ public class FusionLocalizationDriveTest extends LinearOpMode {
         telemetry.addData("Drive Mode", fieldCentricMode ? "Field-Centric" : "Robot-Centric");
         telemetry.addData("Speed", precisionMode ? "Precision (25%)" : "Normal (100%)");
         telemetry.addData("Display", displayMode.toString());
+
+        // Show calibration status
+        if (localizer.isHeadingCalibrated()) {
+            telemetry.addData("MT2 Calibration", "✅ offset=%.0f°", localizer.getHeadingOffset());
+        } else {
+            telemetry.addData("MT2 Calibration", "⏳ Waiting for MT1...");
+        }
+
         if (recordTrace) {
             telemetry.addData("Trace", "Recording (%d points)", relativePoseTrace.size());
         }
         telemetry.addLine();
-        telemetry.addData("🔧 D-Pad Left", "Force vision update");
+        telemetry.addLine("Controls:");
+        telemetry.addData("D-Pad Left", "Force vision update");
+        telemetry.addData("D-Pad Right", "Recalibrate from MT1");
+        telemetry.addData("GP2 D-Pad ↑/↓", "+/-15° manual offset");
 
         telemetry.update();
     }
@@ -769,6 +839,7 @@ public class FusionLocalizationDriveTest extends LinearOpMode {
     /**
      * Perform manual vision update - force accept Limelight reading
      * This bypasses all validation and directly resets the absolute pose to Limelight position
+     * while properly maintaining the heading offset calibration.
      */
     private void performManualVisionUpdate() {
         // Get Limelight pose directly from hardware
@@ -776,6 +847,7 @@ public class FusionLocalizationDriveTest extends LinearOpMode {
             getLimelightPose();
 
         if (limelightPose == null) {
+            debugLogger.warning(LOG_TAG, "Manual vision update failed - no Limelight data");
             telemetry.addLine("⚠️ No Limelight data available!");
             telemetry.update();
             sleep(500);
@@ -787,14 +859,29 @@ public class FusionLocalizationDriveTest extends LinearOpMode {
         double rawY = limelightPose.getPosition().y;
         double rotatedX = -rawX;
         double rotatedY = -rawY;
-        double heading = limelightPose.getOrientation().getYaw(
+        double absoluteHeadingRad = limelightPose.getOrientation().getYaw(
             org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.RADIANS);
+        double absoluteHeadingDeg = Math.toDegrees(absoluteHeadingRad);
 
-        // Create new pose from Limelight
-        RobotPose2D newPose = new RobotPose2D(rotatedX, rotatedY, heading);
+        // Get current odometry heading (what the robot's odometry currently reports)
+        RobotPose2D currentRelPose = localizer.getRelativePose();
+        double currentOdoHeadingDeg = currentRelPose.getHeading(
+            org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.DEGREES);
 
-        // Reset localizer to this pose (forces both relative and absolute)
-        localizer.reset(newPose);
+        debugLogger.infoPriority(LOG_TAG, "Manual vision update applied",
+            String.format("raw=(%.3f, %.3f)m → rotated=(%.3f, %.3f)m, absHeading=%.1f°, odoHeading=%.1f°",
+                rawX, rawY, rotatedX, rotatedY, absoluteHeadingDeg, currentOdoHeadingDeg));
+
+        // Convert meters to millimeters for RobotPose2D (which uses mm internally)
+        double xMM = rotatedX * 1000.0;
+        double yMM = rotatedY * 1000.0;
+
+        // Create new absolute pose from Limelight (in absolute field coordinates, in mm)
+        RobotPose2D newAbsolutePose = new RobotPose2D(xMM, yMM, absoluteHeadingRad);
+
+        // Use the new reset method that properly handles heading offset
+        // This keeps odometry heading as-is but sets absolute pose to vision and calculates offset
+        localizer.resetWithHeadingOffset(newAbsolutePose, currentOdoHeadingDeg);
 
         // Clear traces
         relativePoseTrace.clear();
@@ -804,10 +891,11 @@ public class FusionLocalizationDriveTest extends LinearOpMode {
         telemetry.clear();
         telemetry.addLine("✅ MANUAL VISION UPDATE APPLIED");
         telemetry.addLine();
-        telemetry.addData("New Position", "(%.1f, %.1f) mm",
-            newPose.x, newPose.y);
-        telemetry.addData("New Heading", "%.1f°",
-            Math.toDegrees(newPose.heading));
+        telemetry.addData("New Absolute Position", "(%.1f, %.1f) mm",
+            newAbsolutePose.x, newAbsolutePose.y);
+        telemetry.addData("New Absolute Heading", "%.1f°", absoluteHeadingDeg);
+        telemetry.addData("Current Odometry Heading", "%.1f°", currentOdoHeadingDeg);
+        telemetry.addData("Heading Offset", "%.1f°", localizer.getHeadingOffset());
         telemetry.addLine();
         telemetry.addLine("Robot pose reset to Limelight position");
         telemetry.update();
@@ -817,7 +905,91 @@ public class FusionLocalizationDriveTest extends LinearOpMode {
     }
 
     /**
+     * Log raw Limelight data for debugging - both MegaTag1 and MegaTag2
+     */
+    private void logRawLimelightData() {
+        try {
+            // Get Limelight from hardware map
+            com.qualcomm.hardware.limelightvision.Limelight3A limelight =
+                hardware.getHardwareMap().get(
+                    com.qualcomm.hardware.limelightvision.Limelight3A.class,
+                    "limelight"
+                );
+
+            // Get latest result
+            com.qualcomm.hardware.limelightvision.LLResult result =
+                limelight.getLatestResult();
+
+            if (result == null || !result.isValid()) {
+                debugLogger.debug(LOG_TAG, "LIMELIGHT", "No valid result");
+                return;
+            }
+
+            // Get MegaTag1 pose (single tag)
+            org.firstinspires.ftc.robotcore.external.navigation.Pose3D mt1Pose = null;
+            try {
+                mt1Pose = result.getBotpose();
+            } catch (Exception e) {
+                // Ignore
+            }
+
+            // Get MegaTag2 pose (multi-tag)
+            org.firstinspires.ftc.robotcore.external.navigation.Pose3D mt2Pose = null;
+            try {
+                mt2Pose = result.getBotpose_MT2();
+            } catch (Exception e) {
+                // Ignore
+            }
+
+            // Log MegaTag1 data
+            if (mt1Pose != null &&
+                (Math.abs(mt1Pose.getPosition().x) > 0.01 || Math.abs(mt1Pose.getPosition().y) > 0.01)) {
+                double mt1X = mt1Pose.getPosition().x;
+                double mt1Y = mt1Pose.getPosition().y;
+                double mt1Yaw = mt1Pose.getOrientation().getYaw(
+                    org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.DEGREES);
+                debugLogger.debug(LOG_TAG, "MT1_RAW",
+                    String.format("(%.3f, %.3f)m @ %.1f°", mt1X, mt1Y, mt1Yaw));
+            }
+
+            // Log MegaTag2 data
+            if (mt2Pose != null &&
+                (Math.abs(mt2Pose.getPosition().x) > 0.01 || Math.abs(mt2Pose.getPosition().y) > 0.01)) {
+                double mt2X = mt2Pose.getPosition().x;
+                double mt2Y = mt2Pose.getPosition().y;
+                double mt2Yaw = mt2Pose.getOrientation().getYaw(
+                    org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.DEGREES);
+                debugLogger.debug(LOG_TAG, "MT2_RAW",
+                    String.format("(%.3f, %.3f)m @ %.1f°", mt2X, mt2Y, mt2Yaw));
+
+                // Compare MT1 and MT2 if both available
+                if (mt1Pose != null) {
+                    double dX = mt2Pose.getPosition().x - mt1Pose.getPosition().x;
+                    double dY = mt2Pose.getPosition().y - mt1Pose.getPosition().y;
+                    double dYaw = mt2Pose.getOrientation().getYaw(
+                        org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.DEGREES) -
+                        mt1Pose.getOrientation().getYaw(
+                            org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.DEGREES);
+                    debugLogger.debug(LOG_TAG, "MT_DIFF",
+                        String.format("Δ=(%.3f, %.3f)m, Δyaw=%.1f°", dX, dY, dYaw));
+                }
+            }
+
+            // Get the heading we're feeding to MegaTag2 (from odometry)
+            RobotPose2D relPose = localizer.getRelativePose();
+            double odoHeadingDeg = relPose.getHeading(AngleUnit.DEGREES);
+            debugLogger.debug(LOG_TAG, "ODO_HEADING_INPUT",
+                String.format("%.1f° (this is fed to MegaTag2)", odoHeadingDeg));
+
+        } catch (Exception e) {
+            debugLogger.warning(LOG_TAG, "LIMELIGHT", "Error reading: " + e.getMessage());
+        }
+    }
+
+    /**
      * Get raw Limelight pose from hardware
+     * NOTE: Robot orientation is already updated by FusionLocalizer.update() with proper calibration
+     * DO NOT call updateRobotOrientation here as it would overwrite the calibrated heading
      */
     private org.firstinspires.ftc.robotcore.external.navigation.Pose3D getLimelightPose() {
         try {
@@ -827,6 +999,10 @@ public class FusionLocalizationDriveTest extends LinearOpMode {
                     com.qualcomm.hardware.limelightvision.Limelight3A.class,
                     "limelight"
                 );
+
+            // NOTE: Do NOT call updateRobotOrientation here!
+            // FusionLocalizer.update() already does this with the proper calibrated offset.
+            // Calling it here would overwrite the correct heading with uncalibrated odometry.
 
             // Get latest result
             com.qualcomm.hardware.limelightvision.LLResult result =

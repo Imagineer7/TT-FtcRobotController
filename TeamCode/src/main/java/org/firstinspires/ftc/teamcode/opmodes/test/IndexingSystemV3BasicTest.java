@@ -3,11 +3,14 @@ package org.firstinspires.ftc.teamcode.opmodes.test;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.util.aurora.AuroraHardwareConfig;
+import org.firstinspires.ftc.teamcode.util.aurora.AutoGyroTurret;
 import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.IntelMechanumDrive;
 import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
 import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
+import org.firstinspires.ftc.teamcode.util.aurora.localization.Localization;
 import org.firstinspires.ftc.teamcode.util.aurora.v3.ArtifactIdentity;
 import org.firstinspires.ftc.teamcode.util.aurora.v3.IndexingSystemV3;
 import org.firstinspires.ftc.teamcode.util.aurora.v3.SlotLedger;
@@ -35,24 +38,29 @@ import org.firstinspires.ftc.teamcode.util.debug.LogLevel;
  *   RIGHT STICK X - Strafe left/right
  *   LEFT STICK X  - Rotation
  *
- *   DPAD UP    - Add PURPLE to FRONT (manual injection)
- *   DPAD DOWN  - Add GREEN to FRONT (manual injection)
- *   DPAD LEFT  - Add PURPLE to BACK (manual injection)
- *   DPAD RIGHT - Add GREEN to BACK (manual injection)
- *   
- *   A - Collect FRONT (with sensors)
- *   B - Collect BACK (with sensors)
- *   X - Transfer FRONT → CENTER
- *   Y - Transfer BACK → CENTER
- *   
- *   RIGHT BUMPER - Toggle hunt mode
- *   LEFT BUMPER  - Toggle fast collect mode (skip color detection)
- *   LEFT TRIGGER - Hold to disable auto-swap (skip mode only)
+ *   DPAD UP    - Fine drive forward (slow, precise)
+ *   DPAD DOWN  - Fine drive backward (slow, precise)
+ *   DPAD LEFT  - Fine strafe left (slow, precise)
+ *   DPAD RIGHT - Fine strafe right (slow, precise)
  *
- *   BACK - Eject FRONT
- *   START - Eject BACK
- * 
+ *   TURRET (Manual Auto-Gyro Only):
+ *   A - Set turret to robot heading (point forward)
+ *   B - Enable/disable auto-gyro mode (toggle)
+ *
+ *   X - Collect FRONT (with sensors)
+ *   Y - Collect BACK (with sensors)
+ *
+ *   RIGHT BUMPER   - Toggle hunt mode
+ *   LEFT BUMPER    - Toggle fast collect mode (skip color detection)
+ *   RIGHT TRIGGER  - Transfer FRONT → CENTER
+ *   LEFT TRIGGER   - Transfer BACK → CENTER
+ *   GUIDE          - Hold to eject ALL (full system eject operation)
+ *
  * GAMEPAD 2:
+ *   DPAD UP   - Hold to eject FRONT intake (runs backward, clears ledger)
+ *   DPAD DOWN - Hold to eject BACK intake (runs backward, clears ledger)
+ *   DPAD LEFT/RIGHT - Manual mode (disables automation while held)
+ *
  *   A - Hold to fire SHORT range (2000 RPM)
  *   B - Hold to fire MID range (2300 RPM)
  *   Y - Hold to fire LONG range (2800 RPM)
@@ -89,7 +97,7 @@ import org.firstinspires.ftc.teamcode.util.debug.LogLevel;
  * @version 1.0
  * @since 2026-01-20
  */
-@TeleOp(name="V3 Basic Test", group="V3 Testing")
+@TeleOp(name="TeleOp: Auto Collect V3", group="Competition")
 public class IndexingSystemV3BasicTest extends LinearOpMode {
     
     // Hardware & config
@@ -100,6 +108,8 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     // Subsystems
     private IndexingSystemV3 indexing;
     private IntelMechanumDrive drive;
+    private AutoGyroTurret autoGyroTurret;
+    private Localization localization;
     // Note: Shooter is managed internally by IndexingSystemV3 - OpModes should NOT access it directly
     
     // Button state tracking
@@ -177,6 +187,58 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
         // Initialize drive system
         drive = new IntelMechanumDrive(hardware, gamepad1);
 
+        // Initialize localization for robot heading
+        telemetry.addLine("Initializing localization...");
+        telemetry.update();
+
+        localization = new Localization(hardwareMap);
+
+        // Check localization status
+        if (!localization.isOdometryInitialized()) {
+            telemetry.addData("⚠ Odometry", "Not available - turret heading may be inaccurate");
+        } else {
+            telemetry.addData("✅ Odometry", "Initialized successfully");
+        }
+        telemetry.update();
+
+        localization.resetPosition();
+
+        // Initialize auto-gyro turret
+        telemetry.addLine("Initializing turret...");
+        telemetry.update();
+
+        autoGyroTurret = new AutoGyroTurret(hardwareMap, telemetry);
+
+        // Check if turret servo is available
+        try {
+            if (hardware.getTurretServo() != null) {
+                telemetry.addData("✅ Turret Servo", "Found in hardware map");
+                Dbg.i(LogGroup.TEST, "Turret servo initialized successfully");
+            } else {
+                telemetry.addData("❌ Turret Servo", "Not found in hardware map");
+                Dbg.e(LogGroup.TEST, "Turret servo not found!");
+            }
+        } catch (Exception e) {
+            telemetry.addData("❌ Turret Servo", "Error: " + e.getMessage());
+            Dbg.e(LogGroup.TEST, "Turret servo error: %s", e.getMessage());
+        }
+        telemetry.update();
+
+        // Enable auto-gyro by default and reset to forward
+        double initialHeading = 0.0;
+        if (localization.isOdometryInitialized()) {
+            initialHeading = localization.getHeading(AngleUnit.DEGREES);
+        }
+
+        telemetry.addData("Initial Heading", String.format("%.1f°", initialHeading));
+        telemetry.update();
+
+        autoGyroTurret.resetToForward(initialHeading);
+        autoGyroTurret.enable();
+
+        telemetry.addData("✅ Turret", "Initialized and enabled");
+        telemetry.update();
+
         Dbg.i(LogGroup.TEST, "Subsystems created successfully");
 
         // Enable systems
@@ -188,24 +250,111 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
         telemetry.addLine("✓ Initialization complete!");
         telemetry.addLine();
         telemetry.addLine("Ready to test basic operations");
-        telemetry.addLine("See controls on driver station");
         telemetry.addLine();
-        telemetry.addLine("Press START to begin");
+        telemetry.addLine("TURRET CONTROLS (Gamepad 1):");
+        telemetry.addLine("  A: Set turret to robot heading");
+        telemetry.addLine("  B: Toggle auto-gyro on/off");
+        telemetry.addLine();
+        telemetry.addLine("COLLECTION (Gamepad 1):");
+        telemetry.addLine("  X: Collect FRONT");
+        telemetry.addLine("  Y: Collect BACK");
+        telemetry.addLine("  Right Trigger: Transfer FRONT → CENTER");
+        telemetry.addLine("  Left Trigger: Transfer BACK → CENTER");
+        telemetry.addLine();
+        telemetry.addLine("(Press START on Driver Station to begin)");
         telemetry.update();
         
         Dbg.i(LogGroup.TEST, "Waiting for START...");
 
         waitForStart();
         
+        // Initialize ALL button states to false after waitForStart
+        // This ensures first button press will be detected as an edge
+        // (if we used current state, buttons held during init wouldn't trigger)
+        lastDpadUp = false;
+        lastDpadDown = false;
+        lastDpadLeft = false;
+        lastDpadRight = false;
+        lastA = false;
+        lastB = false;
+        lastX = false;
+        lastY = false;
+        lastLeftBumper = false;
+        lastRightBumper = false;
+        lastBack = false;
+        lastStart = false;
+        lastGuide = false;
+
         Dbg.setContext("V3BasicTest", "RUN");
         Dbg.i(LogGroup.TEST, "OpMode started - entering main loop");
+        Dbg.i(LogGroup.TEST, "Button states initialized to false for edge detection");
 
         // Main loop
         while (opModeIsActive()) {
             Dbg.incrementLoop();
+
+            // Update localization for robot heading
+            if (localization != null) {
+                localization.update();
+            }
+
+            // Get current robot heading for turret control
+            double robotHeading = 0.0;
+            if (localization != null && localization.isOdometryInitialized()) {
+                robotHeading = localization.getHeading(AngleUnit.DEGREES);
+            }
+
+            // ═══════════════════════════════════════════════════════════════
+            // TURRET CONTROLS (GAMEPAD 1 - A and B buttons)
+            // ═══════════════════════════════════════════════════════════════
+
+            // A Button - Set turret to robot heading (point forward)
+            // NO EDGE DETECTION - runs continuously when held
+            if (gamepad1.a) {
+                double targetHeading = robotHeading + 180;
+                autoGyroTurret.setFieldRelativeHeading(targetHeading, robotHeading);
+                autoGyroTurret.enable();
+
+                Dbg.everyMs(LogGroup.TEST, LogLevel.DEBUG, "turret_set_a", 500,
+                            "Button A held - turret target: %.1f° (robot: %.1f°)", targetHeading, robotHeading);
+            }
+
+            // B Button - Toggle auto-gyro mode on/off
+            // EDGE DETECTION - only toggle on press, not hold
+            boolean bPressed = gamepad1.b && !lastB;
+
+            // Debug logging for button B
+            Dbg.d(LogGroup.TEST, "Button B check - current: %b, last: %b, edge: %b",
+                  gamepad1.b, lastB, bPressed);
+
+            if (bPressed) {
+                boolean oldState = autoGyroTurret.isEnabled();
+                Dbg.i(LogGroup.TEST, "Button B EDGE DETECTED - Toggling turret auto-gyro");
+                Dbg.d(LogGroup.TEST, "  Old state: %s", oldState ? "ENABLED" : "DISABLED");
+
+                boolean newState = autoGyroTurret.toggle();
+
+                Dbg.i(LogGroup.TEST, "Turret toggled - new state: %s", newState ? "ENABLED" : "DISABLED");
+                if (newState) {
+                    telemetry.addLine("✅ Turret: Auto-gyro ENABLED");
+                } else {
+                    telemetry.addLine("❌ Turret: Auto-gyro DISABLED");
+                }
+            }
+
+            // Update turret to maintain field-relative heading (if enabled)
+            if (autoGyroTurret != null) {
+                autoGyroTurret.update(robotHeading);
+            }
+
+            // ═══════════════════════════════════════════════════════════════
+            // SUBSYSTEM UPDATES
+            // ═══════════════════════════════════════════════════════════════
+
             // Update subsystems
             // Update manual mode based on gamepad2 inputs
-            boolean manualActive = gamepad2.dpad_left || gamepad2.dpad_right || gamepad2.dpad_up || gamepad2.dpad_down;
+            // Note: dpad_up and dpad_down are now used for intake ejection, not manual mode
+            boolean manualActive = gamepad2.dpad_left || gamepad2.dpad_right;
             indexing.setManualModeActive(manualActive);
 
             // Update watchdog trigger state with fire buttons (gamepad2 A, B, or Y)
@@ -227,11 +376,21 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             double strafe = gamepad1.right_stick_x;
             double rotate = gamepad1.left_stick_x;
 
+            // Fine drive movements with DPAD (slower, precise control)
+            final double FINE_DRIVE_POWER = 0.35;  // 25% power for fine movements
+            if (gamepad1.dpad_up) {
+                forward = FINE_DRIVE_POWER;
+            } else if (gamepad1.dpad_down) {
+                forward = -FINE_DRIVE_POWER;
+            }
+            if (gamepad1.dpad_left) {
+                strafe = -FINE_DRIVE_POWER;
+            } else if (gamepad1.dpad_right) {
+                strafe = FINE_DRIVE_POWER;
+            }
+
             drive.setMechanumPowers(forward, strafe, rotate);
 
-            // Handle manual injection
-            handleManualInjection();
-            
             // Handle collection
             handleCollection();
             
@@ -249,9 +408,6 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             
             // Handle fast collect mode toggle
             handleFastCollectMode();
-            
-            // Handle auto-swap control (skip mode only)
-            handleAutoSwap();
 
             // Handle telemetry page navigation
             handleTelemetryNavigation();
@@ -260,7 +416,59 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             telemetry.addLine("═══════════════════════════════");
             telemetry.addData("🔍 HUNT MODE", indexing.isHuntEnabled() ? "✅ ON" : "❌ OFF");
             telemetry.addData("⚡ SKIP COLOR", indexing.isSkipColorDetection() ? "✅ ON (Fast)" : "❌ OFF (Full)");
+            if (autoGyroTurret != null && autoGyroTurret.isEnabled()) {
+                telemetry.addData("🎯 TURRET", String.format("✅ ON (%.0f°)", autoGyroTurret.getFieldRelativeHeading()));
+            } else {
+                telemetry.addData("🎯 TURRET", "❌ OFF");
+            }
             telemetry.addLine("═══════════════════════════════");
+
+            // ═══════════════════════════════════════════════════════════════
+            // TURRET DEBUG TELEMETRY
+            // ═══════════════════════════════════════════════════════════════
+            telemetry.addLine();
+            telemetry.addLine("─── TURRET DEBUG ───");
+
+            // Localization status
+            if (localization != null) {
+                telemetry.addData("Localization", "Initialized");
+                telemetry.addData("  Odometry", localization.isOdometryInitialized() ? "✅ Available" : "❌ Not Available");
+                if (localization.isOdometryInitialized()) {
+                    telemetry.addData("  Robot Heading", String.format("%.1f°", robotHeading));
+                }
+            } else {
+                telemetry.addData("Localization", "❌ NULL");
+            }
+
+            // Turret status
+            if (autoGyroTurret != null) {
+                telemetry.addData("Turret Object", "✅ Initialized");
+                telemetry.addData("  Enabled", autoGyroTurret.isEnabled() ? "✅ YES" : "❌ NO");
+                telemetry.addData("  Target Heading", String.format("%.1f°", autoGyroTurret.getFieldRelativeHeading()));
+                if (localization != null && localization.isOdometryInitialized()) {
+                    telemetry.addData("  Current Heading", String.format("%.1f°", autoGyroTurret.getCurrentFieldHeading(robotHeading)));
+                    telemetry.addData("  Error", String.format("%.1f°", autoGyroTurret.getHeadingError(robotHeading)));
+                    telemetry.addData("  At Target", autoGyroTurret.isAtTarget(robotHeading) ? "✅ YES" : "❌ NO");
+                }
+                telemetry.addData("  Busy", autoGyroTurret.isBusy() ? "⚠️ YES" : "✅ NO");
+            } else {
+                telemetry.addData("Turret Object", "❌ NULL");
+            }
+
+            // Button states with edge detection
+            boolean bCurrentlyPressed = gamepad1.b;
+            boolean bEdgeDetected = bCurrentlyPressed && !lastB;
+
+            telemetry.addData("GP1 A (Set Heading)", gamepad1.a ? "PRESSED (continuous)" : "released");
+
+            telemetry.addData("GP1 B (Toggle)", bCurrentlyPressed ? "PRESSED" : "released");
+            telemetry.addData("  Last B", lastB ? "true" : "false");
+            telemetry.addData("  Edge Detected", bEdgeDetected ? "✅ YES" : "no");
+            telemetry.addData("  gamepad1.b value", gamepad1.b);
+            telemetry.addData("  lastB value", lastB);
+
+            telemetry.addLine("───────────────────────────────");
+            telemetry.addLine();
 
             // Display telemetry (from IndexingSystemV3)
             indexing.addTelemetry();
@@ -272,27 +480,12 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
         }
     }
     
-    private void handleManualInjection() {
-        if (gamepad1.dpad_up && !lastDpadUp) {
-            Dbg.i(LogGroup.TEST, "Manual injection: PURPLE → FRONT");
-            indexing.addManualArtifact(SlotLedger.Slot.FRONT, ArtifactIdentity.ColorClass.PURPLE);
-        }
-        if (gamepad1.dpad_down && !lastDpadDown) {
-            Dbg.i(LogGroup.TEST, "Manual injection: GREEN → FRONT");
-            indexing.addManualArtifact(SlotLedger.Slot.FRONT, ArtifactIdentity.ColorClass.GREEN);
-        }
-        if (gamepad1.dpad_left && !lastDpadLeft) {
-            Dbg.i(LogGroup.TEST, "Manual injection: PURPLE → BACK");
-            indexing.addManualArtifact(SlotLedger.Slot.BACK, ArtifactIdentity.ColorClass.PURPLE);
-        }
-        if (gamepad1.dpad_right && !lastDpadRight) {
-            Dbg.i(LogGroup.TEST, "Manual injection: GREEN → BACK");
-            indexing.addManualArtifact(SlotLedger.Slot.BACK, ArtifactIdentity.ColorClass.GREEN);
-        }
-    }
-    
+    // Manual injection removed - DPAD now used for fine drive movements
+    // Use sensors for artifact collection instead
+
     private void handleCollection() {
-        if (gamepad1.a && !lastA) {
+        // X Button - Collect FRONT
+        if (gamepad1.x && !lastX) {
             Dbg.i(LogGroup.TEST, "Collection request: FRONT");
             boolean success = indexing.requestCollect(SlotLedger.Slot.FRONT);
             if (success) {
@@ -302,7 +495,9 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             }
             telemetry.addLine(success ? "→ Collecting FRONT" : "❌ Cannot collect FRONT");
         }
-        if (gamepad1.b && !lastB) {
+
+        // Y Button - Collect BACK
+        if (gamepad1.y && !lastY) {
             Dbg.i(LogGroup.TEST, "Collection request: BACK");
             boolean success = indexing.requestCollect(SlotLedger.Slot.BACK);
             if (success) {
@@ -315,7 +510,8 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     }
     
     private void handleTransfer() {
-        if (gamepad1.x && !lastX) {
+        // Right Trigger - Transfer FRONT → CENTER
+        if (gamepad1.right_trigger > 0.5) {
             Dbg.i(LogGroup.TEST, "Transfer request: FRONT → CENTER");
             boolean success = indexing.requestTransfer(SlotLedger.Slot.FRONT);
             if (success) {
@@ -325,7 +521,9 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             }
             telemetry.addLine(success ? "→ Transfer FRONT → CENTER" : "❌ Cannot transfer FRONT");
         }
-        if (gamepad1.y && !lastY) {
+
+        // Left Trigger - Transfer BACK → CENTER
+        if (gamepad1.left_trigger > 0.5) {
             Dbg.i(LogGroup.TEST, "Transfer request: BACK → CENTER");
             boolean success = indexing.requestTransfer(SlotLedger.Slot.BACK);
             if (success) {
@@ -465,22 +663,25 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     }
     
     private void handleEjection() {
-        if (gamepad1.back && !lastBack) {
-            Dbg.i(LogGroup.TEST, "Ejection request: ALL slots");
-            // Note: V3 uses EjectMode.ALL to eject all artifacts
-            indexing.requestEject(org.firstinspires.ftc.teamcode.util.aurora.v3.EjectOperation.EjectMode.ALL);
-            telemetry.addLine("⏏️ Clearing all slots");
+        // Hold GAMEPAD2 DPAD UP to eject FRONT intake (runs backward while held)
+        // Hold GAMEPAD1 GUIDE to eject BOTH intakes (full system eject)
+        boolean ejectFront = gamepad2.dpad_up || gamepad1.guide;
+        indexing.setIntakeEjecting(SlotLedger.Slot.FRONT, ejectFront);
+        if (gamepad2.dpad_up) {
+            telemetry.addData("⏏️ Eject", "FRONT (hold to continue)");
         }
-        if (gamepad1.start && !lastStart) {
-            Dbg.i(LogGroup.TEST, "Ejection request: CENTER only");
-            // Note: V3 uses EjectMode.CENTER to eject center only
-            boolean success = indexing.requestEject(org.firstinspires.ftc.teamcode.util.aurora.v3.EjectOperation.EjectMode.CENTER);
-            if (success) {
-                Dbg.i(LogGroup.TEST, "Ejection started: CENTER");
-            } else {
-                Dbg.w(LogGroup.TEST, "Ejection rejected: CENTER (empty or busy)");
-            }
-            telemetry.addLine(success ? "⏏️ Ejecting CENTER" : "❌ Cannot eject CENTER");
+
+        // Hold GAMEPAD2 DPAD DOWN to eject BACK intake (runs backward while held)
+        // Hold GAMEPAD1 GUIDE to eject BOTH intakes (full system eject)
+        boolean ejectBack = gamepad2.dpad_down || gamepad1.guide;
+        indexing.setIntakeEjecting(SlotLedger.Slot.BACK, ejectBack);
+        if (gamepad2.dpad_down) {
+            telemetry.addData("⏏️ Eject", "BACK (hold to continue)");
+        }
+
+        // Show combined eject status for GUIDE button
+        if (gamepad1.guide) {
+            telemetry.addData("⏏️ Eject", "ALL intakes (hold to continue)");
         }
     }
     
@@ -507,28 +708,12 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             }
         }
     }
-    
-    private void handleAutoSwap() {
-        // Left trigger controls auto-swap: Hold to DISABLE auto-swap, release to ENABLE
-        // This prevents unwanted swaps when collecting in skip mode
-        boolean triggerHeld = gamepad1.left_trigger > 0.5;
 
-        // Auto-swap is ENABLED when trigger NOT held (default behavior)
-        // Auto-swap is DISABLED when trigger IS held
-        boolean shouldEnableAutoSwap = !triggerHeld;
-
-        // Update auto-swap state
-        indexing.setAutoSwapEnabled(shouldEnableAutoSwap);
-
-        // Visual feedback when changing state
-        if (triggerHeld && indexing.isSkipColorDetection()) {
-            telemetry.addData("🔒 Auto-Swap", "DISABLED (trigger held)");
-        }
-    }
 
     private void handleTelemetryNavigation() {
-        // Use Guide button (Xbox logo / PS button) to cycle telemetry pages
-        if (gamepad1.guide && !lastGuide) {
+        // Use GAMEPAD2 Guide button (Xbox logo / PS button) to cycle telemetry pages
+        // (GAMEPAD1 Guide is used for full system eject)
+        if (gamepad2.guide && !lastGuide) {
             indexing.nextTelemetryPage();
             Dbg.d(LogGroup.TEST, "Telemetry page switched to: %d", indexing.getTelemetryPage());
             telemetry.addLine("→ Switched to page " + indexing.getTelemetryPage());
@@ -536,7 +721,7 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     }
     
     private void updateButtonStates() {
-        lastGuide = gamepad1.guide;
+        lastGuide = gamepad2.guide;
         lastDpadUp = gamepad1.dpad_up;
         lastDpadDown = gamepad1.dpad_down;
         lastDpadLeft = gamepad1.dpad_left;

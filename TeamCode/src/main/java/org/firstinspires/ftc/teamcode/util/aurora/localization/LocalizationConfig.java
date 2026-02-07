@@ -68,16 +68,17 @@ public class LocalizationConfig {
     
     /**
      * Mahalanobis distance threshold for measurement acceptance
-     * Default: 3.0 (99.7% confidence interval for Chi-squared distribution)
-     * 
+     * Default: 5.0 (more permissive than strict 3-sigma)
+     *
      * Statistical interpretation:
      * - 1.0 = 68.3% confidence (1 sigma)
      * - 2.0 = 95.4% confidence (2 sigma)
-     * - 3.0 = 99.7% confidence (3 sigma) [RECOMMENDED]
-     * - 4.0 = 99.99% confidence (4 sigma)
+     * - 3.0 = 99.7% confidence (3 sigma)
+     * - 5.0 = very permissive (recommended for FTC)
+     * - 10.0 = accept almost everything
      */
-    public double mahalanobisThreshold = 3.0;
-    
+    public double mahalanobisThreshold = 10.0;
+
     /**
      * Relaxed Mahalanobis threshold for first vision update
      * Default: 5.0 - more permissive for initial correction
@@ -87,10 +88,11 @@ public class LocalizationConfig {
     /**
      * Maximum innovation magnitude (safety check, mm)
      * Reject measurements with larger corrections regardless of statistics
-     * Default: 1000.0 mm (1 meter)
+     * Default: 5000.0 mm (5 meters) - allows initial "teleport" to correct position
+     * Note: First measurement bypasses this check
      */
-    public double maxInnovationMagnitude = 1000.0;
-    
+    public double maxInnovationMagnitude = 5000.0;
+
     // ═══════════════════════════════════════════════════════════════════════
     // Vision Update Constraints
     // ═══════════════════════════════════════════════════════════════════════
@@ -125,10 +127,10 @@ public class LocalizationConfig {
     /**
      * Minimum time between vision updates (ms)
      * Rate limit vision corrections
-     * Default: 100 ms (10 Hz max)
+     * Default: 50 ms (20 Hz max) - allows faster convergence
      */
-    public long minVisionUpdateInterval = 100;
-    
+    public long minVisionUpdateInterval = 50;
+
     // ═══════════════════════════════════════════════════════════════════════
     // Fusion Parameters
     // ═══════════════════════════════════════════════════════════════════════
