@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.opmodes.test;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -35,6 +36,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  * - START:      Emergency stop (disable servo)
  */
 @TeleOp(name="Turret Servo Calibration", group="Testing")
+@Disabled
 public class TurretServoCalibrationOpMode extends LinearOpMode {
 
     // Hardware

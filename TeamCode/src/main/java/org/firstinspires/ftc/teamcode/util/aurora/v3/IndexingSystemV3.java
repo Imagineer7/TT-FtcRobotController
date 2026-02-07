@@ -8,6 +8,7 @@ import org.firstinspires.ftc.teamcode.util.aurora.BasicFiringHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.BasicIndexingHelper;
 import org.firstinspires.ftc.teamcode.util.aurora.IndexingConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.Shooter;
+import org.firstinspires.ftc.teamcode.util.aurora.ShooterConfig;
 import org.firstinspires.ftc.teamcode.util.aurora.ShotPlanner;
 import org.firstinspires.ftc.teamcode.util.debug.Dbg;
 import org.firstinspires.ftc.teamcode.util.debug.LogGroup;
@@ -2251,6 +2252,50 @@ public class IndexingSystemV3 {
         return firingHelper.getTargetRPM();
     }
     
+    /**
+     * Enable shooter warmup mode.
+     * Spins shooter at 65% of target RPM for reduced latency while saving power.
+     * Uses MID_RANGE preset (2080 RPM) as the base, so warmup spins at ~1350 RPM.
+     * Does not interfere with active firing - will be ignored if currently firing.
+     *
+     * @return true if warmup was enabled, false if ignored (e.g., during active firing)
+     */
+    public boolean enableShooterWarmup() {
+        // Don't enable warmup during active firing
+        if (burstFiringActive || firingHelper.isFiring()) {
+            return false;
+        }
+        // Set a default target RPM for warmup (warmup runs at 65% of this)
+        // Using MID_RANGE as a good base for warmup
+        shooter.setTargetRPM(ShooterConfig.ShooterPreset.MID_RANGE.getTargetRPM());
+        shooter.enableWarmup();
+        return true;
+    }
+
+    /**
+     * Disable shooter warmup mode (stop shooter).
+     * Does not interfere with active firing - will be ignored if currently firing.
+     *
+     * @return true if warmup was disabled, false if ignored (e.g., during active firing)
+     */
+    public boolean disableShooterWarmup() {
+        // Don't disable during active firing
+        if (burstFiringActive || firingHelper.isFiring()) {
+            return false;
+        }
+        shooter.stopMotors();
+        return true;
+    }
+
+    /**
+     * Check if shooter is currently in warmup mode.
+     *
+     * @return true if shooter is warming up
+     */
+    public boolean isShooterWarmingUp() {
+        return shooter.isWarmingUp();
+    }
+
     // ========== Telemetry ==========
     
     /**

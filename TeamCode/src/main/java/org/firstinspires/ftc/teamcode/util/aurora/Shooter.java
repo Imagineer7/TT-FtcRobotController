@@ -139,6 +139,14 @@ public class Shooter {
     }
 
     /**
+     * Check if shooter is currently in warmup mode
+     * @return true if shooter is warming up
+     */
+    public boolean isWarmingUp() {
+        return decodeHelper.getState() == DecodeHelper.ShooterState.WARMUP;
+    }
+
+    /**
      * Stop the shooter
      */
     public void stop() {

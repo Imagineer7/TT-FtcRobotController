@@ -43,17 +43,10 @@ import org.firstinspires.ftc.teamcode.util.debug.LogLevel;
  *   DPAD LEFT  - Fine strafe left (slow, precise)
  *   DPAD RIGHT - Fine strafe right (slow, precise)
  *
- *   TURRET (Manual Auto-Gyro Only):
- *   A - Set turret to robot heading (point forward)
+ *   TURRET:
+ *   RIGHT BUMPER - Set turret to robot heading (point forward)
  *   B - Enable/disable auto-gyro mode (toggle)
  *
- *   X - Collect FRONT (with sensors)
- *   Y - Collect BACK (with sensors)
- *
- *   RIGHT BUMPER   - Toggle hunt mode
- *   LEFT BUMPER    - Toggle fast collect mode (skip color detection)
- *   RIGHT TRIGGER  - Transfer FRONT → CENTER
- *   LEFT TRIGGER   - Transfer BACK → CENTER
  *   GUIDE          - Hold to eject ALL (full system eject operation)
  *
  * GAMEPAD 2:
@@ -61,6 +54,9 @@ import org.firstinspires.ftc.teamcode.util.debug.LogLevel;
  *   DPAD DOWN - Hold to eject BACK intake (runs backward, clears ledger)
  *   DPAD LEFT - Manually add UNKNOWN artifact to CENTER (if empty)
  *   DPAD RIGHT - Manually remove artifact from CENTER (if occupied)
+ *
+ *   X - Toggle shooter warmup mode (edge detected)
+ *   RIGHT BUMPER - Toggle hunt mode (auto-collection)
  *
  *   A - Hold to fire SHORT range (2000 RPM)
  *   B - Hold to fire MID range (2300 RPM)
@@ -122,6 +118,8 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     
     // Button state tracking (gamepad2) - for edge detection
     private boolean lastGP2DpadLeft, lastGP2DpadRight;
+    private boolean lastGP2RightBumper;
+    private boolean lastGP2X;  // For shooter warmup toggle
 
     // Firing state tracking
     private boolean isFiring = false;  // True when firing sequence active
@@ -237,10 +235,11 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
         telemetry.addData("Initial Heading", String.format("%.1f°", initialHeading));
         telemetry.update();
 
-        autoGyroTurret.resetToForward(initialHeading);
+        // Enable turret first, then reset to forward
         autoGyroTurret.enable();
+        autoGyroTurret.resetToForward(initialHeading);
 
-        telemetry.addData("✅ Turret", "Initialized and enabled");
+        telemetry.addData("✅ Turret", "Initialized, enabled, and reset to forward");
         telemetry.update();
 
         Dbg.i(LogGroup.TEST, "Subsystems created successfully");
@@ -256,14 +255,12 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
         telemetry.addLine("Ready to test basic operations");
         telemetry.addLine();
         telemetry.addLine("TURRET CONTROLS (Gamepad 1):");
-        telemetry.addLine("  A: Set turret to robot heading");
+        telemetry.addLine("  Right Bumper: Set turret to robot heading");
         telemetry.addLine("  B: Toggle auto-gyro on/off");
+        telemetry.addLine("  Guide: Hold to eject ALL intakes");
         telemetry.addLine();
-        telemetry.addLine("COLLECTION (Gamepad 1):");
-        telemetry.addLine("  X: Collect FRONT");
-        telemetry.addLine("  Y: Collect BACK");
-        telemetry.addLine("  Right Trigger: Transfer FRONT → CENTER");
-        telemetry.addLine("  Left Trigger: Transfer BACK → CENTER");
+        telemetry.addLine("HUNT MODE (Gamepad 2):");
+        telemetry.addLine("  Right Bumper: Toggle hunt mode");
         telemetry.addLine();
         telemetry.addLine("(Press START on Driver Station to begin)");
         telemetry.update();
@@ -289,9 +286,11 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
         lastStart = false;
         lastGuide = false;
 
-        // Gamepad 2 button states (for center artifact management)
+        // Gamepad 2 button states (for center artifact management and hunt mode)
         lastGP2DpadLeft = false;
         lastGP2DpadRight = false;
+        lastGP2RightBumper = false;
+        lastGP2X = false;
 
         Dbg.setContext("V3BasicTest", "RUN");
         Dbg.i(LogGroup.TEST, "OpMode started - entering main loop");
@@ -313,18 +312,18 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             }
 
             // ═══════════════════════════════════════════════════════════════
-            // TURRET CONTROLS (GAMEPAD 1 - A and B buttons)
+            // TURRET CONTROLS (GAMEPAD 1 - RIGHT BUMPER and B buttons)
             // ═══════════════════════════════════════════════════════════════
 
-            // A Button - Set turret to robot heading (point forward)
+            // Right Bumper - Set turret to robot heading (point forward)
             // NO EDGE DETECTION - runs continuously when held
-            if (gamepad1.a) {
+            if (gamepad1.right_bumper) {
                 double targetHeading = robotHeading + 180;
                 autoGyroTurret.setFieldRelativeHeading(targetHeading, robotHeading);
                 autoGyroTurret.enable();
 
-                Dbg.everyMs(LogGroup.TEST, LogLevel.DEBUG, "turret_set_a", 500,
-                            "Button A held - turret target: %.1f° (robot: %.1f°)", targetHeading, robotHeading);
+                Dbg.everyMs(LogGroup.TEST, LogLevel.DEBUG, "turret_set_rb", 500,
+                            "Right Bumper held - turret target: %.1f° (robot: %.1f°)", targetHeading, robotHeading);
             }
 
             // B Button - Toggle auto-gyro mode on/off
@@ -401,12 +400,6 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
 
             drive.setMechanumPowers(forward, strafe, rotate);
 
-            // Handle collection
-            handleCollection();
-            
-            // Handle transfer
-            handleTransfer();
-            
             // Handle fire
             handleFire();
             
@@ -418,9 +411,9 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
 
             // Handle hunt mode toggle
             handleHuntMode();
-            
-            // Handle fast collect mode toggle
-            handleFastCollectMode();
+
+            // Handle shooter warmup toggle
+            handleShooterWarmup();
 
             // Handle telemetry page navigation
             handleTelemetryNavigation();
@@ -472,7 +465,7 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             boolean bCurrentlyPressed = gamepad1.b;
             boolean bEdgeDetected = bCurrentlyPressed && !lastB;
 
-            telemetry.addData("GP1 A (Set Heading)", gamepad1.a ? "PRESSED (continuous)" : "released");
+            telemetry.addData("GP1 RB (Set Heading)", gamepad1.right_bumper ? "PRESSED (continuous)" : "released");
 
             telemetry.addData("GP1 B (Toggle)", bCurrentlyPressed ? "PRESSED" : "released");
             telemetry.addData("  Last B", lastB ? "true" : "false");
@@ -494,60 +487,8 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     }
     
     // Manual injection removed - DPAD now used for fine drive movements
-    // Use sensors for artifact collection instead
+    // Collection and transfer removed from gamepad1 - use hunt mode for auto-collection
 
-    private void handleCollection() {
-        // X Button - Collect FRONT
-        if (gamepad1.x && !lastX) {
-            Dbg.i(LogGroup.TEST, "Collection request: FRONT");
-            boolean success = indexing.requestCollect(SlotLedger.Slot.FRONT);
-            if (success) {
-                Dbg.i(LogGroup.TEST, "Collection started: FRONT");
-            } else {
-                Dbg.w(LogGroup.TEST, "Collection rejected: FRONT (slot occupied or busy)");
-            }
-            telemetry.addLine(success ? "→ Collecting FRONT" : "❌ Cannot collect FRONT");
-        }
-
-        // Y Button - Collect BACK
-        if (gamepad1.y && !lastY) {
-            Dbg.i(LogGroup.TEST, "Collection request: BACK");
-            boolean success = indexing.requestCollect(SlotLedger.Slot.BACK);
-            if (success) {
-                Dbg.i(LogGroup.TEST, "Collection started: BACK");
-            } else {
-                Dbg.w(LogGroup.TEST, "Collection rejected: BACK (slot occupied or busy)");
-            }
-            telemetry.addLine(success ? "→ Collecting BACK" : "❌ Cannot collect BACK");
-        }
-    }
-    
-    private void handleTransfer() {
-        // Right Trigger - Transfer FRONT → CENTER
-        if (gamepad1.right_trigger > 0.5) {
-            Dbg.i(LogGroup.TEST, "Transfer request: FRONT → CENTER");
-            boolean success = indexing.requestTransfer(SlotLedger.Slot.FRONT);
-            if (success) {
-                Dbg.i(LogGroup.TEST, "Transfer started: FRONT → CENTER");
-            } else {
-                Dbg.w(LogGroup.TEST, "Transfer rejected: FRONT (slot empty, center full, or busy)");
-            }
-            telemetry.addLine(success ? "→ Transfer FRONT → CENTER" : "❌ Cannot transfer FRONT");
-        }
-
-        // Left Trigger - Transfer BACK → CENTER
-        if (gamepad1.left_trigger > 0.5) {
-            Dbg.i(LogGroup.TEST, "Transfer request: BACK → CENTER");
-            boolean success = indexing.requestTransfer(SlotLedger.Slot.BACK);
-            if (success) {
-                Dbg.i(LogGroup.TEST, "Transfer started: BACK → CENTER");
-            } else {
-                Dbg.w(LogGroup.TEST, "Transfer rejected: BACK (slot empty, center full, or busy)");
-            }
-            telemetry.addLine(success ? "→ Transfer BACK → CENTER" : "❌ Cannot transfer BACK");
-        }
-    }
-    
     private void handleFire() {
         // Hold-to-fire behavior using FiringHelper's built-in keep-alive mode
         // FiringHelper automatically handles spinup, firing, and keeping shooter alive
@@ -729,7 +670,7 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
     }
 
     private void handleHuntMode() {
-        if (gamepad1.right_bumper && !lastRightBumper) {
+        if (gamepad2.right_bumper && !lastGP2RightBumper) {
             boolean newState = indexing.toggleHuntEnabled();
             Dbg.i(LogGroup.TEST, "Hunt mode toggled: %s", newState ? "ENABLED" : "DISABLED");
             if (newState) {
@@ -739,15 +680,31 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
             }
         }
     }
-    
-    private void handleFastCollectMode() {
-        if (gamepad1.left_bumper && !lastLeftBumper) {
-            boolean newState = indexing.toggleSkipColorDetection();
-            Dbg.i(LogGroup.TEST, "Fast collect mode toggled: %s", newState ? "ENABLED" : "DISABLED");
-            if (newState) {
-                telemetry.addLine("⚡ Fast collect mode ENABLED (skip color detection)");
+
+    private void handleShooterWarmup() {
+        // GAMEPAD2 X - Toggle shooter warmup mode with edge detection
+        if (gamepad2.x && !lastGP2X) {
+            // Check if currently warming up
+            if (indexing.isShooterWarmingUp()) {
+                // Turn off warmup
+                boolean success = indexing.disableShooterWarmup();
+                if (success) {
+                    Dbg.i(LogGroup.TEST, "Shooter warmup DISABLED");
+                    telemetry.addLine("🔴 Shooter warmup OFF");
+                } else {
+                    Dbg.w(LogGroup.TEST, "Cannot disable warmup (firing active)");
+                    telemetry.addLine("⚠️ Cannot disable warmup during firing");
+                }
             } else {
-                telemetry.addLine("🎨 Fast collect mode DISABLED (detect color)");
+                // Turn on warmup
+                boolean success = indexing.enableShooterWarmup();
+                if (success) {
+                    Dbg.i(LogGroup.TEST, "Shooter warmup ENABLED");
+                    telemetry.addLine("🟢 Shooter warmup ON");
+                } else {
+                    Dbg.w(LogGroup.TEST, "Cannot enable warmup (firing active)");
+                    telemetry.addLine("⚠️ Cannot enable warmup during firing");
+                }
             }
         }
     }
@@ -779,8 +736,10 @@ public class IndexingSystemV3BasicTest extends LinearOpMode {
         lastBack = gamepad1.back;
         lastStart = gamepad1.start;
 
-        // Gamepad 2 button states (for center artifact management)
+        // Gamepad 2 button states (for center artifact management, hunt mode, and warmup)
         lastGP2DpadLeft = gamepad2.dpad_left;
         lastGP2DpadRight = gamepad2.dpad_right;
+        lastGP2RightBumper = gamepad2.right_bumper;
+        lastGP2X = gamepad2.x;
     }
 }
